@@ -53,39 +53,45 @@ class EmailService:
         if not plain_text:
             plain_text = "Please view this email in an HTML-compatible email client."
 
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{cfg['from_name']} <{cfg['from_email']}>"
-            msg["To"] = to_email
-            msg["Reply-To"] = f"{cfg['from_name']} <{cfg['from_email']}>"
-            msg["Date"] = formatdate(localtime=True)
-            msg["Message-ID"] = make_msgid(domain="gmail.com")
-            msg["Auto-Submitted"] = "auto-generated"
-            msg["X-Mailer"] = "AI Data Analyst Pro Security System v2026"
-            msg["X-Auto-Response-Suppress"] = "All"
-            msg["Precedence"] = "bulk"
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"{cfg['from_name']} <{cfg['from_email']}>"
+        msg["To"] = to_email
+        msg["Reply-To"] = f"{cfg['from_name']} <{cfg['from_email']}>"
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="gmail.com")
+        msg["Auto-Submitted"] = "auto-generated"
+        msg["X-Mailer"] = "AI Data Analyst Pro Security System v2026"
+        msg["X-Auto-Response-Suppress"] = "All"
+        msg["Precedence"] = "bulk"
 
-            text_part = MIMEText(plain_text, "plain", "utf-8")
-            html_part = MIMEText(html_body, "html", "utf-8")
+        text_part = MIMEText(plain_text, "plain", "utf-8")
+        html_part = MIMEText(html_body, "html", "utf-8")
+        msg.attach(text_part)
+        msg.attach(html_part)
 
-            msg.attach(text_part)
-            msg.attach(html_part)
+        ports_to_try = [465, 587] if cfg["port"] == 587 else [cfg["port"], 465, 587]
+        for port in ports_to_try:
+            try:
+                print(f"[SMTP] Attempting connection to {cfg['server']}:{port}...")
+                if port == 465:
+                    with smtplib.SMTP_SSL(cfg["server"], port, timeout=5) as smtp:
+                        smtp.login(cfg["user"], cfg["password"])
+                        smtp.sendmail(cfg["from_email"], [to_email], msg.as_string())
+                else:
+                    with smtplib.SMTP(cfg["server"], port, timeout=5) as smtp:
+                        smtp.ehlo()
+                        smtp.starttls()
+                        smtp.ehlo()
+                        smtp.login(cfg["user"], cfg["password"])
+                        smtp.sendmail(cfg["from_email"], [to_email], msg.as_string())
+                print(f"[SMTP SUCCESS] Executive Email delivered to Inbox: {to_email} via port {port}")
+                return True
+            except Exception as e:
+                print(f"[SMTP NOTICE] Port {port} failed: {e}")
+                continue
 
-            print(f"[SMTP] Connecting to SMTP server {cfg['server']}:{cfg['port']}...")
-            with smtplib.SMTP(cfg["server"], cfg["port"], timeout=10) as smtp:
-                smtp.ehlo()
-                smtp.starttls()
-                smtp.ehlo()
-                print(f"[SMTP AUTH] Authenticating user {cfg['user']}...")
-                smtp.login(cfg["user"], cfg["password"])
-                smtp.sendmail(cfg["from_email"], [to_email], msg.as_string())
-            print(f"[SMTP SUCCESS] Executive Email delivered to Inbox: {to_email}")
-            return True
-
-        except Exception as e:
-            print(f"[SMTP ERROR] Error sending email to {to_email}: {e}")
-            return False
+        return False
 
     def send_verification_email(self, to_email: str, user_name: str, otp_code: str, verification_link: str = None) -> bool:
         subject = f"{otp_code} is your AI Data Analyst Pro verification code"
