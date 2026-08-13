@@ -651,51 +651,69 @@ def get_latest_table(user_id=None) -> str:
         except Exception:
             pass
 
-    # Global fallback if no user_id or no dataset found for user
+    conn = get_connection()
     try:
-        from database.queries import get_table_names
-    except ModuleNotFoundError:
-        from queries import get_table_names
+        if isinstance(conn, SQLiteConnectionAdapter):
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+        else:
+            try:
+                from database.queries import get_table_names
+            except ModuleNotFoundError:
+                from queries import get_table_names
+            with get_db_cursor() as cursor:
+                cursor.execute(get_table_names())
+                tables = cursor.fetchall()
 
-    with get_db_cursor() as cursor:
-        cursor.execute(get_table_names())
-        tables = cursor.fetchall()
+        ignore = {
+            "Users", "UserProfiles", "UserSettings", "EmailVerificationTokens",
+            "PasswordResetTokens", "LoginHistory", "UserSessions", "AuditLogs",
+            "Datasets", "QueryLogs", "sysdiagrams", "sqlite_sequence"
+        }
+        csv_tables = [table[0] for table in tables if table[0] not in ignore]
 
-    ignore = {
-        "Users", "UserProfiles", "UserSettings", "EmailVerificationTokens",
-        "PasswordResetTokens", "LoginHistory", "UserSessions", "AuditLogs",
-        "Datasets", "QueryLogs", "sysdiagrams"
-    }
-    csv_tables = [table[0] for table in tables if table[0] not in ignore]
+        if not csv_tables:
+            return None
 
-    if not csv_tables:
-        return None
-
-    return csv_tables[-1]
+        return csv_tables[-1]
+    finally:
+        conn.close()
 
 
 def get_table_columns(table_name: str) -> list:
     """
     Return list of column names for a given table.
     """
-    try:
-        from database.queries import get_columns
-    except ModuleNotFoundError:
-        from queries import get_columns
-
     if not is_safe_identifier(table_name):
         return []
 
-    with get_db_cursor() as cursor:
-        cursor.execute(get_columns(), (table_name,))
-        columns = cursor.fetchall()
-
-    return [col[0] for col in columns]
+    conn = get_connection()
+    try:
+        if isinstance(conn, SQLiteConnectionAdapter):
+            with get_db_cursor() as cursor:
+                cursor.execute(f"PRAGMA table_info({sanitize_identifier(table_name)})")
+                cols = cursor.fetchall()
+                return [c[1] for c in cols] if cols else []
+        else:
+            try:
+                from database.queries import get_columns
+            except ModuleNotFoundError:
+                from queries import get_columns
+            with get_db_cursor() as cursor:
+                cursor.execute(get_columns(), (table_name,))
+                columns = cursor.fetchall()
+                return [col[0] for col in columns]
+    except Exception as e:
+        print(f"Error fetching columns for [{table_name}]:", e)
+        return []
+    finally:
+        conn.close()
 
 
 def get_table_preview(table_name: str, limit: int = 100, offset: int = 0) -> pd.DataFrame:
     """
-    Get preview rows of a table using OFFSET ... FETCH NEXT for sub-second pagination.
+    Get preview rows of a table using OFFSET ... FETCH NEXT or LIMIT OFFSET for sub-second pagination.
     """
     if not is_safe_identifier(table_name):
         return pd.DataFrame()
@@ -703,9 +721,15 @@ def get_table_preview(table_name: str, limit: int = 100, offset: int = 0) -> pd.
     safe_limit = max(1, min(int(limit), 1000))
     safe_offset = max(0, int(offset))
 
-    query = f"SELECT * FROM {sanitize_identifier(table_name)} ORDER BY (SELECT NULL) OFFSET {safe_offset} ROWS FETCH NEXT {safe_limit} ROWS ONLY"
+    conn = get_connection()
     try:
+        if isinstance(conn, SQLiteConnectionAdapter):
+            query = f"SELECT * FROM {sanitize_identifier(table_name)} LIMIT {safe_limit} OFFSET {safe_offset}"
+        else:
+            query = f"SELECT * FROM {sanitize_identifier(table_name)} ORDER BY (SELECT NULL) OFFSET {safe_offset} ROWS FETCH NEXT {safe_limit} ROWS ONLY"
         return run_query(query)
     except Exception as e:
         print(f"Error previewing table [{table_name}]:", e)
         return pd.DataFrame()
+    finally:
+        conn.close()

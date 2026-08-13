@@ -4,9 +4,13 @@ import io
 import gc
 import uuid
 import base64
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+except Exception:
+    matplotlib = None
+    plt = None
 import pandas as pd
 
 # Ensure workspace root is in sys.path
