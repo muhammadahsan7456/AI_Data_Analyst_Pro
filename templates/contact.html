@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Contact & Support | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Contact & Feedback{% endblock %}
+{% block header_subtitle %}Get in touch with engineering support or submit feature feedback.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 600px;">
+    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">📩 Contact Engineering Support</h2>
+
+    <form method="POST" action="#" onsubmit="event.preventDefault(); showToast('Thank you! Your message has been sent.', 'success');">
+        <div style="margin-bottom: 16px;">
+            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Your Name</label>
+            <input type="text" value="Muhammad Ahsan" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Email Address</label>
+            <input type="email" value="ahsan@example.com" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Message / Feedback</label>
+            <textarea rows="4" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-paper-plane"></i> Send Message
+        </button>
+    </form>
+</div>
+{% endblock %}

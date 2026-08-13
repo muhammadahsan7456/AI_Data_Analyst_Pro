@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Privacy Policy{% endblock %}
+{% block header_subtitle %}Information governance, data privacy, and SQL storage policies.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 800px; line-height: 1.8; color: var(--text-secondary);">
+    <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">🔒 Data Privacy & Protection Policy</h2>
+    <p>AI Data Analyst Pro ensures strict data isolation. Uploaded datasets are converted to dedicated SQL Server tables inside your local database environment and are never shared with third parties.</p>
+    <p style="margin-top: 12px;">Query data transmitted to OpenRouter LLM endpoints includes only database table schemas and sample values required for SQL translation.</p>
+</div>
+{% endblock %}

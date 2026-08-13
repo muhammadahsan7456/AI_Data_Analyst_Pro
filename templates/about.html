@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}About | AI Data Analyst Pro{% endblock %}
+{% block header_title %}About AI Data Analyst Pro{% endblock %}
+{% block header_subtitle %}Enterprise AI Analytics, Natural Language T-SQL Engine, and Data Intelligence SaaS.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 900px;">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+        <div class="sidebar-brand-icon" style="width: 56px; height: 56px; font-size: 28px;">
+            <i class="fa-solid fa-brain"></i>
+        </div>
+        <div>
+            <h2 style="font-size: 22px; font-weight: 800;">AI Data Analyst Pro v2.5 Enterprise</h2>
+            <p style="color: var(--text-secondary);">Production-Grade Commercial Data SaaS Solution</p>
+        </div>
+    </div>
+
+    <div style="line-height: 1.8; color: var(--text-secondary); display: flex; flex-direction: column; gap: 16px;">
+        <p>
+            <strong>AI Data Analyst Pro</strong> transforms raw spreadsheets and tabular datasets into actionable business intelligence using cutting-edge AI models, automated Microsoft SQL Server table creation, and self-correcting query execution loops.
+        </p>
+
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Core Platform Capabilities:</h3>
+        <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+            <li><strong>Automated Schema Engine:</strong> Reads CSV and Excel (.xlsx, .xls) files up to 100MB and creates optimized SQL Server tables dynamically.</li>
+            <li><strong>AI Natural Language to T-SQL:</strong> Converts plain English user questions into T-SQL queries with automated 3-attempt error-repair loops.</li>
+            <li><strong>Domain Guardrails:</strong> Strictly dataset-focused AI agent that refuses out-of-domain general knowledge requests.</li>
+            <li><strong>Multi-Format Exporters:</strong> Generates executive PDF reports via ReportLab, styled multi-sheet Excel workbooks via openpyxl, CSV data files, and scalable SVG/PNG charts.</li>
+            <li><strong>8 Visualization Types:</strong> Automatically detects feature distributions and renders Bar, Line, Scatter, Pie, Histogram, Box Plot, Area, and Correlation Heatmaps.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

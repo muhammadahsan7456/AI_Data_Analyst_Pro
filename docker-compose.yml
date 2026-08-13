@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_SERVER=db
+      - DB_NAME=AI_Data_Analyst_Pro
+      - DB_USER=sa
+      - DB_PASSWORD=StrongPassword123!
+      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - DB_TRUSTED_CONNECTION=no
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql_server_db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=StrongPassword123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    restart: always

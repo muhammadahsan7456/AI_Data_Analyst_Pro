@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Verify Your Email{% endblock %}
+{% block header_subtitle %}Please enter the 6-digit verification code sent to your email address.{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; min-height: 75vh; padding: 20px 0;">
+    <div class="table-card glass-card" style="width: 100%; max-width: 520px; border-top: 4px solid var(--accent-blue); box-shadow: var(--shadow-lg); text-align: center; padding: 36px 30px;">
+        
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-size: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 2px solid #bfdbfe;">
+            <i class="fa-solid fa-envelope-open-text"></i>
+        </div>
+
+        <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary);">Verify Your Email</h2>
+        
+        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; line-height: 1.6;">
+            We've sent a 6-digit verification code to<br>
+            <strong style="color: var(--accent-blue); font-size: 16px;">
+                {% if pending_otp and pending_otp.email %}
+                {{ pending_otp.email }}
+                {% else %}
+                your email address
+                {% endif %}
+            </strong>
+        </p>
+
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" id="otp-form">
+            <input type="hidden" name="otp_code" id="otp_code_full">
+
+            <!-- 6 Separate Input Boxes for OTP -->
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 24px;" id="otp-boxes-container">
+                <input type="text" maxlength="1" pattern="[0-9]" class="otp-box-digit" id="digit1" name="digit1" autocomplete="off" required>
+                <input type="text" maxlength="1" pattern="[0-9]" class="otp-box-digit" id="digit2" name="digit2" autocomplete="off" required>
+                <input type="text" maxlength="1" pattern="[0-9]" class="otp-box-digit" id="digit3" name="digit3" autocomplete="off" required>
+                <input type="text" maxlength="1" pattern="[0-9]" class="otp-box-digit" id="digit4" name="digit4" autocomplete="off" required>
+                <input type="text" maxlength="1" pattern="[0-9]" class="otp-box-digit" id="digit5" name="digit5" autocomplete="off" required>
+                <input type="text" maxlength="1" pattern="[0-9]" class="otp-box-digit" id="digit6" name="digit6" autocomplete="off" required>
+            </div>
+
+            <!-- Timer Display -->
+            <div style="margin-bottom: 24px; font-size: 14px; font-weight: 600; color: var(--text-secondary);" id="timer-container">
+                <i class="fa-regular fa-clock" style="color: var(--accent-blue); margin-right: 6px;"></i>
+                <span id="timer-status">Code expires in <strong id="countdown-timer" style="color: #2563eb;">09:59</strong></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-verify" style="width: 100%; padding: 14px; font-size: 16px; font-weight: 700; border-radius: 10px; margin-bottom: 16px;">
+                <i class="fa-solid fa-circle-check"></i> Verify Code & Continue
+            </button>
+        </form>
+
+        <!-- Resend OTP Form & Links -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <form method="POST" action="{{ url_for('auth.resend_otp') }}" id="resend-form" style="width: 100%;">
+                <button type="submit" class="btn btn-secondary" id="btn-resend" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px;">
+                    <i class="fa-solid fa-arrows-rotate"></i> Resend Verification Code
+                </button>
+            </form>
+
+            <div style="display: flex; justify-content: space-between; width: 100%; font-size: 13px; margin-top: 6px;">
+                <a href="{{ url_for('auth.signup', change_email=1) }}" style="color: var(--text-muted); text-decoration: none;">
+                    <i class="fa-solid fa-user-pen"></i> Change Email
+                </a>
+                <a href="{{ url_for('auth.login') }}" style="color: var(--accent-blue); font-weight: 600; text-decoration: none;">
+                    Back to Login <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+.otp-box-digit {
+    width: 52px;
+    height: 60px;
+    text-align: center;
+    font-size: 26px;
+    font-weight: 800;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+.otp-box-digit:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 10px rgba(37,99,235,0.25);
+    background: var(--bg-card);
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const boxes = Array.from(document.querySelectorAll(".otp-box-digit"));
+    const fullInput = document.getElementById("otp_code_full");
+    const form = document.getElementById("otp-form");
+
+    if (boxes.length > 0) {
+        boxes[0].focus();
+
+        boxes.forEach((box, index) => {
+            box.addEventListener("input", function (e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+
+                if (this.value.length === 1) {
+                    if (index < boxes.length - 1) {
+                        boxes[index + 1].focus();
+                    }
+                }
+
+                updateFullCode();
+
+                if (getCombinedCode().length === 6) {
+                    form.submit();
+                }
+            });
+
+            box.addEventListener("keydown", function (e) {
+                if (e.key === "Backspace" && !this.value && index > 0) {
+                    boxes[index - 1].focus();
+                }
+            });
+
+            box.addEventListener("paste", function (e) {
+                e.preventDefault();
+                const pasteData = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, '').trim();
+
+                if (pasteData.length > 0) {
+                    const digits = pasteData.slice(0, 6).split("");
+                    digits.forEach((d, idx) => {
+                        if (boxes[idx]) boxes[idx].value = d;
+                    });
+
+                    if (digits.length < boxes.length) {
+                        boxes[digits.length].focus();
+                    } else {
+                        boxes[5].focus();
+                    }
+
+                    updateFullCode();
+
+                    if (digits.length === 6) {
+                        form.submit();
+                    }
+                }
+            });
+        });
+    }
+
+    function getCombinedCode() {
+        return boxes.map(b => b.value.trim()).join("");
+    }
+
+    function updateFullCode() {
+        if (fullInput) fullInput.value = getCombinedCode();
+    }
+
+    // 10-Minute Countdown Timer
+    let totalSeconds = 600; // 10 minutes
+    const timerElem = document.getElementById("countdown-timer");
+    const timerStatus = document.getElementById("timer-status");
+    const btnResend = document.getElementById("btn-resend");
+
+    const interval = setInterval(function () {
+        totalSeconds--;
+
+        if (totalSeconds <= 0) {
+            clearInterval(interval);
+            if (timerStatus) {
+                timerStatus.innerHTML = '<span style="color: #ef4444; font-weight: 700;">⚠️ Your verification code has expired.</span>';
+            }
+            if (btnResend) {
+                btnResend.classList.add("btn-primary");
+                btnResend.classList.remove("btn-secondary");
+                btnResend.style.boxShadow = "0 0 12px rgba(239,68,68,0.3)";
+            }
+        } else {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            if (timerElem) {
+                timerElem.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+        }
+    }, 1000);
+});
+</script>
+{% endblock %}

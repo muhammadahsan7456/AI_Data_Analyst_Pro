@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}500 Server Error | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Server Error{% endblock %}
+{% block header_subtitle %}An internal error occurred while processing your request.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 600px; margin: 40px auto; text-align: center; padding: 48px 32px;">
+    <div style="font-size: 56px; color: var(--accent-red); margin-bottom: 12px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Internal Server Error</h2>
+    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Our system encountered an unexpected error. Our monitoring system has logged the details.</p>
+    {% if error %}
+    <div style="background: var(--bg-primary); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; color: var(--accent-red); margin-bottom: 24px; text-align: left; overflow-x: auto;">
+        {{ error }}
+    </div>
+    {% endif %}
+    <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-primary">
+        <i class="fa-solid fa-house"></i> Return to Dashboard
+    </a>
+</div>
+{% endblock %}

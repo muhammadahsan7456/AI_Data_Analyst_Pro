@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation & Platform Guide | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Enterprise Platform Documentation{% endblock %}
+{% block header_subtitle %}Comprehensive User Guide, Voice AI Architecture, Multi-Format Parsing & Analytical Documentation{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- Overview Banner -->
+    <div class="table-card" style="border-left: 4px solid var(--accent-blue); background: var(--bg-surface);">
+        <h2 style="font-size: 22px; font-weight: 800; color: var(--accent-blue); margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-book-open-reader"></i> Platform Architecture & User Guide
+        </h2>
+        <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.7;">
+            Welcome to the <strong>AI Data Analyst Pro</strong> official documentation. This enterprise analytics platform transforms multi-format raw datasets into instant T-SQL intelligence, automated dark-theme visualizations, voice-driven insights, and executive reports in real-time.
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+
+        <!-- Section 1: Data Upload & File Formats -->
+        <div class="table-card">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--accent-purple); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-cloud-arrow-up"></i> 1. Multi-Format Dataset Uploader
+            </h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                The uploader automatically detects file encodings, cleans header column names, and provisions a isolated physical table inside SQL Server.
+            </p>
+            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+                <strong>Supported Extensions & Types:</strong>
+                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
+                    <li><code>CSV (.csv)</code> & <code>TSV (.tsv)</code> — Auto-detected delimiters</li>
+                    <li><code>Excel (.xlsx, .xls)</code> — Multi-sheet support</li>
+                    <li><code>JSON (.json)</code> & <code>XML (.xml)</code> — Hierarchical flattening</li>
+                    <li><code>Parquet (.parquet)</code> & <code>Feather (.feather)</code> — High-speed columnar data</li>
+                    <li><code>Text (.txt)</code> — Fixed-width & delimited text files</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 2: Voice AI & Natural Language Querying -->
+        <div class="table-card">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--accent-blue); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-microphone-lines"></i> 2. Voice AI & Fast Query Engine
+            </h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                Ask questions using voice or text in natural English or Roman Urdu. The engine normalizes speech typos and executes queries in sub-second time.
+            </p>
+            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+                <strong>Query Syntax & Voice Examples:</strong>
+                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
+                    <li><code>"top 10 rows"</code> or <code>"top 5 ross"</code> ➔ Instant T-SQL Top N</li>
+                    <li><code>"mujhe sales ka data dikhao"</code> ➔ Column Search & Aggregation</li>
+                    <li><code>"Count total records"</code> ➔ <code>SELECT COUNT(*) FROM [...]</code></li>
+                    <li><code>"Show top customers by revenue"</code> ➔ Grouped T-SQL aggregation</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 3: Visual Analytics & Charting -->
+        <div class="table-card">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--accent-green); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-pie"></i> 3. Enterprise Dark Visualizations
+            </h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                Every analytical response automatically generates high-resolution enterprise chart visualizations with numerical callout values.
+            </p>
+            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+                <strong>Chart Types Supported:</strong>
+                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
+                    <li><strong>Bar & Column Charts</strong> — Categorical distributions & Top N</li>
+                    <li><strong>Line & Area Charts</strong> — Trend analysis & temporal patterns</li>
+                    <li><strong>Pie & Donut Charts</strong> — Proportional share breakdowns</li>
+                    <li><strong>Scatter Plots & Histograms</strong> — Distribution & correlation</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 4: Export Center -->
+        <div class="table-card">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--accent-amber); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-file-export"></i> 4. Full Export Center
+            </h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                Download complete dataset records and generated reports across multiple executive document formats with full embedded charts.
+            </p>
+            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+                <strong>Available Formats:</strong>
+                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
+                    <li><code>Excel (.xlsx)</code> — Clean formatted sheets with summary KPI tab</li>
+                    <li><code>PDF Report</code> — Executive layout with AI insights & high-res chart</li>
+                    <li><code>Word (.docx)</code> & <code>PowerPoint (.pptx)</code> — Slide decks & docs</li>
+                    <li><code>Vector SVG (.svg)</code> & <code>CSV (.csv)</code> — Raw data streams</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

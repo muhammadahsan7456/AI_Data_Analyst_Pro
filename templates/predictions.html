@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}AI Predictions & Forecasting | Enterprise BI{% endblock %}
+{% block header_title %}AI Forecasting & Prediction Engine{% endblock %}
+{% block header_subtitle %}Time-series predictions for Sales, Revenue, Customers, Inventory, Orders, and Profit with 95% Confidence Intervals.{% endblock %}
+
+{% block content %}
+<div class="cards-grid" style="margin-bottom: 32px;">
+    <!-- Dataset Selector Form -->
+    <div class="table-card" style="grid-column: span 3; margin-bottom: 0;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-purple);"></i> Generate New Forecast
+        </h3>
+
+        <form method="POST" action="{{ url_for('frontend.predictions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Select Dataset</label>
+                <select name="dataset_id" required style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                    {% for ds in user_datasets %}
+                    <option value="{{ ds[0] }}" {% if selected_dataset and selected_dataset[0] == ds[0] %}selected{% endif %}>{{ ds[1] }} (File: {{ ds[2] }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Forecast Time Horizon</label>
+                <select name="forecast_days" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                    <option value="7" {% if forecast_days == 7 %}selected{% endif %}>7 Days (Short-term)</option>
+                    <option value="30" {% if forecast_days == 30 or not forecast_days %}selected{% endif %}>30 Days (Monthly Trend)</option>
+                    <option value="90" {% if forecast_days == 90 %}selected{% endif %}>90 Days (Quarterly)</option>
+                    <option value="365" {% if forecast_days == 365 %}selected{% endif %}>365 Days (1 Year Annual)</option>
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">
+                    <i class="fa-solid fa-chart-line"></i> Run AI Prediction
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if result and result.success %}
+<!-- Forecast Results Panel -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 32px;">
+    
+    <!-- Chart -->
+    <div class="table-card" style="margin-bottom: 0;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fa-solid fa-chart-area" style="color: var(--accent-blue);"></i> Forecast Visualization</span>
+            <span class="badge badge-info">{{ result.algorithm_used }}</span>
+        </h3>
+        <img src="{{ result.chart_path }}" alt="Prediction Chart" style="width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="table-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">
+                <i class="fa-solid fa-calculator" style="color: var(--accent-green);"></i> Prediction Metrics
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: var(--radius-sm);">
+                    <div style="font-size: 12px; color: var(--text-muted);">Target Metric Column</div>
+                    <div style="font-size: 18px; font-weight: 700; color: var(--accent-blue);">{{ result.target_col }}</div>
+                </div>
+
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: var(--radius-sm);">
+                    <div style="font-size: 12px; color: var(--text-muted);">Expected Trend Growth</div>
+                    <div style="font-size: 20px; font-weight: 700; color: {% if result.pct_growth is defined and result.pct_growth and result.pct_growth >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                        {% if result.pct_growth is defined and result.pct_growth and result.pct_growth >= 0 %}
+                            📈 +{{ result.pct_growth }}%
+                        {% else %}
+                            📉 {{ result.pct_growth if result.pct_growth is defined else 0 }}%
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: var(--radius-sm);">
+                    <div style="font-size: 12px; color: var(--text-muted);">Projected Sum (Next {{ result.forecast_days }} Days)</div>
+                    <div style="font-size: 18px; font-weight: 700; color: var(--accent-purple);">
+                        {{ result.forecast_total }}
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: var(--radius-sm);">
+                    <div style="font-size: 12px; color: var(--text-muted);">Historical Anomalies Detected</div>
+                    <div style="font-size: 16px; font-weight: 700; color: var(--accent-amber);">{{ result.anomalies_detected }} outliers (IQR)</div>
+                </div>
+            </div>
+        </div>
+
+        {% if selected_dataset %}
+        <div style="margin-top: 20px;">
+            <a href="{{ url_for('frontend.export_dataset', dataset_id=selected_dataset[0], format_type='pdf') }}" class="btn btn-secondary" style="width: 100%; text-align: center;">
+                <i class="fa-solid fa-file-pdf" style="color: red;"></i> Download Prediction PDF
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Forecast Days Table Preview -->
+<div class="table-card">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">
+        <i class="fa-solid fa-table-list" style="color: var(--accent-blue);"></i> Daily Projected Values Preview
+    </h3>
+    
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th>Date / Time Horizon</th>
+                <th>Projected {{ result.target_col }} Value</th>
+                <th>Confidence Bound (95%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dt, val in result.forecast_preview %}
+            <tr>
+                <td><strong>{{ dt }}</strong></td>
+                <td><span style="color: var(--accent-blue); font-weight: 700;">{{ val }}</span></td>
+                <td><span class="badge badge-info">± {{ (val * 0.05)|round(2) }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% elif result and not result.success %}
+<div class="table-card" style="border-left: 4px solid var(--accent-red);">
+    <h3 style="color: var(--accent-red); font-size: 16px; font-weight: 700; margin-bottom: 8px;">Prediction Notice</h3>
+    <p style="color: var(--text-secondary); margin: 0;">{{ result.error }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

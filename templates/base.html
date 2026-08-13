@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ user_settings[2] if user_settings else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Data Analyst Pro{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20260730_v3">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div>
+                <div class="sidebar-header">
+                    <div class="sidebar-brand-icon">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <div class="sidebar-title">AI Analyst Pro</div>
+                </div>
+
+                <ul class="sidebar-menu">
+                    {% if is_logged_in %}
+                    <li>
+                        <a href="{{ url_for('frontend.dashboard') }}" class="sidebar-link {% if request.endpoint == 'frontend.dashboard' %}active{% endif %}">
+                            <i class="fa-solid fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.upload') }}" class="sidebar-link {% if request.endpoint == 'frontend.upload' %}active{% endif %}">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Dataset
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.chat') }}" class="sidebar-link {% if request.endpoint == 'frontend.chat' %}active{% endif %}">
+                            <i class="fa-solid fa-robot"></i> Ask AI Query
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.predictions') }}" class="sidebar-link {% if request.endpoint == 'frontend.predictions' %}active{% endif %}">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Forecasting
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.settings_enterprise') }}" class="sidebar-link {% if request.endpoint == 'frontend.settings_enterprise' %}active{% endif %}">
+                            <i class="fa-solid fa-shield-halved"></i> Privacy & Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.profile') }}" class="sidebar-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                            <i class="fa-solid fa-user-gear"></i> Profile & Account
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.security') }}" class="sidebar-link {% if request.endpoint == 'auth.security' %}active{% endif %}">
+                            <i class="fa-solid fa-lock"></i> Security & Sessions
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li>
+                        <a href="{{ url_for('frontend.docs') }}" class="sidebar-link {% if request.endpoint == 'frontend.docs' %}active{% endif %}">
+                            <i class="fa-solid fa-book-open"></i> Documentation
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.health') }}" class="sidebar-link {% if request.endpoint == 'frontend.health' %}active{% endif %}">
+                            <i class="fa-solid fa-heart-pulse"></i> System Health
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.help_center') }}" class="sidebar-link {% if request.endpoint == 'frontend.help_center' %}active{% endif %}">
+                            <i class="fa-solid fa-circle-question"></i> Help & FAQ
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.about') }}" class="sidebar-link {% if request.endpoint == 'frontend.about' %}active{% endif %}">
+                            <i class="fa-solid fa-circle-info"></i> About
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                {% if is_logged_in and current_user %}
+                <div style="padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                    <a href="{{ url_for('auth.profile') }}" style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+                        {% if current_user[10] %}
+                        <img src="{{ url_for('frontend.static', filename=current_user[10]) }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+                            {{ (current_user[4][0] if current_user[4] else 'U')|upper }}
+                        </div>
+                        {% endif %}
+                        <div style="overflow: hidden;">
+                            <div style="font-weight: 700; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{{ current_user[4] }}</div>
+                            <div style="font-size: 11px; color: var(--accent-blue); font-weight: 600;">Active Account</div>
+                        </div>
+                    </a>
+                </div>
+
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center; margin-bottom: 12px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                </a>
+                {% else %}
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm" style="justify-content: center;">
+                        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                    </a>
+                    <a href="{{ url_for('auth.signup') }}" class="btn btn-secondary btn-sm" style="justify-content: center;">
+                        <i class="fa-solid fa-user-plus"></i> Create Account
+                    </a>
+                </div>
+                {% endif %}
+
+                <button class="theme-toggle-btn" id="theme-toggle" style="width: 100%; justify-content: center;">
+                    <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar Backdrop for Mobile -->
+        <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button id="mobile-sidebar-toggle" class="mobile-sidebar-btn" title="Toggle Navigation Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="page-header">
+                        <h1>{% block header_title %}AI Data Analyst Pro{% endblock %}</h1>
+                        <p>{% block header_subtitle %}Enterprise AI Analytics & SQL Intelligence Platform{% endblock %}</p>
+                    </div>
+                </div>
+
+                {% if is_logged_in %}
+                <!-- Top Bar Right Action Controls & Notification Center Trigger -->
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <button id="btn-notification-center" class="btn-notif-trigger" title="AI Notification Center" style="position: relative; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-color); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease;">
+                        <i class="fa-solid fa-bell" style="font-size: 18px; color: var(--accent-blue);"></i>
+                        <span id="notif-badge-count" class="notif-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 10px; border: 2px solid var(--bg-card);">0</span>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="toast toast-{{ category }}" style="margin-bottom: 20px;">
+                            <span>{% if category == 'error' %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
+                            <span>{{ message|safe }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- NOTIFICATION CENTER DRAWER / MODAL -->
+    <div id="notif-drawer-backdrop" class="notif-drawer-backdrop" style="display: none;"></div>
+    <div id="notif-drawer" class="notif-drawer" style="display: none;">
+        <div class="notif-drawer-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-bell-concierge" style="color: var(--accent-blue); font-size: 20px;"></i>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">AI Notification Center</h3>
+            </div>
+            <button id="notif-drawer-close" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-color);"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="notif-drawer-actions">
+            <button id="btn-mark-all-read" class="btn btn-secondary btn-sm" style="font-size: 12px;"><i class="fa-solid fa-check-double"></i> Mark Read</button>
+            <button id="btn-clear-notifications" class="btn btn-secondary btn-sm" style="font-size: 12px; color: #ef4444;"><i class="fa-solid fa-trash-can"></i> Clear History</button>
+        </div>
+        <div id="notif-drawer-list" class="notif-drawer-list">
+            <!-- Rendered by client JS -->
+        </div>
+    </div>
+
+    <!-- Loading Overlay Spinner -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="loading-text" style="margin-top: 16px; font-weight: 600;">Processing request...</p>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('frontend.static', filename='js/app.js') }}?v=20260807_v4"></script>
+    <script src="{{ url_for('frontend.static', filename='js/voice_ai.js') }}?v=20260807_v4"></script>
+
+    {% if session.get('toast') %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof showToast === 'function') {
+                showToast("{{ session['toast']['message'] }}", "{{ session['toast']['type'] }}", "{{ session['toast']['title'] }}");
+            }
+        });
+    </script>
+    {% set _ = session.pop('toast', None) %}
+    {% endif %}
+</body>
+</html>

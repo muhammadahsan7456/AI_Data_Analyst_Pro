@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}404 Page Not Found | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Page Not Found{% endblock %}
+{% block header_subtitle %}The page you are looking for does not exist or has been moved.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 550px; margin: 40px auto; text-align: center; padding: 48px 32px;">
+    <div style="font-size: 64px; color: var(--accent-purple); font-weight: 800; margin-bottom: 12px;">404</div>
+    <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Resource Not Found</h2>
+    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">The requested dataset, route, or resource could not be found.</p>
+    <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-primary">
+        <i class="fa-solid fa-house"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock %}

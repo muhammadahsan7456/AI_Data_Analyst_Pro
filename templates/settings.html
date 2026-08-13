@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Account Preferences & Settings{% endblock %}
+{% block header_subtitle %}Customize application theme, date display formats, and default export behaviors.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 650px;">
+    <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 20px;">⚙ Application & Workspace Preferences</h2>
+
+    <form method="POST" action="{{ url_for('auth.settings') }}">
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: 700; display: block; margin-bottom: 8px;">Interface Theme Mode</label>
+            <select name="theme" style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                <option value="light" {% if settings and settings[2] == 'light' %}selected{% endif %}>☀️ Light Mode (Default)</option>
+                <option value="dark" {% if settings and settings[2] == 'dark' %}selected{% endif %}>🌙 Dark Mode</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: 700; display: block; margin-bottom: 8px;">Date Display Format</label>
+            <select name="date_format" style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                <option value="YYYY-MM-DD" {% if settings and settings[3] == 'YYYY-MM-DD' %}selected{% endif %}>YYYY-MM-DD (2026-07-26)</option>
+                <option value="DD/MM/YYYY" {% if settings and settings[3] == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY (26/07/2026)</option>
+                <option value="MM/DD/YYYY" {% if settings and settings[3] == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY (07/26/2026)</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: 700; display: block; margin-bottom: 8px;">Default Dataset Export Format</label>
+            <select name="default_export" style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                <option value="csv" {% if settings and settings[4] == 'csv' %}selected{% endif %}>CSV (.csv)</option>
+                <option value="excel" {% if settings and settings[4] == 'excel' %}selected{% endif %}>Excel (.xlsx)</option>
+                <option value="pdf" {% if settings and settings[4] == 'pdf' %}selected{% endif %}>PDF Executive Report (.pdf)</option>
+                <option value="svg" {% if settings and settings[4] == 'svg' %}selected{% endif %}>SVG Vector Chart (.svg)</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label style="font-weight: 700; display: block; margin-bottom: 8px;">Preferred Visualization Chart</label>
+            <select name="chart_pref" style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                <option value="bar" {% if settings and settings[5] == 'bar' %}selected{% endif %}>Bar Chart</option>
+                <option value="line" {% if settings and settings[5] == 'line' %}selected{% endif %}>Line Chart</option>
+                <option value="pie" {% if settings and settings[5] == 'pie' %}selected{% endif %}>Pie Chart</option>
+                <option value="heatmap" {% if settings and settings[5] == 'heatmap' %}selected{% endif %}>Correlation Heatmap</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 15px;">
+            <i class="fa-solid fa-floppy-disk"></i> Save Preferences
+        </button>
+    </form>
+</div>
+{% endblock %}

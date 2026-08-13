@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Account Security | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Account Security & Device Sessions{% endblock %}
+{% block header_subtitle %}Monitor active sessions, IP login history, browser user-agents, and audit logs.{% endblock %}
+
+{% block content %}
+<!-- Active Device Sessions Header Card -->
+<div class="table-card" style="border-left: 4px solid var(--accent-green); margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h3 style="font-size: 18px; font-weight: 800; color: var(--accent-green); margin-bottom: 4px;">
+                <i class="fa-solid fa-shield-halved"></i> Active Device Sessions
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Review devices currently logged into your account.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.security') }}">
+            <input type="hidden" name="action" value="logout_other_devices">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Log out of all other active sessions across browsers and devices?')">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout Other Devices
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Login History Log Table -->
+<div class="table-card" style="margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-blue);"></i> Recent Login History
+    </h3>
+    
+    {% if login_history %}
+    <div class="table-container">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>IP Address</th>
+                    <th>Browser</th>
+                    <th>Operating System</th>
+                    <th>Device</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lh in login_history %}
+                <tr>
+                    <td><strong>#{{ lh[0] }}</strong></td>
+                    <td><code style="background: var(--bg-primary); padding: 2px 6px; border-radius: 4px;">{{ lh[1] }}</code></td>
+                    <td>{{ lh[3] }}</td>
+                    <td>{{ lh[4] }}</td>
+                    <td>{{ lh[5] }}</td>
+                    <td>
+                        {% if lh[6] == 'Success' %}
+                        <span class="badge badge-success">Success</span>
+                        {% elif lh[6] == 'Locked' %}
+                        <span class="badge badge-danger">Account Locked</span>
+                        {% else %}
+                        <span class="badge badge-warning">Failed Attempt</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ lh[7]|string }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted);">No login history records found.</p>
+    {% endif %}
+</div>
+
+<!-- Security Audit Logs Table -->
+<div class="table-card">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-list-check" style="color: var(--accent-purple);"></i> System Security Audit Logs
+    </h3>
+
+    {% if audit_logs %}
+    <div class="table-container">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>Action</th>
+                    <th>Event Details</th>
+                    <th>IP Address</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td><strong>#{{ log[0] }}</strong></td>
+                    <td><span class="badge badge-info">{{ log[1] }}</span></td>
+                    <td>{{ log[2] }}</td>
+                    <td><code>{{ log[3] }}</code></td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ log[4]|string }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted);">No audit events logged yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
