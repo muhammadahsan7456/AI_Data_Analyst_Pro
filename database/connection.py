@@ -26,17 +26,38 @@ class SQLiteCursorAdapter:
         s = str(sql)
 
         def replace_dateadd(match):
-            num = match.group(1).strip()
-            if num.startswith("-"):
-                return f"datetime('now', '{num} minutes')"
+            unit = match.group(1).lower()
+            num = match.group(2).strip()
+            if unit in ("day", "days", "dd", "d"):
+                unit_str = "days"
+            elif unit in ("minute", "minutes", "mi", "n"):
+                unit_str = "minutes"
+            elif unit in ("hour", "hours", "hh"):
+                unit_str = "hours"
+            elif unit in ("month", "months", "mm", "m"):
+                unit_str = "months"
+            elif unit in ("second", "seconds", "ss", "s"):
+                unit_str = "seconds"
+            elif unit in ("year", "years", "yy", "yyyy"):
+                unit_str = "years"
             else:
-                return f"datetime('now', '+{num} minutes')"
+                unit_str = "days"
 
-        s = re.sub(r"DATEADD\s*\(\s*MINUTE\s*,\s*(-?\d+)\s*,\s*(?:GETDATE\(\)|CURRENT_TIMESTAMP)\s*\)", replace_dateadd, s, flags=re.IGNORECASE)
+            if num.startswith("-"):
+                return f"datetime('now', '{num} {unit_str}')"
+            else:
+                return f"datetime('now', '+{num} {unit_str}')"
+
+        s = re.sub(r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(?:GETDATE\(\)|CURRENT_TIMESTAMP)\s*\)", replace_dateadd, s, flags=re.IGNORECASE)
         s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
         s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
-        s = re.sub(r"TOP\s+(\d+)", r"LIMIT \1", s, flags=re.IGNORECASE)
         s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
+
+        top_match = re.search(r"SELECT\s+TOP\s+\(?(\d+)\)?\s+(.*)", s, flags=re.IGNORECASE | re.DOTALL)
+        if top_match:
+            limit_val = top_match.group(1)
+            rest_sql = top_match.group(2)
+            s = f"SELECT {rest_sql.strip()} LIMIT {limit_val}"
 
         self._cursor.execute(s, params or ())
         if self._cursor.lastrowid:
