@@ -2,9 +2,13 @@ import io
 import re
 import gc
 import base64
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+except Exception:
+    matplotlib = None
+    plt = None
 import pandas as pd
 import numpy as np
 

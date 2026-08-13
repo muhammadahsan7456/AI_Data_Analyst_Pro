@@ -291,21 +291,54 @@ def generate_create_table_query(table_name: str, dataframe: pd.DataFrame) -> str
 
 def create_table(table_name: str, dataframe: pd.DataFrame):
     """
-    Create SQL table dynamically.
+    Create SQL table dynamically supporting both SQL Server and SQLite cloud fallback.
     """
-    query = generate_create_table_query(table_name, dataframe)
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute(query)
+    conn = get_connection()
+    try:
+        if type(conn).__name__ == "SQLiteConnectionAdapter":
+            columns_sql = []
+            dataframe.columns = [clean_column_name(col) for col in dataframe.columns]
+            for column in dataframe.columns:
+                sql_type = detect_column_type(dataframe[column])
+                if "BIT" in sql_type:
+                    sqlite_type = "INTEGER"
+                elif "INT" in sql_type:
+                    sqlite_type = "INTEGER"
+                elif "DECIMAL" in sql_type or "FLOAT" in sql_type:
+                    sqlite_type = "REAL"
+                else:
+                    sqlite_type = "TEXT"
+                columns_sql.append(f"{sanitize_identifier(column)} {sqlite_type}")
+
+            columns_body = ",\n        ".join(columns_sql)
+            safe_table = sanitize_identifier(table_name)
+
+            cursor = conn.cursor()
+            cursor.execute(f"DROP TABLE IF EXISTS {safe_table};")
+            cursor.execute(f"""
+            CREATE TABLE {safe_table}
+            (
+                RecordID INTEGER PRIMARY KEY AUTOINCREMENT,
+                {columns_body}
+            );
+            """)
+            conn.commit()
+        else:
+            query = generate_create_table_query(table_name, dataframe)
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(query)
+    finally:
+        conn.close()
 
 
 def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     """
-    Clean DataFrame before inserting into SQL Server.
+    Clean DataFrame before inserting into SQL Server or SQLite.
     """
     df = dataframe.copy()
     df.columns = [clean_column_name(col) for col in df.columns]
 
-    # Replace NaN, NaT, Inf with None for PyODBC compatibility
+    # Replace NaN, NaT, Inf with None for DBAPI compatibility
     df = df.where(pd.notnull(df), None)
 
     for col in df.columns:
@@ -319,13 +352,14 @@ def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 def insert_dataframe(table_name: str, dataframe: pd.DataFrame):
     """
-    Insert DataFrame into SQL Server safely using parameterized batching and garbage collection.
+    Insert DataFrame into SQL Server / SQLite safely using parameterized batching and garbage collection.
     """
     df = clean_dataframe(dataframe)
     
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.fast_executemany = True
+    if hasattr(cursor, "fast_executemany"):
+        cursor.fast_executemany = True
 
     columns = ", ".join(sanitize_identifier(col) for col in df.columns)
     placeholders = ", ".join("?" for _ in df.columns)
