@@ -1,0 +1,19 @@
+# Python / Environment variables
+.env
+.venv/
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / AntiGravity
+.gemini/
+.vscode/
+.idea/
+
+# Charts & Uploads temporary files
+static/charts/*.png
+exports/*.csv
+exports/*.xlsx
+exports/*.pdf

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Help Center & Enterprise FAQ | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Help Center & Frequently Asked Questions{% endblock %}
+{% block header_subtitle %}Deep technical guidance, troubleshooting solutions, query voice tips, and interactive enterprise help.{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px; max-width: 1000px;">
+
+    <!-- Search / Header Card -->
+    <div class="table-card" style="border-left: 4px solid var(--accent-purple); background: var(--bg-surface);">
+        <h2 style="font-size: 22px; font-weight: 800; color: var(--accent-purple); margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-circle-question"></i> How Can We Help You Today?
+        </h2>
+        <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.6;">
+            Find instant answers to common questions about voice querying, multi-format file uploads, report exports, domain guardrails, and data isolation.
+        </p>
+    </div>
+
+    <!-- FAQ Accordion Container -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <div class="table-card" style="padding: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-file-csv"></i> Q: What dataset file formats are supported?
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 8px;">
+                <strong>AI Data Analyst Pro</strong> supports 9 enterprise file formats up to 100MB per file:
+            </p>
+            <ul style="padding-left: 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
+                <li><code>CSV (.csv)</code> & <code>TSV (.tsv)</code> (Comma / Tab delimited)</li>
+                <li><code>Excel (.xlsx, .xls)</code> (Multi-sheet workbooks)</li>
+                <li><code>JSON (.json)</code> & <code>XML (.xml)</code> (Nested objects & arrays)</li>
+                <li><code>Parquet (.parquet)</code> & <code>Feather (.feather)</code> (High-speed columnar binary datasets)</li>
+                <li><code>Text (.txt)</code> (Delimited text files)</li>
+            </ul>
+        </div>
+
+        <div class="table-card" style="padding: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-microphone"></i> Q: How does the AI Voice Agent work?
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7;">
+                Click the <strong>"Click to Speak (Voice AI)"</strong> pill button on the Ask AI page. The Web Speech API transcribes your speech in real-time, auto-corrects speech typos (e.g. <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu numbers <em>"paanch" ➔ "5"</em>), and executes the T-SQL query in sub-second time (0.02s) without reloading the page.
+            </p>
+        </div>
+
+        <div class="table-card" style="padding: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-shield-halved"></i> Q: Why does AI refuse casual/general knowledge questions?
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7;">
+                The platform enforces a strict <strong>AI Context Guardrail</strong>. Non-dataset queries (e.g., <em>"who is president"</em>, <em>"tell me a joke"</em>, <em>"weather today"</em>, or casual greetings like <em>"hello"</em>) are caught in 0.001s without querying the database, returning: <br>
+                <code style="color: var(--accent-amber); display: inline-block; margin-top: 6px;">"I can only answer questions related to uploaded datasets."</code>
+            </p>
+        </div>
+
+        <div class="table-card" style="padding: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-trash"></i> Q: What happens when I delete a dataset from the Dashboard?
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7;">
+                Clicking <strong>Delete Dataset</strong> completely purges the dataset. It executes a <code>DROP TABLE [{table_name}]</code> command in SQL Server, cleans up associated query logs, and deletes the metadata row from the <code>Datasets</code> table.
+            </p>
+        </div>
+
+        <div class="table-card" style="padding: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-file-export"></i> Q: How do I export datasets and reports?
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7;">
+                You can export data in 6 formats from the Dashboard or Query Results page:
+                <strong>Excel (.xlsx)</strong> (styled workbook + summary KPI tab), <strong>PDF Report</strong> (executive layout + AI insights + chart), <strong>Word (.docx)</strong>, <strong>PowerPoint (.pptx)</strong>, <strong>Vector SVG (.svg)</strong>, and <strong>CSV (.csv)</strong>.
+            </p>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

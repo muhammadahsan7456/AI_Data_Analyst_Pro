@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Enterprise Settings | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Enterprise Settings Suite{% endblock %}
+{% block header_subtitle %}Configure AI Model Priority, Data Privacy Masking Levels, Upload Limits, Prediction Engine Defaults, and System Preferences.{% endblock %}
+
+{% block content %}
+<div style="max-width: 950px; margin: 0 auto;">
+
+    <!-- AI Data Privacy Banner -->
+    <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1)); border: 1px solid var(--accent-blue); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 32px; display: flex; align-items: center; gap: 16px;">
+        <div style="font-size: 32px; color: var(--accent-blue);"><i class="fa-solid fa-shield-halved"></i></div>
+        <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">🛡️ Enterprise Data Privacy & PII Guard</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">"Your data never leaves the SQL Server except approved summarized information." Automatic PII masking masks emails, phone numbers, credit cards, and SSNs before reaching AI models.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('frontend.settings_enterprise') }}">
+        
+        <!-- Privacy & AI Guard Settings -->
+        <div class="table-card" style="margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-user-shield" style="color: var(--accent-purple);"></i> AI Data Privacy Levels
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-primary);">
+                    <input type="radio" name="privacy_level" value="1" {% if current_privacy == 1 %}checked{% endif %} style="margin-top: 4px;">
+                    <div>
+                        <strong style="color: var(--text-primary);">Level 1: Maximum Privacy (Schema & Metadata Only)</strong>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Only dataset column names, datatypes, and total row counts are sent to AI models. No data rows leave SQL Server.</div>
+                    </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-primary);">
+                    <input type="radio" name="privacy_level" value="2" {% if current_privacy == 2 %}checked{% endif %} style="margin-top: 4px;">
+                    <div>
+                        <strong style="color: var(--text-primary);">Level 2: Aggregated Summary Mode</strong>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Sends column metrics (min, max, mean, totals) and category counts. No individual records sent.</div>
+                    </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-primary);">
+                    <input type="radio" name="privacy_level" value="3" {% if current_privacy == 3 or not current_privacy %}checked{% endif %} style="margin-top: 4px;">
+                    <div>
+                        <strong style="color: var(--text-primary);">Level 3: Default Enterprise (Masked Sample Mode - Recommended)</strong>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Sends a sample of max 20 rows with automatic PII masking (emails, phones, credit cards, SSNs masked).</div>
+                    </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-primary);">
+                    <input type="radio" name="privacy_level" value="4" {% if current_privacy == 4 %}checked{% endif %} style="margin-top: 4px;">
+                    <div>
+                        <strong style="color: var(--text-primary);">Level 4: Developer / Unmasked Mode</strong>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Sends sample data (max 20 rows) without PII masking. Use for internal testing environments only.</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- AI Model & Engine Config -->
+        <div class="table-card" style="margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-microchip" style="color: var(--accent-blue);"></i> AI Model Priority Engine
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Primary AI Model</label>
+                    <select name="ai_model" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        <option value="openai/gpt-3.5-turbo" selected>OpenAI GPT-3.5 Turbo (Fastest 1.6s)</option>
+                        <option value="meta-llama/llama-3.1-8b-instruct:free">Meta Llama 3.1 8B (Free)</option>
+                        <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free Reasoning)</option>
+                        <option value="openai/gpt-oss-20b:free">OpenAI GPT OSS 20B (Free)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Max AI Response Timeout</label>
+                    <select name="ai_timeout" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        <option value="6" selected>6 Seconds (Fast Multi-model Fallback)</option>
+                        <option value="10">10 Seconds</option>
+                        <option value="15">15 Seconds</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Preferences -->
+        <div class="table-card" style="margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sliders" style="color: var(--accent-green);"></i> Prediction & System Preferences
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Default Forecast Horizon</label>
+                    <select name="default_forecast_days" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        <option value="7">7 Days (Short Term)</option>
+                        <option value="30" selected>30 Days (Monthly Trend)</option>
+                        <option value="90">90 Days (Quarterly Forecast)</option>
+                        <option value="365">365 Days (1 Year Annual)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Default Export Format</label>
+                    <select name="default_export_format" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        <option value="pdf" selected>PDF Executive Report</option>
+                        <option value="excel">Excel Spreadsheet (.xlsx)</option>
+                        <option value="word">Word Document (.docx)</option>
+                        <option value="pptx">PowerPoint Presentation (.pptx)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Dashboard Refresh Rate</label>
+                    <select name="refresh_rate" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        <option value="0" selected>Manual Refresh</option>
+                        <option value="30">Every 30 Seconds</option>
+                        <option value="60">Every 1 Minute</option>
+                        <option value="300">Every 5 Minutes</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-bottom: 40px;">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fa-solid fa-floppy-disk"></i> Save Enterprise Settings
+            </button>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

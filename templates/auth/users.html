@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}User Management | Enterprise RBAC{% endblock %}
+{% block header_title %}User Management Hub{% endblock %}
+{% block header_subtitle %}Manage system users, assign enterprise roles (Admin, Manager, Analyst, Viewer), and control active status.{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <h2 class="table-title">👥 All Registered Users ({{ users|length }})</h2>
+    </div>
+
+    {% if users %}
+    <div class="table-container">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Current Role</th>
+                    <th>Status</th>
+                    <th>Verified</th>
+                    <th>Registered Date</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td><strong>#{{ u[0] }}</strong></td>
+                    <td>
+                        <div style="font-weight: 700; color: var(--accent-blue);">{{ u[4] if u[4] else u[3] }}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">@{{ u[3] }}</div>
+                    </td>
+                    <td>{{ u[5] }}</td>
+                    <td>
+                        {% if u[11] == 'Admin' %}
+                        <span class="badge badge-info" style="background: rgba(124, 58, 237, 0.15); color: var(--accent-purple); border: 1px solid var(--accent-purple);">👑 Admin</span>
+                        {% elif u[11] == 'Manager' %}
+                        <span class="badge badge-info" style="background: rgba(37, 99, 235, 0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue);">💼 Manager</span>
+                        {% elif u[11] == 'Analyst' %}
+                        <span class="badge badge-info" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green);">📊 Analyst</span>
+                        {% else %}
+                        <span class="badge badge-info" style="background: rgba(100, 116, 139, 0.15); color: var(--text-secondary); border: 1px solid var(--border-color);">👁️ Viewer</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u[9] %}
+                        <span class="badge badge-success">Active</span>
+                        {% else %}
+                        <span class="badge badge-danger">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u[10] %}
+                        <i class="fa-solid fa-circle-check" style="color: var(--accent-green);" title="Email Verified"></i>
+                        {% else %}
+                        <i class="fa-solid fa-clock" style="color: var(--accent-amber);" title="Pending Verification"></i>
+                        {% endif %}
+                    </td>
+                    <td>{{ u[12] if u[12] else 'N/A' }}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <!-- Role Assignment Form (Admin Only) -->
+                        {% if session.get('user_role') == 'Admin' %}
+                        <form method="POST" action="{{ url_for('auth.update_role', target_user_id=u[0]) }}" style="display: inline-flex; gap: 6px; align-items: center;">
+                            <select name="role" style="padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                                <option value="Admin" {% if u[11] == 'Admin' %}selected{% endif %}>Admin</option>
+                                <option value="Manager" {% if u[11] == 'Manager' %}selected{% endif %}>Manager</option>
+                                <option value="Analyst" {% if u[11] == 'Analyst' %}selected{% endif %}>Analyst</option>
+                                <option value="Viewer" {% if u[11] == 'Viewer' %}selected{% endif %}>Viewer</option>
+                            </select>
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Save Role">Save</button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Toggle Status -->
+                        <form method="POST" action="{{ url_for('auth.toggle_user_active', target_user_id=u[0]) }}" style="display: inline-block; margin-left: 6px;">
+                            <button type="submit" class="btn btn-sm {% if u[9] %}btn-danger{% else %}btn-secondary{% endif %}" title="Toggle Active Status">
+                                {% if u[9] %}<i class="fa-solid fa-user-slash"></i> Disable{% else %}<i class="fa-solid fa-user-check"></i> Enable{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <i class="fa-solid fa-users-slash" style="font-size: 48px; margin-bottom: 16px;"></i>
+        <p>No registered users found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

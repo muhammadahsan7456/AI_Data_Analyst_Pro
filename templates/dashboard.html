@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Enterprise Dashboard | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Enterprise Analytics & Data Control Center{% endblock %}
+{% block header_subtitle %}Real-time overview of uploaded datasets, AI query history, voice assistant activity, and storage usage.{% endblock %}
+
+{% block content %}
+
+<!-- Real-Time Smart Search Modal Trigger Bar (Feature 10) -->
+<div class="glass-card" style="margin-bottom: 24px; padding: 16px 20px; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; position: relative; z-index: 100;">
+    <i class="fa-solid fa-bolt-lightning" style="font-size: 20px; color: var(--accent-amber);"></i>
+    <div style="flex: 1; position: relative;">
+        <input type="text" id="smart-search-input" placeholder="🔍 Search datasets by name, filename, or tag..." style="width: 100%; padding: 12px 16px 12px 40px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
+        <div id="smart-search-results" class="glass-card" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 999; max-height: 350px; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); padding: 12px;"></div>
+    </div>
+</div>
+
+<!-- Metric Cards Grid -->
+<div class="cards-grid">
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Total Datasets</span>
+            <div class="metric-icon"><i class="fa-solid fa-database"></i></div>
+        </div>
+        <div class="metric-value">{{ total_datasets }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Total Rows</span>
+            <div class="metric-icon"><i class="fa-solid fa-table-cells"></i></div>
+        </div>
+        <div class="metric-value">{{ "{:,}".format(total_rows) }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Queries Executed</span>
+            <div class="metric-icon"><i class="fa-solid fa-terminal"></i></div>
+        </div>
+        <div class="metric-value">{{ total_queries }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Storage Allocated</span>
+            <div class="metric-icon"><i class="fa-solid fa-hard-drive"></i></div>
+        </div>
+        <div class="metric-value">{{ storage_display }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Charts Generated</span>
+            <div class="metric-icon"><i class="fa-solid fa-chart-pie"></i></div>
+        </div>
+        <div class="metric-value">{{ charts_generated }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Voice AI Status</span>
+            <div class="metric-icon" style="color: var(--accent-green); background-color: #d1fae5;"><i class="fa-solid fa-microphone"></i></div>
+        </div>
+        <div class="metric-value" style="font-size: 20px; color: var(--accent-green);">Active</div>
+    </div>
+</div>
+
+<!-- Highlighted Datasets Widget Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 32px;">
+    {% if top_dataset %}
+    <div class="table-card" style="margin-bottom: 0; border-left: 4px solid var(--accent-purple);">
+        <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">
+            <i class="fa-solid fa-trophy" style="color: var(--accent-purple);"></i> Top Dataset by Rows
+        </h3>
+        <div style="font-size: 18px; font-weight: 700; color: var(--accent-purple);">{{ top_dataset[0] }}</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">{{ "{:,}".format(top_dataset[1]) }} total records</div>
+    </div>
+    {% endif %}
+
+    {% if largest_dataset %}
+    <div class="table-card" style="margin-bottom: 0; border-left: 4px solid var(--accent-amber);">
+        <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">
+            <i class="fa-solid fa-weight-hanging" style="color: var(--accent-amber);"></i> Largest Dataset by Size
+        </h3>
+        <div style="font-size: 18px; font-weight: 700; color: var(--accent-amber);">{{ largest_dataset[0] }}</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">{{ largest_dataset[1] }} KB storage allocated</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- AI Data Privacy Banner -->
+<div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(37, 99, 235, 0.1)); border: 1px solid var(--accent-green); padding: 16px 20px; border-radius: var(--radius-lg); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px; color: var(--accent-green);"><i class="fa-solid fa-user-shield"></i></span>
+        <div>
+            <strong style="font-size: 14px; color: var(--text-primary);">🛡️ AI Data Protection Active</strong>
+            <div style="font-size: 12px; color: var(--text-secondary);">SQL generated and executed locally. Raw dataset records are never transmitted externally. PII masking enabled.</div>
+        </div>
+    </div>
+    <a href="{{ url_for('frontend.settings_enterprise') }}" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-sliders"></i> Security Settings
+    </a>
+</div>
+
+<!-- Quick Action Shortcuts -->
+<div style="display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap;">
+    {% if session.get('user_role') in ['Admin', 'Manager', 'Analyst'] %}
+    <a href="{{ url_for('frontend.upload') }}" class="btn btn-primary">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Multi-Format Uploader
+    </a>
+    <a href="{{ url_for('frontend.chat') }}" class="btn btn-secondary">
+        <i class="fa-solid fa-microphone"></i> Voice AI Assistant
+    </a>
+    <a href="{{ url_for('frontend.predictions') }}" class="btn btn-secondary">
+        <i class="fa-solid fa-chart-line" style="color: var(--accent-purple);"></i> AI Forecasting
+    </a>
+    {% endif %}
+</div>
+
+<!-- Most Frequent Queries Widget -->
+{% if most_asked_queries %}
+<div class="table-card" style="margin-bottom: 32px;">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-fire" style="color: var(--accent-red);"></i> Most Frequent AI Queries
+    </h3>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for qlog in most_asked_queries %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-primary); border-radius: var(--radius-sm);">
+            <span style="font-weight: 500; font-size: 14px;">💬 "{{ qlog[0] }}"</span>
+            <span class="badge badge-info">{{ qlog[1] }} times asked</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Datasets Table Section -->
+<div class="table-card">
+    <div class="table-header-bar">
+        <h2 class="table-title">📚 All Uploaded Datasets ({{ total_found }})</h2>
+        
+        <form method="GET" action="{{ url_for('frontend.dashboard') }}" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="date" name="date_from" value="{{ date_from }}" title="Uploaded From" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+            <input type="date" name="date_to" value="{{ date_to }}" title="Uploaded To" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+
+            <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+                <option value="UploadDate" {% if sort_by == 'UploadDate' %}selected{% endif %}>Sort by Date</option>
+                <option value="DatasetName" {% if sort_by == 'DatasetName' %}selected{% endif %}>Sort by Name</option>
+                <option value="TotalRows" {% if sort_by == 'TotalRows' %}selected{% endif %}>Sort by Rows</option>
+                <option value="StorageSizeKB" {% if sort_by == 'StorageSizeKB' %}selected{% endif %}>Sort by Size</option>
+            </select>
+
+            <select name="order" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+                <option value="DESC" {% if order == 'DESC' %}selected{% endif %}>Descending</option>
+                <option value="ASC" {% if order == 'ASC' %}selected{% endif %}>Ascending</option>
+            </select>
+
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
+                <input type="text" name="q" placeholder="Search dataset or tags..." value="{{ search_query }}">
+            </div>
+            
+            <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        </form>
+    </div>
+
+    {% if datasets %}
+    <div class="table-container">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">⭐</th>
+                    <th>ID</th>
+                    <th>Dataset Name</th>
+                    <th>Original File</th>
+                    <th>Format</th>
+                    <th>Rows</th>
+                    <th>Cols</th>
+                    <th>Size</th>
+                    <th>Upload Date</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ds in datasets %}
+                <tr>
+                    <td>
+                        <button class="btn-fav-toggle" data-id="{{ ds[0] }}" style="background: none; border: none; cursor: pointer; font-size: 16px;">
+                            {% if ds[7] %}⭐{% else %}☆{% endif %}
+                        </button>
+                    </td>
+                    <td><strong>#{{ ds[0] }}</strong></td>
+                    <td><span style="font-weight: 600; color: var(--accent-blue);">{{ ds[1] }}</span></td>
+                    <td>{{ ds[2] }}</td>
+                    <td><span class="badge badge-info">{{ ds[2].rsplit('.', 1)[-1]|upper if '.' in ds[2] else 'CSV' }}</span></td>
+                    <td>{{ "{:,}".format(ds[3]) if ds[3] is not none else 0 }}</td>
+                    <td>{{ ds[4] if ds|length > 4 and ds[4] is not none else 0 }}</td>
+                    <td>{{ ds[6] if ds|length > 6 and ds[6] is not none else 0 }} KB</td>
+                    <td>{{ ds[5] if ds|length > 5 else '' }}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="{{ url_for('frontend.view_dataset', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="View Records">
+                            <i class="fa-solid fa-eye"></i> View
+                        </a>
+                        <a href="{{ url_for('frontend.dataset_details', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="Profiling & Stats">
+                            <i class="fa-solid fa-chart-bar"></i> Profile
+                        </a>
+                        <a href="{{ url_for('frontend.export_dataset', dataset_id=ds[0], format_type='excel') }}" class="btn btn-secondary btn-sm" title="Export Excel">
+                            <i class="fa-solid fa-file-excel" style="color: var(--accent-green);"></i> Excel
+                        </a>
+                        <a href="{{ url_for('frontend.export_dataset', dataset_id=ds[0], format_type='pdf') }}" class="btn btn-secondary btn-sm" title="Export PDF">
+                            <i class="fa-solid fa-file-pdf" style="color: red;"></i> PDF
+                        </a>
+                        <a href="{{ url_for('frontend.export_dataset', dataset_id=ds[0], format_type='pptx') }}" class="btn btn-secondary btn-sm" title="Export PPTX">
+                            <i class="fa-solid fa-file-powerpoint" style="color: var(--accent-amber);"></i> PPTX
+                        </a>
+                        <a href="{{ url_for('frontend.delete_dataset', dataset_id=ds[0]) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this dataset?')" title="Delete Dataset">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination-bar">
+        <div>Showing Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong></div>
+        <div class="pagination-controls">
+            {% if page > 1 %}
+            <a href="{{ url_for('frontend.dashboard', page=page-1, q=search_query, sort=sort_by, order=order, date_from=date_from, date_to=date_to) }}" class="btn btn-secondary btn-sm">⬅ Previous</a>
+            {% endif %}
+            
+            {% if page < total_pages %}
+            <a href="{{ url_for('frontend.dashboard', page=page+1, q=search_query, sort=sort_by, order=order, date_from=date_from, date_to=date_to) }}" class="btn btn-secondary btn-sm">Next ➡️</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <i class="fa-solid fa-folder-open" style="font-size: 48px; margin-bottom: 16px;"></i>
+        <p>No datasets found. Upload a file to get started!</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("smart-search-input");
+    const resultsBox = document.getElementById("smart-search-results");
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            const query = this.value.trim();
+            if (query.length < 2) {
+                resultsBox.style.display = "none";
+                return;
+            }
+
+            fetch(`/api/smart-search?q=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.results && data.results.length > 0) {
+                        let html = "";
+                        data.results.forEach(res => {
+                            html += `
+                                <a href="${res.url}" style="display: block; padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-decoration: none; color: inherit;">
+                                    <span class="badge badge-info" style="font-size: 10px;">${res.category}</span>
+                                    <strong style="margin-left: 6px;">${res.title}</strong>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">${res.subtitle}</div>
+                                </a>
+                            `;
+                        });
+                        resultsBox.innerHTML = html;
+                        resultsBox.style.display = "block";
+                    } else {
+                        resultsBox.innerHTML = "<div style='padding: 8px; font-size: 13px; color: var(--text-muted);'>No matching datasets or history found.</div>";
+                        resultsBox.style.display = "block";
+                    }
+                });
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+                resultsBox.style.display = "none";
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

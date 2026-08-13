@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Ask Voice AI Data Analyst | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Voice AI Data Analyst Hub{% endblock %}
+{% block header_subtitle %}Ask questions by voice or text. AI automatically detects target datasets, runs T-SQL locally, speaks the response, and generates charts.{% endblock %}
+
+{% block content %}
+
+<!-- Hidden speech text container for Voice Synthesis -->
+{% if tts_speech %}
+<div id="ai-speech-text" data-speech="{{ tts_speech }}" style="display: none;"></div>
+{% endif %}
+
+<div class="table-card glass-card">
+    <form method="POST" action="{{ url_for('frontend.chat') }}" id="chat-form">
+        
+        <!-- Dataset Selector & Multi-Dataset Hub Bar -->
+        {% if user_datasets %}
+        <div style="margin-bottom: 20px; background: var(--bg-primary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 280px;">
+                <i class="fa-solid fa-database" style="color: var(--accent-blue); font-size: 22px;"></i>
+                <div style="flex: 1;">
+                    <label for="dataset_id" style="font-weight: 700; font-size: 13px; color: var(--text-primary); display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>📂 Target Dataset (Auto Smart Selection Active):</span>
+                        <span class="badge badge-info" style="font-size: 11px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Match</span>
+                    </label>
+                    <select name="dataset_id" id="dataset_id" onchange="this.form.submit()" style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; font-weight: 600;">
+                        {% for ds in user_datasets %}
+                        <option value="{{ ds[0] }}" {% if selected_dataset and selected_dataset[0] == ds[0] %}selected{% endif %}>
+                            📊 {{ ds[1] }} (File: {{ ds[2] }} | {{ "{:,}".format(ds[3]) }} rows | {{ ds[4] }} cols)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                {% if selected_dataset %}
+                <span class="badge badge-info" style="font-size: 13px; padding: 8px 14px; background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent-blue);">
+                    <i class="fa-solid fa-file-csv" style="color: var(--accent-blue);"></i> Active: <strong>{{ selected_dataset[2] }}</strong>
+                </span>
+                <span class="badge badge-success" style="font-size: 13px; padding: 8px 14px;">
+                    <i class="fa-solid fa-table-cells"></i> <strong>{{ "{:,}".format(selected_dataset[3]) }}</strong> Records
+                </span>
+                {% endif %}
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openMultiDatasetModal()">
+                    <i class="fa-solid fa-object-group"></i> Multi-Dataset Join
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div style="margin-bottom: 20px; background: rgba(239, 68, 68, 0.1); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 14px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
+            <span>No datasets found in your account. Please <a href="{{ url_for('frontend.upload') }}" style="color: var(--accent-blue); font-weight: bold; text-decoration: underline;">upload a dataset</a> first.</span>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
+            <label for="question-input" style="font-weight: 700; font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                💬 Ask Question by Voice or Typing:
+            </label>
+            <button type="button" class="btn btn-voice-mic" id="mic-btn" style="padding: 10px 22px; font-size: 15px; font-weight: 700; border-radius: 50px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; border: none; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); display: inline-flex; align-items: center; gap: 10px; cursor: pointer; transition: var(--transition-fast);">
+                <i class="fa-solid fa-microphone-lines" style="font-size: 18px;"></i>
+                <span>Click to Speak (Voice AI)</span>
+            </button>
+        </div>
+        
+        <textarea name="question" id="question-input" rows="3" required placeholder="Speak or type (e.g. 'Show top 10 customers', 'Sort descending', 'Highest revenue', 'Generate chart')..." style="width: 100%; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 15px; outline: none; margin-bottom: 16px;">{% if question %}{{ question }}{% endif %}</textarea>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Show top 10 customers'">Top 10 customers</span>
+                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Show correlation'">Correlation</span>
+                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Show duplicates'">Show duplicates</span>
+                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Clean missing values'">Clean missing</span>
+                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Generate chart'">Generate chart</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" {% if not user_datasets %}disabled{% endif %} onclick="showLoading('Executing Voice AI query locally...')">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Assistant
+            </button>
+        </div>
+    </form>
+</div>
+
+<div id="chat-results-container">
+{% if question %}
+<!-- Performance & Confidence Bar -->
+<div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+    {% if execution_time_ms is not none %}
+    <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">
+        ⚡ Execution Time: <strong>{{ execution_time_ms }} ms</strong>
+    </div>
+    {% endif %}
+
+    {% if confidence is not none and not is_out_of_domain %}
+    <div class="badge badge-success" style="font-size: 13px; padding: 6px 12px;">
+        🎯 Confidence Score: <strong>{{ (confidence * 100)|int }}%</strong>
+    </div>
+    {% endif %}
+
+    {% if rows_returned is not none %}
+    <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">
+        📊 Rows Returned: <strong>{{ rows_returned }}</strong>
+    </div>
+    {% endif %}
+
+    {% if retries and retries > 0 %}
+    <div class="badge badge-warning" style="font-size: 13px; padding: 6px 12px;">
+        🔄 Self-Corrections: <strong>{{ retries }}</strong>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if is_out_of_domain %}
+<!-- Domain Guardrail Protection Card (Feature 4) -->
+<div class="table-card" style="border-left: 4px solid var(--accent-amber); background-color: #fffbeb;">
+    <h3 style="color: #b45309; font-size: 18px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-shield-halved"></i> AI Context Guardrail
+    </h3>
+    <p style="color: #92400e; font-size: 16px; font-weight: 600;">{{ error }}</p>
+</div>
+{% endif %}
+
+{% if sql %}
+<!-- Generated SQL Block -->
+<div class="table-card" style="border-left: 4px solid var(--accent-purple);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-purple);">
+            <i class="fa-solid fa-code"></i> Local T-SQL Query
+        </h3>
+        <button class="btn btn-secondary btn-sm btn-copy-sql" onclick="navigator.clipboard.writeText(document.getElementById('sql-text').innerText); showAppToast('SQL Copied to Clipboard!', 'success');">
+            <i class="fa-solid fa-copy"></i> Copy SQL
+        </button>
+    </div>
+    <pre id="sql-text" style="background: var(--bg-sidebar); color: #38bdf8; padding: 16px; border-radius: var(--radius-md); font-family: monospace; font-size: 14px; overflow-x: auto;">{{ sql }}</pre>
+</div>
+{% endif %}
+
+{% if result %}
+<!-- Results Table -->
+<div class="table-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700;">
+            <i class="fa-solid fa-table"></i> Query Results
+        </h3>
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('frontend.export_query_result', format_type='csv') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
+            <a href="{{ url_for('frontend.export_query_result', format_type='excel') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
+            <a href="{{ url_for('frontend.export_query_result', format_type='pdf') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
+        </div>
+    </div>
+    <div class="table-container">
+        {{ result|safe }}
+    </div>
+</div>
+{% endif %}
+
+{% if explanation %}
+<!-- AI Business Explanation Box (Executive Card Layout) -->
+<div class="table-card" style="border-top: 4px solid var(--accent-blue); background: var(--bg-surface); padding: 24px; box-shadow: var(--shadow-md);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+        <h3 style="font-size: 18px; font-weight: 800; color: var(--accent-blue); display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Executive AI Summary & Business Insights
+        </h3>
+        <span class="badge badge-info" style="font-size: 11px; padding: 4px 10px;">PRO ANALYSIS ENGINE</span>
+    </div>
+    
+    <div class="ai-explanation-content">
+        {{ explanation|format_explanation|safe }}
+    </div>
+</div>
+{% endif %}
+
+{% if chart %}
+<!-- Generated Chart -->
+<div class="table-card" style="text-align: center;">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">
+        <i class="fa-solid fa-chart-line"></i> Automated Chart Visualization
+    </h3>
+    <img src="{{ url_for('frontend.static', filename=chart) }}" alt="Generated Chart" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md);">
+</div>
+{% endif %}
+</div>
+
+<!-- Multi-Dataset Cross Analysis Modal (Feature 5) -->
+<div id="multi-dataset-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div class="table-card glass-card" style="width: 95%; max-width: 1100px; max-height: 92vh; overflow-y: auto; background: var(--bg-surface); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-lg);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+            <h3 style="font-size: 20px; font-weight: 800; color: var(--accent-blue); display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-object-group"></i> Multi-Dataset Cross AI Join & Analysis Engine
+            </h3>
+            <button type="button" onclick="closeMultiDatasetModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
+        </div>
+
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">Select 2 or more datasets from your account to execute cross-dataset SQL joins, common record discovery, and multi-table comparison.</p>
+
+        {% if user_datasets %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px; max-height: 220px; overflow-y: auto; padding: 8px; background: var(--bg-primary); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            {% for ds in user_datasets %}
+            <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-surface); border-radius: var(--radius-sm); border: 1px solid var(--border-color); cursor: pointer;">
+                <input type="checkbox" name="multi_ds" value="{{ ds[0] }}" style="transform: scale(1.3);">
+                <div>
+                    <strong style="font-size: 14px; color: var(--text-primary);">{{ ds[2] }}</strong>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Table: <code>{{ ds[1] }}</code> | {{ "{:,}".format(ds[3]) }} rows | {{ ds[4] }} cols</div>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;">💬 Enter Cross-Dataset Prompt / Join Query:</label>
+            <input type="text" id="multi-query-input" placeholder="e.g. Join datasets on customer_id, Compare revenue between tables, Find matching rows..." style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 16px;">
+            <button type="button" class="btn btn-secondary" onclick="closeMultiDatasetModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="runMultiDatasetAnalysis()"><i class="fa-solid fa-wand-magic-sparkles"></i> Execute Cross Join Analysis</button>
+        </div>
+
+        <div id="multi-result-box" style="margin-top: 20px; display: none; padding: 16px; background: var(--bg-primary); border-radius: var(--radius-md); border: 1px solid var(--border-color);"></div>
+    </div>
+</div>
+
+<script>
+function openMultiDatasetModal() {
+    document.getElementById("multi-dataset-modal").style.display = "flex";
+}
+function closeMultiDatasetModal() {
+    document.getElementById("multi-dataset-modal").style.display = "none";
+}
+function runMultiDatasetAnalysis() {
+    const checkboxes = document.querySelectorAll('input[name="multi_ds"]:checked');
+    const ids = Array.from(checkboxes).map(c => parseInt(c.value));
+    const question = document.getElementById("multi-query-input").value;
+    const resBox = document.getElementById("multi-result-box");
+
+    if (ids.length < 2) {
+        alert("Please select at least 2 datasets.");
+        return;
+    }
+
+    resBox.style.display = "block";
+    resBox.innerHTML = "<div class='badge badge-info'>Running cross dataset query...</div>";
+
+    fetch("/api/multi-dataset/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataset_ids: ids, question: question })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            resBox.innerHTML = `
+                <div style="margin-bottom: 12px; color: var(--accent-green); font-weight: bold;">✅ ${data.explanation}</div>
+                <div class="table-container">${data.result_html}</div>
+            `;
+        } else {
+            resBox.innerHTML = `<div style="color: var(--accent-red);">❌ Error: ${data.error}</div>`;
+        }
+    })
+    .catch(err => {
+        resBox.innerHTML = `<div style="color: var(--accent-red);">❌ Server Error: ${err}</div>`;
+    });
+}
+</script>
+{% endblock %}

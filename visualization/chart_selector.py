@@ -1,0 +1,59 @@
+import pandas as pd
+import re
+
+
+def select_chart(dataframe: pd.DataFrame) -> str:
+    """
+    Automatically select optimal chart type based on DataFrame column types and cardinality.
+    """
+    if dataframe is None or dataframe.empty or dataframe.shape[1] < 1:
+        return None
+
+    df = dataframe.copy()
+
+    # Preprocess string numbers & dates for accurate type detection
+    for col in df.columns:
+        col_lower = str(col).lower().strip()
+        if col_lower in ["recordid", "id", "hash"] or col_lower.endswith("_id"):
+            continue
+        if not pd.api.types.is_numeric_dtype(df[col]):
+            cleaned_s = df[col].astype(str).str.replace(r"[$,]", "", regex=True)
+            converted = pd.to_numeric(cleaned_s, errors="coerce")
+            if converted.notna().mean() > 0.5:
+                df[col] = converted
+
+    # Exclude technical IDs from numeric list
+    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$"]
+    numeric_columns = [
+        c for c in df.select_dtypes(include="number").columns
+        if not any(re.match(p, str(c).lower().strip()) for p in id_patterns)
+    ]
+    categorical_columns = [c for c in df.columns if c not in numeric_columns and not pd.api.types.is_datetime64_any_dtype(df[c])]
+    datetime_columns = df.select_dtypes(include="datetime").columns.tolist()
+
+    # 1. Correlation Heatmap for multi-column numeric datasets
+    if len(numeric_columns) >= 3 and len(categorical_columns) == 0:
+        return "heatmap"
+
+    # 2. Time series / Datetime present
+    if datetime_columns and numeric_columns:
+        return "line"
+
+    # 3. Categorical + Numeric
+    if len(categorical_columns) >= 1 and len(numeric_columns) >= 1:
+        unique_cnt = df[categorical_columns[0]].nunique()
+        if 2 <= unique_cnt <= 6:
+            return "pie"
+        return "bar"
+
+    # 4. Multiple numeric columns
+    if len(numeric_columns) >= 2:
+        return "scatter"
+
+    # 5. Single numeric column
+    if len(numeric_columns) == 1:
+        if len(df) > 30:
+            return "histogram"
+        return "bar"
+
+    return "bar"

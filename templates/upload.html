@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Enterprise File Upload | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Multi-Format Enterprise Data Uploader{% endblock %}
+{% block header_subtitle %}Upload single or multiple files (CSV, Excel, JSON, XML, TXT, TSV, Parquet, Feather) up to 500 MB with instant SQL table generation.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 850px; margin: 0 auto 32px auto;">
+    <form action="{{ url_for('frontend.upload') }}" method="POST" enctype="multipart/form-data" id="upload-form">
+        
+        <div id="drop-zone" class="glass-card" style="border: 2px dashed var(--accent-blue); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center; background-color: var(--bg-primary); cursor: pointer; transition: all 0.3s ease;">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 52px; color: var(--accent-blue); margin-bottom: 16px;"></i>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Drag & Drop files here or click to browse</h3>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                Supported formats: <strong>CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather</strong> (Up to <strong>500 MB</strong> per file)
+            </p>
+            
+            <input type="file" name="dataset" id="file-input" accept=".csv, .xlsx, .xls, .json, .xml, .txt, .tsv, .parquet, .feather" multiple style="display: none;">
+            
+            <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                    <i class="fa-solid fa-folder-open"></i> Select Files
+                </button>
+            </div>
+            
+            <div id="file-list-preview" style="margin-top: 20px; text-align: left; max-height: 180px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Real-Time Upload Progress Tracker -->
+        <div id="upload-progress-container" style="display: none; margin-top: 24px; background: var(--bg-primary); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                <span id="progress-status">Uploading data...</span>
+                <span id="progress-percentage">0%</span>
+            </div>
+            <div class="progress" style="height: 12px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: linear-gradient(90deg, #2563eb, #3b82f6); height: 100%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                <span id="progress-speed">Speed: 0 KB/s</span>
+                <span id="progress-details">0 / 0 MB</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
+            <input type="text" name="tags" placeholder="Optional Tags (e.g. Finance, Q3, Sales)" style="padding: 10px 16px; width: 60%; border-radius: 6px; border: 1px solid var(--border-color);">
+            <button type="submit" id="submit-btn" class="btn btn-primary" style="padding: 12px 28px;">
+                <i class="fa-solid fa-rocket"></i> Ingest & Create Tables
+            </button>
+        </div>
+    </form>
+</div>
+
+<div id="upload-results-container">
+{% if success %}
+<div class="table-card" style="border-left: 4px solid var(--accent-green);">
+    <h2 style="color: var(--accent-green); font-size: 20px; font-weight: 700; margin-bottom: 16px;">
+        <i class="fa-solid fa-circle-check"></i> Multi-Format Dataset Ingested Successfully!
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div><strong>SQL Table Name:</strong> <code style="background: var(--bg-primary); padding: 4px 8px; border-radius: 4px;">{{ data.table_name }}</code></div>
+        <div><strong>Original File:</strong> {{ data.file_name }}</div>
+        <div><strong>File Type:</strong> <span class="badge badge-info">{{ data.file_type }}</span></div>
+        <div><strong>Rows Created:</strong> {{ "{:,}".format(data.rows) }}</div>
+        <div><strong>Columns Detected:</strong> {{ data.columns }}</div>
+    </div>
+
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Dataset Sample Preview (Top 10 Rows)</h3>
+    <div class="table-container">
+        {{ data.preview|safe }}
+    </div>
+
+    <div style="margin-top: 24px; display: flex; gap: 12px;">
+        <a href="{{ url_for('frontend.chat') }}" class="btn btn-primary">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Questions
+        </a>
+        <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-secondary">
+            ⬅ Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endif %}
+</div>
+
+{% if error %}
+<div class="table-card" style="border-left: 4px solid var(--accent-red);">
+    <h3 style="color: var(--accent-red); font-size: 18px; font-weight: 700; margin-bottom: 8px;">
+        <i class="fa-solid fa-triangle-exclamation"></i> Upload Error
+    </h3>
+    <p style="color: var(--text-secondary);">{{ error }}</p>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("file-input");
+    const previewList = document.getElementById("file-list-preview");
+    const form = document.getElementById("upload-form");
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.classList.add('highlight');
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.classList.remove('highlight');
+    });
+
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        updateFilePreview(files);
+    }
+
+    fileInput.addEventListener('change', function () {
+        updateFilePreview(this.files);
+    });
+
+    function updateFilePreview(files) {
+        previewList.innerHTML = "";
+        if (!files || files.length === 0) return;
+
+        let html = "<ul style='list-style: none; padding: 0;'>";
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const sizeMB = (f.size / (1024 * 1024)).toFixed(2);
+            html += `<li style='padding: 6px 12px; background: var(--bg-card); margin-bottom: 4px; border-radius: 4px; display: flex; justify-content: space-between;'>
+                        <span><i class="fa-solid fa-file"></i> <strong>${f.name}</strong></span>
+                        <span style="color: var(--text-secondary);">${sizeMB} MB</span>
+                     </li>`;
+        }
+        html += "</ul>";
+        previewList.innerHTML = html;
+    }
+
+    // AJAX Batch Multi-File Upload with Progress tracking & Guaranteed Error Display
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const files = fileInput.files;
+        const submitBtn = document.getElementById("submit-btn");
+
+        if (!files || files.length === 0) {
+            if (window.showAppToast) window.showAppToast("⚠️ Please select or drag & drop a dataset file first.", "warning");
+            return;
+        }
+
+        const progressContainer = document.getElementById("upload-progress-container");
+        const progressBar = document.getElementById("progress-bar");
+        const progressPercentage = document.getElementById("progress-percentage");
+        const progressStatus = document.getElementById("progress-status");
+        const progressSpeed = document.getElementById("progress-speed");
+        const progressDetails = document.getElementById("progress-details");
+
+        progressContainer.style.display = "block";
+        progressBar.style.width = "0%";
+        progressPercentage.textContent = "0%";
+        progressStatus.textContent = "Uploading & Ingesting Datasets...";
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Ingesting & Creating Tables...';
+        }
+
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append("dataset", files[i]);
+        }
+        const tagsInput = form.querySelector('[name="tags"]');
+        if (tagsInput) {
+            formData.append("tags", tagsInput.value);
+        }
+
+        const xhr = new XMLHttpRequest();
+        const startTime = new Date().getTime();
+
+        xhr.upload.addEventListener("progress", function (e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                const loadedMB = (e.loaded / (1024 * 1024)).toFixed(2);
+                const totalMB = (e.total / (1024 * 1024)).toFixed(2);
+                const elapsedTime = (new Date().getTime() - startTime) / 1000;
+                const speedKB = elapsedTime > 0 ? ((e.loaded / 1024) / elapsedTime).toFixed(0) : 0;
+
+                progressBar.style.width = percent + "%";
+                progressPercentage.textContent = percent + "%";
+                progressStatus.textContent = percent < 100 ? "Uploading & Ingesting Datasets..." : "Processing & Creating SQL Tables...";
+                progressSpeed.textContent = `Speed: ${speedKB} KB/s`;
+                progressDetails.textContent = `${loadedMB} / ${totalMB} MB`;
+            }
+        });
+
+        function resetSubmitBtn() {
+            progressContainer.style.display = "none";
+            if (typeof window.hideLoading === "function") {
+                window.hideLoading();
+            } else {
+                const overlay = document.getElementById("loading-overlay");
+                if (overlay) overlay.style.display = "none";
+            }
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-rocket"></i> Ingest & Create Tables';
+            }
+        }
+
+        xhr.addEventListener("load", function () {
+            resetSubmitBtn();
+            if (xhr.status >= 200 && xhr.status < 400) {
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    if (resp.success && resp.results && resp.results.length > 0) {
+                        if (window.showAppToast) window.showAppToast("🚀 Dataset Ingested & Tables Created Successfully!", "success");
+                        renderUploadResults(resp.results);
+                        return;
+                    } else if (!resp.success && (resp.errors || resp.error)) {
+                        renderUploadError(resp.errors || resp.error);
+                        return;
+                    }
+                } catch(err) {
+                    renderUploadError("Failed to process server response: " + err.message);
+                    return;
+                }
+                if (window.showAppToast) window.showAppToast("🚀 Files Processed!", "success");
+            } else {
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    renderUploadError(resp.error || resp.errors || xhr.responseText);
+                } catch(e) {
+                    renderUploadError("Upload Failed: " + (xhr.responseText || "Server Error"));
+                }
+            }
+        });
+
+        xhr.addEventListener("error", function () {
+            resetSubmitBtn();
+            renderUploadError("Network Error: Could not reach server. Please check your connection.");
+        });
+
+        xhr.addEventListener("abort", function () {
+            resetSubmitBtn();
+            renderUploadError("Upload Aborted by user.");
+        });
+
+        xhr.open("POST", form.action, true);
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        xhr.send(formData);
+    });
+
+    function renderUploadResults(results) {
+        const container = document.getElementById("upload-results-container");
+        if (!container) return;
+
+        let html = "";
+        results.forEach(data => {
+            html += `
+                <div class="table-card" style="border-left: 4px solid var(--accent-green); margin-top: 24px;">
+                    <h2 style="color: var(--accent-green); font-size: 20px; font-weight: 700; margin-bottom: 16px;">
+                        <i class="fa-solid fa-circle-check"></i> Multi-Format Dataset Ingested Successfully!
+                    </h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div><strong>SQL Table Name:</strong> <code style="background: var(--bg-sidebar); padding: 4px 8px; border-radius: 4px; color: var(--accent-blue);">${data.table_name}</code></div>
+                        <div><strong>Original File:</strong> ${data.file_name}</div>
+                        <div><strong>File Type:</strong> <span class="badge badge-info">${data.file_type}</span></div>
+                        <div><strong>Rows Created:</strong> ${Number(data.rows).toLocaleString()}</div>
+                        <div><strong>Columns Detected:</strong> ${data.columns}</div>
+                    </div>
+
+                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-table"></i> Dataset Sample Preview (Top 10 Rows)</h3>
+                    <div class="table-container">
+                        ${data.preview}
+                    </div>
+
+                    <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="/chat" class="btn btn-primary">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Questions
+                        </a>
+                        <a href="/dashboard" class="btn btn-secondary">
+                            ⬅ Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        container.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderUploadError(errors) {
+        const container = document.getElementById("upload-results-container");
+        if (!container) return;
+
+        const errorText = Array.isArray(errors) ? errors.join("<br>") : (errors || "Upload failed. Please try again.");
+        container.innerHTML = `
+            <div class="table-card" style="border-left: 4px solid var(--accent-red); margin-top: 24px;">
+                <h3 style="color: var(--accent-red); font-size: 18px; font-weight: 700; margin-bottom: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Upload Error Notice
+                </h3>
+                <p style="color: var(--text-primary); font-size: 15px; line-height: 1.6;">${errorText}</p>
+            </div>
+        `;
+        container.scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>
+{% endblock %}

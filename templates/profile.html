@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile | AI Data Analyst Pro{% endblock %}
+{% block header_title %}User Profile & Account Management{% endblock %}
+{% block header_subtitle %}Manage personal info, avatar picture, occupation, social links, and security credentials.{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px;">
+    <!-- Left Sidebar Card -->
+    <div class="table-card" style="text-align: center;">
+        <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 16px auto;">
+            {% if user and user[10] %}
+            <img src="{{ url_for('frontend.static', filename=user[10]) }}" alt="Profile Photo" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-blue);">
+            {% else %}
+            <div style="width: 110px; height: 110px; border-radius: 50%; background: var(--accent-blue-light); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800; border: 3px solid var(--accent-blue);">
+                {{ (user[4][0] if user and user[4] else 'U')|upper }}
+            </div>
+            {% endif %}
+        </div>
+
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 4px;">{{ user[4] if user else 'User Name' }}</h3>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">@{{ user[3] if user else 'username' }}</p>
+        
+        <span class="badge badge-success" style="font-size: 12px; padding: 4px 10px;">{{ user[13] if user else 'Analyst' }} Role</span>
+        <span class="badge badge-info" style="font-size: 12px; padding: 4px 10px; margin-top: 4px;">Verified Account</span>
+
+        <div style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 16px; text-align: left; font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+            <div><i class="fa-solid fa-envelope" style="width: 20px;"></i> {{ user[5] if user else '' }}</div>
+            <div><i class="fa-solid fa-location-dot" style="width: 20px;"></i> {{ user[8] if user and user[8] else 'City' }}, {{ user[7] if user and user[7] else 'Country' }}</div>
+            <div><i class="fa-solid fa-calendar-day" style="width: 20px;"></i> Joined: {{ user[16]|string if user and user[16] else 'Recent' }}</div>
+        </div>
+    </div>
+
+    <!-- Right Content Card -->
+    <div class="table-card">
+        <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">✏ Edit Profile Details</h2>
+
+        <form method="POST" action="{{ url_for('auth.profile') }}" enctype="multipart/form-data">
+            <!-- Profile Photo Upload with Live Preview & Strict Image Validation -->
+            <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-primary); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+                <label style="font-weight: 700; display: block; margin-bottom: 8px; font-size: 14px;">Upload Profile Picture</label>
+                
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0;">
+                        <img id="avatar-preview-img" src="{{ url_for('frontend.static', filename=user[10]) if user and user[10] else '' }}" alt="Avatar Preview" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-blue); display: {{ 'block' if user and user[10] else 'none' }};">
+                        <div id="avatar-preview-fallback" style="width: 64px; height: 64px; border-radius: 50%; background: var(--accent-blue); color: white; display: {{ 'none' if user and user[10] else 'flex' }}; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 2px solid var(--accent-blue);">
+                            {{ (user[4][0] if user and user[4] else 'U')|upper }}
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; min-width: 220px;">
+                        <input type="file" id="avatar-file-input" name="avatar" accept="image/png, image/jpeg, image/webp, image/gif, image/svg+xml" style="font-size: 13px;">
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Supported: PNG, JPEG, WEBP, GIF, SVG (Instant live preview enabled)</p>
+                        <div id="avatar-file-error" style="display: none; color: #ef4444; font-size: 12px; font-weight: 600; margin-top: 4px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Name & Username -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">First Name</label>
+                    <input type="text" name="first_name" value="{{ user[1] if user and user[1] else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Last Name</label>
+                    <input type="text" name="last_name" value="{{ user[2] if user and user[2] else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Username</label>
+                    <input type="text" name="username" value="{{ user[3] if user and user[3] else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+            </div>
+
+            <!-- Email, Phone, Country, City -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Email Address</label>
+                    <input type="email" name="email" value="{{ user[5] if user else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Phone Number</label>
+                    <input type="text" name="phone" value="{{ user[6] if user and user[6] else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Country</label>
+                    <input type="text" name="country" value="{{ user[7] if user and user[7] else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">City</label>
+                    <input type="text" name="city" value="{{ user[8] if user and user[8] else '' }}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+            </div>
+
+            <!-- Occupation & Company -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Company / Organization</label>
+                    <input type="text" name="company" value="{{ profile[4] if profile and profile[4] else '' }}" placeholder="Acme Corp" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Designation / Title</label>
+                    <input type="text" name="designation" value="{{ profile[6] if profile and profile[6] else '' }}" placeholder="Senior Data Analyst" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+            </div>
+
+            <!-- Bio -->
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Bio / Professional Summary</label>
+                <textarea name="bio" rows="3" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">{{ profile[2] if profile and profile[2] else '' }}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
+                <i class="fa-solid fa-floppy-disk"></i> Save Profile Details
+            </button>
+        </form>
+
+        <hr style="margin: 32px 0; border: none; border-top: 1px solid var(--border-color);">
+
+        <!-- Change Password Section -->
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--accent-red);">🔒 Change Password</h3>
+        
+        <form method="POST" action="{{ url_for('auth.change_password') }}">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Current Password</label>
+                    <input type="password" name="current_password" required placeholder="••••••••" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">New Password</label>
+                    <input type="password" name="new_password" required placeholder="••••••••" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Confirm New Password</label>
+                    <input type="password" name="confirm_password" required placeholder="••••••••" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-danger" style="padding: 10px 24px;">
+                <i class="fa-solid fa-key"></i> Update Password
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const avatarInput = document.getElementById("avatar-file-input");
+    const previewImg = document.getElementById("avatar-preview-img");
+    const fallbackBox = document.getElementById("avatar-preview-fallback");
+    const errorHint = document.getElementById("avatar-file-error");
+
+    if (avatarInput) {
+        avatarInput.addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+            const validExts = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"];
+            const fileExt = "." + file.name.split(".").pop().toLowerCase();
+
+            if (!validTypes.includes(file.type) && !validExts.includes(fileExt)) {
+                errorHint.textContent = "❌ Invalid file! Only images (.jpg, .jpeg, .png, .webp, .gif, .svg) are allowed for profile picture.";
+                errorHint.style.display = "block";
+                avatarInput.value = "";
+                return;
+            }
+
+            errorHint.style.display = "none";
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                previewImg.src = event.target.result;
+                previewImg.style.display = "block";
+                if (fallbackBox) fallbackBox.style.display = "none";
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Preview | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Dataset Preview: {{ table_name }}{% endblock %}
+{% block header_subtitle %}Viewing records from table {{ table_name }}{% endblock %}
+
+{% block content %}
+<!-- Metadata Cards & Actions -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; gap: 16px;">
+        <div class="badge badge-info" style="font-size: 14px; padding: 8px 14px;">
+            Total Rows: <strong>{{ "{:,}".format(total_rows) }}</strong>
+        </div>
+        <div class="badge badge-info" style="font-size: 14px; padding: 8px 14px;">
+            Total Columns: <strong>{{ total_columns }}</strong>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="{{ url_for('frontend.export_dataset', dataset_id=dataset[0], format_type='pdf') }}" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-file-pdf" style="color: red;"></i> PDF Report
+        </a>
+        <a href="{{ url_for('frontend.export_dataset', dataset_id=dataset[0], format_type='excel') }}" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-file-excel" style="color: green;"></i> Excel Export
+        </a>
+        <a href="{{ url_for('frontend.export_dataset', dataset_id=dataset[0], format_type='csv') }}" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-file-csv"></i> CSV Export
+        </a>
+        <a href="{{ url_for('frontend.dataset_details', dataset_id=dataset[0]) }}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-chart-bar"></i> Full Profiling Report
+        </a>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="table-card">
+    <div class="table-container">
+        {{ preview|safe }}
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if total_pages > 1 %}
+    <div class="pagination-bar">
+        <div>Showing Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong></div>
+        <div class="pagination-controls">
+            {% if page > 1 %}
+            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=page-1) }}" class="btn btn-secondary btn-sm">⬅ Previous</a>
+            {% endif %}
+            
+            {% if page < total_pages %}
+            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=page+1) }}" class="btn btn-secondary btn-sm">Next ➡️</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div style="margin-top: 24px;">
+    <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-secondary">⬅ Back to Dashboard</a>
+</div>
+{% endblock %}

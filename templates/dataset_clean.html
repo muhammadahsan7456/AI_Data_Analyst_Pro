@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}AI Data Cleaning | AI Data Analyst Pro{% endblock %}
+{% block header_title %}AI Data Cleaning: {{ dataset[2] }}{% endblock %}
+{% block header_subtitle %}Detect missing values, remove duplicates, and download cleaned datasets.{% endblock %}
+
+{% block content %}
+<div class="table-card" style="max-width: 800px; margin-bottom: 32px;">
+    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">🧹 Data Cleaning Configuration</h3>
+    
+    <form method="POST" action="{{ url_for('frontend.clean_dataset_view', dataset_id=dataset[0]) }}">
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+                <input type="checkbox" name="remove_duplicates" checked style="width: 18px; height: 18px;">
+                Remove Duplicate Rows (Found: <strong>{{ report.total_duplicates }}</strong>)
+            </label>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Missing Values Strategy (Found: <strong>{{ report.total_missing }}</strong> missing cells)</label>
+            <select name="fill_strategy" style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">
+                <option value="auto">Auto Imputation (Mean for Numeric, Mode for Categorical)</option>
+                <option value="drop">Drop Rows with Missing Values</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-download"></i> Process & Download Cleaned CSV
+        </button>
+    </form>
+</div>
+
+<div style="margin-top: 24px;">
+    <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-secondary">⬅ Back to Dashboard</a>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Profiling & Descriptive Statistics | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Dataset Profiling: {{ dataset[2] }}{% endblock %}
+{% block header_subtitle %}Column data types, descriptive statistics, health score, missing values, and correlation matrix.{% endblock %}
+
+{% block content %}
+<!-- Health Score & Metrics -->
+<div class="cards-grid">
+    <div class="metric-card" style="border-left: 4px solid var(--accent-blue);">
+        <div class="metric-header">
+            <span class="metric-title">Data Health Score</span>
+            <div class="metric-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+        </div>
+        <div class="metric-value" style="color: {% if report.health_score >= 80 %}var(--accent-green){% elif report.health_score >= 60 %}var(--accent-amber){% else %}var(--accent-red){% endif %};">
+            {{ report.health_score }} / 100
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Total Missing Cells</span>
+            <div class="metric-icon"><i class="fa-solid fa-circle-question"></i></div>
+        </div>
+        <div class="metric-value">{{ report.total_missing }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Duplicate Rows</span>
+            <div class="metric-icon"><i class="fa-solid fa-copy"></i></div>
+        </div>
+        <div class="metric-value">{{ report.total_duplicates }}</div>
+    </div>
+</div>
+
+<!-- AI Business Insights & Recommendations -->
+<div class="table-card" style="border-left: 4px solid var(--accent-purple);">
+    <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-purple); margin-bottom: 12px;">
+        🤖 AI Recommendations & Data Quality Insights
+    </h3>
+    <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 8px;">
+        {% for insight in insights %}
+        <li style="padding: 10px 14px; background: var(--bg-primary); border-radius: var(--radius-sm); font-size: 14px; border-left: 3px solid var(--accent-blue);">
+            {{ insight }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% if heatmap_chart %}
+<!-- Heatmap Visualization Card -->
+<div class="table-card" style="text-align: center;">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <i class="fa-solid fa-fire" style="color: var(--accent-red);"></i> Correlation Matrix Heatmap
+    </h3>
+    <img src="{{ url_for('frontend.static', filename=heatmap_chart) }}" alt="Correlation Heatmap" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md);">
+</div>
+{% endif %}
+
+<!-- Column Profiling Table -->
+<div class="table-card">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">📋 Column Data Types & Descriptive Statistics</h3>
+    <div class="table-container">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Column Name</th>
+                    <th>Data Type</th>
+                    <th>Missing</th>
+                    <th>Unique</th>
+                    <th>Descriptive Summary Statistics</th>
+                    <th>Sample Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for col in report.column_profiles %}
+                <tr>
+                    <td><strong>{{ col.name }}</strong></td>
+                    <td><code style="background: var(--bg-primary); padding: 4px 8px; border-radius: 4px;">{{ col.dtype }}</code></td>
+                    <td>
+                        {% if col.missing > 0 %}
+                        <span style="color: var(--accent-red); font-weight: 600;">{{ col.missing }} ({{ col.missing_pct }}%)</span>
+                        {% else %}
+                        <span style="color: var(--accent-green);">0 (0%)</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ col.unique }}</td>
+                    <td>
+                        {% if col.is_numeric and col.stats %}
+                        <div style="font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
+                            <span class="badge badge-info">Min: {{ col.stats.min }}</span>
+                            <span class="badge badge-info">Max: {{ col.stats.max }}</span>
+                            <span class="badge badge-success">Mean: {{ col.stats.mean }}</span>
+                            <span class="badge badge-warning">Std: {{ col.stats.std }}</span>
+                        </div>
+                        {% elif col.stats and col.stats.top_value %}
+                        <div style="font-size: 12px;">
+                            <strong>Top:</strong> {{ col.stats.top_value }} ({{ col.stats.top_pct }}% share)
+                        </div>
+                        {% else %}
+                        <span style="color: var(--text-muted);">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ col.sample }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="margin-top: 24px; display: flex; gap: 12px;">
+    <a href="{{ url_for('frontend.clean_dataset_view', dataset_id=dataset[0]) }}" class="btn btn-primary">
+        <i class="fa-solid fa-broom"></i> Clean This Dataset
+    </a>
+    <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-secondary">⬅ Back to Dashboard</a>
+</div>
+{% endblock %}
