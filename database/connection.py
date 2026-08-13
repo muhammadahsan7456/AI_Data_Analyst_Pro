@@ -1,7 +1,7 @@
 import os
 import sys
 import re
-import pyodbc
+import sqlite3
 import pandas as pd
 from contextlib import contextmanager
 from dotenv import load_dotenv
@@ -10,6 +10,67 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 load_dotenv()
+
+try:
+    import pyodbc
+except ImportError:
+    pyodbc = None
+
+
+class SQLiteCursorAdapter:
+    def __init__(self, cursor):
+        self._cursor = cursor
+        self.last_inserted_id = None
+
+    def execute(self, sql, params=()):
+        sql_clean = str(sql)
+        sql_clean = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", sql_clean, flags=re.IGNORECASE)
+        sql_clean = sql_clean.replace("GETDATE()", "CURRENT_TIMESTAMP")
+        sql_clean = re.sub(r"TOP\s+(\d+)", r"LIMIT \1", sql_clean, flags=re.IGNORECASE)
+
+        self._cursor.execute(sql_clean, params or ())
+        if self._cursor.lastrowid:
+            self.last_inserted_id = self._cursor.lastrowid
+        return self
+
+    def fetchone(self):
+        res = self._cursor.fetchone()
+        if res is None and self.last_inserted_id is not None:
+            ret = (self.last_inserted_id,)
+            self.last_inserted_id = None
+            return ret
+        if res is not None:
+            return tuple(res)
+        return None
+
+    def fetchall(self):
+        return [tuple(r) for r in self._cursor.fetchall()]
+
+    def close(self):
+        try:
+            self._cursor.close()
+        except Exception:
+            pass
+
+
+class SQLiteConnectionAdapter:
+    def __init__(self, db_path=None):
+        if not db_path:
+            db_path = os.path.join(os.path.dirname(__file__), "AI_Data_Analyst_Pro_cloud.db")
+        self.db_path = db_path
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+
+    def cursor(self):
+        return SQLiteCursorAdapter(self.conn.cursor())
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        self.conn.close()
 
 
 def get_connection_string():
@@ -43,20 +104,26 @@ def get_connection_string():
 
 def get_connection():
     """
-    Establish and return a pyodbc database connection.
+    Establish and return database connection (SQL Server primary, SQLite cloud fallback).
     """
-    conn_str = get_connection_string()
-    try:
-        return pyodbc.connect(conn_str, timeout=10)
-    except Exception:
-        # Fallback to standard driver if custom driver fails
-        fallback_str = (
-            "DRIVER={SQL Server};"
-            "SERVER=DESKTOP-1C016AT;"
-            "DATABASE=AI_Data_Analyst_Pro;"
-            "Trusted_Connection=yes;"
-        )
-        return pyodbc.connect(fallback_str, timeout=10)
+    if pyodbc is not None:
+        try:
+            conn_str = get_connection_string()
+            return pyodbc.connect(conn_str, timeout=3)
+        except Exception:
+            try:
+                fallback_str = (
+                    "DRIVER={SQL Server};"
+                    "SERVER=DESKTOP-1C016AT;"
+                    "DATABASE=AI_Data_Analyst_Pro;"
+                    "Trusted_Connection=yes;"
+                )
+                return pyodbc.connect(fallback_str, timeout=3)
+            except Exception:
+                pass
+
+    # Seamless cloud fallback to local SQLite database when SQL Server is unreachable
+    return SQLiteConnectionAdapter()
 
 
 @contextmanager
@@ -78,10 +145,162 @@ def get_db_cursor(commit=False):
         conn.close()
 
 
+def init_sqlite_db(conn):
+    cursor = conn.cursor()
+    tables = [
+        '''CREATE TABLE IF NOT EXISTS Users (
+            UserID INTEGER PRIMARY KEY AUTOINCREMENT,
+            FirstName TEXT,
+            LastName TEXT,
+            Username TEXT UNIQUE,
+            FullName TEXT NOT NULL,
+            Email TEXT NOT NULL UNIQUE,
+            PhoneNumber TEXT,
+            Country TEXT,
+            City TEXT,
+            PasswordHash TEXT NOT NULL,
+            ProfileImage TEXT,
+            IsActive INTEGER NOT NULL DEFAULT 1,
+            IsVerified INTEGER NOT NULL DEFAULT 0,
+            Role TEXT NOT NULL DEFAULT 'Analyst',
+            FailedLoginAttempts INTEGER DEFAULT 0,
+            LockoutUntil TEXT,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UpdatedAt TEXT
+        )''',
+        '''CREATE TABLE IF NOT EXISTS UserProfiles (
+            ProfileID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL UNIQUE,
+            Bio TEXT,
+            Occupation TEXT,
+            Company TEXT,
+            Department TEXT,
+            Designation TEXT,
+            Website TEXT,
+            LinkedIn TEXT,
+            GitHub TEXT,
+            Portfolio TEXT,
+            ProfileImage TEXT,
+            Timezone TEXT DEFAULT 'UTC',
+            Language TEXT DEFAULT 'en',
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS UserSettings (
+            SettingID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL UNIQUE,
+            Theme TEXT DEFAULT 'light',
+            DateFormat TEXT DEFAULT 'YYYY-MM-DD',
+            DefaultExportFormat TEXT DEFAULT 'csv',
+            ChartPreference TEXT DEFAULT 'bar',
+            DashboardPreference TEXT DEFAULT 'standard',
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS EmailVerificationTokens (
+            TokenID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            Token TEXT NOT NULL UNIQUE,
+            ExpiresAt TEXT NOT NULL,
+            IsUsed INTEGER NOT NULL DEFAULT 0,
+            Attempts INTEGER NOT NULL DEFAULT 0,
+            UsedAt TEXT,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS PasswordResetTokens (
+            TokenID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            Token TEXT NOT NULL UNIQUE,
+            ExpiresAt TEXT NOT NULL,
+            IsUsed INTEGER NOT NULL DEFAULT 0,
+            Attempts INTEGER NOT NULL DEFAULT 0,
+            UsedAt TEXT,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS LoginHistory (
+            LogID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            IPAddress TEXT,
+            UserAgent TEXT,
+            Browser TEXT,
+            OS TEXT,
+            Device TEXT,
+            Status TEXT NOT NULL,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS UserSessions (
+            SessionID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            SessionToken TEXT NOT NULL UNIQUE,
+            IPAddress TEXT,
+            UserAgent TEXT,
+            ExpiresAt TEXT NOT NULL,
+            IsActive INTEGER NOT NULL DEFAULT 1,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS AuditLogs (
+            LogID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NULL,
+            Action TEXT NOT NULL,
+            Details TEXT,
+            IPAddress TEXT,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS Datasets (
+            DatasetID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            DatasetName TEXT NOT NULL,
+            OriginalFileName TEXT NOT NULL,
+            FileType TEXT NOT NULL,
+            TotalRows INTEGER DEFAULT 0,
+            TotalColumns INTEGER DEFAULT 0,
+            StorageSizeKB REAL DEFAULT 0.0,
+            IsFavorite INTEGER DEFAULT 0,
+            Tags TEXT,
+            LastOpenedAt TEXT,
+            UploadDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS QueryLogs (
+            QueryID INTEGER PRIMARY KEY AUTOINCREMENT,
+            DatasetID INTEGER NULL,
+            UserQuestion TEXT NOT NULL,
+            GeneratedSQL TEXT NOT NULL,
+            ExecutionStatus TEXT NOT NULL,
+            RowsReturned INTEGER DEFAULT 0,
+            ExecutionTimeMS REAL DEFAULT 0.0,
+            ConfidenceScore REAL DEFAULT 1.0,
+            RetryCount INTEGER DEFAULT 0,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS AINotifications (
+            NotificationID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            Category TEXT NOT NULL,
+            Title TEXT NOT NULL,
+            Message TEXT NOT NULL,
+            MetadataJson TEXT,
+            IsRead INTEGER DEFAULT 0,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )'''
+    ]
+
+    for t in tables:
+        try:
+            cursor.execute(t)
+        except Exception as e:
+            print("SQLite Table Creation Notice:", e)
+
+    conn.commit()
+
+
 def init_db():
     """
     Automatically create missing core system tables, enterprise auth columns, and non-clustered performance indexes.
     """
+    conn = get_connection()
+    if isinstance(conn, SQLiteConnectionAdapter):
+        init_sqlite_db(conn)
+        validate_smtp_config()
+        return
+
     query = """
     IF OBJECT_ID('Users', 'U') IS NULL
     BEGIN
@@ -300,6 +519,7 @@ def init_db():
     BEGIN
         CREATE NONCLUSTERED INDEX IX_QueryLogs_DatasetID ON QueryLogs(DatasetID, CreatedAt DESC);
     END;
+
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_AINotifications_UserID_CreatedAt' AND object_id = OBJECT_ID('AINotifications'))
     BEGIN
         CREATE NONCLUSTERED INDEX IX_AINotifications_UserID_CreatedAt ON AINotifications(UserID, CreatedAt DESC);
@@ -370,10 +590,17 @@ def run_query(query: str, params: tuple = None) -> pd.DataFrame:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
-            if params:
-                df = pd.read_sql(query, conn, params=params)
+            if isinstance(conn, SQLiteConnectionAdapter):
+                clean_q = re.sub(r"TOP\s+(\d+)", r"LIMIT \1", str(query), flags=re.IGNORECASE)
+                if params:
+                    df = pd.read_sql(clean_q, conn.conn, params=params)
+                else:
+                    df = pd.read_sql(clean_q, conn.conn)
             else:
-                df = pd.read_sql(query, conn)
+                if params:
+                    df = pd.read_sql(query, conn, params=params)
+                else:
+                    df = pd.read_sql(query, conn)
         return df
     finally:
         conn.close()
