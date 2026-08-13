@@ -23,12 +23,22 @@ class SQLiteCursorAdapter:
         self.last_inserted_id = None
 
     def execute(self, sql, params=()):
-        sql_clean = str(sql)
-        sql_clean = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", sql_clean, flags=re.IGNORECASE)
-        sql_clean = sql_clean.replace("GETDATE()", "CURRENT_TIMESTAMP")
-        sql_clean = re.sub(r"TOP\s+(\d+)", r"LIMIT \1", sql_clean, flags=re.IGNORECASE)
+        s = str(sql)
 
-        self._cursor.execute(sql_clean, params or ())
+        def replace_dateadd(match):
+            num = match.group(1).strip()
+            if num.startswith("-"):
+                return f"datetime('now', '{num} minutes')"
+            else:
+                return f"datetime('now', '+{num} minutes')"
+
+        s = re.sub(r"DATEADD\s*\(\s*MINUTE\s*,\s*(-?\d+)\s*,\s*(?:GETDATE\(\)|CURRENT_TIMESTAMP)\s*\)", replace_dateadd, s, flags=re.IGNORECASE)
+        s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
+        s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
+        s = re.sub(r"TOP\s+(\d+)", r"LIMIT \1", s, flags=re.IGNORECASE)
+        s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
+
+        self._cursor.execute(s, params or ())
         if self._cursor.lastrowid:
             self.last_inserted_id = self._cursor.lastrowid
         return self
