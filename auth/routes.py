@@ -1,6 +1,7 @@
 import os
 import uuid
 import secrets
+import threading
 from datetime import datetime
 from PIL import Image
 from flask import (
@@ -237,8 +238,8 @@ def signup():
                 "attempts": 0
             }
 
-            # Dispatch 6-digit OTP via Email
-            email_service.send_verification_email(email, full_name, otp_code)
+            # Dispatch 6-digit OTP via Email asynchronously in background thread for instant sub-second response
+            threading.Thread(target=email_service.send_verification_email, args=(email, full_name, otp_code), daemon=True).start()
             log_audit_event("SIGNUP_OTP_EMAIL", f"6-Digit Email OTP generated for {email}: {otp_code}", user_id=new_user_id)
 
             flash(f"🔐 Account details updated! A 6-digit verification code has been sent to your email address (<strong>{email}</strong>). Please check your Gmail inbox.", "info")
@@ -392,7 +393,7 @@ def resend_otp():
             cursor.execute(create_email_verification_token(), (user_id, new_otp))
     except Exception: pass
 
-    email_service.send_verification_email(email, full_name, new_otp)
+    threading.Thread(target=email_service.send_verification_email, args=(email, full_name, new_otp), daemon=True).start()
     log_audit_event("RESEND_OTP_EMAIL", f"New Email OTP sent to {email}: {new_otp}", user_id=user_id)
     flash(f"📧 A new 6-digit verification code has been sent to your email address (<strong>{email}</strong>). Please check your Gmail inbox.", "info")
 
