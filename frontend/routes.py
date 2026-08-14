@@ -1002,6 +1002,19 @@ def delete_dataset(dataset_id):
 # ==========================================
 # EXPORT DATASET / REPORTS / SVG / WORD / PPTX
 # ==========================================
+def build_content_disposition(filename: str) -> str:
+    """
+    Build RFC 6266 compliant Content-Disposition header with clean double-quoted filename.
+    """
+    clean_name = re.sub(r'[\r\n\t"\\/]', '_', str(filename)).strip()
+    clean_name = re.sub(r'\s+', '_', clean_name)
+    if not clean_name:
+        clean_name = "Dataset_Export"
+    from urllib.parse import quote
+    encoded_name = quote(clean_name)
+    return f'attachment; filename="{clean_name}"; filename*=UTF-8\'\'{encoded_name}'
+
+
 @frontend.route("/dataset/export/<int:dataset_id>/<format_type>")
 @login_required
 def export_dataset(dataset_id, format_type):
@@ -1015,7 +1028,10 @@ def export_dataset(dataset_id, format_type):
         return redirect(url_for("frontend.dashboard"))
 
     table_name = dataset[2]
-    original_filename = dataset[3]
+    original_filename = dataset[3] or dataset[4] or f"Dataset_{dataset_id}"
+    base_name = os.path.splitext(str(original_filename))[0]
+    base_name = re.sub(r"[^A-Za-z0-9_\-]", "_", base_name).strip("_") or f"Dataset_{dataset_id}"
+
     df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
 
     format_type = format_type.lower()
@@ -1027,14 +1043,14 @@ def export_dataset(dataset_id, format_type):
         return Response(
             data,
             mimetype="text/csv",
-            headers={"Content-Disposition": f"attachment; filename={os.path.splitext(original_filename)[0]}.csv"}
+            headers={"Content-Disposition": build_content_disposition(f"{base_name}.csv")}
         )
     elif format_type == "excel":
         data = export_to_excel(df, dataset_name=table_name)
         return Response(
             data,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={os.path.splitext(original_filename)[0]}.xlsx"}
+            headers={"Content-Disposition": build_content_disposition(f"{base_name}.xlsx")}
         )
     elif format_type == "pdf":
         insights = generate_ai_insights(df)
@@ -1045,7 +1061,7 @@ def export_dataset(dataset_id, format_type):
         return Response(
             pdf_bytes,
             mimetype="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=report_{os.path.splitext(original_filename)[0]}.pdf"}
+            headers={"Content-Disposition": build_content_disposition(f"Report_{base_name}.pdf")}
         )
     elif format_type in ["word", "docx"]:
         insights = generate_ai_insights(df)
@@ -1055,7 +1071,7 @@ def export_dataset(dataset_id, format_type):
         return Response(
             word_bytes,
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename=report_{os.path.splitext(original_filename)[0]}.docx"}
+            headers={"Content-Disposition": build_content_disposition(f"Report_{base_name}.docx")}
         )
     elif format_type in ["pptx", "ppt", "powerpoint"]:
         insights = generate_ai_insights(df)
@@ -1065,7 +1081,7 @@ def export_dataset(dataset_id, format_type):
         return Response(
             pptx_bytes,
             mimetype="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            headers={"Content-Disposition": f"attachment; filename=presentation_{os.path.splitext(original_filename)[0]}.pptx"}
+            headers={"Content-Disposition": build_content_disposition(f"Presentation_{base_name}.pptx")}
         )
     elif format_type == "svg":
         chart_type = select_chart(df)
@@ -1073,7 +1089,7 @@ def export_dataset(dataset_id, format_type):
         return Response(
             svg_bytes,
             mimetype="image/svg+xml",
-            headers={"Content-Disposition": f"attachment; filename=chart_{table_name}.svg"}
+            headers={"Content-Disposition": build_content_disposition(f"Chart_{base_name}.svg")}
         )
     else:
         abort(400)
@@ -1124,7 +1140,8 @@ def export_query_result(format_type):
         df.insert(0, "S.No", range(1, len(df) + 1))
 
     format_type = format_type.lower().strip()
-    clean_q_name = re.sub(r"[^A-Za-z0-9_]", "_", last_query)[:30].strip("_") or "QueryResult"
+    raw_q_name = last_query if last_query and last_query != "Query_Result" else "QueryResult"
+    clean_q_name = re.sub(r"[^A-Za-z0-9_\-]", "_", raw_q_name)[:30].strip("_") or "QueryResult"
     log_audit_event("EXPORT_QUERY_RESULT", f"Exported query result ({len(df)} rows) as {format_type.upper()}", user_id=user_id)
     trigger_ai_event(user_id, build_report_export_card(format_type))
 
@@ -1134,7 +1151,7 @@ def export_query_result(format_type):
             return Response(
                 data,
                 mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                headers={"Content-Disposition": f"attachment; filename={clean_q_name}.xlsx"}
+                headers={"Content-Disposition": build_content_disposition(f"{clean_q_name}.xlsx")}
             )
         elif format_type == "pdf":
             insights = generate_ai_insights(df)
@@ -1144,7 +1161,7 @@ def export_query_result(format_type):
             return Response(
                 pdf_bytes,
                 mimetype="application/pdf",
-                headers={"Content-Disposition": f"attachment; filename=report_{clean_q_name}.pdf"}
+                headers={"Content-Disposition": build_content_disposition(f"Report_{clean_q_name}.pdf")}
             )
         elif format_type in ["word", "docx"]:
             insights = generate_ai_insights(df)
@@ -1154,7 +1171,7 @@ def export_query_result(format_type):
             return Response(
                 word_bytes,
                 mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                headers={"Content-Disposition": f"attachment; filename=report_{clean_q_name}.docx"}
+                headers={"Content-Disposition": build_content_disposition(f"Report_{clean_q_name}.docx")}
             )
         elif format_type in ["pptx", "ppt", "powerpoint"]:
             insights = generate_ai_insights(df)
@@ -1164,14 +1181,14 @@ def export_query_result(format_type):
             return Response(
                 pptx_bytes,
                 mimetype="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                headers={"Content-Disposition": f"attachment; filename=presentation_{clean_q_name}.pptx"}
+                headers={"Content-Disposition": build_content_disposition(f"Presentation_{clean_q_name}.pptx")}
             )
         elif format_type == "csv":
             data = export_to_csv(df)
             return Response(
                 data,
                 mimetype="text/csv",
-                headers={"Content-Disposition": f"attachment; filename={clean_q_name}.csv"}
+                headers={"Content-Disposition": build_content_disposition(f"{clean_q_name}.csv")}
             )
         else:
             flash("Unsupported export format.", "error")
