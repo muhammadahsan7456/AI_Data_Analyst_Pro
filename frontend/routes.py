@@ -576,6 +576,14 @@ def chat():
     # Auto-repair and infer clean human headers for any Unnamed/blank columns
     df = auto_repair_dataframe_headers(df)
 
+    # Clean technical RecordID column and prepend neat 1-to-N S.No sequential column
+    if "RecordID" in df.columns:
+        df = df.drop(columns=["RecordID"])
+
+    df = df.reset_index(drop=True)
+    if "S.No" not in df.columns:
+        df.insert(0, "S.No", range(1, len(df) + 1))
+
     result_html = df.to_html(
         classes="table table-bordered table-striped custom-table",
         index=False
