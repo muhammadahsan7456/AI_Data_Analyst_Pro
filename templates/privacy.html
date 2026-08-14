@@ -1,13 +1,132 @@
 {% extends "base.html" %}
 
 {% block title %}Privacy Policy | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Privacy Policy{% endblock %}
-{% block header_subtitle %}Information governance, data privacy, and SQL storage policies.{% endblock %}
+{% block header_title %}Data Privacy & Security Policy{% endblock %}
+{% block header_subtitle %}Information governance, SQL database isolation, zero data reselling, and PII protection policies.{% endblock %}
 
 {% block content %}
-<div class="table-card" style="max-width: 800px; line-height: 1.8; color: var(--text-secondary);">
-    <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">🔒 Data Privacy & Protection Policy</h2>
-    <p>AI Data Analyst Pro ensures strict data isolation. Uploaded datasets are converted to dedicated SQL Server tables inside your local database environment and are never shared with third parties.</p>
-    <p style="margin-top: 12px;">Query data transmitted to OpenRouter LLM endpoints includes only database table schemas and sample values required for SQL translation.</p>
+<div style="max-width: 1000px; margin: 0 auto; padding: 10px 0 40px 0;">
+    
+    <!-- Hero Header Banner -->
+    <div class="glass-card" style="padding: 32px; border-radius: var(--radius-lg); border-left: 5px solid var(--accent-green); background: linear-gradient(135deg, rgba(52,211,153,0.1), rgba(15,23,42,0.4)); margin-bottom: 28px; box-shadow: var(--shadow-md);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <span class="badge badge-success" style="font-size: 12px; margin-bottom: 8px;">Compliance & Governance v2026.1</span>
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 4px 0 8px 0;">🔒 Enterprise Data Privacy & Security Policy</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 0; max-width: 700px; line-height: 1.6;">
+                    Learn how <strong>AI Data Analyst Pro</strong> secures your enterprise datasets, enforces local Microsoft SQL Server tenant isolation, and protects user privacy.
+                </p>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
+                <div><strong>Effective Date:</strong> January 1, 2026</div>
+                <div><strong>Last Updated:</strong> August 14, 2026</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container with Table of Contents -->
+    <div style="display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start;">
+        
+        <!-- Sidebar Navigation -->
+        <div class="glass-card" style="padding: 20px; border-radius: var(--radius-md); position: sticky; top: 90px; background: var(--bg-surface); border: 1px solid var(--border-color);">
+            <h4 style="font-size: 14px; font-weight: 800; color: var(--accent-green); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Privacy Sections</h4>
+            <nav style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                <a href="#priv-1" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">1. Zero Data Reselling</a>
+                <a href="#priv-2" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">2. Database Isolation</a>
+                <a href="#priv-3" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">3. LLM Data Transmission</a>
+                <a href="#priv-4" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">4. Encryption Standards</a>
+                <a href="#priv-5" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">5. Session Governance</a>
+                <a href="#priv-6" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">6. Compliance & Rights</a>
+            </nav>
+        </div>
+
+        <!-- Detailed Legal Clauses -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Section 1 -->
+            <div id="priv-1" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-lock" style="color: var(--accent-green);"></i> 1. Absolute Zero Data Reselling & Model Training Guarantee
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    We enforce a strict <strong>Zero Third-Party Data Monetization Policy</strong>. Your uploaded CSV files, Excel spreadsheets, dataset records, and generated analytical outputs:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>Are <strong>NEVER sold, leased, rented, or shared</strong> with advertising networks or data brokers.</li>
+                    <li>Are <strong>NEVER used to train or fine-tune public artificial intelligence foundation models</strong>.</li>
+                    <li>Remain strictly confidential and accessible solely to authorized authenticated users within your account instance.</li>
+                </ul>
+            </div>
+
+            <!-- Section 2 -->
+            <div id="priv-2" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-server" style="color: var(--accent-blue);"></i> 2. Local Microsoft SQL Server Tenant Isolation
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    All uploaded datasets are converted into dedicated, parameterized table structures inside Microsoft SQL Server:
+                </p>
+                <div style="background: var(--bg-primary); padding: 14px 18px; border-radius: 8px; border-left: 4px solid #38bdf8; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                    <strong>Multi-Tenant Schema Isolation:</strong> Each uploaded dataset is assigned a unique identifier string (e.g. <code>Sales_Data_U6_T1786650</code>). All T-SQL queries enforce strict user scoping (<code>WHERE user_id = @user_id</code>), ensuring complete data boundary isolation across accounts.
+                </div>
+            </div>
+
+            <!-- Section 3 -->
+            <div id="priv-3" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-purple);"></i> 3. Secure LLM Prompt Guardrails & PII Protection
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    When you ask natural language analytical questions, the AI Translation Engine transmits only column headers and non-sensitive structural schema definitions to OpenRouter LLM endpoints:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>Raw database record rows remain securely inside your local SQL Server instance and are executed via localized T-SQL engine calls.</li>
+                    <li>Automated <strong>PII Guardrails</strong> detect and mask sensitive identifiers (e.g., credit card numbers, social security codes, passwords) prior to query processing.</li>
+                </ul>
+            </div>
+
+            <!-- Section 4 -->
+            <div id="priv-4" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-key" style="color: var(--accent-yellow);"></i> 4. Encryption & Security Infrastructure Standards
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    We implement modern cryptographic protocols across data transmission and storage:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li><strong>TLS 1.3 Transport Encryption:</strong> All browser communications and API requests are encrypted via HTTPS.</li>
+                    <li><strong>Argon2id / PBKDF2 Password Hashing:</strong> User passwords are securely salted and hashed prior to database storage.</li>
+                    <li><strong>Transactional RFC 2822 Email Security:</strong> Email verification codes (OTP) utilize High-Priority transactional SMTP delivery headers to prevent spam intercept.</li>
+                </ul>
+            </div>
+
+            <!-- Section 5 -->
+            <div id="section-5" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-cookie-bite" style="color: #f97316;"></i> 5. Session Governance & Cookie Security
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0;">
+                    We utilize HTTP-Only, SameSite-Strict session cookies exclusively for user authentication and CSRF protection. We do not place third-party tracking cookies or cross-site analytics scripts on your device.
+                </p>
+            </div>
+
+            <!-- Section 6 -->
+            <div id="priv-6" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-user-check" style="color: #38bdf8;"></i> 6. User Rights (GDPR & CCPA Compliance)
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    Under applicable data protection regulations (including GDPR and CCPA), you hold the following explicit rights:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li><strong>Right of Access & Export:</strong> Export your full raw datasets and analytical reports at any time in CSV, Excel, PDF, Word, or PowerPoint formats.</li>
+                    <li><strong>Right to Erasure (Be Forgotten):</strong> Permanently delete your account, profile credentials, and uploaded datasets with zero data retention.</li>
+                </ul>
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 {% endblock %}
