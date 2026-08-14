@@ -1106,7 +1106,7 @@ def export_query_result(format_type):
                 ds = cursor.fetchone()
                 if ds:
                     table_name = ds[2]
-                    df = run_query(f"SELECT TOP 50 * FROM {sanitize_identifier(table_name)}")
+                    df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
         except Exception:
             pass
 

@@ -193,14 +193,14 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
 
 def export_to_word_report(df: pd.DataFrame, dataset_name: str = "Dataset", insights: list = None, chart_file_path: str = None) -> bytes:
     """
-    Export Executive Word (.docx) report with AI insights, chart, and sample table.
+    Export Executive Word (.docx) report with AI insights, chart, and complete dataset records table.
     """
     try:
         import docx
         from docx.shared import Inches
         doc = docx.Document()
         doc.add_heading(f"Executive Data Report: {dataset_name}", 0)
-        doc.add_paragraph(f"Total Records: {len(df)} | Total Columns: {len(df.columns)}")
+        doc.add_paragraph(f"Total Records: {len(df):,} | Total Columns: {len(df.columns)}")
 
         if insights:
             doc.add_heading("AI Business Insights & Recommendations", level=1)
@@ -213,31 +213,36 @@ def export_to_word_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
                 doc.add_heading("Visual Analysis Chart", level=1)
                 doc.add_picture(full_chart_path, width=Inches(5.5))
 
-        doc.add_heading("Sample Data Preview (Top 10 Rows)", level=1)
-        table = doc.add_table(rows=1, cols=min(len(df.columns), 6))
+        cols_to_render = list(df.columns[:10])
+        doc.add_heading(f"Complete Dataset Records Table ({len(df):,} Matching Rows)", level=1)
+        table = doc.add_table(rows=1, cols=len(cols_to_render))
         hdr_cells = table.rows[0].cells
-        for i, col in enumerate(df.columns[:6]):
+        for i, col in enumerate(cols_to_render):
             hdr_cells[i].text = str(col)
 
-        for _, row in df.head(10).iterrows():
+        # Process ALL rows without truncation
+        for _, row in df.iterrows():
             row_cells = table.add_row().cells
-            for i, col in enumerate(df.columns[:6]):
-                row_cells[i].text = str(row[col])[:30]
+            for i, col in enumerate(cols_to_render):
+                val_raw = row[col]
+                val = str(val_raw) if val_raw is not None and not pd.isna(val_raw) else ""
+                row_cells[i].text = val[:40]
 
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
         return buffer.getvalue()
-    except Exception:
+    except Exception as word_err:
+        print("[WORD ENGINE FALLBACK]", word_err)
         html_doc = f"""
         <html>
         <head><meta charset="utf-8"><title>{dataset_name} Executive Report</title></head>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
             <h1 style="color: #1e3a8a;">Executive Data Report: {dataset_name}</h1>
-            <p><strong>Total Records:</strong> {len(df)} | <strong>Total Columns:</strong> {len(df.columns)}</p>
+            <p><strong>Total Records:</strong> {len(df):,} | <strong>Total Columns:</strong> {len(df.columns)}</p>
             {"<h2>AI Insights</h2><ul>" + "".join(f"<li>{i}</li>" for i in insights) + "</ul>" if insights else ""}
-            <h2>Sample Dataset</h2>
-            {df.head(15).to_html(classes="table", index=False)}
+            <h2>Complete Dataset Table</h2>
+            {df.to_html(classes="table", index=False)}
         </body>
         </html>
         """
@@ -246,9 +251,10 @@ def export_to_word_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
 def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insights: list = None, chart_file_path: str = None) -> bytes:
     """
-    Export Executive PowerPoint (.pptx) presentation with Title, Insights, Embedded Chart, and Formatted Dataset Table Slides.
+    Export Executive PowerPoint (.pptx) presentation with Title, Insights, Embedded Chart, and Multi-Slide Formatted Dataset Table Slides.
     """
     try:
+        import math
         from pptx import Presentation
         from pptx.util import Inches, Pt
         from pptx.dml.color import RGBColor
@@ -330,53 +336,60 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
                 slide_c.shapes.add_picture(full_chart_path, Inches(1.5), Inches(1.5), width=Inches(10.333))
 
-        # Slide 4: Complete Dataset Records View Table Slide
+        # Slide 4+: Complete Dataset Records View Table Slides (Paginated chunks of 15 rows)
         if not df.empty:
-            slide3 = prs.slides.add_slide(blank_layout)
-            bg3 = slide3.shapes.add_shape(1, 0, 0, Inches(13.333), Inches(7.5))
-            bg3.fill.solid()
-            bg3.fill.fore_color.rgb = RGBColor(15, 23, 42)
-            bg3.line.color.rgb = RGBColor(15, 23, 42)
+            cols_to_show = list(df.columns[:8])
+            total_records = len(df)
+            rows_per_slide = 15
+            max_export_rows = min(total_records, 2250)
+            total_slides = math.ceil(max_export_rows / rows_per_slide)
 
-            tx_t3 = slide3.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.8))
-            p_t3 = tx_t3.text_frame.paragraphs[0]
-            p_t3.text = f"📋 Dataset Records View ({len(df)} Records)"
-            p_t3.font.bold = True
-            p_t3.font.size = Pt(24)
-            p_t3.font.color.rgb = RGBColor(56, 189, 248)
+            for chunk_start in range(0, max_export_rows, rows_per_slide):
+                chunk_df = df.iloc[chunk_start:chunk_start + rows_per_slide]
+                slide_num = (chunk_start // rows_per_slide) + 1
 
-            cols_to_show = list(df.columns[:7])
-            rows_to_show = df.head(15)
+                slide_tbl = prs.slides.add_slide(blank_layout)
+                bg_tbl = slide_tbl.shapes.add_shape(1, 0, 0, Inches(13.333), Inches(7.5))
+                bg_tbl.fill.solid()
+                bg_tbl.fill.fore_color.rgb = RGBColor(15, 23, 42)
+                bg_tbl.line.color.rgb = RGBColor(15, 23, 42)
 
-            num_rows = len(rows_to_show) + 1
-            num_cols = len(cols_to_show)
+                tx_t = slide_tbl.shapes.add_textbox(Inches(0.8), Inches(0.4), Inches(11.7), Inches(0.8))
+                p_t = tx_t.text_frame.paragraphs[0]
+                p_t.text = f"📋 Dataset Records View (Slide {slide_num} of {total_slides} | Rows {chunk_start+1}-{chunk_start+len(chunk_df)} of {total_records:,})"
+                p_t.font.bold = True
+                p_t.font.size = Pt(22)
+                p_t.font.color.rgb = RGBColor(56, 189, 248)
 
-            table_shape3 = slide3.shapes.add_table(num_rows, num_cols, Inches(0.8), Inches(1.5), Inches(11.733), Inches(5.2))
-            table3 = table_shape3.table
+                num_rows = len(chunk_df) + 1
+                num_cols = len(cols_to_show)
 
-            for c_idx, col_name in enumerate(cols_to_show):
-                cell = table3.cell(0, c_idx)
-                cell.text = str(col_name)[:18]
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = RGBColor(30, 58, 138)
-                for p in cell.text_frame.paragraphs:
-                    p.font.bold = True
-                    p.font.size = Pt(12)
-                    p.font.color.rgb = RGBColor(255, 255, 255)
+                table_shape = slide_tbl.shapes.add_table(num_rows, num_cols, Inches(0.8), Inches(1.3), Inches(11.733), Inches(5.6))
+                table = table_shape.table
 
-            for r_idx, (_, row) in enumerate(rows_to_show.iterrows(), start=1):
                 for c_idx, col_name in enumerate(cols_to_show):
-                    cell = table3.cell(r_idx, c_idx)
-                    val = str(row[col_name]) if row[col_name] is not None and not pd.isna(row[col_name]) else ""
-                    cell.text = val[:25]
+                    cell = table.cell(0, c_idx)
+                    cell.text = str(col_name)[:18]
                     cell.fill.solid()
-                    if r_idx % 2 == 0:
-                        cell.fill.fore_color.rgb = RGBColor(30, 41, 59)
-                    else:
-                        cell.fill.fore_color.rgb = RGBColor(15, 23, 42)
+                    cell.fill.fore_color.rgb = RGBColor(30, 58, 138)
                     for p in cell.text_frame.paragraphs:
-                        p.font.size = Pt(10)
-                        p.font.color.rgb = RGBColor(226, 232, 240)
+                        p.font.bold = True
+                        p.font.size = Pt(11)
+                        p.font.color.rgb = RGBColor(255, 255, 255)
+
+                for r_idx, (_, row) in enumerate(chunk_df.iterrows(), start=1):
+                    for c_idx, col_name in enumerate(cols_to_show):
+                        cell = table.cell(r_idx, c_idx)
+                        val = str(row[col_name]) if row[col_name] is not None and not pd.isna(row[col_name]) else ""
+                        cell.text = val[:30]
+                        cell.fill.solid()
+                        if r_idx % 2 == 0:
+                            cell.fill.fore_color.rgb = RGBColor(30, 41, 59)
+                        else:
+                            cell.fill.fore_color.rgb = RGBColor(15, 23, 42)
+                        for p in cell.text_frame.paragraphs:
+                            p.font.size = Pt(10)
+                            p.font.color.rgb = RGBColor(226, 232, 240)
 
         buffer = io.BytesIO()
         prs.save(buffer)
