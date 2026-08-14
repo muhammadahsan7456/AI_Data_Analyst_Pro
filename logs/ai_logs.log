@@ -143,3 +143,8 @@
 [2026-08-14 11:10:38,873] [INFO]: [User #6] Asked: 'Show top 10 customers' on table [Downloads_u6]
 [2026-08-14 11:10:40,055] [INFO]: [User #6] Asked: 'Mujhe delivered orders ka data La kar do' on table [Downloads_u6]
 [2026-08-14 20:35:23,625] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.
+[2026-08-14 20:43:12,379] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.
+[2026-08-14 20:43:23,158] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.
+[2026-08-14 20:43:29,926] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.
+[2026-08-14 20:43:42,341] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.
+[2026-08-14 20:43:59,596] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.
