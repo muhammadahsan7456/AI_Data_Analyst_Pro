@@ -1015,44 +1015,6 @@ def build_content_disposition(filename: str) -> str:
     return f'attachment; filename="{clean_name}"; filename*=UTF-8\'\'{encoded_name}'
 
 
-@frontend.route("/dataset/export/<int:dataset_id>/<format_type>")
-@login_required
-def export_dataset(dataset_id, format_type):
-    user_id = session.get("user_id")
-    with get_db_cursor() as cursor:
-        cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
-        dataset = cursor.fetchone()
-
-    if not dataset:
-        flash("Access Denied: You do not have permission to export this dataset.", "error")
-        return redirect(url_for("frontend.dashboard"))
-
-    table_name = dataset[2]
-    original_filename = dataset[3] or dataset[4] or f"Dataset_{dataset_id}"
-    base_name = os.path.splitext(str(original_filename))[0]
-    base_name = re.sub(r"[^A-Za-z0-9_\-]", "_", base_name).strip("_") or f"Dataset_{dataset_id}"
-
-    df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
-    df = auto_repair_dataframe_headers(df)
-
-    format_type = format_type.lower()
-    log_audit_event("EXPORT_DATASET", f"Exported dataset #{dataset_id} as {format_type.upper()}", user_id=user_id)
-    trigger_ai_event(user_id, build_report_export_card(format_type))
-
-    if format_type == "csv":
-        data = export_to_csv(df)
-        return Response(
-            data,
-            mimetype="text/csv",
-            headers={"Content-Disposition": build_content_disposition(f"{base_name}.csv")}
-        )
-    elif format_type == "excel":
-        data = export_to_excel(df, dataset_name=table_name)
-        return Response(
-            data,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": build_content_disposition(f"{base_name}.xlsx")}
-        )
 def generate_fast_export_insights(df: pd.DataFrame) -> list:
     """
     Generate instant statistical business insights in 0.001s for ultra-fast export downloads.
