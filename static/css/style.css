@@ -1020,6 +1020,34 @@ body {
     .metric-value {
         font-size: 22px;
     }
+
+    .table-card {
+        padding: 16px 12px !important;
+        border-radius: 10px !important;
+    }
+
+    .table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Master Universal Device Responsiveness Rules */
+@media (max-width: 768px) {
+    .container, .main-content, .content-area {
+        padding: 12px !important;
+    }
+
+    .metrics-grid, .stats-grid, .grid-4, .grid-3 {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
 }
 
 @keyframes toastSlideDown {
