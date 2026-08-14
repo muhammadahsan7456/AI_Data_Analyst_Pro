@@ -83,7 +83,7 @@ def execute_multi_dataset_analysis(
             if common_cols:
                 join_col = common_cols[0]
                 sql = f"""
-                SELECT TOP 100 t1.{sanitize_identifier(join_col)}, t1.*, t2.*
+                SELECT t1.{sanitize_identifier(join_col)} AS [JoinKey], t1.*, t2.*
                 FROM {sanitize_identifier(tbl1)} t1
                 INNER JOIN {sanitize_identifier(tbl2)} t2
                     ON t1.{sanitize_identifier(join_col)} = t2.{sanitize_identifier(join_col)};
@@ -106,9 +106,9 @@ def execute_multi_dataset_analysis(
         if shared_cols:
             col_str = ", ".join(sanitize_identifier(c) for c in shared_cols)
             sql = f"""
-            SELECT TOP 100 '{file_names[0]}' AS [SourceDataset], {col_str} FROM {sanitize_identifier(tbl1)}
+            SELECT '{file_names[0]}' AS [SourceDataset], {col_str} FROM {sanitize_identifier(tbl1)}
             UNION ALL
-            SELECT TOP 100 '{file_names[1]}' AS [SourceDataset], {col_str} FROM {sanitize_identifier(tbl2)};
+            SELECT '{file_names[1]}' AS [SourceDataset], {col_str} FROM {sanitize_identifier(tbl2)};
             """
             df_res = run_query(sql)
             return {
@@ -116,7 +116,7 @@ def execute_multi_dataset_analysis(
                 "type": "merged_union",
                 "sql": sql,
                 "df": df_res,
-                "explanation": f"Merged records from both datasets across shared columns: {', '.join(shared_cols)}."
+                "explanation": f"Merged all {len(df_res)} records from both datasets across shared columns: {', '.join(shared_cols)}."
             }
 
         # 4. Fallback for Datasets with Different Structures: Return Comparative Schema & Sample Preview
