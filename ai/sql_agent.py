@@ -18,23 +18,31 @@ DATABASE CONTEXT:
 - Columns:
 {columns}
 {sample_context}
-CRITICAL QUERY, SORTING & ENTITY FILTERING RULES:
-1. "TOP N" / "HIGHEST" / "LAST" / "BEST" SORTING REQUIREMENT:
-   - When the user asks for "top 10", "top N", "highest 10", "best", "most", "largest", "last 10", or "first 10", you MUST ALWAYS include an `ORDER BY` clause! NEVER return `SELECT TOP N *` without sorting!
-   - For "top 10" / "highest 10" / "best": Find the main numeric/amount/revenue/sales metric or date column and sort DESCENDING: e.g. `SELECT TOP 10 * FROM [{table_name}] ORDER BY [Amount] DESC;` or `ORDER BY [Total_Revenue] DESC;`
-   - For "lowest 10" / "bottom 10" / "smallest": Sort ASCENDING: e.g. `SELECT TOP 10 * FROM [{table_name}] ORDER BY [Amount] ASC;`
-   - For "latest 10" / "recent 10" / "last 10": Sort by Date or RecordID DESCENDING: e.g. `SELECT TOP 10 * FROM [{table_name}] ORDER BY [Order_Date] DESC;`
-   - If no specific metric column is named in the question, pick the primary numeric or date column in the table to sort by!
+CRITICAL QUERY, SORTING & ROW LIMIT RULES (STRICTLY ENFORCED):
+1. "FIRST N" / "SHURU KE RECORDS" / "INITIAL RECORDS":
+   - When the user asks for "first 10 records", "shuru ke 10 records", "pehle 10 records", or "initial 10 records", you MUST ORDER BY RecordID or first column ASCENDING:
+     Example: `SELECT TOP 10 * FROM [{table_name}] ORDER BY [RecordID] ASC;` (or first column ASC).
 
-2. ENTITY FILTERING REQUIREMENT: If the user asks for data regarding a specific country, region, category, product, person, or status (e.g. "Eritrea", "USA", "Baby Food", "Offline", "Eritrea Country ka data", "show data for Eritrea"), you MUST generate a WHERE clause filtering by that value!
+2. "LAST N" / "AAKHIRI RECORDS" / "RECENT RECORDS":
+   - When the user asks for "last 20 records", "last 10 records", "aakhiri 20 records", "recent 10 records", or "end ke records", you MUST ORDER BY RecordID or Date DESCENDING:
+     Example: `SELECT TOP 20 * FROM [{table_name}] ORDER BY [RecordID] DESC;` (or Date DESC).
+
+3. "TOP N HIGHEST" / "BEST / HIGHEST SALES / REVENUE":
+   - When the user asks for "top 10 highest", "highest 10", "best 10", "most sales", "largest", you MUST ORDER BY the metric column DESCENDING:
+     Example: `SELECT TOP 10 * FROM [{table_name}] ORDER BY [Amount] DESC;` or `ORDER BY [Total_Revenue] DESC;`
+
+4. "LOWEST N" / "BOTTOM N METRIC":
+   - When the user asks for "lowest 10", "bottom 10", "smallest 10", "sub se kam 10", you MUST ORDER BY the metric column ASCENDING:
+     Example: `SELECT TOP 10 * FROM [{table_name}] ORDER BY [Amount] ASC;`
+
+5. ENTITY FILTERING REQUIREMENT: If the user asks for data regarding a specific country, region, category, product, person, or status (e.g. "Eritrea", "USA", "Baby Food", "Offline", "Eritrea Country ka data", "show data for Eritrea"), you MUST generate a WHERE clause filtering by that value!
    Example: `SELECT * FROM [{table_name}] WHERE [Country] LIKE '%Eritrea%';` or `WHERE [Country] = 'Eritrea';`
-3. NEVER return `SELECT * FROM [{table_name}];` without a WHERE clause when the user specifies a specific country, item, or filter keyword in English, Urdu, or Roman Urdu!
-4. For string/text filtering, use case-insensitive flexible matching using LIKE with wildcards (e.g. `WHERE [ColumnName] LIKE '%value%'`).
-5. Return ONLY the raw SQL query starting with SELECT and ending with a semicolon (;).
-6. Do NOT include markdown code block formatting (NO ```sql or ```).
-7. Do NOT include explanations, notes, or comments.
-8. Use Microsoft SQL Server T-SQL syntax ONLY (e.g. use TOP N instead of LIMIT). Always enclose column names in square brackets [ColumnName].
-9. Use ONLY SELECT statements. Absolutely NO INSERT, UPDATE, DELETE, DROP, ALTER, EXEC, or CREATE.
+
+6. Return ONLY the raw SQL query starting with SELECT and ending with a semicolon (;).
+7. Do NOT include markdown code block formatting (NO ```sql or ```).
+8. Do NOT include explanations, notes, or comments.
+9. Use Microsoft SQL Server T-SQL syntax ONLY (e.g. use TOP N instead of LIMIT). Always enclose column names in square brackets [ColumnName].
+10. Use ONLY SELECT statements. Absolutely NO INSERT, UPDATE, DELETE, DROP, ALTER, EXEC, or CREATE.
 
 USER QUESTION:
 {question}
