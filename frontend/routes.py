@@ -1033,6 +1033,7 @@ def export_dataset(dataset_id, format_type):
     base_name = re.sub(r"[^A-Za-z0-9_\-]", "_", base_name).strip("_") or f"Dataset_{dataset_id}"
 
     df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
+    df = auto_repair_dataframe_headers(df)
 
     format_type = format_type.lower()
     log_audit_event("EXPORT_DATASET", f"Exported dataset #{dataset_id} as {format_type.upper()}", user_id=user_id)

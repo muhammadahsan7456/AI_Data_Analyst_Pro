@@ -78,6 +78,7 @@ def infer_smart_column_name(series: pd.Series, current_name: str, index: int = 0
         c_lower.startswith("unnamed") or
         c_lower.startswith("field_") or
         c_lower.startswith("col_") or
+        "unnamed" in c_lower or
         c_lower in ["none", "null", "nan", "column", ""]
     )
 
@@ -85,7 +86,7 @@ def infer_smart_column_name(series: pd.Series, current_name: str, index: int = 0
         # Already has a clean user-provided column name! Just sanitize formatting.
         cleaned = re.sub(r"[^A-Za-z0-9_]", "_", col_str).strip("_")
         cleaned = re.sub(r"_+", "_", cleaned)
-        if not cleaned or cleaned.lower().startswith("unnamed"):
+        if not cleaned or "unnamed" in cleaned.lower():
             is_unnamed = True
         else:
             if cleaned[0].isdigit():
@@ -101,25 +102,21 @@ def infer_smart_column_name(series: pd.Series, current_name: str, index: int = 0
 
     sample = non_null.head(30)
 
-    # 1. Date Detection (e.g., 2025-07-26, 07/26/2025, 2025/07/26)
-    date_matches = sample.str.contains(r"^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}$", regex=True).mean()
-    if date_matches > 0.5:
+    # 1. Date Detection (ISO datetime, timestamp, standard dates)
+    if sample.str.contains(r"^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}", regex=True).mean() > 0.4:
         return "Order_Date"
 
     # 2. Order ID / Invoice Code Detection (e.g., #1006, #1005, ORD-101, INV-202)
-    id_matches = sample.str.contains(r"^#\d+|^[A-Z]{2,4}-\d+|^ORD\d+|^INV\d+", regex=True).mean()
-    if id_matches > 0.3:
-        return "Order_ID"
+    if sample.str.contains(r"^#|\bORD|\bINV|^\d{4,6}$", regex=True, case=False).mean() > 0.3:
+        return "Order_Code"
 
-    # 3. Scientific Notation / Long Tracking ID / Account Number (e.g., 2.703008e+13, 98402914092)
-    track_matches = sample.str.contains(r"e\+\d+|\d{10,}", regex=True, case=False).mean()
-    if track_matches > 0.3:
-        return "Tracking_ID"
+    # 3. Scientific Notation / Long Tracking ID / Account Number (e.g., 27030080084586.0)
+    if sample.str.contains(r"^\d{10,}(\.\d+)?$|e\+\d+", regex=True, case=False).mean() > 0.3:
+        return "Tracking_Number"
 
-    # 4. Status Detection (e.g., Delivered, Shipped, Pending, Returned, Completed, Active)
-    status_keywords = {"delivered", "shipped", "pending", "returned", "completed", "active", "cancelled", "paid", "unpaid", "success", "failed"}
-    status_matches = sample.str.lower().isin(status_keywords).mean()
-    if status_matches > 0.3:
+    # 4. Status Detection (e.g., Delivered, Shipped, Pending, Returned, En-Route, Out For Return)
+    status_pattern = r"delivered|shipped|pending|returned|en-route|route|out for|dispatch|transit|active|cancelled|completed|paid"
+    if sample.str.contains(status_pattern, regex=True, case=False).mean() > 0.3:
         return "Delivery_Status"
 
     # 5. Email Detection
