@@ -1,12 +1,150 @@
 {% extends "base.html" %}
 
-{% block title %}Terms of Service | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Terms of Service{% endblock %}
-{% block header_subtitle %}Service level agreement, software terms, and user compliance.{% endblock %}
+{% block title %}Terms of Service & SLA | AI Data Analyst Pro{% endblock %}
+{% block header_title %}Terms of Service & Service Level Agreement{% endblock %}
+{% block header_subtitle %}Comprehensive terms of use, enterprise SLA, software license, and user compliance guidelines.{% endblock %}
 
 {% block content %}
-<div class="table-card" style="max-width: 800px; line-height: 1.8; color: var(--text-secondary);">
-    <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📜 Terms of Service & SLA</h2>
-    <p>By utilizing AI Data Analyst Pro, users agree to process authorized datasets strictly in compliance with data protection laws. Destructive SQL operations are blocked by system guardrails.</p>
+<div style="max-width: 1000px; margin: 0 auto; padding: 10px 0 40px 0;">
+    
+    <!-- Hero Header Banner -->
+    <div class="glass-card" style="padding: 32px; border-radius: var(--radius-lg); border-left: 5px solid var(--accent-blue); background: linear-gradient(135deg, rgba(56,189,248,0.1), rgba(15,23,42,0.4)); margin-bottom: 28px; box-shadow: var(--shadow-md);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <span class="badge badge-info" style="font-size: 12px; margin-bottom: 8px;">Official Document v2026.1</span>
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 4px 0 8px 0;">📜 Enterprise Terms of Service & SLA</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 0; max-width: 700px; line-height: 1.6;">
+                    These Terms of Service govern your access to and usage of the <strong>AI Data Analyst Pro</strong> enterprise platform, automated SQL analytics engine, and file export services.
+                </p>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
+                <div><strong>Effective Date:</strong> January 1, 2026</div>
+                <div><strong>Last Updated:</strong> August 14, 2026</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container with Table of Contents -->
+    <div style="display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start;">
+        
+        <!-- Sidebar Navigation -->
+        <div class="glass-card" style="padding: 20px; border-radius: var(--radius-md); position: sticky; top: 90px; background: var(--bg-surface); border: 1px solid var(--border-color);">
+            <h4 style="font-size: 14px; font-weight: 800; color: var(--accent-blue); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Navigation Menu</h4>
+            <nav style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                <a href="#section-1" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#38bdf8'; this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">1. Account & Security</a>
+                <a href="#section-2" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#38bdf8'; this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">2. Data Ownership</a>
+                <a href="#section-3" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#38bdf8'; this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">3. SQL Guardrails</a>
+                <a href="#section-4" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#38bdf8'; this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">4. AI Engine Disclaimer</a>
+                <a href="#section-5" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#38bdf8'; this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">5. Uptime SLA & Speed</a>
+                <a href="#section-6" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#38bdf8'; this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">6. Termination & Purge</a>
+            </nav>
+        </div>
+
+        <!-- Detailed Legal Clauses -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Section 1 -->
+            <div id="section-1" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-user-shield" style="color: var(--accent-blue);"></i> 1. Account Registration, Security & OTP Verification
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    By registering an enterprise account on AI Data Analyst Pro, you agree to provide accurate, current, and complete registration information. Account authentication requires mandatory <strong>6-digit Email OTP (One-Time Password) Verification</strong> to prevent unauthorized access.
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>Users are responsible for maintaining the confidentiality of their account login credentials and OTP verification codes.</li>
+                    <li>Automated security notifications will be dispatched to your registered email address upon every new account login session.</li>
+                    <li>Sharing account credentials across multiple unauthorized organizations is strictly prohibited under enterprise license terms.</li>
+                </ul>
+            </div>
+
+            <!-- Section 2 -->
+            <div id="section-2" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-database" style="color: var(--accent-purple);"></i> 2. User Data Ownership & Intellectual Property Rights
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    You retain <strong>100% full ownership</strong> of all datasets uploaded to the platform (including CSV, Excel, XLS, XLSX files) as well as all generated analytical reports, charts, and SQL query results.
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>AI Data Analyst Pro claims no proprietary rights or license over user-uploaded business datasets.</li>
+                    <li>Uploaded datasets are converted into dedicated tenant tables (`Dataset_U{user_id}_T{id}`) inside isolated Microsoft SQL Server database schemas.</li>
+                    <li>Generated PowerPoint presentations (.pptx), PDF reports, Word documents (.docx), Excel spreadsheets, and SVG charts remain your exclusive property.</li>
+                </ul>
+            </div>
+
+            <!-- Section 3 -->
+            <div id="section-3" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-shield-virus" style="color: var(--accent-green);"></i> 3. SQL Query Safety Guardrails & Prohibited Operations
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    To protect database integrity and prevent accidental data destruction, the system enforces automated <strong>SQL Security Syntax Guardrails</strong> on all natural language queries:
+                </p>
+                <div style="background: var(--bg-primary); padding: 14px 18px; border-radius: 8px; border-left: 4px solid #ef4444; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                    <strong>Blocked Destructive Commands:</strong> <code>DROP DATABASE</code>, <code>DROP TABLE</code>, <code>TRUNCATE TABLE</code>, <code>ALTER TABLE</code>, <code>EXEC/EXECUTE</code>, <code>GRANT/REVOKE</code>, and un-where'd <code>UPDATE/DELETE</code> statements are automatically intercepted and blocked.
+                </div>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0;">
+                    Users attempting to inject malicious SQL syntax or breach system security boundaries will have their access terminated immediately.
+                </p>
+            </div>
+
+            <!-- Section 4 -->
+            <div id="section-4" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-yellow);"></i> 4. Artificial Intelligence Translation & Accuracy Disclaimer
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    AI Data Analyst Pro uses advanced Natural Language Processing models to convert English and Roman Urdu analytical questions into T-SQL database queries. While the system operates with high confidence metrics:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>Users are encouraged to verify generated T-SQL logic via the interactive SQL Preview bar prior to executive decision-making.</li>
+                    <li>The system provides confidence percentage scores and automated SQL retry loops to guarantee syntactical correctness.</li>
+                    <li>Statistical insights generated in executive report exports are computed deterministically directly from your database records.</li>
+                </ul>
+            </div>
+
+            <!-- Section 5 -->
+            <div id="section-5" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-bolt" style="color: #38bdf8;"></i> 5. Uptime SLA & Rapid Sub-Second Performance Guarantee
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    We commit to providing high-availability infrastructure backed by our enterprise SLA targets:
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 14px;">
+                    <div style="background: var(--bg-primary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 20px; font-weight: 800; color: #38bdf8;">99.9% Uptime</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Database Availability</div>
+                    </div>
+                    <div style="background: var(--bg-primary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 20px; font-weight: 800; color: #34d399;">&lt; 100ms</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Sub-Second Export Speed</div>
+                    </div>
+                    <div style="background: var(--bg-primary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 20px; font-weight: 800; color: #a855f7;">Zero-Latency</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Async Background Email</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 6 -->
+            <div id="section-6" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-trash-can" style="color: #ef4444;"></i> 6. Account Termination & Permanent Data Purge
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    You have the absolute right to delete your account or any uploaded datasets at any time:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>Deleting a dataset drops the underlying SQL Server table (`DROP TABLE`) and permanently deletes all associated records from system storage.</li>
+                    <li>Account deletion immediately purges profile records, authentication logs, and database schemas.</li>
+                </ul>
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 {% endblock %}
