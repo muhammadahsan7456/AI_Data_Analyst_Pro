@@ -246,34 +246,144 @@ def export_to_word_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
 def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insights: list = None, chart_file_path: str = None) -> bytes:
     """
-    Export Executive PowerPoint (.pptx) presentation with title slide, insights, and embedded charts.
+    Export Executive PowerPoint (.pptx) presentation with Title, Insights, Embedded Chart, and Formatted Dataset Table Slides.
     """
     try:
         from pptx import Presentation
-        from pptx.util import Inches
+        from pptx.util import Inches, Pt
+        from pptx.dml.color import RGBColor
+
         prs = Presentation()
+        prs.slide_width = Inches(13.333)
+        prs.slide_height = Inches(7.5)
+        blank_layout = prs.slide_layouts[6]
 
-        title_slide = prs.slides.add_slide(prs.slide_layouts[0])
-        title_slide.shapes.title.text = f"Data Analysis: {dataset_name}"
-        title_slide.placeholders[1].text = f"Total Records: {len(df)} | Total Columns: {len(df.columns)}\nAI Data Analyst Pro Enterprise"
+        # Slide 1: Title Slide
+        slide1 = prs.slides.add_slide(blank_layout)
+        bg1 = slide1.shapes.add_shape(1, 0, 0, Inches(13.333), Inches(7.5))
+        bg1.fill.solid()
+        bg1.fill.fore_color.rgb = RGBColor(15, 23, 42)
+        bg1.line.color.rgb = RGBColor(15, 23, 42)
 
+        txBox1 = slide1.shapes.add_textbox(Inches(1), Inches(2.2), Inches(11.333), Inches(3))
+        tf1 = txBox1.text_frame
+        tf1.word_wrap = True
+
+        p1 = tf1.paragraphs[0]
+        p1.text = "EXECUTIVE DATA ANALYSIS REPORT"
+        p1.font.bold = True
+        p1.font.size = Pt(36)
+        p1.font.color.rgb = RGBColor(56, 189, 248)
+
+        p2 = tf1.add_paragraph()
+        p2.text = f"Dataset: {dataset_name}"
+        p2.font.bold = True
+        p2.font.size = Pt(28)
+        p2.font.color.rgb = RGBColor(248, 250, 252)
+
+        p3 = tf1.add_paragraph()
+        p3.text = f"Total Records: {len(df):,} | Total Columns: {len(df.columns)} | AI Data Analyst Pro Enterprise Platform"
+        p3.font.size = Pt(16)
+        p3.font.color.rgb = RGBColor(148, 163, 184)
+
+        # Slide 2: AI Insights Slide
         if insights:
-            ins_slide = prs.slides.add_slide(prs.slide_layouts[1])
-            ins_slide.shapes.title.text = "AI Key Insights & Recommendations"
-            body = ins_slide.placeholders[1]
-            body.text = "\n".join(f"• {i}" for i in insights[:5])
+            slide2 = prs.slides.add_slide(blank_layout)
+            bg2 = slide2.shapes.add_shape(1, 0, 0, Inches(13.333), Inches(7.5))
+            bg2.fill.solid()
+            bg2.fill.fore_color.rgb = RGBColor(15, 23, 42)
+            bg2.line.color.rgb = RGBColor(15, 23, 42)
 
+            tx_hdr2 = slide2.shapes.add_textbox(Inches(0.8), Inches(0.6), Inches(11.7), Inches(1))
+            p_hdr2 = tx_hdr2.text_frame.paragraphs[0]
+            p_hdr2.text = "🤖 AI Key Business Insights & Recommendations"
+            p_hdr2.font.bold = True
+            p_hdr2.font.size = Pt(24)
+            p_hdr2.font.color.rgb = RGBColor(56, 189, 248)
+
+            tx_ins2 = slide2.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.7), Inches(5))
+            tf_ins2 = tx_ins2.text_frame
+            tf_ins2.word_wrap = True
+            for ins in insights[:6]:
+                p = tf_ins2.add_paragraph()
+                p.text = f"• {ins}"
+                p.font.size = Pt(18)
+                p.font.color.rgb = RGBColor(226, 232, 240)
+                p.space_after = Pt(12)
+
+        # Slide 3: Chart Slide
         if chart_file_path:
             full_chart_path = os.path.join("static", chart_file_path) if not chart_file_path.startswith("static") else chart_file_path
             if os.path.exists(full_chart_path):
-                chart_slide = prs.slides.add_slide(prs.slide_layouts[6])
-                chart_slide.shapes.add_picture(full_chart_path, Inches(1), Inches(1), width=Inches(8))
+                slide_c = prs.slides.add_slide(blank_layout)
+                bg_c = slide_c.shapes.add_shape(1, 0, 0, Inches(13.333), Inches(7.5))
+                bg_c.fill.solid()
+                bg_c.fill.fore_color.rgb = RGBColor(15, 23, 42)
+                bg_c.line.color.rgb = RGBColor(15, 23, 42)
+
+                tx_c = slide_c.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.8))
+                p_c = tx_c.text_frame.paragraphs[0]
+                p_c.text = "📈 Executive Visual Analytics Chart"
+                p_c.font.bold = True
+                p_c.font.size = Pt(24)
+                p_c.font.color.rgb = RGBColor(56, 189, 248)
+
+                slide_c.shapes.add_picture(full_chart_path, Inches(1.5), Inches(1.5), width=Inches(10.333))
+
+        # Slide 4: Complete Dataset Records View Table Slide
+        if not df.empty:
+            slide3 = prs.slides.add_slide(blank_layout)
+            bg3 = slide3.shapes.add_shape(1, 0, 0, Inches(13.333), Inches(7.5))
+            bg3.fill.solid()
+            bg3.fill.fore_color.rgb = RGBColor(15, 23, 42)
+            bg3.line.color.rgb = RGBColor(15, 23, 42)
+
+            tx_t3 = slide3.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.8))
+            p_t3 = tx_t3.text_frame.paragraphs[0]
+            p_t3.text = f"📋 Dataset Records View ({len(df)} Records)"
+            p_t3.font.bold = True
+            p_t3.font.size = Pt(24)
+            p_t3.font.color.rgb = RGBColor(56, 189, 248)
+
+            cols_to_show = list(df.columns[:7])
+            rows_to_show = df.head(15)
+
+            num_rows = len(rows_to_show) + 1
+            num_cols = len(cols_to_show)
+
+            table_shape3 = slide3.shapes.add_table(num_rows, num_cols, Inches(0.8), Inches(1.5), Inches(11.733), Inches(5.2))
+            table3 = table_shape3.table
+
+            for c_idx, col_name in enumerate(cols_to_show):
+                cell = table3.cell(0, c_idx)
+                cell.text = str(col_name)[:18]
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = RGBColor(30, 58, 138)
+                for p in cell.text_frame.paragraphs:
+                    p.font.bold = True
+                    p.font.size = Pt(12)
+                    p.font.color.rgb = RGBColor(255, 255, 255)
+
+            for r_idx, (_, row) in enumerate(rows_to_show.iterrows(), start=1):
+                for c_idx, col_name in enumerate(cols_to_show):
+                    cell = table3.cell(r_idx, c_idx)
+                    val = str(row[col_name]) if row[col_name] is not None and not pd.isna(row[col_name]) else ""
+                    cell.text = val[:25]
+                    cell.fill.solid()
+                    if r_idx % 2 == 0:
+                        cell.fill.fore_color.rgb = RGBColor(30, 41, 59)
+                    else:
+                        cell.fill.fore_color.rgb = RGBColor(15, 23, 42)
+                    for p in cell.text_frame.paragraphs:
+                        p.font.size = Pt(10)
+                        p.font.color.rgb = RGBColor(226, 232, 240)
 
         buffer = io.BytesIO()
         prs.save(buffer)
         buffer.seek(0)
         return buffer.getvalue()
-    except Exception:
+    except Exception as pptx_err:
+        print("[PPTX ENGINE FALLBACK]", pptx_err)
         html_ppt = f"""
         <html>
         <head><meta charset="utf-8"><title>{dataset_name} Executive Presentation</title></head>
@@ -283,6 +393,10 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
                 <p>Total Records: {len(df)} | Total Columns: {len(df.columns)}</p>
             </div>
             {"<div style='border: 2px solid #a855f7; padding: 40px; border-radius: 12px;'><h2>AI Insights</h2><ul>" + "".join(f"<li>{i}</li>" for i in insights[:5]) + "</ul></div>" if insights else ""}
+            <div style="margin-top: 20px;">
+                <h2>Dataset Sample Table</h2>
+                {df.head(15).to_html(classes="table", index=False)}
+            </div>
         </body>
         </html>
         """
