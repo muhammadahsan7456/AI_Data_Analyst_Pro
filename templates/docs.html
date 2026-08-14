@@ -5,6 +5,52 @@
 {% block header_subtitle %}Comprehensive User Guide, Voice AI Architecture, Multi-Format Parsing & Analytical Documentation{% endblock %}
 
 {% block content %}
+<style>
+.docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+.docs-box {
+    background: #0f172a !important;
+    border: 1px solid #1e293b !important;
+    padding: 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #e2e8f0 !important;
+    margin-top: 12px;
+}
+.docs-box strong {
+    color: #ffffff !important;
+    font-size: 14px;
+}
+.docs-box ul {
+    margin-top: 10px;
+    margin-bottom: 0;
+    padding-left: 20px;
+    line-height: 1.9;
+    color: #cbd5e1 !important;
+}
+.docs-box li {
+    color: #cbd5e1 !important;
+}
+.docs-box code {
+    background: #1e293b !important;
+    color: #38bdf8 !important;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    border: 1px solid #334155;
+    display: inline-block;
+}
+@media (max-width: 600px) {
+    .docs-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+
 <div style="display: flex; flex-direction: column; gap: 24px;">
 
     <!-- Overview Banner -->
@@ -17,7 +63,7 @@
         </p>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+    <div class="docs-grid">
 
         <!-- Section 1: Data Upload & File Formats -->
         <div class="table-card">
@@ -25,16 +71,16 @@
                 <i class="fa-solid fa-cloud-arrow-up"></i> 1. Multi-Format Dataset Uploader
             </h3>
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
-                The uploader automatically detects file encodings, cleans header column names, and provisions a isolated physical table inside SQL Server.
+                The uploader automatically detects file encodings, cleans header column names, and provisions an isolated physical table inside SQL Server.
             </p>
-            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+            <div class="docs-box">
                 <strong>Supported Extensions & Types:</strong>
-                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
-                    <li><code>CSV (.csv)</code> & <code>TSV (.tsv)</code> — Auto-detected delimiters</li>
+                <ul>
+                    <li><code>CSV (.csv)</code> &amp; <code>TSV (.tsv)</code> — Auto-detected delimiters</li>
                     <li><code>Excel (.xlsx, .xls)</code> — Multi-sheet support</li>
-                    <li><code>JSON (.json)</code> & <code>XML (.xml)</code> — Hierarchical flattening</li>
-                    <li><code>Parquet (.parquet)</code> & <code>Feather (.feather)</code> — High-speed columnar data</li>
-                    <li><code>Text (.txt)</code> — Fixed-width & delimited text files</li>
+                    <li><code>JSON (.json)</code> &amp; <code>XML (.xml)</code> — Hierarchical flattening</li>
+                    <li><code>Parquet (.parquet)</code> &amp; <code>Feather (.feather)</code> — High-speed columnar data</li>
+                    <li><code>Text (.txt)</code> — Fixed-width &amp; delimited text files</li>
                 </ul>
             </div>
         </div>
@@ -42,16 +88,16 @@
         <!-- Section 2: Voice AI & Natural Language Querying -->
         <div class="table-card">
             <h3 style="font-size: 18px; font-weight: 700; color: var(--accent-blue); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-microphone-lines"></i> 2. Voice AI & Fast Query Engine
+                <i class="fa-solid fa-microphone-lines"></i> 2. Voice AI &amp; Fast Query Engine
             </h3>
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
                 Ask questions using voice or text in natural English or Roman Urdu. The engine normalizes speech typos and executes queries in sub-second time.
             </p>
-            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
-                <strong>Query Syntax & Voice Examples:</strong>
-                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
+            <div class="docs-box">
+                <strong>Query Syntax &amp; Voice Examples:</strong>
+                <ul>
                     <li><code>"top 10 rows"</code> or <code>"top 5 ross"</code> ➔ Instant T-SQL Top N</li>
-                    <li><code>"mujhe sales ka data dikhao"</code> ➔ Column Search & Aggregation</li>
+                    <li><code>"mujhe sales ka data dikhao"</code> ➔ Column Search &amp; Aggregation</li>
                     <li><code>"Count total records"</code> ➔ <code>SELECT COUNT(*) FROM [...]</code></li>
                     <li><code>"Show top customers by revenue"</code> ➔ Grouped T-SQL aggregation</li>
                 </ul>
@@ -66,13 +112,13 @@
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
                 Every analytical response automatically generates high-resolution enterprise chart visualizations with numerical callout values.
             </p>
-            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+            <div class="docs-box">
                 <strong>Chart Types Supported:</strong>
-                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
-                    <li><strong>Bar & Column Charts</strong> — Categorical distributions & Top N</li>
-                    <li><strong>Line & Area Charts</strong> — Trend analysis & temporal patterns</li>
-                    <li><strong>Pie & Donut Charts</strong> — Proportional share breakdowns</li>
-                    <li><strong>Scatter Plots & Histograms</strong> — Distribution & correlation</li>
+                <ul>
+                    <li><strong style="color:#a855f7 !important;">Bar &amp; Column Charts</strong> — Categorical distributions &amp; Top N</li>
+                    <li><strong style="color:#38bdf8 !important;">Line &amp; Area Charts</strong> — Trend analysis &amp; temporal patterns</li>
+                    <li><strong style="color:#34d399 !important;">Pie &amp; Donut Charts</strong> — Proportional share breakdowns</li>
+                    <li><strong style="color:#fbbf24 !important;">Scatter Plots &amp; Histograms</strong> — Distribution &amp; correlation</li>
                 </ul>
             </div>
         </div>
@@ -85,13 +131,13 @@
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
                 Download complete dataset records and generated reports across multiple executive document formats with full embedded charts.
             </p>
-            <div style="background: var(--bg-sidebar); padding: 14px; border-radius: var(--radius-md); font-size: 13px;">
+            <div class="docs-box">
                 <strong>Available Formats:</strong>
-                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.8;">
+                <ul>
                     <li><code>Excel (.xlsx)</code> — Clean formatted sheets with summary KPI tab</li>
-                    <li><code>PDF Report</code> — Executive layout with AI insights & high-res chart</li>
-                    <li><code>Word (.docx)</code> & <code>PowerPoint (.pptx)</code> — Slide decks & docs</li>
-                    <li><code>Vector SVG (.svg)</code> & <code>CSV (.csv)</code> — Raw data streams</li>
+                    <li><code>PDF Report</code> — Executive layout with AI insights &amp; high-res chart</li>
+                    <li><code>Word (.docx)</code> &amp; <code>PowerPoint (.pptx)</code> — Slide decks &amp; docs</li>
+                    <li><code>Vector SVG (.svg)</code> &amp; <code>CSV (.csv)</code> — Raw data streams</li>
                 </ul>
             </div>
         </div>
