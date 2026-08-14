@@ -142,3 +142,4 @@
 [2026-08-14 11:06:34,743] [INFO]: [User #6] Asked: 'aap mujhe total delivered audits La kar do' on table [Downloads_u6]
 [2026-08-14 11:10:38,873] [INFO]: [User #6] Asked: 'Show top 10 customers' on table [Downloads_u6]
 [2026-08-14 11:10:40,055] [INFO]: [User #6] Asked: 'Mujhe delivered orders ka data La kar do' on table [Downloads_u6]
+[2026-08-14 20:35:23,625] [INFO]: [User #6] Multi-dataset query: '' across 2 tables.

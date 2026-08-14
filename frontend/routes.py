@@ -86,6 +86,7 @@ from ai.gemini import (
 )
 from ai.sql_agent import explain_result
 from ai.data_summary import format_ai_explanation
+from utils.error_translator import format_user_friendly_error
 from ai.analytics import (
     generate_data_quality_report,
     clean_dataset,
@@ -507,12 +508,13 @@ def chat():
         pass
 
     if not ai_result["success"]:
+        clean_user_err = format_user_friendly_error(ai_result['error'])
         if is_ajax:
             return jsonify({
                 "success": False,
                 "is_out_of_domain": False,
                 "sql": ai_result["sql"],
-                "error": f"SQL Execution Error: {ai_result['error']}",
+                "error": clean_user_err,
                 "tts_speech": "Sorry, I could not execute that query on the dataset."
             })
         return render_template(
@@ -521,7 +523,7 @@ def chat():
             selected_dataset=selected_dataset,
             question=question,
             sql=ai_result["sql"],
-            error=f"SQL Execution Error: {ai_result['error']}",
+            error=clean_user_err,
             tts_speech="Sorry, I could not execute that query on the dataset."
         )
 
