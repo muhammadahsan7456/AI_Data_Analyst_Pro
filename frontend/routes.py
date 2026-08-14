@@ -1114,8 +1114,14 @@ def export_query_result(format_type):
         flash("No active query data available to export. Please run a query first.", "error")
         return redirect(url_for("frontend.chat_view"))
 
-    # Auto-repair headers for clean output
+    # Auto-repair headers and add clean sequential S.No column for export output
     df = auto_repair_dataframe_headers(df)
+    if "RecordID" in df.columns:
+        df = df.drop(columns=["RecordID"])
+
+    df = df.reset_index(drop=True)
+    if "S.No" not in df.columns:
+        df.insert(0, "S.No", range(1, len(df) + 1))
 
     format_type = format_type.lower().strip()
     clean_q_name = re.sub(r"[^A-Za-z0-9_]", "_", last_query)[:30].strip("_") or "QueryResult"
