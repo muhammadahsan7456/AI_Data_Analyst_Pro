@@ -352,6 +352,11 @@ def insert_dataframe(table_name: str, dataframe: pd.DataFrame):
     Insert DataFrame into SQL Server / SQLite safely using parameterized batching and garbage collection.
     """
     df = clean_dataframe(dataframe)
+    try:
+        from utils.encryption import encrypt_dataframe
+        df = encrypt_dataframe(df)
+    except Exception:
+        pass
     
     conn = get_connection()
     cursor = conn.cursor()

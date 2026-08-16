@@ -67,12 +67,17 @@ def inject_user_context():
     )
 
 
-# Jinja Template Filter for Executive AI Summary Formatting
+# Jinja Template Filter for Executive AI Summary Formatting & 12-Hour AM/PM DateTime
 from ai.data_summary import format_ai_explanation
+from utils.helpers import format_12hr_datetime
 
 @app.template_filter("format_explanation")
 def format_explanation_filter(text):
     return format_ai_explanation(text)
+
+@app.template_filter("datetime_12hr")
+def datetime_12hr_filter(val):
+    return format_12hr_datetime(val)
 
 
 # High Speed HTTP Performance & Static Asset Caching Headers

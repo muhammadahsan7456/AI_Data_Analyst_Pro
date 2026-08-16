@@ -41,6 +41,38 @@ def format_bytes(bytes_count: float) -> str:
         return f"{bytes_count / (1024 * 1024 * 1024):.2f} GB"
 
 
+def format_12hr_datetime(val) -> str:
+    """
+    Format ISO / SQL timestamp into 12-Hour AM/PM format (e.g. 'Aug 16, 2026, 02:30 PM').
+    """
+    if not val:
+        return ""
+    val_str = str(val).strip()
+    if not val_str:
+        return ""
+
+    try:
+        from datetime import datetime
+        if isinstance(val, datetime):
+            return val.strftime("%b %d, %Y, %I:%M %p")
+
+        val_clean = val_str.replace("Z", "").split("+")[0]
+        if "." in val_clean:
+            dt = datetime.strptime(val_clean.split(".")[0], "%Y-%m-%d %H:%M:%S")
+        elif "T" in val_clean:
+            dt = datetime.strptime(val_clean, "%Y-%m-%dT%H:%M:%S")
+        else:
+            dt = datetime.strptime(val_clean, "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%b %d, %Y, %I:%M %p")
+    except Exception:
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(val_str[:10], "%Y-%m-%d")
+            return dt.strftime("%b %d, %Y")
+        except Exception:
+            return val_str
+
+
 @contextmanager
 def timer():
     """
