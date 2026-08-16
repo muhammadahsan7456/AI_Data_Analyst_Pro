@@ -1,0 +1,183 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}User Management - Super Admin Console{% endblock %}
+{% block header_title %}<i class="fa-solid fa-users-gear" style="color: var(--accent-blue);"></i> User Management Panel{% endblock %}
+
+{% block content %}
+<style>
+    .admin-filter-bar {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .admin-search-input {
+        flex: 1;
+        min-width: 260px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--admin-border);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        font-size: 14px;
+        outline: none;
+    }
+
+    .admin-select-filter {
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--admin-border);
+        background: var(--admin-card-bg);
+        color: var(--text-primary);
+        font-size: 14px;
+        outline: none;
+    }
+
+    .btn-filter-action {
+        background: var(--accent-blue);
+        color: #ffffff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .user-avatar-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--admin-border);
+    }
+</style>
+
+<!-- Search & Filter Controls Bar -->
+<form method="GET" action="{{ url_for('admin.manage_users') }}" class="admin-filter-bar">
+    <div style="position: relative; flex: 1; min-width: 260px;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search users by name, email, username, country..." class="admin-search-input" style="padding-left: 40px;">
+    </div>
+
+    <select name="role" class="admin-select-filter" onchange="this.form.submit()">
+        <option value="">All Roles</option>
+        <option value="SuperAdmin" {% if role_filter == 'SuperAdmin' %}selected{% endif %}>SuperAdmin</option>
+        <option value="Analyst" {% if role_filter == 'Analyst' %}selected{% endif %}>Analyst</option>
+        <option value="User" {% if role_filter == 'User' %}selected{% endif %}>User</option>
+    </select>
+
+    <select name="status" class="admin-select-filter" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+        <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended Only</option>
+    </select>
+
+    <button type="submit" class="btn-filter-action">
+        <i class="fa-solid fa-filter"></i> Filter Results
+    </button>
+
+    {% if search_query or role_filter or status_filter %}
+    <a href="{{ url_for('admin.manage_users') }}" style="color: var(--text-muted); font-size: 13px; text-decoration: none; padding: 10px;">
+        Clear Filters
+    </a>
+    {% endif %}
+</form>
+
+<!-- Users Data Card -->
+<div class="admin-card-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin: 0;">
+            Registered Platform Users ({{ users|length }})
+        </h3>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email / Phone</th>
+                    <th>Location</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="{{ u.profile_image }}" alt="Avatar" class="user-avatar-circle" onerror="this.src='/static/images/default_avatar.png'">
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-primary);">{{ u.full_name }}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="color: var(--text-primary); font-weight: 500;">{{ u.email }}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">{{ u.phone }}</div>
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">{{ u.location }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.change_user_role', user_id=u.id) }}" style="display: inline-block;">
+                            <select name="role" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
+                                <option value="User" {% if u.role == 'User' %}selected{% endif %}>User</option>
+                                <option value="Analyst" {% if u.role == 'Analyst' %}selected{% endif %}>Analyst</option>
+                                <option value="SuperAdmin" {% if u.role == 'SuperAdmin' %}selected{% endif %}>SuperAdmin</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="badge-status badge-active"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Active</span>
+                        {% else %}
+                        <span class="badge-status badge-suspended"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Suspended</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ u.created_at }}</td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <!-- Toggle Status Form -->
+                            <form method="POST" action="{{ url_for('admin.toggle_user_status', user_id=u.id) }}" style="display: inline;">
+                                {% if u.is_active %}
+                                <button type="submit" class="btn btn-warning btn-sm" style="padding: 6px 12px; font-size: 12px;" title="Suspend User Account" onclick="return confirm('Suspend user {{ u.full_name }}?')">
+                                    <i class="fa-solid fa-ban"></i> Suspend
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-success btn-sm" style="padding: 6px 12px; font-size: 12px;" title="Activate User Account">
+                                    <i class="fa-solid fa-check"></i> Activate
+                                </button>
+                                {% endif %}
+                            </form>
+
+                            <!-- Delete User Form -->
+                            <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}" style="display: inline;" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete user {{ u.full_name }} and purge all owned datasets?')">
+                                <button type="submit" class="btn btn-danger btn-sm" style="padding: 6px 12px; font-size: 12px;" title="Delete User">
+                                    <i class="fa-solid fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                        <i class="fa-solid fa-users-slash" style="font-size: 32px; margin-bottom: 8px;"></i>
+                        <div>No users matched your search criteria.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

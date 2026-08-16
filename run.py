@@ -19,6 +19,7 @@ from database.connection import init_db, get_db_cursor
 from database.queries import get_user_by_id, get_user_settings
 from frontend.routes import frontend
 from auth import auth_bp
+from admin import admin_bp
 
 # Auto-initialize database tables on launch
 try:
@@ -41,6 +42,7 @@ app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 # Register Blueprints
 app.register_blueprint(frontend)
 app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(admin_bp)
 
 
 # Request-Level High Speed Context Caching & 1-Hour Inactivity Session Timeout
@@ -68,8 +70,13 @@ def load_user_context():
 
                 cursor.execute(get_user_settings(), (user_id,))
                 g.user_settings = cursor.fetchone()
+
+                if g.current_user and len(g.current_user) > 13:
+                    g.user_role = g.current_user[13]
+                else:
+                    g.user_role = "Analyst"
         except Exception:
-            pass
+            g.user_role = "Analyst"
 
 
 # Global Context Processor for Templates

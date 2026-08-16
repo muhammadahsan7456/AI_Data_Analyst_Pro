@@ -1,0 +1,255 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Super Admin Executive Dashboard{% endblock %}
+{% block header_title %}<i class="fa-solid fa-chart-pie" style="color: var(--accent-blue);"></i> Executive Overview Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .admin-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .kpi-card {
+        background: var(--admin-card-bg);
+        border: 1px solid var(--admin-border);
+        border-radius: 18px;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent-blue);
+    }
+
+    .kpi-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .kpi-value {
+        font-family: 'Outfit', sans-serif;
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .kpi-sub {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 6px;
+    }
+
+    .kpi-icon-floating {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 28px;
+        opacity: 0.3;
+    }
+</style>
+
+<!-- Announcement Alert Bar -->
+{% if announcement.enabled %}
+<div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 14px; padding: 16px 20px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+        <div style="font-weight: 700; color: var(--accent-blue); font-size: 14px; margin-bottom: 4px;">
+            <i class="fa-solid fa-bullhorn"></i> {{ announcement.title }}
+        </div>
+        <div style="font-size: 13px; color: var(--text-secondary);">
+            {{ announcement.message }}
+        </div>
+    </div>
+    <a href="{{ url_for('admin.settings') }}" style="font-size: 12px; font-weight: 600; color: var(--accent-blue); text-decoration: none; white-space: nowrap;">
+        Edit Announcement <i class="fa-solid fa-arrow-right"></i>
+    </a>
+</div>
+{% endif %}
+
+<!-- 4 Executive KPI Cards -->
+<div class="admin-kpi-grid">
+    <!-- KPI 1 -->
+    <div class="kpi-card">
+        <i class="fa-solid fa-users kpi-icon-floating" style="color: var(--accent-blue);"></i>
+        <div class="kpi-label">Total Registered Users</div>
+        <div class="kpi-value">{{ kpis.TotalUsers }}</div>
+        <div class="kpi-sub">
+            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.ActiveUsers }} Active</span> • 
+            <span style="color: var(--accent-red); font-weight: 600;">{{ kpis.SuspendedUsers }} Suspended</span>
+        </div>
+    </div>
+
+    <!-- KPI 2 -->
+    <div class="kpi-card">
+        <i class="fa-solid fa-dollar-sign kpi-icon-floating" style="color: var(--accent-green);"></i>
+        <div class="kpi-label">Total Revenue Collected</div>
+        <div class="kpi-value">${{ "%.2f"|format(kpis.TotalRevenue) }}</div>
+        <div class="kpi-sub">
+            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments }} Successful Transactions</span>
+        </div>
+    </div>
+
+    <!-- KPI 3 -->
+    <div class="kpi-card">
+        <i class="fa-solid fa-clock-rotate-left kpi-icon-floating" style="color: var(--accent-amber);"></i>
+        <div class="kpi-label">Pending Approval Queue</div>
+        <div class="kpi-value" style="color: {% if kpis.PendingPayments > 0 %}var(--accent-amber){% else %}var(--text-primary){% endif %};">
+            {{ kpis.PendingPayments }}
+        </div>
+        <div class="kpi-sub">Requires Super Admin Verification</div>
+    </div>
+
+    <!-- KPI 4 -->
+    <div class="kpi-card">
+        <i class="fa-solid fa-database kpi-icon-floating" style="color: var(--accent-purple);"></i>
+        <div class="kpi-label">Enterprise Datasets Scale</div>
+        <div class="kpi-value">{{ kpis.TotalDatasets }}</div>
+        <div class="kpi-sub">AES-256 Encrypted at Rest</div>
+    </div>
+</div>
+
+<!-- 2 Column Layout: Registered Users & Payments Queue -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; margin-bottom: 32px;">
+    <!-- Registered Users Quick Table -->
+    <div class="admin-card-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; margin: 0;">
+                <i class="fa-solid fa-user-plus" style="color: var(--accent-blue);"></i> Recent Registered Users
+            </h3>
+            <a href="{{ url_for('admin.manage_users') }}" style="font-size: 13px; font-weight: 600; color: var(--accent-blue); text-decoration: none;">
+                View All Users ({{ kpis.TotalUsers }}) <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in recent_users %}
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-primary);">{{ u[4] or u[3] }}</td>
+                        <td style="color: var(--text-secondary);">{{ u[5] }}</td>
+                        <td>
+                            <span class="badge-role {% if u[12] == 'SuperAdmin' %}badge-superadmin{% elif u[12] == 'Analyst' %}badge-analyst{% else %}badge-user{% endif %}">
+                                {{ u[12] }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if u[10] %}
+                            <span class="badge-status badge-active"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Active</span>
+                            {% else %}
+                            <span class="badge-status badge-suspended"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Suspended</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No users registered yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payments Verification Queue -->
+    <div class="admin-card-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; margin: 0;">
+                <i class="fa-solid fa-credit-card" style="color: var(--accent-green);"></i> Recent Payments & Billing
+            </h3>
+            <a href="{{ url_for('admin.manage_payments') }}" style="font-size: 13px; font-weight: 600; color: var(--accent-green); text-decoration: none;">
+                Manage Billing <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in recent_payments %}
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-primary);">{{ p[2] or "User #" ~ p[1] }}</td>
+                        <td style="font-weight: 700; color: var(--accent-green);">${{ "%.2f"|format(p[4] or 0.0) }}</td>
+                        <td style="color: var(--text-secondary); font-size: 13px;">{{ p[6] }}</td>
+                        <td>
+                            {% if p[8] == 'Completed' %}
+                            <span class="badge-status badge-active">Completed</span>
+                            {% elif p[8] == 'Pending' %}
+                            <span class="badge-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Pending</span>
+                            {% else %}
+                            <span class="badge-status badge-suspended">{{ p[8] }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No payments recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- System Activity Audit Logs Stream -->
+<div class="admin-card-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; margin: 0;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--accent-purple);"></i> Real-Time System Audit Stream
+        </h3>
+        <a href="{{ url_for('admin.audit_logs') }}" style="font-size: 13px; font-weight: 600; color: var(--accent-purple); text-decoration: none;">
+            View All Audit Logs <i class="fa-solid fa-chevron-right"></i>
+        </a>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>Event Type</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_audit_logs %}
+                <tr>
+                    <td style="font-family: monospace; color: var(--accent-cyan);">#{{ log[0] }}</td>
+                    <td><strong style="color: var(--text-primary);">{{ log[2] }}</strong></td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">{{ log[3] }}</td>
+                    <td style="font-family: monospace; color: var(--text-muted); font-size: 12px;">{{ log[4] or "127.0.0.1" }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">{{ log[6] }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No audit events recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
