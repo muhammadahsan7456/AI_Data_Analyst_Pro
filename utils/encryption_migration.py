@@ -17,18 +17,30 @@ def migrate_and_encrypt_existing_tables():
     from database.connection import get_connection, get_db_cursor, sanitize_identifier
 
     cipher = _get_cipher()
-    if not cipher:
-        print("[ENCRYPTION MIGRATION] Encryption cipher not available. Skipping.")
+    conn = get_connection()
+    if not conn:
+        print("[ENCRYPTION MIGRATION] Database connection failed.")
         return 0
+
+    system_tables = {
+        "users", "payments", "datasets", "querylogs", "auditlogs",
+        "ainotifications", "loginhistory", "userprofiles", "usersessions",
+        "emailverificationtokens", "sysdiagrams", "usersettings", "passwordresettokens"
+    }
 
     table_names = []
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("SELECT DISTINCT DatasetName FROM Datasets")
-            rows = cursor.fetchall()
-            table_names = [r[0] for r in rows if r and r[0]]
+        from database.connection import SQLiteConnectionAdapter
+        cursor = conn.cursor()
+        if isinstance(conn, SQLiteConnectionAdapter):
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        else:
+            cursor.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
+        rows = cursor.fetchall()
+        all_tables = [r[0] for r in rows if r and r[0]]
+        table_names = [t for t in all_tables if t.lower() not in system_tables]
     except Exception as e:
-        print("[ENCRYPTION MIGRATION] Error querying Datasets metadata table:", e)
+        print("[ENCRYPTION MIGRATION] Error querying database schema tables:", e)
 
     if not table_names:
         print("[ENCRYPTION MIGRATION] No existing dataset tables found in metadata.")
@@ -70,6 +82,20 @@ def migrate_and_encrypt_existing_tables():
                     continue
 
                 print(f"[ENCRYPTION MIGRATION] Encrypting existing plain-text table '{tbl}' ({len(df)} rows)...")
+
+                # Alter string columns in SQL Server table to NVARCHAR(MAX) so ciphertext fits without truncation
+                if not isinstance(conn, SQLiteConnectionAdapter):
+                    for col in df.columns:
+                        c_lower = str(col).lower().strip()
+                        if c_lower in ["recordid", "s.no"]:
+                            continue
+                        if pd.api.types.is_string_dtype(df[col]) or str(df[col].dtype) in ["object", "string", "category", "str"]:
+                            safe_col = sanitize_identifier(col)
+                            try:
+                                cursor.execute(f"ALTER TABLE {safe_table} ALTER COLUMN {safe_col} NVARCHAR(MAX) NULL")
+                                conn.commit()
+                            except Exception:
+                                pass
 
                 # Remove RecordID if auto-identity column in SQL Server
                 df_to_enc = df.copy()
