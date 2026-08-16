@@ -315,6 +315,10 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     q_lower = question_norm.lower().strip()
     safe_tbl = sanitize_identifier(table_name)
 
+    # 0. Instant "Show data" / "All data" / "Display rows" / "Get dataset"
+    if re.search(r"^\s*(show|get|fetch|display|view|list)\s+(data|dataset|table|records|rows|all)\s*$", q_lower) or q_lower in ["show data", "all data", "get data", "data", "records"]:
+        return f"SELECT TOP 100 * FROM {safe_tbl};"
+
     # 1. "Count total records" / "Total rows" / "Kitni rows hain"
     if re.search(r"\b(count|total|how many|kitni|kitne)\b.*\b(records|rows|data|entries|ross|raws|rose)\b", q_lower):
         return f"SELECT COUNT(*) AS [TotalRecords] FROM {safe_tbl};"
@@ -370,7 +374,7 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
 
 def ask_gemini(prompt: str) -> str:
     """
-    Send prompt to OpenRouter AI API using ultra-fast model fallback loop for 1-2 second response times.
+    Send prompt to OpenRouter AI API using ultra-fast model fallback loop for sub-second response times.
     """
     if not client or not api_key:
         return ""
@@ -386,7 +390,7 @@ def ask_gemini(prompt: str) -> str:
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[{"role": "user", "content": prompt}],
-                timeout=4.0
+                timeout=2.0
             )
             if response and response.choices:
                 result = response.choices[0].message.content or ""
