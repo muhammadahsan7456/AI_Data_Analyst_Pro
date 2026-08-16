@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="index, follow">
     <title>AI Data Analyst Pro - Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-    <meta name="description" content="Transform enterprise datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. Bank-grade AES-256 field encryption at rest and bilingual voice querying.">
+    <meta name="description" content="Transform enterprise datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. $85/month all-inclusive enterprise plan with AES-256 encryption at rest.">
     <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics">
     <link rel="canonical" href="http://127.0.0.1:5000/">
 
@@ -15,11 +15,6 @@
     <meta property="og:title" content="AI Data Analyst Pro - Enterprise AI Data Analysis Platform">
     <meta property="og:description" content="Sub-second AI data analysis, automated executive reports, multi-dataset joins, and bank-grade encryption at rest for up to 10M+ records.">
     <meta property="og:image" content="http://127.0.0.1:5000/static/images/og-preview.png">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="AI Data Analyst Pro - Enterprise AI Data Platform">
-    <meta name="twitter:description" content="Sub-second AI data analysis, automated executive reports, multi-dataset joins, and bank-grade encryption at rest.">
 
     <!-- Schema.org JSON-LD Structured Data for Google Search -->
     <script type="application/ld+json">
@@ -31,7 +26,7 @@
       "applicationCategory": "BusinessApplication",
       "offers": {
         "@type": "Offer",
-        "price": "0.00",
+        "price": "85.00",
         "priceCurrency": "USD"
       },
       "description": "Enterprise AI Data Analysis Platform capable of processing up to 10M+ records with sub-second AI query responses, automated PowerPoint & PDF exports, and AES-256 data encryption at rest."
@@ -41,7 +36,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -50,9 +45,9 @@
         :root {
             --bg-dark: #07090e;
             --bg-card: rgba(15, 23, 42, 0.75);
-            --bg-card-hover: rgba(30, 41, 59, 0.85);
+            --bg-card-hover: rgba(30, 41, 59, 0.9);
             --border-glass: rgba(255, 255, 255, 0.1);
-            --border-glow: rgba(59, 130, 246, 0.4);
+            --border-glow: rgba(59, 130, 246, 0.5);
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
@@ -61,7 +56,8 @@
             --accent-cyan: #06b6d4;
             --accent-green: #10b981;
             --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
-            --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+            --gradient-card: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+            --gradient-glow: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
             --shadow-glow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
             --font-heading: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
@@ -81,12 +77,11 @@
             line-height: 1.6;
             overflow-x: hidden;
             background-image: 
-                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 85% 65%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 50% 90%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.18) 0%, transparent 40%),
+                radial-gradient(circle at 85% 55%, rgba(139, 92, 246, 0.18) 0%, transparent 40%),
+                radial-gradient(circle at 50% 85%, rgba(6, 182, 212, 0.15) 0%, transparent 40%);
         }
 
-        /* Container */
         .container {
             max-width: 1240px;
             margin: 0 auto;
@@ -100,9 +95,9 @@
             left: 0;
             width: 100%;
             z-index: 1000;
-            background: rgba(7, 9, 14, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(7, 9, 14, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border-glass);
             transition: all 0.3s ease;
         }
@@ -137,6 +132,12 @@
             color: #ffffff;
             font-size: 20px;
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            animation: pulse-icon 4s infinite alternate;
+        }
+
+        @keyframes pulse-icon {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6); }
         }
 
         .nav-links {
@@ -198,6 +199,15 @@
             box-shadow: 0 8px 25px rgba(59, 130, 246, 0.6);
         }
 
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
         /* Hero Section */
         section.hero-section {
             padding-top: 170px;
@@ -210,10 +220,10 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 18px;
+            padding: 8px 20px;
             border-radius: 30px;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.35);
             color: #60a5fa;
             font-size: 13px;
             font-weight: 600;
@@ -224,18 +234,18 @@
         }
 
         @keyframes pulse-glow {
-            0% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
-            100% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.5); }
+            0% { box-shadow: 0 0 12px rgba(59, 130, 246, 0.2); }
+            100% { box-shadow: 0 0 28px rgba(139, 92, 246, 0.5); }
         }
 
         .hero-title {
             font-family: var(--font-heading);
-            font-size: 56px;
+            font-size: 58px;
             font-weight: 800;
             line-height: 1.15;
             letter-spacing: -1.5px;
             margin-bottom: 24px;
-            max-width: 960px;
+            max-width: 980px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -249,7 +259,7 @@
         .hero-subtitle {
             font-size: 20px;
             color: var(--text-secondary);
-            max-width: 780px;
+            max-width: 800px;
             margin: 0 auto 40px auto;
             font-weight: 400;
         }
@@ -269,7 +279,7 @@
             text-decoration: none;
             font-size: 18px;
             font-weight: 700;
-            padding: 16px 36px;
+            padding: 16px 38px;
             border-radius: 14px;
             box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
             transition: all 0.3s ease;
@@ -331,17 +341,8 @@
             border-bottom: 1px solid var(--border-glass);
         }
 
-        .dots {
-            display: flex;
-            gap: 8px;
-        }
-
-        .dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
+        .dots { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
         .dot-red { background: #ff5f56; }
         .dot-yellow { background: #ffbd2e; }
         .dot-green { background: #27c93f; }
@@ -352,22 +353,25 @@
             font-weight: 500;
         }
 
-        .mockup-body {
-            padding: 24px;
-        }
+        .mockup-body { padding: 24px; }
 
         .stat-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 16px;
-            margin-bottom: 24px;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border-glass);
-            padding: 16px;
-            border-radius: 10px;
+            padding: 18px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
         }
 
         .stat-label {
@@ -375,6 +379,7 @@
             color: var(--text-muted);
             text-transform: uppercase;
             margin-bottom: 6px;
+            letter-spacing: 0.5px;
         }
 
         .stat-val {
@@ -392,7 +397,7 @@
 
         .section-header {
             text-align: center;
-            max-width: 700px;
+            max-width: 750px;
             margin: 0 auto 60px auto;
         }
 
@@ -401,13 +406,13 @@
             font-size: 14px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
             margin-bottom: 12px;
         }
 
         .section-title {
             font-family: var(--font-heading);
-            font-size: 40px;
+            font-size: 42px;
             font-weight: 800;
             letter-spacing: -1px;
         }
@@ -421,26 +426,26 @@
         .feature-card {
             background: var(--bg-card);
             border: 1px solid var(--border-glass);
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 32px;
-            transition: all 0.3s ease;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
 
         .feature-card:hover {
-            transform: translateY(-6px);
+            transform: translateY(-8px);
             background: var(--bg-card-hover);
             border-color: var(--border-glow);
-            box-shadow: 0 15px 35px -10px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.35);
         }
 
         .feature-icon-wrapper {
             width: 56px;
             height: 56px;
             border-radius: 14px;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.35);
             color: var(--accent-blue);
             display: flex;
             align-items: center;
@@ -461,163 +466,244 @@
             color: var(--text-secondary);
         }
 
-        /* Live Demo Sandbox */
+        /* Live Demo Sandbox (Enhanced from Screenshot 2) */
         section.demo-sandbox-section {
-            padding: 90px 0;
-            background: rgba(15, 23, 42, 0.5);
+            padding: 100px 0;
+            background: linear-gradient(180deg, rgba(7, 9, 14, 1) 0%, rgba(13, 19, 34, 0.7) 50%, rgba(7, 9, 14, 1) 100%);
             border-top: 1px solid var(--border-glass);
             border-bottom: 1px solid var(--border-glass);
         }
 
         .sandbox-box {
-            background: #0d1322;
-            border: 1px solid var(--border-glass);
-            border-radius: 18px;
-            padding: 32px;
-            max-width: 900px;
+            background: #0b101d;
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 960px;
             margin: 0 auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(59, 130, 246, 0.2);
         }
 
         .sandbox-prompt-chips {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .chip-btn {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-glass);
             color: var(--text-secondary);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .chip-btn:hover, .chip-btn.active {
             background: var(--accent-blue);
             color: #ffffff;
             border-color: var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
         }
 
         .sandbox-result-area {
-            background: #080d19;
-            border-radius: 12px;
-            padding: 20px;
+            background: #060912;
+            border-radius: 14px;
+            padding: 24px;
             border: 1px solid var(--border-glass);
         }
 
         .sandbox-result-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
         }
 
         .sandbox-result-table th, .sandbox-result-table td {
-            padding: 10px 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             text-align: left;
         }
 
         .sandbox-result-table th {
             color: var(--text-muted);
             font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
         }
 
-        /* Pricing Section */
+        /* Enhanced Security Section (From Screenshot 1) */
+        section.security-section {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 28px;
+        }
+
+        .security-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 36px;
+            transition: all 0.35s ease;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .security-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.25);
+            background: var(--bg-card-hover);
+        }
+
+        .security-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .icon-green { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; }
+        .icon-purple { background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #a78bfa; }
+        .icon-cyan { background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.35); color: #22d3ee; }
+        .icon-blue { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; }
+
+        .security-card-title {
+            font-family: var(--font-heading);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .security-card-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* SINGLE ENTERPRISE PLAN SECTION ($85 / month) */
         section.pricing-section {
             padding: 100px 0;
         }
 
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 28px;
-            align-items: center;
-        }
-
-        .pricing-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            padding: 40px 32px;
+        .single-pricing-card {
+            max-width: 780px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+            border: 2px solid var(--accent-blue);
+            border-radius: 24px;
+            padding: 48px 40px;
             position: relative;
-            transition: all 0.3s ease;
+            box-shadow: 0 25px 60px -10px rgba(59, 130, 246, 0.4);
+            text-align: center;
         }
 
-        .pricing-card.popular {
-            background: rgba(30, 41, 59, 0.95);
-            border-color: var(--accent-blue);
-            transform: scale(1.05);
-            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.4);
-        }
-
-        .badge-popular {
+        .pricing-badge-top {
             position: absolute;
-            top: -14px;
-            right: 28px;
+            top: -16px;
+            left: 50%;
+            transform: translateX(-50%);
             background: var(--gradient-primary);
             color: #ffffff;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
-            padding: 4px 14px;
-            border-radius: 12px;
+            padding: 6px 20px;
+            border-radius: 20px;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
         }
 
-        .pricing-title {
+        .pricing-plan-title {
             font-family: var(--font-heading);
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .pricing-price {
-            font-size: 44px;
+            font-size: 32px;
             font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .pricing-price-val {
+            font-size: 64px;
+            font-weight: 900;
             font-family: var(--font-heading);
-            margin-bottom: 24px;
+            color: #ffffff;
+            margin-bottom: 8px;
         }
 
-        .pricing-features {
-            list-style: none;
-            margin-bottom: 32px;
+        .pricing-price-val span {
+            font-size: 20px;
+            color: var(--text-muted);
+            font-weight: 400;
         }
 
-        .pricing-features li {
-            margin-bottom: 12px;
-            font-size: 14px;
+        .pricing-subtitle-text {
+            font-size: 16px;
             color: var(--text-secondary);
+            margin-bottom: 36px;
+        }
+
+        .pricing-features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            text-align: left;
+            margin-bottom: 40px;
+        }
+
+        .pricing-feature-item {
+            font-size: 15px;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .pricing-features i {
+        .pricing-feature-item i {
             color: var(--accent-green);
+            font-size: 16px;
         }
 
-        /* FAQ Accordion */
+        /* FAQ Section (Enhanced from Screenshot 3) */
         section.faq-section {
             padding: 90px 0;
-            max-width: 800px;
+            max-width: 860px;
             margin: 0 auto;
         }
 
         .faq-item {
             background: var(--bg-card);
             border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            margin-bottom: 16px;
+            border-radius: 16px;
+            margin-bottom: 18px;
             overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+            border-color: var(--border-glow);
         }
 
         .faq-question {
-            padding: 20px 24px;
+            padding: 22px 28px;
             font-family: var(--font-heading);
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
@@ -626,17 +712,18 @@
         }
 
         .faq-answer {
-            padding: 0 24px 20px 24px;
+            padding: 0 28px 24px 28px;
             font-size: 15px;
             color: var(--text-secondary);
             display: none;
+            line-height: 1.7;
         }
 
         /* Footer */
         footer.site-footer {
             background: #04060a;
             border-top: 1px solid var(--border-glass);
-            padding: 60px 0 30px 0;
+            padding: 70px 0 30px 0;
             color: var(--text-secondary);
         }
 
@@ -644,7 +731,7 @@
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr;
             gap: 40px;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
         }
 
         .footer-title {
@@ -655,23 +742,28 @@
             margin-bottom: 16px;
         }
 
-        .footer-links {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 10px;
-        }
-
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 10px; }
         .footer-links a {
             color: var(--text-secondary);
             text-decoration: none;
             font-size: 14px;
             transition: color 0.2s ease;
         }
+        .footer-links a:hover { color: var(--accent-blue); }
 
-        .footer-links a:hover {
-            color: var(--accent-blue);
+        .system-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 16px;
         }
 
         .footer-bottom {
@@ -684,18 +776,32 @@
 
         /* Responsive Breakpoints */
         @media (max-width: 992px) {
-            .hero-title { font-size: 42px; }
-            .feature-grid, .pricing-grid { grid-template-columns: repeat(1, 1fr); }
+            .hero-title { font-size: 44px; }
+            .feature-grid { grid-template-columns: repeat(1, 1fr); }
+            .security-grid { grid-template-columns: repeat(1, 1fr); }
+            .pricing-features-grid { grid-template-columns: 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
             .footer-grid { grid-template-columns: repeat(2, 1fr); }
-            .pricing-card.popular { transform: none; }
         }
 
-        @media (max-width: 600px) {
-            .hero-title { font-size: 32px; }
+        @media (max-width: 768px) {
             .nav-links { display: none; }
+            .mobile-toggle { display: block; }
+            .nav-links.mobile-open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                background: #07090e;
+                padding: 24px;
+                border-bottom: 1px solid var(--border-glass);
+            }
+            .hero-title { font-size: 34px; }
             .hero-cta-group { flex-direction: column; }
             .stat-grid { grid-template-columns: 1fr; }
+            .single-pricing-card { padding: 32px 20px; }
         }
     </style>
 </head>
@@ -712,7 +818,7 @@
                     <span>AI Data Analyst <strong style="color: var(--accent-blue);">Pro</strong></span>
                 </a>
 
-                <ul class="nav-links">
+                <ul class="nav-links" id="nav-menu">
                     <li><a href="#features" class="nav-link-item">Features</a></li>
                     <li><a href="#demo" class="nav-link-item">Live Demo</a></li>
                     <li><a href="#security" class="nav-link-item">Security</a></li>
@@ -729,6 +835,10 @@
                     <a href="{{ url_for('auth.login') }}" class="btn-nav-login" id="nav-login-btn">Sign In</a>
                     <a href="{{ url_for('auth.signup') }}" class="btn-nav-register" id="nav-register-btn">Register Free</a>
                     {% endif %}
+
+                    <button class="mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle Navigation">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
                 </div>
             </nav>
         </div>
@@ -758,7 +868,7 @@
                     </a>
                     {% else %}
                     <a href="{{ url_for('auth.signup') }}" class="btn-hero-primary" id="hero-cta-reg">
-                        <i class="fa-solid fa-rocket"></i> Get Started Free
+                        <i class="fa-solid fa-rocket"></i> Get Started — $85/mo
                     </a>
                     {% endif %}
                     <a href="#demo" class="btn-hero-secondary" id="hero-cta-demo">
@@ -881,170 +991,189 @@
             </div>
         </section>
 
-        <!-- Interactive Live Sandbox Demo -->
+        <!-- Interactive Live Sandbox Demo (Enhanced from Screenshot 2) -->
         <section class="demo-sandbox-section" id="demo">
             <div class="container">
                 <div class="section-header">
-                    <div class="section-subtitle">Interactive Sandbox</div>
+                    <div class="section-subtitle">INTERACTIVE SANDBOX</div>
                     <h2 class="section-title">Try AI Query Engine in Real-Time</h2>
                 </div>
 
                 <div class="sandbox-box">
-                    <div style="margin-bottom: 16px; font-weight: 600; font-size: 14px; color: var(--text-secondary);">
+                    <div style="margin-bottom: 18px; font-weight: 600; font-size: 14px; color: var(--text-secondary);">
                         Click a sample query prompt to test instant execution:
                     </div>
                     <div class="sandbox-prompt-chips">
-                        <button class="chip-btn active" onclick="runSandbox('top10')">📊 Show Top 10 Sales Orders</button>
-                        <button class="chip-btn" onclick="runSandbox('count')">🔢 Count Total Records</button>
-                        <button class="chip-btn" onclick="runSandbox('last')">📑 Show Last 5 Booking Entries</button>
+                        <button class="chip-btn active" onclick="runSandbox('top10', this)">
+                            <i class="fa-solid fa-chart-simple"></i> Show Top 10 Sales Orders
+                        </button>
+                        <button class="chip-btn" onclick="runSandbox('count', this)">
+                            <i class="fa-solid fa-hashtag"></i> Count Total Records
+                        </button>
+                        <button class="chip-btn" onclick="runSandbox('last', this)">
+                            <i class="fa-solid fa-file-lines"></i> Show Last 5 Booking Entries
+                        </button>
                     </div>
 
                     <div class="sandbox-result-area">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; color: var(--text-muted);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
                             <span>SQL QUERY: <strong id="sandbox-sql" style="color: var(--accent-cyan);">SELECT TOP 10 * FROM [Sales_Orders] ORDER BY [Sr] ASC;</strong></span>
-                            <span class="badge" style="color: var(--accent-green);">⚡ 0.005 ms Execution</span>
+                            <span style="color: var(--accent-green); font-weight: 600;"><i class="fa-solid fa-bolt"></i> 0.005 ms Execution</span>
                         </div>
-                        <table class="sandbox-result-table" id="sandbox-table">
-                            <thead>
-                                <tr>
-                                    <th>Sr</th>
-                                    <th>Consignment</th>
-                                    <th>Order Reference</th>
-                                    <th>Origin</th>
-                                    <th>Destination</th>
-                                    <th>COD Value</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sandbox-tbody">
-                                <tr>
-                                    <td>1</td>
-                                    <td>772846926672</td>
-                                    <td>#7114</td>
-                                    <td>KHI</td>
-                                    <td>ATT</td>
-                                    <td>999 PKR</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>772846926616</td>
-                                    <td>#7010</td>
-                                    <td>KHI</td>
-                                    <td>NFZ</td>
-                                    <td>900 PKR</td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>772846926757</td>
-                                    <td>#7200</td>
-                                    <td>KHI</td>
-                                    <td>SKT</td>
-                                    <td>900 PKR</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div style="overflow-x: auto;">
+                            <table class="sandbox-result-table" id="sandbox-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sr</th>
+                                        <th>Consignment</th>
+                                        <th>Order Reference</th>
+                                        <th>Origin</th>
+                                        <th>Destination</th>
+                                        <th>COD Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sandbox-tbody">
+                                    <tr>
+                                        <td>1</td>
+                                        <td>772846926672</td>
+                                        <td>#7114</td>
+                                        <td>KHI</td>
+                                        <td>ATT</td>
+                                        <td>999 PKR</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2</td>
+                                        <td>772846926616</td>
+                                        <td>#7010</td>
+                                        <td>KHI</td>
+                                        <td>NFZ</td>
+                                        <td>900 PKR</td>
+                                    </tr>
+                                    <tr>
+                                        <td>3</td>
+                                        <td>772846926757</td>
+                                        <td>#7200</td>
+                                        <td>KHI</td>
+                                        <td>SKT</td>
+                                        <td>900 PKR</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Security Section -->
-        <section class="features-section" id="security">
+        <!-- Enhanced Security Section (From Screenshot 1) -->
+        <section class="security-section" id="security">
             <div class="container">
                 <div class="section-header">
-                    <div class="section-subtitle">Enterprise Security</div>
+                    <div class="section-subtitle">ENTERPRISE SECURITY</div>
                     <h2 class="section-title">100% Data Protection & Compliance</h2>
                 </div>
 
-                <div class="feature-grid" style="grid-template-columns: repeat(2, 1fr);">
-                    <div class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: var(--accent-green); background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+                <div class="security-grid">
+                    <!-- Pillar 1 -->
+                    <div class="security-card">
+                        <div class="security-icon icon-green">
                             <i class="fa-solid fa-clock"></i>
                         </div>
-                        <h3 class="feature-card-title">1-Hour Inactivity Session Timeout</h3>
-                        <p class="feature-card-desc">
-                            Automated session tracking automatically logs users out after 60 minutes of inactivity to protect sensitive corporate datasets from unauthorized access.
-                        </p>
+                        <div>
+                            <h3 class="security-card-title">1-Hour Inactivity Session Timeout</h3>
+                            <p class="security-card-desc">
+                                Automated session tracking automatically logs users out after 60 minutes of inactivity to protect sensitive corporate datasets from unauthorized access.
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: var(--accent-purple); background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3);">
+                    <!-- Pillar 2 -->
+                    <div class="security-card">
+                        <div class="security-icon icon-purple">
                             <i class="fa-solid fa-shield-virus"></i>
                         </div>
-                        <h3 class="feature-card-title">Row-Level User Data Isolation</h3>
-                        <p class="feature-card-desc">
-                            Strict SQL Server UserID filtering isolates every uploaded dataset and query result set strictly to its owner, preventing cross-tenant leakage.
-                        </p>
+                        <div>
+                            <h3 class="security-card-title">Row-Level User Data Isolation</h3>
+                            <p class="security-card-desc">
+                                Strict SQL Server UserID filtering isolates every uploaded dataset and query result set strictly to its owner, preventing cross-tenant leakage.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 3 -->
+                    <div class="security-card">
+                        <div class="security-icon icon-cyan">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <div>
+                            <h3 class="security-card-title">AES-256 Field Encryption at Rest</h3>
+                            <p class="security-card-desc">
+                                String and text columns are encrypted using Fernet AES-256 ciphers before database storage, shielding customer records from direct SQL inspection.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 4 -->
+                    <div class="security-card">
+                        <div class="security-icon icon-blue">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <h3 class="security-card-title">Automated Audit & Compliance Logging</h3>
+                            <p class="security-card-desc">
+                                Comprehensive audit logs record all user query executions, login events, and file export operations for enterprise compliance verification.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Pricing Section -->
+        <!-- SINGLE ENTERPRISE PLAN SECTION ($85 / month) -->
         <section class="pricing-section" id="pricing">
             <div class="container">
                 <div class="section-header">
-                    <div class="section-subtitle">Flexible Plans</div>
-                    <h2 class="section-title">Transparent Enterprise Pricing</h2>
+                    <div class="section-subtitle">UNLIMITED ACCESS</div>
+                    <h2 class="section-title">Single Enterprise Plan</h2>
                 </div>
 
-                <div class="pricing-grid">
-                    <!-- Starter Plan -->
-                    <div class="pricing-card">
-                        <h3 class="pricing-title">Starter Analyst</h3>
-                        <div class="pricing-price">$0 <span style="font-size: 16px; color: var(--text-muted); font-weight: 400;">/ forever</span></div>
-                        <ul class="pricing-features">
-                            <li><i class="fa-solid fa-check"></i> Up to 100,000 Rows per File</li>
-                            <li><i class="fa-solid fa-check"></i> Sub-Second Fast PPTX & PDF Exports</li>
-                            <li><i class="fa-solid fa-check"></i> Natural Language Search</li>
-                            <li><i class="fa-solid fa-check"></i> 1-Hour Security Session Expiration</li>
-                        </ul>
-                        {% if is_logged_in %}
-                        <a href="{{ url_for('frontend.dashboard') }}" class="btn-nav-login" style="display: block; text-align: center;">Active Plan</a>
-                        {% else %}
-                        <a href="{{ url_for('auth.signup') }}" class="btn-nav-login" style="display: block; text-align: center;">Get Started Free</a>
-                        {% endif %}
+                <div class="single-pricing-card">
+                    <span class="pricing-badge-top">⚡ All-Inclusive Enterprise Plan</span>
+                    <h3 class="pricing-plan-title">Complete Platform Access</h3>
+                    <div class="pricing-price-val">$85 <span>/ month</span></div>
+                    <p class="pricing-subtitle-text">
+                        Full access to all 10M+ enterprise scale tools, AES-256 data encryption at rest, voice AI querying, and sub-second exports.
+                    </p>
+
+                    <div class="pricing-features-grid">
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> 10,000,000+ Rows Scale (Streaming Chunking)</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> AES-256 Field Encryption at Rest in SQL Server</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> Sub-Second Fast Exports (PPTX, PDF, Excel, CSV)</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> Bilingual Voice AI & Natural Urdu Search</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> Multi-Dataset Cross Analysis & Instant Joins</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> Automated AI Charts & Executive Profiling</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> 1-Hour Inactivity Security Session Timeout</div>
+                        <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> 24/7 Dedicated Priority Support & SLA</div>
                     </div>
 
-                    <!-- Popular Pro Plan -->
-                    <div class="pricing-card popular">
-                        <span class="badge-popular">Most Popular</span>
-                        <h3 class="pricing-title">Pro Analyst</h3>
-                        <div class="pricing-price">$49 <span style="font-size: 16px; color: var(--text-muted); font-weight: 400;">/ month</span></div>
-                        <ul class="pricing-features">
-                            <li><i class="fa-solid fa-check"></i> Up to 1,000,000 Rows per Dataset</li>
-                            <li><i class="fa-solid fa-check"></i> AES-256 Field Encryption at Rest</li>
-                            <li><i class="fa-solid fa-check"></i> Multi-Dataset Cross Analysis & Joins</li>
-                            <li><i class="fa-solid fa-check"></i> Voice Input & Spoken Responses</li>
-                            <li><i class="fa-solid fa-check"></i> Priority Sub-Second AI Processing</li>
-                        </ul>
-                        {% if is_logged_in %}
-                        <a href="{{ url_for('frontend.dashboard') }}" class="btn-nav-register" style="display: block; text-align: center;">Access Pro Features</a>
-                        {% else %}
-                        <a href="{{ url_for('auth.signup') }}" class="btn-nav-register" style="display: block; text-align: center;">Start 14-Day Free Trial</a>
-                        {% endif %}
-                    </div>
-
-                    <!-- Enterprise Plan -->
-                    <div class="pricing-card">
-                        <h3 class="pricing-title">Enterprise Scale</h3>
-                        <div class="pricing-price">Custom</div>
-                        <ul class="pricing-features">
-                            <li><i class="fa-solid fa-check"></i> 10,000,000+ Rows (Multi-Gigabyte)</li>
-                            <li><i class="fa-solid fa-check"></i> On-Premise SQL Server Deployment</li>
-                            <li><i class="fa-solid fa-check"></i> Custom Encryption Key Management</li>
-                            <li><i class="fa-solid fa-check"></i> Dedicated SLA & 24/7 Priority Support</li>
-                        </ul>
-                        <a href="mailto:sales@aidataanlystpro.com" class="btn-nav-login" style="display: block; text-align: center;">Contact Enterprise Sales</a>
-                    </div>
+                    {% if is_logged_in %}
+                    <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-primary" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-gauge"></i> Access Dashboard (Active Plan)
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('auth.signup') }}" class="btn-hero-primary" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-rocket"></i> Get Started Now — $85/mo
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </section>
 
-        <!-- FAQ Section -->
+        <!-- FAQ Section (Enhanced from Screenshot 3) -->
         <section class="faq-section" id="faq">
             <div class="container">
                 <div class="section-header">
-                    <div class="section-subtitle">Got Questions?</div>
+                    <div class="section-subtitle">GOT QUESTIONS?</div>
                     <h2 class="section-title">Frequently Asked Questions</h2>
                 </div>
 
@@ -1054,17 +1183,27 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        All string and sensitive text columns are encrypted at rest using AES-256 Fernet Encryption before storage in SQL Server tables. Authorized logged-in users decrypt results transparently upon execution.
+                        All string and sensitive text columns are encrypted at rest using AES-256 Fernet Encryption before storage in SQL Server tables. Row-level user isolation guarantees that dataset records can only be queried by their owner.
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <div class="faq-question" onclick="toggleFaq(this)">
-                        <span>What file formats and sizes are supported?</span>
+                        <span>What dataset scales and file formats are supported?</span>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        We support CSV, Excel (.xlsx, .xls), and TSV files up to 500 MB per file, scaling up to 10,000,000+ rows with streaming chunk insertion.
+                        We support CSV, Excel (.xlsx, .xls), and TSV files up to 500 MB per file, scaling up to 10,000,000+ rows with streaming chunk insertion and dynamic memory type downcasting.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>What is included in the $85/month Enterprise Plan?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        The $85/month plan is an all-inclusive single tier giving you full access to 10M+ dataset scale, bank-grade AES-256 field encryption at rest, sub-second PowerPoint/PDF exports, bilingual voice AI querying, and 24/7 priority support.
                     </div>
                 </div>
 
@@ -1074,7 +1213,7 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        For maximum enterprise security, if a logged-in user is inactive for 60 minutes, their session automatically expires and redirects safely to the login page.
+                        For maximum enterprise security, if a logged-in user remains idle for 60 minutes, their session automatically expires and redirects safely to the login page with an alert notice.
                     </div>
                 </div>
             </div>
@@ -1087,7 +1226,7 @@
             <div class="footer-grid">
                 <div>
                     <div class="brand-logo" style="margin-bottom: 16px;">
-                        <div class="brand-icon-box" style="width: 34px; height: 34px; font-size: 16px;">
+                        <div class="brand-icon-box" style="width: 36px; height: 36px; font-size: 17px;">
                             <i class="fa-solid fa-brain"></i>
                         </div>
                         <span>AI Data Analyst Pro</span>
@@ -1095,6 +1234,9 @@
                     <p style="font-size: 14px; max-width: 320px; line-height: 1.6;">
                         Enterprise-grade AI data analysis platform delivering sub-second queries, AES-256 encryption at rest, and automated executive PowerPoint exports.
                     </p>
+                    <div class="system-status-badge">
+                        <i class="fa-solid fa-circle" style="font-size: 8px;"></i> System Status: All Systems Operational
+                    </div>
                 </div>
 
                 <div>
@@ -1103,7 +1245,7 @@
                         <li><a href="#features">Features</a></li>
                         <li><a href="#demo">Live Sandbox</a></li>
                         <li><a href="#security">Security</a></li>
-                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#pricing">Pricing ($85/mo)</a></li>
                     </ul>
                 </div>
 
@@ -1118,7 +1260,7 @@
                 </div>
 
                 <div>
-                    <div class="footer-title">Account</div>
+                    <div class="footer-title">Account Access</div>
                     <ul class="footer-links">
                         <li><a href="{{ url_for('auth.login') }}">Sign In</a></li>
                         <li><a href="{{ url_for('auth.signup') }}">Register Free</a></li>
@@ -1133,11 +1275,16 @@
         </div>
     </footer>
 
-    <!-- Interactive JS for Sandbox Demo & FAQ -->
+    <!-- Interactive JS -->
     <script>
-        function runSandbox(type) {
+        function toggleMobileNav() {
+            const menu = document.getElementById('nav-menu');
+            menu.classList.toggle('mobile-open');
+        }
+
+        function runSandbox(type, btn) {
             document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            btn.classList.add('active');
 
             const sqlElem = document.getElementById('sandbox-sql');
             const tbody = document.getElementById('sandbox-tbody');
