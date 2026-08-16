@@ -395,3 +395,74 @@ AI Data Analyst Pro Security Team
 </body>
 </html>"""
         return self._send_email_async(to_email, subject, html_body, plain_text)
+
+    def send_payment_status_email(self, to_email: str, user_name: str, txn_id: str, status: str, amount: float, plan_name: str = "Enterprise Plan ($85/mo)") -> bool:
+        """
+        Send an official transactional payment status email notification to customer.
+        """
+        user_name_clean = user_name.strip() or "Valued Customer"
+        status_clean = str(status).strip().capitalize()
+        status_color = "#10b981" if status_clean == "Completed" else ("#f59e0b" if status_clean == "Pending" else "#ef4444")
+        
+        subject = f"[{status_clean.upper()}] Payment Update — Transaction {txn_id}"
+        
+        plain_text = f"Hello {user_name_clean},\nYour payment of ${amount:.2f} ({plan_name}) status has been updated to: {status_clean}.\nTransaction ID: {txn_id}\n\nAI Data Analyst Pro Team"
+
+        html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Status Update</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); padding: 30px; text-align: center; color: #ffffff;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 800;">AI Data Analyst Pro</h1>
+                            <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.9;">Official Payment Transaction Update</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 36px;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #0f172a;">Payment Transaction Update</h2>
+                            <p style="font-size: 15px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
+                                Hello <strong>{user_name_clean}</strong>,<br><br>
+                                Your payment status for <strong>{plan_name}</strong> has been updated in our billing system.
+                            </p>
+
+                            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #334155;">
+                                    <span><strong>Transaction ID:</strong></span>
+                                    <span style="font-family: monospace; color: #2563eb;">{txn_id}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #334155;">
+                                    <span><strong>Amount:</strong></span>
+                                    <span style="font-weight: 700; color: #059669;">${amount:.2f} USD</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 14px; color: #334155;">
+                                    <span><strong>Payment Status:</strong></span>
+                                    <span style="font-weight: 800; color: {status_color}; uppercase;">{status_clean}</span>
+                                </div>
+                            </div>
+
+                            <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">
+                                If you have any questions regarding your billing receipt, please contact priority enterprise support at support@aidataanalystpro.com.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
+                            &copy; 2026 AI Data Analyst Pro. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+        return self._send_email_async(to_email, subject, html_body, plain_text)

@@ -622,6 +622,8 @@ def login():
 
         next_page = request.args.get("next")
         flash(f"👋 Hello {user_display_name}! You have successfully logged in.", "success")
+        if role in ["SuperAdmin", "Admin"]:
+            return redirect(next_page or url_for("admin.dashboard"))
         return redirect(next_page or url_for("frontend.dashboard"))
 
     return render_template("login.html")

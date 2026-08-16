@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice {{ payment.txn_id }} - AI Data Analyst Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .invoice-card {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            padding: 40px;
+            position: relative;
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+
+        .brand-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .invoice-meta {
+            text-align: right;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .invoice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+        }
+
+        .invoice-table th, .invoice-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        .invoice-table th {
+            background-color: #f8fafc;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #475569;
+        }
+
+        .total-row {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            text-align: right;
+            padding-top: 16px;
+        }
+
+        .status-stamp {
+            position: absolute;
+            top: 120px;
+            right: 40px;
+            padding: 8px 24px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transform: rotate(-5deg);
+        }
+
+        .stamp-paid {
+            border: 3px solid #10b981;
+            color: #059669;
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .stamp-pending {
+            border: 3px solid #f59e0b;
+            color: #d97706;
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .stamp-failed {
+            border: 3px solid #ef4444;
+            color: #dc2626;
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .btn-print-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+        }
+
+        .btn-action {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        @media print {
+            body { background: #ffffff; padding: 0; }
+            .btn-print-row { display: none; }
+            .invoice-card { box-shadow: none; border: none; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="btn-print-row">
+        <a href="{{ url_for('admin.manage_payments') }}" class="btn-action" style="background: #64748b;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Payments
+        </a>
+        <button onclick="window.print()" class="btn-action">
+            <i class="fa-solid fa-print"></i> Print / Download PDF
+        </button>
+    </div>
+
+    <div class="invoice-card">
+        <!-- Status Stamp -->
+        {% if payment.status == 'Completed' %}
+        <div class="status-stamp stamp-paid"><i class="fa-solid fa-circle-check"></i> PAID</div>
+        {% elif payment.status == 'Pending' %}
+        <div class="status-stamp stamp-pending"><i class="fa-solid fa-clock"></i> PENDING</div>
+        {% else %}
+        <div class="status-stamp stamp-failed">{{ payment.status }}</div>
+        {% endif %}
+
+        <!-- Header -->
+        <div class="invoice-header">
+            <div>
+                <div class="brand-title">
+                    <div class="brand-icon"><i class="fa-solid fa-brain"></i></div>
+                    <span>AI Data Analyst Pro</span>
+                </div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 6px;">
+                    Enterprise Data Intelligence & AI Analytics Platform
+                </div>
+            </div>
+            <div class="invoice-meta">
+                <div style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: #0f172a;">INVOICE</div>
+                <div><strong>Ref:</strong> {{ payment.txn_id }}</div>
+                <div><strong>Date:</strong> {{ payment.payment_date }}</div>
+            </div>
+        </div>
+
+        <!-- Addresses Grid -->
+        <div class="invoice-grid">
+            <div>
+                <div class="section-label">Billed To</div>
+                <div style="font-weight: 700; font-size: 16px; color: #0f172a;">{{ payment.user_name }}</div>
+                <div style="font-size: 14px; color: #475569;">{{ payment.email }}</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">User ID: #{{ payment.user_id }}</div>
+            </div>
+
+            <div>
+                <div class="section-label">Issued By</div>
+                <div style="font-weight: 700; font-size: 16px; color: #0f172a;">AI Data Analyst Pro Inc.</div>
+                <div style="font-size: 14px; color: #475569;">Enterprise Billing & Security Operations</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">support@aidataanalystpro.com</div>
+            </div>
+        </div>
+
+        <!-- Itemized Table -->
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Description / Plan Tier</th>
+                    <th>Billing Period</th>
+                    <th>Payment Method</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight: 600;">
+                        {{ payment.plan_name }}
+                        <div style="font-size: 12px; color: #64748b; font-weight: 400;">
+                            Includes 10M+ Streaming Chunking, AES-256 Field Encryption at Rest & Sub-Second Exports
+                        </div>
+                    </td>
+                    <td style="color: #475569;">30-Day Monthly Cycle</td>
+                    <td style="color: #475569;"><i class="fa-solid fa-credit-card"></i> {{ payment.payment_method }}</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a;">${{ "%.2f"|format(payment.amount) }} {{ payment.currency }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Total Calculation -->
+        <div class="total-row">
+            <span style="font-size: 14px; color: #64748b; margin-right: 16px;">Subtotal: ${{ "%.2f"|format(payment.amount) }} | Tax (0%): $0.00</span>
+            Total Amount: <span style="color: #059669;">${{ "%.2f"|format(payment.amount) }} {{ payment.currency }}</span>
+        </div>
+
+        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
+            Thank you for choosing AI Data Analyst Pro. This is an official computer-generated billing receipt.
+        </div>
+    </div>
+</body>
+</html>
