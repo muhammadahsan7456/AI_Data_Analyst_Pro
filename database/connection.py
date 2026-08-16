@@ -643,17 +643,23 @@ def seed_super_admin():
             cursor.execute("SELECT COUNT(*) FROM Payments")
             p_count = cursor.fetchone()[0]
             if p_count == 0 and admin_user_id:
+                # Retrieve additional registered user IDs for realistic payment tracking
+                cursor.execute("SELECT UserID FROM Users WHERE Email IN ('moiz05366@gmail.com', 'hamzahussain0163@gmail.com') ORDER BY UserID ASC")
+                other_u = [r[0] for r in cursor.fetchall()]
+                user_a = other_u[0] if len(other_u) > 0 else admin_user_id
+                user_b = other_u[1] if len(other_u) > 1 else admin_user_id
+
                 cursor.execute("""
                     INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
-                    VALUES (?, 85.00, 'USD', 'Stripe Credit Card', 'TXN_998124819', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
-                """, (admin_user_id,))
+                    VALUES (?, 85.00, 'USD', 'Credit Card (Visa ending in 4242)', 'TXN_998124819', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
+                """, (user_a,))
                 cursor.execute("""
                     INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
-                    VALUES (?, 85.00, 'USD', 'Bank Wire Transfer', 'TXN_998124820', 'Pending', 'Enterprise Plan ($85/mo)', GETDATE())
-                """, (admin_user_id,))
+                    VALUES (?, 85.00, 'USD', 'Meezan Bank Wire (Acc: PK36MEZN00123456)', 'TXN_998124820', 'Pending', 'Enterprise Plan ($85/mo)', GETDATE())
+                """, (user_b,))
                 cursor.execute("""
                     INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
-                    VALUES (?, 85.00, 'USD', 'PayPal Express', 'TXN_998124821', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
+                    VALUES (?, 85.00, 'USD', 'PayPal Checkout (admin@aidataanalystpro.com)', 'TXN_998124821', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
                 """, (admin_user_id,))
                 print("[SUPER ADMIN] Initialized sample enterprise payments records.")
     except Exception as err:
