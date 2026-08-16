@@ -198,7 +198,7 @@
                     <td>{{ "{:,}".format(ds[3]) if ds[3] is not none else 0 }}</td>
                     <td>{{ ds[4] if ds|length > 4 and ds[4] is not none else 0 }}</td>
                     <td>{{ ds[6] if ds|length > 6 and ds[6] is not none else 0 }} KB</td>
-                    <td>{{ ds[5] if ds|length > 5 else '' }}</td>
+                    <td style="white-space: nowrap;"><span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ ds[5]|datetime_12hr if ds|length > 5 else '' }}</span></td>
                     <td style="text-align: right; white-space: nowrap;">
                         <a href="{{ url_for('frontend.view_dataset', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="View Records">
                             <i class="fa-solid fa-eye"></i> View
