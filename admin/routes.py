@@ -12,7 +12,8 @@ from database.queries import (
     update_payment_status_admin,
     get_all_audit_logs_admin
 )
-from auth.security import log_audit_event
+from auth.security import log_audit_event, verify_password, generate_secure_token
+from utils.helpers import format_12hr_datetime
 
 # Global in-memory announcement store
 site_announcement = {
@@ -20,6 +21,73 @@ site_announcement = {
     "message": "System operational. Enterprise 10M+ engine running with AES-256 encryption at rest.",
     "enabled": True
 }
+
+
+def get_user_initials(name_str, email_str):
+    """Compute 2-letter uppercase initials for user avatar fallback."""
+    clean = (name_str or "").strip()
+    if not clean:
+        clean = (email_str or "User").split("@")[0]
+    parts = clean.split()
+    if len(parts) >= 2:
+        return f"{parts[0][0]}{parts[1][0]}".upper()
+    return clean[:2].upper()
+
+
+# ==========================================
+# DEDICATED SUPER ADMIN LOGIN GATEWAY
+# ==========================================
+@admin_bp.route("/login", methods=["GET", "POST"])
+def admin_login():
+    """
+    Dedicated Super Admin Authentication Gateway.
+    Separated from standard user authentication portal.
+    """
+    if session.get("user_id") and session.get("user_role") in ["SuperAdmin", "Admin"]:
+        return redirect(url_for("admin.dashboard"))
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT UserID, FullName, PasswordHash, Role, IsActive FROM Users WHERE Email = ?", (email,))
+            u_row = cursor.fetchone()
+
+        if not u_row:
+            flash("Access Denied: Invalid Super Admin credentials.", "error")
+            return render_template("admin/login.html")
+
+        user_id, full_name, pwd_hash, role, is_active = u_row
+
+        if not is_active:
+            flash("Super Admin account is deactivated. Contact system administrator.", "error")
+            return render_template("admin/login.html")
+
+        if role not in ["SuperAdmin", "Admin"]:
+            flash("Access Denied: Unauthorized account. Super Admin role required.", "error")
+            return render_template("admin/login.html")
+
+        if not verify_password(password, pwd_hash):
+            log_audit_event("ADMIN_LOGIN_FAILED", f"Failed Super Admin login attempt for {email}")
+            flash("Access Denied: Invalid Super Admin credentials.", "error")
+            return render_template("admin/login.html")
+
+        # Establish Dedicated Admin Session
+        session.permanent = True
+        session["user_id"] = user_id
+        session["user_name"] = full_name or "Super Admin"
+        session["user_email"] = email
+        session["user_role"] = role
+        session["session_token"] = generate_secure_token()
+
+        log_audit_event("ADMIN_LOGIN_SUCCESS", f"Super Admin '{full_name}' logged into Executive Console", user_id=user_id)
+        flash(f"👑 Welcome Super Admin {full_name}! Executive Console Unlocked.", "success")
+
+        next_page = request.args.get("next")
+        return redirect(next_page or url_for("admin.dashboard"))
+
+    return render_template("admin/login.html")
 
 
 @admin_bp.route("/dashboard")
@@ -70,7 +138,11 @@ def dashboard():
 
             # Recent Audit Logs (Top 8)
             cursor.execute(get_all_audit_logs_admin(limit=8))
-            recent_audit_logs = cursor.fetchall() or []
+            raw_audit = cursor.fetchall() or []
+            recent_audit_logs = [
+                (l[0], l[1], l[2], l[3], l[4], format_12hr_datetime(l[5]))
+                for l in raw_audit
+            ]
 
     except Exception as e:
         print("Admin Dashboard Query Error:", e)
@@ -127,11 +199,12 @@ def manage_users():
                 "username": uname,
                 "phone": phone or "N/A",
                 "location": f"{city or ''}, {country or ''}".strip(", ") or "N/A",
-                "profile_image": profile_img or "/static/images/default_avatar.png",
+                "profile_image": profile_img if (profile_img and profile_img != "/static/images/default_avatar.png") else None,
+                "initials": get_user_initials(full_name, email),
                 "is_active": bool(is_active),
                 "is_verified": bool(is_verified),
                 "role": role,
-                "created_at": created_at
+                "created_at": format_12hr_datetime(created_at)
             })
     except Exception as e:
         print("Admin Users Fetch Error:", e)
@@ -284,7 +357,7 @@ def manage_payments():
                 "txn_id": txn_id or f"TXN_{p_id}9021",
                 "status": status or "Completed",
                 "plan_name": plan or "Enterprise Plan ($85/mo)",
-                "payment_date": p_date
+                "payment_date": format_12hr_datetime(p_date)
             })
     except Exception as e:
         print("Admin Payments Fetch Error:", e)
@@ -339,7 +412,7 @@ def audit_logs():
                 "event_type": action,
                 "description": details or "No details provided",
                 "ip_address": ip_addr or "127.0.0.1",
-                "created_at": created_at
+                "created_at": format_12hr_datetime(created_at)
             })
     except Exception as e:
         print("Admin Audit Logs Error:", e)

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Security Gateway - AI Data Analyst Pro</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <style>
+        :root, [data-theme="dark"] {
+            --bg-dark: #05070d;
+            --bg-card: rgba(13, 18, 30, 0.88);
+            --border-glow: rgba(239, 68, 68, 0.5);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --gradient-admin: linear-gradient(135deg, #ef4444 0%, #8b5cf6 50%, #3b82f6 100%);
+            --shadow-admin: 0 20px 50px -10px rgba(239, 68, 68, 0.35);
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --border-glow: rgba(220, 38, 38, 0.4);
+            --border-glass: rgba(0, 0, 0, 0.12);
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --accent-red: #dc2626;
+            --accent-purple: #7c3aed;
+            --accent-blue: #2563eb;
+            --shadow-admin: 0 20px 40px -10px rgba(220, 38, 38, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glow Backdrop Elements */
+        .glow-orb-1 {
+            position: absolute;
+            top: 15%;
+            left: 20%;
+            width: 350px;
+            height: 350px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(60px);
+            z-index: 0;
+            animation: float-glow 8s infinite alternate ease-in-out;
+        }
+
+        .glow-orb-2 {
+            position: absolute;
+            bottom: 15%;
+            right: 20%;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(70px);
+            z-index: 0;
+            animation: float-glow 10s infinite alternate-reverse ease-in-out;
+        }
+
+        @keyframes float-glow {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 30px) scale(1.1); }
+        }
+
+        .admin-login-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid var(--border-glow);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 480px;
+            padding: 40px;
+            box-shadow: var(--shadow-admin);
+            position: relative;
+            z-index: 10;
+        }
+
+        .admin-shield-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .admin-shield-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            background: var(--gradient-admin);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 30px;
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
+            margin-bottom: 16px;
+        }
+
+        .admin-login-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .admin-security-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: var(--accent-red);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .admin-form-group {
+            margin-bottom: 20px;
+        }
+
+        .admin-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .admin-input-wrapper {
+            position: relative;
+        }
+
+        .admin-input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .admin-input {
+            width: 100%;
+            padding: 14px 16px 14px 46px;
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .admin-input:focus {
+            border-color: var(--accent-red);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .admin-btn-submit {
+            width: 100%;
+            background: var(--gradient-admin);
+            color: #ffffff;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+            transition: all 0.3s ease;
+            margin-top: 28px;
+        }
+
+        .admin-btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(239, 68, 68, 0.7);
+        }
+
+        .admin-footer-notice {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-glass);
+            padding-top: 18px;
+        }
+
+        .admin-theme-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-glass);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="admin-theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+    </button>
+
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+
+    <div class="admin-login-card">
+        <div class="admin-shield-header">
+            <div class="admin-shield-icon">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <h1 class="admin-login-title">Super Admin Gateway</h1>
+            <div class="admin-security-tag">
+                <i class="fa-solid fa-lock"></i> Restricted Personnel Only
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div style="padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;{% endif %}">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('admin.admin_login', next=request.args.get('next', '')) }}">
+            <div class="admin-form-group">
+                <label class="admin-label">Super Admin Email Address</label>
+                <div class="admin-input-wrapper">
+                    <i class="fa-solid fa-envelope admin-input-icon"></i>
+                    <input type="email" name="email" class="admin-input" placeholder="admin@aidataanalystpro.com" required value="admin@aidataanalystpro.com">
+                </div>
+            </div>
+
+            <div class="admin-form-group">
+                <label class="admin-label">Super Admin Security Password</label>
+                <div class="admin-input-wrapper">
+                    <i class="fa-solid fa-key admin-input-icon"></i>
+                    <input type="password" name="password" class="admin-input" placeholder="••••••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="admin-btn-submit">
+                Authenticate & Access Console <i class="fa-solid fa-shield-halved"></i>
+            </button>
+        </form>
+
+        <div class="admin-footer-notice">
+            <i class="fa-solid fa-circle-check" style="color: var(--accent-red);"></i> 1-Hour Inactivity Expiration & AES-256 Security Logged.
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('admin_theme', next);
+            document.getElementById('theme-icon').className = next === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+        (function() {
+            const saved = localStorage.getItem('admin_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.getElementById('theme-icon').className = saved === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        })();
+    </script>
+</body>
+</html>
