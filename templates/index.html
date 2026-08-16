@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <style>
-        :root {
+        :root, [data-theme="dark"] {
             --bg-dark: #07090e;
             --bg-card: rgba(15, 23, 42, 0.75);
             --bg-card-hover: rgba(30, 41, 59, 0.9);
@@ -55,12 +55,34 @@
             --accent-purple: #8b5cf6;
             --accent-cyan: #06b6d4;
             --accent-green: #10b981;
+            --header-bg: rgba(7, 9, 14, 0.88);
+            --mockup-body-bg: #0d1322;
+            --mockup-inner-bg: #060912;
+            --footer-bg: #04060a;
             --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
-            --gradient-card: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
-            --gradient-glow: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
             --shadow-glow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
             --font-heading: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5f9;
+            --border-glass: rgba(0, 0, 0, 0.1);
+            --border-glow: rgba(37, 99, 235, 0.4);
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --accent-blue: #2563eb;
+            --accent-purple: #7c3aed;
+            --accent-cyan: #0891b2;
+            --accent-green: #059669;
+            --header-bg: rgba(255, 255, 255, 0.92);
+            --mockup-body-bg: #f1f5f9;
+            --mockup-inner-bg: #ffffff;
+            --footer-bg: #e2e8f0;
+            --shadow-glow: 0 10px 30px -10px rgba(37, 99, 235, 0.25);
         }
 
         * {
@@ -76,10 +98,7 @@
             font-family: var(--font-body);
             line-height: 1.6;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.18) 0%, transparent 40%),
-                radial-gradient(circle at 85% 55%, rgba(139, 92, 246, 0.18) 0%, transparent 40%),
-                radial-gradient(circle at 50% 85%, rgba(6, 182, 212, 0.15) 0%, transparent 40%);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
@@ -95,7 +114,7 @@
             left: 0;
             width: 100%;
             z-index: 1000;
-            background: rgba(7, 9, 14, 0.88);
+            background: var(--header-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border-glass);
@@ -162,7 +181,28 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
+        }
+
+        .btn-theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-glass);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-theme-toggle:hover {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--accent-blue);
+            transform: rotate(15deg);
         }
 
         .btn-nav-login {
@@ -224,7 +264,7 @@
             border-radius: 30px;
             background: rgba(59, 130, 246, 0.12);
             border: 1px solid rgba(59, 130, 246, 0.35);
-            color: #60a5fa;
+            color: var(--accent-blue);
             font-size: 13px;
             font-weight: 600;
             text-transform: uppercase;
@@ -248,6 +288,7 @@
             max-width: 980px;
             margin-left: auto;
             margin-right: auto;
+            color: var(--text-primary);
         }
 
         .hero-title-gradient {
@@ -321,11 +362,11 @@
             border-radius: 20px;
             padding: 12px;
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 50px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5);
         }
 
         .hero-mockup-card {
-            background: #0d1322;
+            background: var(--mockup-body-bg);
             border-radius: 14px;
             overflow: hidden;
             border: 1px solid var(--border-glass);
@@ -333,7 +374,7 @@
         }
 
         .mockup-header {
-            background: #131c31;
+            background: var(--header-bg);
             padding: 14px 20px;
             display: flex;
             align-items: center;
@@ -362,7 +403,7 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--bg-card);
             border: 1px solid var(--border-glass);
             padding: 18px;
             border-radius: 12px;
@@ -415,6 +456,7 @@
             font-size: 42px;
             font-weight: 800;
             letter-spacing: -1px;
+            color: var(--text-primary);
         }
 
         .feature-grid {
@@ -437,7 +479,7 @@
             transform: translateY(-8px);
             background: var(--bg-card-hover);
             border-color: var(--border-glow);
-            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.35);
+            box-shadow: var(--shadow-glow);
         }
 
         .feature-icon-wrapper {
@@ -459,6 +501,7 @@
             font-size: 20px;
             font-weight: 700;
             margin-bottom: 12px;
+            color: var(--text-primary);
         }
 
         .feature-card-desc {
@@ -469,7 +512,6 @@
         /* IN-DEPTH REAL-TIME AI ENGINE PIPELINE SHOWCASE */
         section.demo-sandbox-section {
             padding: 100px 0;
-            background: linear-gradient(180deg, rgba(7, 9, 14, 1) 0%, rgba(13, 19, 34, 0.8) 50%, rgba(7, 9, 14, 1) 100%);
             border-top: 1px solid var(--border-glass);
             border-bottom: 1px solid var(--border-glass);
         }
@@ -483,7 +525,7 @@
         }
 
         .pipeline-step-card {
-            background: rgba(15, 23, 42, 0.7);
+            background: var(--bg-card);
             border: 1px solid var(--border-glass);
             border-radius: 14px;
             padding: 16px;
@@ -494,7 +536,7 @@
         .pipeline-step-card.active-step {
             border-color: var(--accent-blue);
             background: rgba(59, 130, 246, 0.1);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
         }
 
         .pipeline-num {
@@ -510,17 +552,17 @@
             font-family: var(--font-heading);
             font-size: 14px;
             font-weight: 700;
-            color: #ffffff;
+            color: var(--text-primary);
         }
 
         .sandbox-box {
-            background: #0b101d;
+            background: var(--mockup-body-bg);
             border: 1px solid var(--border-glow);
             border-radius: 20px;
             padding: 36px;
             max-width: 1050px;
             margin: 0 auto 40px auto;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(59, 130, 246, 0.25);
+            box-shadow: var(--shadow-glow);
         }
 
         .sandbox-prompt-chips {
@@ -554,7 +596,7 @@
         }
 
         .sandbox-result-area {
-            background: #060912;
+            background: var(--mockup-inner-bg);
             border-radius: 16px;
             padding: 24px;
             border: 1px solid var(--border-glass);
@@ -569,7 +611,7 @@
 
         .sandbox-result-table th, .sandbox-result-table td {
             padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid var(--border-glass);
             text-align: left;
         }
 
@@ -588,6 +630,7 @@
             padding: 18px 20px;
             font-size: 14px;
             line-height: 1.6;
+            color: var(--text-primary);
         }
 
         .sandbox-ai-takeaway-header {
@@ -658,7 +701,7 @@
         .security-card:hover {
             transform: translateY(-6px);
             border-color: var(--accent-blue);
-            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.25);
+            box-shadow: var(--shadow-glow);
             background: var(--bg-card-hover);
         }
 
@@ -683,6 +726,7 @@
             font-size: 20px;
             font-weight: 700;
             margin-bottom: 10px;
+            color: var(--text-primary);
         }
 
         .security-card-desc {
@@ -699,12 +743,12 @@
         .single-pricing-card {
             max-width: 780px;
             margin: 0 auto;
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+            background: var(--bg-card);
             border: 2px solid var(--accent-blue);
             border-radius: 24px;
             padding: 48px 40px;
             position: relative;
-            box-shadow: 0 25px 60px -10px rgba(59, 130, 246, 0.4);
+            box-shadow: var(--shadow-glow);
             text-align: center;
         }
 
@@ -729,13 +773,14 @@
             font-size: 32px;
             font-weight: 800;
             margin-bottom: 8px;
+            color: var(--text-primary);
         }
 
         .pricing-price-val {
             font-size: 64px;
             font-weight: 900;
             font-family: var(--font-heading);
-            color: #ffffff;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
@@ -801,6 +846,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: var(--text-primary);
         }
 
         .faq-answer {
@@ -813,7 +859,7 @@
 
         /* Footer */
         footer.site-footer {
-            background: #04060a;
+            background: var(--footer-bg);
             border-top: 1px solid var(--border-glass);
             padding: 70px 0 30px 0;
             color: var(--text-secondary);
@@ -859,7 +905,7 @@
         }
 
         .footer-bottom {
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid var(--border-glass);
             padding-top: 24px;
             text-align: center;
             font-size: 13px;
@@ -888,7 +934,7 @@
                 top: 80px;
                 left: 0;
                 width: 100%;
-                background: #07090e;
+                background: var(--header-bg);
                 padding: 24px;
                 border-bottom: 1px solid var(--border-glass);
             }
@@ -922,6 +968,10 @@
                 </ul>
 
                 <div class="nav-actions">
+                    <button class="btn-theme-toggle" id="theme-toggle-btn" onclick="toggleWebsiteTheme()" title="Toggle Light/Dark Theme">
+                        <i class="fa-solid fa-moon" id="theme-toggle-icon"></i>
+                    </button>
+
                     {% if is_logged_in %}
                     <a href="{{ url_for('frontend.dashboard') }}" class="btn-nav-register" id="nav-dash-btn">
                         <i class="fa-solid fa-gauge"></i> Go to Dashboard
@@ -1449,6 +1499,35 @@
 
     <!-- Interactive JS -->
     <script>
+        function toggleWebsiteTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('website_theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-toggle-icon');
+            if (icon) {
+                if (theme === 'light') {
+                    icon.className = 'fa-solid fa-sun';
+                    icon.style.color = '#f59e0b';
+                } else {
+                    icon.className = 'fa-solid fa-moon';
+                    icon.style.color = '#60a5fa';
+                }
+            }
+        }
+
+        (function() {
+            const savedTheme = localStorage.getItem('website_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            window.addEventListener('DOMContentLoaded', () => {
+                updateThemeIcon(savedTheme);
+            });
+        })();
+
         function toggleMobileNav() {
             const menu = document.getElementById('nav-menu');
             menu.classList.toggle('mobile-open');
