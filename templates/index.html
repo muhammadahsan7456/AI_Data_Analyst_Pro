@@ -357,15 +357,15 @@
             border-color: var(--accent-blue);
         }
 
-        /* HIGH-DEFINITION 15-SECOND PRODUCT WORKFLOW VIDEO PLAYER SHOWCASE */
+        /* ULTRA-HIGH DEFINITION 6-STAGE HD PRODUCT WORKFLOW VIDEO PLAYER */
         .hero-mockup-wrapper {
             position: relative;
-            max-width: 1050px;
+            max-width: 1080px;
             margin: 0 auto;
             border-radius: 24px;
             padding: 12px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(139, 92, 246, 0.4));
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 40px rgba(59, 130, 246, 0.3);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.4));
+            box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.7), 0 0 50px rgba(59, 130, 246, 0.4);
         }
 
         .hero-mockup-card {
@@ -403,6 +403,39 @@
             letter-spacing: 0.8px;
         }
 
+        /* Interactive 6-Stage Switcher Bar */
+        .stage-switcher-tabs {
+            display: flex;
+            background: rgba(4, 6, 10, 0.95);
+            border-bottom: 1px solid var(--border-glass);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .stage-tab-btn {
+            flex: 1;
+            padding: 10px 14px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .stage-tab-btn:hover, .stage-tab-btn.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.08);
+        }
+
         .video-player-container {
             position: relative;
             width: 100%;
@@ -421,7 +454,7 @@
             display: block;
         }
 
-        /* DYNAMIC ENGAGING 15-SECOND WORKFLOW GRAPHICS PLAYER */
+        /* 4K DYNAMIC ENGAGING 6-STAGE WORKFLOW SIMULATOR SCREEN */
         .animated-workflow-screen {
             position: absolute;
             top: 0;
@@ -475,27 +508,22 @@
             padding: 16px 0;
         }
 
-        /* Stage 1 Ingestion Graphics */
-        .stage-ingest-card {
-            background: rgba(15, 23, 42, 0.85);
-            border: 2px dashed var(--accent-blue);
-            border-radius: 16px;
-            padding: 24px 36px;
-            text-align: center;
-            width: 100%;
-            max-width: 650px;
-            animation: pulse-glow 2s infinite alternate;
-        }
-
-        /* Stage 2 Voice Waveform Graphics */
-        .stage-voice-card {
-            background: rgba(15, 23, 42, 0.85);
+        /* Dynamic Visual Cards for 6 Stages */
+        .stage-visual-card {
+            background: rgba(15, 23, 42, 0.88);
             border: 1px solid var(--border-glow);
             border-radius: 16px;
-            padding: 20px 30px;
-            width: 100%;
-            max-width: 680px;
+            padding: 22px 30px;
             text-align: center;
+            width: 100%;
+            max-width: 720px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .voice-wave-bars {
@@ -523,40 +551,10 @@
             100% { height: 32px; }
         }
 
-        /* Stage 3 T-SQL & Chart Graphics */
-        .stage-sql-card {
-            background: rgba(6, 9, 18, 0.95);
-            border: 1px solid var(--border-glow);
-            border-radius: 14px;
-            padding: 16px 20px;
-            width: 100%;
-            max-width: 720px;
-            font-family: monospace;
-            font-size: 13px;
-            text-align: left;
-        }
-
-        .sql-code-line {
-            color: var(--accent-cyan);
-            margin-bottom: 6px;
-        }
-
-        .sql-speed-badge {
-            display: inline-block;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            color: #34d399;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        /* Stage 4 Sub-Second Export Download Cards */
         .stage-export-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
             width: 100%;
             max-width: 720px;
         }
@@ -565,15 +563,15 @@
             background: rgba(30, 41, 59, 0.9);
             border: 1px solid var(--accent-blue);
             border-radius: 12px;
-            padding: 16px;
+            padding: 14px;
             text-align: center;
             box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
             animation: pulse-icon 2s infinite alternate;
         }
 
         .export-card-pulse i {
-            font-size: 28px;
-            margin-bottom: 8px;
+            font-size: 24px;
+            margin-bottom: 6px;
         }
 
         .video-progress-bar-track {
@@ -1340,7 +1338,7 @@
                     </a>
                 </div>
 
-                <!-- HIGH-DEFINITION 15-SECOND PRODUCT WORKFLOW VIDEO PLAYER SHOWCASE -->
+                <!-- ULTRA-HIGH DEFINITION 6-STAGE HD PRODUCT WORKFLOW VIDEO PLAYER -->
                 <div class="hero-mockup-wrapper">
                     <div class="hero-mockup-card">
                         <div class="video-header-bar">
@@ -1349,10 +1347,32 @@
                                 <span class="dot dot-yellow"></span>
                                 <span class="dot dot-green"></span>
                             </div>
-                            <div class="mockup-title-bar">AI Data Analyst Pro — Live 15s Product Workflow Showcase</div>
+                            <div class="mockup-title-bar">AI Data Analyst Pro — Ultra HD 4K Product Showcase (6 Core Features)</div>
                             <div class="video-live-tag">
                                 <i class="fa-solid fa-circle" style="font-size: 8px; animation: pulse-icon 1.5s infinite;"></i> 10M Scale Live HD Preview
                             </div>
+                        </div>
+
+                        <!-- 6-Stage Interactive Switcher Bar -->
+                        <div class="stage-switcher-tabs" id="stage-tabs-bar">
+                            <button class="stage-tab-btn active" onclick="jumpToStage(0)">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> 1. Ingestion
+                            </button>
+                            <button class="stage-tab-btn" onclick="jumpToStage(1)">
+                                <i class="fa-solid fa-microphone"></i> 2. Urdu Voice
+                            </button>
+                            <button class="stage-tab-btn" onclick="jumpToStage(2)">
+                                <i class="fa-solid fa-bolt"></i> 3. 0.005s Engine
+                            </button>
+                            <button class="stage-tab-btn" onclick="jumpToStage(3)">
+                                <i class="fa-solid fa-link"></i> 4. Multi-JOIN
+                            </button>
+                            <button class="stage-tab-btn" onclick="jumpToStage(4)">
+                                <i class="fa-solid fa-shield-halved"></i> 5. Security
+                            </button>
+                            <button class="stage-tab-btn" onclick="jumpToStage(5)">
+                                <i class="fa-solid fa-file-powerpoint"></i> 6. Reports
+                            </button>
                         </div>
 
                         <div class="video-player-container" id="video-container">
@@ -1361,30 +1381,18 @@
                                 <source src="/static/videos/demo_showcase.mp4" type="video/mp4">
                             </video>
 
-                            <!-- DYNAMIC ENGAGING 15-SECOND WORKFLOW GRAPHICS PLAYER -->
+                            <!-- 4K DYNAMIC ENGAGING 6-STAGE WORKFLOW GRAPHICS PLAYER -->
                             <div class="animated-workflow-screen" id="workflow-animator">
                                 <div class="video-step-header">
                                     <div class="video-stage-badge" id="v-stage-badge">
-                                        <i class="fa-solid fa-cloud-arrow-up"></i> STAGE 1: ENTERPRISE DATASET INGESTION
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> STAGE 1: 10M ROW INGESTION
                                     </div>
-                                    <div class="video-timer-badge" id="v-timer-badge">00:04 / 00:15 HD</div>
+                                    <div class="video-timer-badge" id="v-timer-badge">00:02 / 00:15 HD</div>
                                 </div>
 
                                 <!-- Dynamic Interactive Stage Content Body -->
                                 <div class="video-dynamic-stage-body" id="v-stage-body-container">
-                                    <!-- Default Stage 1 UI Content -->
-                                    <div class="stage-ingest-card">
-                                        <i class="fa-solid fa-file-csv" style="font-size: 42px; color: var(--accent-blue); margin-bottom: 12px;"></i>
-                                        <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin-bottom: 6px;">
-                                            Uploading Sales_Orders_10M.csv (1.4 GB)
-                                        </h3>
-                                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
-                                            ⚡ High-speed chunk insertion (100,000 rows/sec) into SQL Server
-                                        </div>
-                                        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 6px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #34d399; font-weight: 600;">
-                                            <i class="fa-solid fa-lock"></i> Bank-Grade AES-256 Field Encryption Active at Rest
-                                        </div>
-                                    </div>
+                                    <!-- Rendered dynamically by JavaScript -->
                                 </div>
 
                                 <div>
@@ -1405,16 +1413,13 @@
                                     <i class="fa-solid fa-rotate-left"></i>
                                 </button>
                                 <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
-                                    HD Resolution (1080p 60FPS) • 15s Interactive Workflow
+                                    Ultra HD Resolution (4K 60FPS) • Sound Default OFF (Click 🔊 to Unmute AI Voice)
                                 </span>
                             </div>
 
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <button class="video-ctrl-btn" onclick="toggleVoiceover()" title="AI Voice Narration">
-                                    <i class="fa-solid fa-volume-high" id="voice-ctrl-icon" style="color: var(--accent-green);"></i>
-                                </button>
-                                <button class="video-ctrl-btn" onclick="toggleMute()" title="Mute / Unmute">
-                                    <i class="fa-solid fa-volume-xmark" id="mute-ctrl-icon"></i>
+                                <button class="video-ctrl-btn" onclick="toggleVoiceover()" title="Toggle AI Voice Sound Narration (Default Muted)">
+                                    <i class="fa-solid fa-volume-xmark" id="voice-ctrl-icon" style="color: var(--text-muted);"></i>
                                 </button>
                                 <button class="video-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen Preview">
                                     <i class="fa-solid fa-expand"></i>
@@ -1706,7 +1711,7 @@
         </section>
 
         <!-- SINGLE ENTERPRISE PLAN SECTION ($85 / month) -->
-        <section class="pricing-section" id="pricing">
+        section.pricing-section" id="pricing">
             <div class="container">
                 <div class="section-header">
                     <div class="section-subtitle">UNLIMITED ACCESS</div>
@@ -1746,7 +1751,7 @@
         </section>
 
         <!-- FAQ Section (Enhanced from Screenshot 3) -->
-        <section class="faq-section" id="faq">
+        section.faq-section" id="faq">
             <div class="container">
                 <div class="section-header">
                     <div class="section-subtitle">GOT QUESTIONS?</div>
@@ -1886,39 +1891,41 @@
 
     <!-- Interactive JS -->
     <script>
-        // --- 15-SECOND HIGHLY ENGAGING DYNAMIC WORKFLOW GRAPHICS PLAYER ---
+        // --- ULTRA-HIGH DEFINITION 6-STAGE HD PRODUCT WORKFLOW VIDEO SIMULATOR ---
         let videoProgress = 0;
         let isPlaying = true;
         let isMuted = true;
-        let isVoiceoverEnabled = true;
+        let isVoiceoverEnabled = false; // SOUND DEFAULT MUTED (OFF) AS REQUESTED!
         let currentStageIndex = -1;
 
         const stageData = [
+            // Stage 1: Ingestion
             {
                 badge: '<i class="fa-solid fa-cloud-arrow-up"></i> STAGE 1: ENTERPRISE DATASET INGESTION',
                 voiceText: "Stage 1: Streaming 10M rows dataset into SQL Server with bank-grade AES 256 encryption at rest.",
                 render: () => `
-                    <div class="stage-ingest-card">
-                        <i class="fa-solid fa-file-csv" style="font-size: 42px; color: var(--accent-blue); margin-bottom: 10px;"></i>
+                    <div class="stage-visual-card" style="border-color: var(--accent-blue);">
+                        <i class="fa-solid fa-file-csv" style="font-size: 44px; color: var(--accent-blue); margin-bottom: 10px;"></i>
                         <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin-bottom: 6px;">
-                            Uploading Sales_Orders_10M.csv (1.4 GB)
+                            Streaming Ingestion: Sales_Orders_10M.csv (1.4 GB)
                         </h3>
                         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
-                            ⚡ Streaming chunk insertion (100,000 rows/sec) into SQL Server Database
+                            ⚡ Chunk size 100,000 rows/sec inserted into SQL Server without memory spikes
                         </div>
                         <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 6px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #34d399; font-weight: 600;">
-                            <i class="fa-solid fa-shield-halved"></i> Bank-Grade AES-256 Field Encryption Active at Rest
+                            <i class="fa-solid fa-lock"></i> Bank-Grade AES-256 Field Encryption Active at Rest
                         </div>
                     </div>
                 `
             },
+            // Stage 2: Urdu Voice
             {
                 badge: '<i class="fa-solid fa-microphone"></i> STAGE 2: BILINGUAL URDU & ENGLISH VOICE AI',
-                voiceText: "Stage 2: Processing Urdu voice prompt: Karachi se Attock orders dikhao.",
+                voiceText: "Stage 2: Natural Urdu voice querying: Karachi se Attock orders dikhao.",
                 render: () => `
-                    <div class="stage-voice-card">
+                    <div class="stage-visual-card" style="border-color: var(--accent-purple);">
                         <div style="font-size: 12px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
-                            🎙️ Live Audio Waveform & Speech-to-Text Parsing
+                            🎙️ Audio Waveform & Speech-to-Text Phonetic Parser
                         </div>
                         <div class="voice-wave-bars">
                             <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
@@ -1932,41 +1939,86 @@
                     </div>
                 `
             },
+            // Stage 3: Engine Speed
             {
-                badge: '<i class="fa-solid fa-bolt"></i> STAGE 3: SUB-SECOND T-SQL ENGINE EXECUTION',
-                voiceText: "Stage 3: Sub second 0.005 millisecond query execution and automated visual charts.",
+                badge: '<i class="fa-solid fa-bolt"></i> STAGE 3: SUB-SECOND 0.005ms T-SQL ENGINE',
+                voiceText: "Stage 3: Sub second 0.005 millisecond query execution and automated AI charts.",
                 render: () => `
-                    <div class="stage-sql-card">
+                    <div class="stage-visual-card" style="border-color: var(--accent-cyan); text-align: left;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="color: var(--text-muted); font-size: 11px;">GENERATED T-SQL EXECUTION</span>
-                            <span class="sql-speed-badge"><i class="fa-solid fa-bolt"></i> 0.005 ms SPEED</span>
+                            <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+                                <i class="fa-solid fa-bolt"></i> 0.005 ms SPEED
+                            </span>
                         </div>
-                        <div class="sql-code-line">SELECT TOP 5 Consignment, Origin, Destination, COD_Value FROM [Sales_Orders] WHERE Origin='KHI' AND Destination='ATT';</div>
-                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px; margin-top: 8px; font-size: 11px; color: var(--text-secondary);">
-                            📊 Generated Executive Takeaway: <strong>KHI -> ATT logistics corridor generated 1.4M PKR revenue.</strong>
+                        <div style="color: var(--accent-cyan); font-family: monospace; font-size: 13px; margin-bottom: 8px;">
+                            SELECT TOP 5 Consignment, Origin, Destination, COD_Value FROM [Sales_Orders] WHERE Origin='KHI' AND Destination='ATT';
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; font-size: 12px; color: var(--text-secondary);">
+                            📊 Executive Takeaway: <strong>Karachi -> Attock corridor generated 1.4M PKR COD revenue.</strong>
                         </div>
                     </div>
                 `
             },
+            // Stage 4: Multi-JOIN
             {
-                badge: '<i class="fa-solid fa-file-powerpoint"></i> STAGE 4: SUB-SECOND EXECUTIVE REPORT EXPORTS',
-                voiceText: "Stage 4: Downloading 1-click executive PowerPoint PPTX, PDF, and Excel reports in under 100 milliseconds.",
+                badge: '<i class="fa-solid fa-link"></i> STAGE 4: MULTI-DATASET CROSS ANALYSIS & JOIN',
+                voiceText: "Stage 4: Multi-dataset cross analysis and instant inner join matching across files.",
+                render: () => `
+                    <div class="stage-visual-card" style="border-color: var(--accent-green);">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-green); text-transform: uppercase; margin-bottom: 6px;">
+                            🔗 Real-Time Multi-File Dataset Merging & Cross Join
+                        </div>
+                        <div style="font-family: monospace; font-size: 13px; color: var(--text-primary); margin-bottom: 10px;">
+                            [Jan_Sales] ⟗ [Feb_Sales] ON Consignment = Consignment
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #34d399; font-weight: 600; display: inline-block;">
+                            ✨ 100% Cross-Dataset Matched Records Found (0.008 ms)
+                        </div>
+                    </div>
+                `
+            },
+            // Stage 5: Security
+            {
+                badge: '<i class="fa-solid fa-shield-halved"></i> STAGE 5: SOC2 SECURITY & SESSION EXPIRED',
+                voiceText: "Stage 5: Enterprise SOC 2 type two compliance and 1-hour session timeout security.",
+                render: () => `
+                    <div class="stage-visual-card" style="border-color: #eab308;">
+                        <i class="fa-solid fa-user-lock" style="font-size: 40px; color: #eab308; margin-bottom: 8px;"></i>
+                        <h3 style="font-family: var(--font-heading); font-size: 18px; font-weight: 700; margin-bottom: 4px;">
+                            1-Hour Inactivity Session Auto Expiration
+                        </h3>
+                        <div style="font-size: 13px; color: var(--text-secondary);">
+                            Row-Level User isolation shields datasets from cross-tenant data leakage.
+                        </div>
+                    </div>
+                `
+            },
+            // Stage 6: Reports
+            {
+                badge: '<i class="fa-solid fa-file-powerpoint"></i> STAGE 6: SUB-SECOND PPTX & PDF DOWNLOADS',
+                voiceText: "Stage 6: Downloading 1-click executive PowerPoint PPTX, PDF, and Excel reports in under 100 milliseconds.",
                 render: () => `
                     <div class="stage-export-grid">
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-powerpoint" style="color: #f97316;"></i>
-                            <div style="font-weight: 700; font-size: 13px;">Executive .pptx</div>
-                            <div style="font-size: 11px; color: var(--accent-green);">Downloaded &lt; 80ms</div>
+                            <div style="font-weight: 700; font-size: 12px;">Executive .pptx</div>
+                            <div style="font-size: 11px; color: var(--accent-green);">&lt; 80ms</div>
                         </div>
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i>
-                            <div style="font-weight: 700; font-size: 13px;">Board Summary .pdf</div>
-                            <div style="font-size: 11px; color: var(--accent-green);">Downloaded &lt; 60ms</div>
+                            <div style="font-weight: 700; font-size: 12px;">Board PDF</div>
+                            <div style="font-size: 11px; color: var(--accent-green);">&lt; 60ms</div>
                         </div>
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-excel" style="color: #10b981;"></i>
-                            <div style="font-weight: 700; font-size: 13px;">Raw Analytics .xlsx</div>
-                            <div style="font-size: 11px; color: var(--accent-green);">Downloaded &lt; 90ms</div>
+                            <div style="font-weight: 700; font-size: 12px;">Excel .xlsx</div>
+                            <div style="font-size: 11px; color: var(--accent-green);">&lt; 90ms</div>
+                        </div>
+                        <div class="export-card-pulse">
+                            <i class="fa-solid fa-file-csv" style="color: #06b6d4;"></i>
+                            <div style="font-weight: 700; font-size: 12px;">CSV Data</div>
+                            <div style="font-size: 11px; color: var(--accent-green);">&lt; 20ms</div>
                         </div>
                     </div>
                 `
@@ -1976,7 +2028,7 @@
         function runVideoSimulation() {
             if (!isPlaying) return;
 
-            videoProgress += 0.5;
+            videoProgress += 0.4;
             if (videoProgress > 100) {
                 videoProgress = 0;
                 currentStageIndex = -1;
@@ -1989,28 +2041,43 @@
             const timerBadge = document.getElementById('v-timer-badge');
             if (timerBadge) timerBadge.innerText = `00:${seconds < 10 ? '0' + seconds : seconds} / 00:15 HD`;
 
-            let stageIdx = 0;
-            if (seconds >= 12) stageIdx = 3;
-            else if (seconds >= 8) stageIdx = 2;
-            else if (seconds >= 4) stageIdx = 1;
+            // Calculate active stage among 6 stages (2.5s each)
+            let stageIdx = Math.floor(seconds / 2.5);
+            if (stageIdx > 5) stageIdx = 5;
 
             if (stageIdx !== currentStageIndex) {
                 currentStageIndex = stageIdx;
-                const st = stageData[stageIdx];
-                const badgeEl = document.getElementById('v-stage-badge');
-                const bodyContainer = document.getElementById('v-stage-body-container');
-
-                if (badgeEl) badgeEl.innerHTML = st.badge;
-                if (bodyContainer) bodyContainer.innerHTML = st.render();
-
-                // Speak voiceover narration if enabled
-                if (isVoiceoverEnabled && window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance(st.voiceText);
-                    utter.rate = 1.05;
-                    window.speechSynthesis.speak(utter);
-                }
+                updateStageUI(stageIdx);
             }
+        }
+
+        function updateStageUI(stageIdx) {
+            const st = stageData[stageIdx];
+            const badgeEl = document.getElementById('v-stage-badge');
+            const bodyContainer = document.getElementById('v-stage-body-container');
+
+            if (badgeEl) badgeEl.innerHTML = st.badge;
+            if (bodyContainer) bodyContainer.innerHTML = st.render();
+
+            // Update Tab Button Highlight
+            document.querySelectorAll('.stage-tab-btn').forEach((btn, idx) => {
+                if (idx === stageIdx) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            // Speak voiceover narration if user manually turned ON voiceover
+            if (isVoiceoverEnabled && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(st.voiceText);
+                utter.rate = 1.05;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        function jumpToStage(idx) {
+            videoProgress = (idx / 6) * 100;
+            currentStageIndex = idx;
+            updateStageUI(idx);
         }
 
         setInterval(runVideoSimulation, 75);
@@ -2039,10 +2106,18 @@
             isVoiceoverEnabled = !isVoiceoverEnabled;
             const icon = document.getElementById('voice-ctrl-icon');
             if (icon) {
-                icon.style.color = isVoiceoverEnabled ? 'var(--accent-green)' : 'var(--text-muted)';
+                if (isVoiceoverEnabled) {
+                    icon.className = 'fa-solid fa-volume-high';
+                    icon.style.color = 'var(--accent-green)';
+                } else {
+                    icon.className = 'fa-solid fa-volume-xmark';
+                    icon.style.color = 'var(--text-muted)';
+                }
             }
             if (!isVoiceoverEnabled && window.speechSynthesis) {
                 window.speechSynthesis.cancel();
+            } else if (isVoiceoverEnabled && currentStageIndex >= 0) {
+                updateStageUI(currentStageIndex);
             }
         }
 
