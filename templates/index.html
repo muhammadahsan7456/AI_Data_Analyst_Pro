@@ -659,6 +659,48 @@
             color: #ffffff;
         }
 
+        /* Multi-Device Responsive Design & Mobile Polish */
+        @media (max-width: 768px) {
+            .video-mockup-body {
+                height: 320px !important;
+                padding: 12px !important;
+            }
+            .stage-visual-card {
+                padding: 16px 14px !important;
+            }
+            .stage-export-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+            .sandbox-box {
+                padding: 16px !important;
+            }
+            .video-controls-bar {
+                padding: 8px 12px !important;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .pipeline-flow-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .video-mockup-body {
+                height: 300px !important;
+            }
+            .stage-export-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .pipeline-flow-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .btn-replay-big {
+                padding: 12px 24px !important;
+                font-size: 15px !important;
+            }
+        }
+
         /* Features Section */
         section.features-section {
             padding: 80px 0;
@@ -2025,10 +2067,49 @@
                     </div>
                 `
             },
-            // Stage 4: Multi-JOIN
+            // Stage 4: AI Data Visualization & Graph Generation (NEW FEATURE!)
             {
-                badge: '<i class="fa-solid fa-link"></i> STAGE 4: MULTI-DATASET CROSS ANALYSIS & JOIN',
-                voiceText: "Stage 4: Multi-dataset cross analysis and instant inner join matching across files.",
+                badge: '<i class="fa-solid fa-chart-column"></i> STAGE 4: AUTOMATED AI DATA VISUALIZATION & GRAPH GENERATION',
+                voiceText: "Stage 4: Automated AI bar charts, line graphs, and pie distributions generated instantly based on dataset requirements.",
+                render: () => `
+                    <div class="stage-visual-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase;">
+                                📊 Real-Time AI Graph & Visual Analytics (0.004 ms)
+                            </span>
+                            <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+                                <i class="fa-solid fa-chart-pie"></i> Auto-Plot Active
+                            </span>
+                        </div>
+                        <!-- Animated Graph Bar Visual -->
+                        <div style="display: flex; align-items: flex-end; justify-content: space-around; height: 75px; gap: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px 14px; margin-bottom: 10px;">
+                            <div style="text-align: center; flex: 1;">
+                                <div style="height: 58px; background: linear-gradient(180deg, #3b82f6, #1d4ed8); border-radius: 4px 4px 0 0;"></div>
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">KHI (42%)</div>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <div style="height: 44px; background: linear-gradient(180deg, #8b5cf6, #6d28d9); border-radius: 4px 4px 0 0;"></div>
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">LHR (32%)</div>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <div style="height: 32px; background: linear-gradient(180deg, #06b6d4, #0e7490); border-radius: 4px 4px 0 0;"></div>
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">ISB (18%)</div>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <div style="height: 20px; background: linear-gradient(180deg, #10b981, #047857); border-radius: 4px 4px 0 0;"></div>
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Other (8%)</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            📈 Automated Insights: <strong>AI created Bar & Distribution Charts based on user query specifications.</strong>
+                        </div>
+                    </div>
+                `
+            },
+            // Stage 5: Multi-JOIN
+            {
+                badge: '<i class="fa-solid fa-link"></i> STAGE 5: MULTI-DATASET CROSS ANALYSIS & JOIN',
+                voiceText: "Stage 5: Multi-dataset cross analysis and instant inner join matching across files.",
                 render: () => `
                     <div class="stage-visual-card">
                         <div style="font-size: 12px; font-weight: 700; color: var(--accent-green); text-transform: uppercase; margin-bottom: 6px;">
@@ -2039,22 +2120,6 @@
                         </div>
                         <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #34d399; font-weight: 600; display: inline-block;">
                             ✨ 100% Cross-Dataset Matched Records Found (0.008 ms)
-                        </div>
-                    </div>
-                `
-            },
-            // Stage 5: Security
-            {
-                badge: '<i class="fa-solid fa-shield-halved"></i> STAGE 5: SOC2 SECURITY & SESSION EXPIRED',
-                voiceText: "Stage 5: Enterprise SOC 2 type two compliance and 1-hour session timeout security.",
-                render: () => `
-                    <div class="stage-visual-card">
-                        <i class="fa-solid fa-user-lock" style="font-size: 40px; color: #eab308; margin-bottom: 8px;"></i>
-                        <h3 style="font-family: var(--font-heading); font-size: 18px; font-weight: 700; margin-bottom: 4px;">
-                            1-Hour Inactivity Session Auto Expiration
-                        </h3>
-                        <div style="font-size: 14px; color: var(--text-secondary);">
-                            Row-Level User isolation shields datasets from cross-tenant data leakage.
                         </div>
                     </div>
                 `
@@ -2093,9 +2158,9 @@
         function runVideoSimulation() {
             if (!isPlaying || isFinishedOnce) return;
 
-            videoProgress += 0.4;
+            videoProgress += 0.333;
             if (videoProgress >= 100) {
-                // STOP ONCE WHEN 15s IS REACHED (NO AUTOMATIC LOOPING)!
+                // STOP ONCE WHEN EXACTLY 18s IS REACHED (NO AUTOMATIC LOOPING)!
                 videoProgress = 100;
                 isPlaying = false;
                 isFinishedOnce = true;
@@ -2106,12 +2171,12 @@
             const fill = document.getElementById('v-progress-fill');
             if (fill) fill.style.width = videoProgress + '%';
 
-            const seconds = Math.floor((videoProgress / 100) * 15);
+            const seconds = Math.floor((videoProgress / 100) * 18);
             const timerBadge = document.getElementById('v-timer-badge');
-            if (timerBadge) timerBadge.innerText = `00:${seconds < 10 ? '0' + seconds : seconds} / 00:15 HD`;
+            if (timerBadge) timerBadge.innerText = `00:${seconds < 10 ? '0' + seconds : seconds} / 00:18 HD`;
 
-            // Calculate active stage among 6 stages (2.5s each)
-            let stageIdx = Math.floor(seconds / 2.5);
+            // Calculate active stage among 6 stages (3.0s each across 18s total duration)
+            let stageIdx = Math.floor(seconds / 3.0);
             if (stageIdx > 5) stageIdx = 5;
 
             if (stageIdx !== currentStageIndex) {
