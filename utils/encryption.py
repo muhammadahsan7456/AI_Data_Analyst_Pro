@@ -45,7 +45,7 @@ def _get_cipher():
 
 def encrypt_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Encrypt text/string columns with AES-256 Fernet Encryption at rest before saving to SQL Server.
+    Encrypt all text/string columns with AES-256 Fernet Encryption at rest before saving to SQL Server.
     Numeric metrics, IDs, and timestamps remain native for SQL analytical aggregations.
     """
     if df is None or df.empty:
@@ -57,22 +57,23 @@ def encrypt_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     df_enc = df.copy()
     for col in df_enc.columns:
-        if col.lower() in ["recordid", "s.no", "id", "user_id", "userid"]:
+        c_lower = str(col).lower().strip()
+        if c_lower in ["recordid", "s.no"]:
             continue
         
-        # Target string/text columns
-        if df_enc[col].dtype == "object":
+        # Target string/text/category columns in any pandas version
+        if pd.api.types.is_string_dtype(df_enc[col]) or str(df_enc[col].dtype) in ["object", "string", "category", "str"]:
             def _enc_val(x):
                 if x is None or pd.isna(x):
                     return None
-                x_str = str(x)
+                x_str = str(x).strip()
                 if not x_str or x_str.startswith("enc:"):
                     return x_str
                 try:
                     return "enc:" + cipher.encrypt(x_str.encode("utf-8")).decode("utf-8")
                 except Exception:
                     return x_str
-            df_enc[col] = df_enc[col].apply(_enc_val)
+            df_enc[col] = df_enc[col].astype(str).apply(_enc_val)
 
     return df_enc
 
@@ -90,7 +91,7 @@ def decrypt_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     df_dec = df.copy()
     for col in df_dec.columns:
-        if df_dec[col].dtype == "object":
+        if pd.api.types.is_string_dtype(df_dec[col]) or str(df_dec[col].dtype) in ["object", "string", "category", "str"]:
             def _dec_val(x):
                 if x is None or pd.isna(x):
                     return None
@@ -101,6 +102,6 @@ def decrypt_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                     except Exception:
                         return x_str
                 return x_str
-            df_dec[col] = df_dec[col].apply(_dec_val)
+            df_dec[col] = df_dec[col].astype(str).apply(_dec_val)
 
     return df_dec
