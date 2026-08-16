@@ -18,11 +18,13 @@
     
     <style>
         :root, [data-theme="dark"] {
-            --admin-sidebar-bg: #090d16;
+            --bg-main: #070a12;
+            --admin-sidebar-bg: #0b0f19;
             --admin-card-bg: rgba(15, 23, 42, 0.85);
-            --admin-border: rgba(255, 255, 255, 0.1);
+            --admin-border: rgba(255, 255, 255, 0.12);
             --text-primary: #ffffff;
             --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
             --accent-blue: #3b82f6;
             --accent-purple: #8b5cf6;
             --accent-green: #10b981;
@@ -31,11 +33,13 @@
         }
 
         [data-theme="light"] {
+            --bg-main: #f1f5f9;
             --admin-sidebar-bg: #ffffff;
             --admin-card-bg: #ffffff;
-            --admin-border: rgba(0, 0, 0, 0.1);
+            --admin-border: rgba(0, 0, 0, 0.12);
             --text-primary: #0f172a;
-            --text-secondary: #334155;
+            --text-secondary: #1e293b;
+            --text-muted: #475569;
             --accent-blue: #2563eb;
             --accent-purple: #7c3aed;
             --accent-green: #059669;
@@ -288,9 +292,13 @@
 
         <div>
             <hr style="border-color: var(--admin-border); margin-bottom: 16px;">
-            <a href="{{ url_for('frontend.dashboard') }}" style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600;">
+            <a href="{{ url_for('frontend.dashboard') }}" style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
                 <i class="fa-solid fa-arrow-left"></i>
-                <span>Back to Platform</span>
+                <span>Back to Main Site</span>
+            </a>
+            <a href="{{ url_for('auth.logout') }}" style="display: flex; align-items: center; gap: 10px; color: var(--accent-red); text-decoration: none; font-size: 13px; font-weight: 700;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout Super Admin</span>
             </a>
         </div>
     </aside>

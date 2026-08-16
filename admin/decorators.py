@@ -11,8 +11,8 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         user_id = session.get("user_id")
         if not user_id:
-            flash("Please sign in to access Super Admin Dashboard.", "warning")
-            return redirect(url_for("auth.login", next=request.url))
+            flash("Super Admin authentication required to access executive console.", "warning")
+            return redirect(url_for("admin.admin_login", next=request.url))
 
         with get_db_cursor() as cursor:
             cursor.execute("SELECT UserID, Role, IsActive FROM Users WHERE UserID = ?", (user_id,))
@@ -21,7 +21,7 @@ def admin_required(f):
         if not user_row or not user_row[2]: # Active check
             session.clear()
             flash("Your account is deactivated or invalid.", "error")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("admin.admin_login"))
 
         user_role = str(user_row[1] or "").strip()
         if user_role not in ["SuperAdmin", "Admin"]:
