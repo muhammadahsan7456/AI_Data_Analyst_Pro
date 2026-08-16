@@ -1033,13 +1033,25 @@ body {
 }
 
 /* Master Universal Device Responsiveness Rules */
+@media (max-width: 992px) {
+    .main-content {
+        padding: 16px !important;
+    }
+    .cards-grid, .grid-4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
 @media (max-width: 768px) {
     .container, .main-content, .content-area {
         padding: 12px !important;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
-    .metrics-grid, .stats-grid, .grid-4, .grid-3 {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    .metrics-grid, .stats-grid, .grid-4, .grid-3, .cards-grid {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
         gap: 12px !important;
     }
 
@@ -1047,6 +1059,29 @@ body {
         flex-direction: column;
         align-items: flex-start !important;
         gap: 10px;
+    }
+
+    .table-container, .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+    }
+
+    .chat-container, .chat-box {
+        padding: 10px !important;
+        height: calc(100vh - 120px) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-grid, .stats-grid, .cards-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .btn, .btn-primary, .btn-secondary {
+        width: 100% !important;
+        justify-content: center !important;
+        margin-bottom: 6px !important;
     }
 }
 
