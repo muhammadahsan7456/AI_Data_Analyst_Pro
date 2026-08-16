@@ -602,9 +602,10 @@ def get_admin_kpis():
 
 def get_all_users_admin():
     return """
-    SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, ProfileImage, IsActive, IsVerified, Role, CreatedAt
-    FROM Users
-    ORDER BY CreatedAt DESC
+    SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
+           ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs WHERE UserID = U.UserID AND IPAddress IS NOT NULL ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress
+    FROM Users U
+    ORDER BY U.CreatedAt DESC
     """
 
 
