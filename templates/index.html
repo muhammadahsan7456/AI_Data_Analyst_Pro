@@ -357,26 +357,27 @@
             border-color: var(--accent-blue);
         }
 
-        /* Mockup Glass Card */
+        /* HIGH-DEFINITION 15-SECOND PRODUCT WORKFLOW VIDEO PLAYER SHOWCASE */
         .hero-mockup-wrapper {
             position: relative;
             max-width: 1050px;
             margin: 0 auto;
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 12px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(139, 92, 246, 0.4));
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 40px rgba(59, 130, 246, 0.3);
         }
 
         .hero-mockup-card {
             background: var(--mockup-body-bg);
-            border-radius: 14px;
+            border-radius: 16px;
             overflow: hidden;
             border: 1px solid var(--border-glass);
             text-align: left;
+            position: relative;
         }
 
-        .mockup-header {
+        .video-header-bar {
             background: var(--header-bg);
             padding: 14px 20px;
             display: flex;
@@ -391,46 +392,143 @@
         .dot-yellow { background: #ffbd2e; }
         .dot-green { background: #27c93f; }
 
-        .mockup-title-bar {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .mockup-body { padding: 24px; }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            padding: 18px;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            border-color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.05);
-        }
-
-        .stat-label {
+        .video-live-tag {
             font-size: 12px;
-            color: var(--text-muted);
+            font-weight: 700;
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            gap: 6px;
             text-transform: uppercase;
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
         }
 
-        .stat-val {
-            font-size: 22px;
+        .video-player-container {
+            position: relative;
+            width: 100%;
+            background: #04060a;
+            aspect-ratio: 16/9;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .html5-video-el {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Fallback Animated 15-Second Workflow Graphics Player */
+        .animated-workflow-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: radial-gradient(circle at 50% 50%, rgba(13, 19, 34, 0.95) 0%, rgba(4, 6, 10, 0.98) 100%);
+            z-index: 2;
+        }
+
+        .video-step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .video-stage-badge {
+            background: var(--gradient-primary);
+            color: #ffffff;
+            font-size: 13px;
             font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .video-timer-badge {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-glass);
+            color: var(--accent-cyan);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+
+        .video-scene-content {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .video-scene-title {
             font-family: var(--font-heading);
-            color: var(--accent-blue);
+            font-size: clamp(20px, 3.5vw, 32px);
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .video-scene-desc {
+            font-size: clamp(14px, 2vw, 17px);
+            color: var(--text-secondary);
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .video-progress-bar-track {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .video-progress-bar-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .video-controls-bar {
+            background: rgba(7, 9, 14, 0.9);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .video-ctrl-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .video-ctrl-btn:hover {
+            background: var(--accent-blue);
+            color: #ffffff;
         }
 
         /* Features Section */
@@ -564,7 +662,7 @@
             border-radius: 20px;
             padding: 28px;
             max-width: 1050px;
-            margin: 0 auto 36px auto;
+            margin: 0 auto 40px auto;
             box-shadow: var(--shadow-glow);
         }
 
@@ -1153,36 +1251,74 @@
                     </a>
                 </div>
 
-                <!-- Dashboard Preview Mockup -->
+                <!-- HIGH-DEFINITION 15-SECOND PRODUCT WORKFLOW PREVIEW VIDEO PLAYER -->
                 <div class="hero-mockup-wrapper">
                     <div class="hero-mockup-card">
-                        <div class="mockup-header">
+                        <div class="video-header-bar">
                             <div class="dots">
                                 <span class="dot dot-red"></span>
                                 <span class="dot dot-yellow"></span>
                                 <span class="dot dot-green"></span>
                             </div>
-                            <div class="mockup-title-bar">AI Data Analyst Pro — Executive Dashboard Preview</div>
-                            <div><i class="fa-solid fa-shield-halved" style="color: var(--accent-green);"></i></div>
+                            <div class="mockup-title-bar">AI Data Analyst Pro — HD Workflow Video Showcase (15 Seconds)</div>
+                            <div class="video-live-tag">
+                                <i class="fa-solid fa-circle" style="font-size: 8px; animation: pulse-icon 1.5s infinite;"></i> 10M Scale Live HD Preview
+                            </div>
                         </div>
-                        <div class="mockup-body">
-                            <div class="stat-grid">
-                                <div class="stat-card">
-                                    <div class="stat-label">Max Dataset Scale</div>
-                                    <div class="stat-val">10,000,000+</div>
+
+                        <div class="video-player-container" id="video-container">
+                            <!-- Native HTML5 Video (Plays demo_showcase.mp4 if present) -->
+                            <video id="product-hd-video" class="html5-video-el" autoplay loop muted playsinline poster="/static/images/video_poster.jpg">
+                                <source src="/static/videos/demo_showcase.mp4" type="video/mp4">
+                            </video>
+
+                            <!-- Interactive Fallback 15-Second HD Workflow Simulator -->
+                            <div class="animated-workflow-screen" id="workflow-animator">
+                                <div class="video-step-header">
+                                    <div class="video-stage-badge" id="v-stage-badge">
+                                        <i class="fa-solid fa-database"></i> STAGE 1: ENTERPRISE DATASET INGESTION
+                                    </div>
+                                    <div class="video-timer-badge" id="v-timer-badge">00:04 / 00:15 HD</div>
                                 </div>
-                                <div class="stat-card">
-                                    <div class="stat-label">Query Speed</div>
-                                    <div class="stat-val">&lt; 0.01 sec</div>
+
+                                <div class="video-scene-content">
+                                    <div class="video-scene-title" id="v-scene-title">
+                                        Uploading 10M Row Enterprise Dataset...
+                                    </div>
+                                    <div class="video-scene-desc" id="v-scene-desc">
+                                        High-performance streaming chunking processes multi-gigabyte CSV/Excel files into SQL Server with bank-grade AES-256 field encryption at rest.
+                                    </div>
                                 </div>
-                                <div class="stat-card">
-                                    <div class="stat-label">Report Exports</div>
-                                    <div class="stat-val">&lt; 100 ms</div>
+
+                                <div>
+                                    <div class="video-progress-bar-track">
+                                        <div class="video-progress-bar-fill" id="v-progress-fill"></div>
+                                    </div>
                                 </div>
-                                <div class="stat-card">
-                                    <div class="stat-label">Data Security</div>
-                                    <div class="stat-val">AES-256</div>
-                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Video Controls Toolbar -->
+                        <div class="video-controls-bar">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="video-ctrl-btn" onclick="togglePlayPause()" title="Play / Pause">
+                                    <i class="fa-solid fa-pause" id="play-ctrl-icon"></i>
+                                </button>
+                                <button class="video-ctrl-btn" onclick="restartVideo()" title="Restart 15s Demo">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                </button>
+                                <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                                    HD Resolution (1080p 60FPS) • 15s Interactive Flow
+                                </span>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="video-ctrl-btn" onclick="toggleMute()" title="Mute / Unmute">
+                                    <i class="fa-solid fa-volume-xmark" id="mute-ctrl-icon"></i>
+                                </button>
+                                <button class="video-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen Preview">
+                                    <i class="fa-solid fa-expand"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1650,6 +1786,106 @@
 
     <!-- Interactive JS -->
     <script>
+        // --- 15-SECOND ANIMATED HD PRODUCT WORKFLOW VIDEO SIMULATOR ---
+        let videoProgress = 0;
+        let isPlaying = true;
+        let isMuted = true;
+
+        const scenes = [
+            {
+                badge: '<i class="fa-solid fa-database"></i> STAGE 1: ENTERPRISE DATASET INGESTION',
+                title: 'Uploading 10M Row Enterprise Dataset...',
+                desc: 'High-performance streaming chunking processes multi-gigabyte CSV/Excel files into SQL Server with bank-grade AES-256 field encryption at rest.'
+            },
+            {
+                badge: '<i class="fa-solid fa-microphone"></i> STAGE 2: NATURAL URDU & ENGLISH VOICE AI',
+                title: 'Voice Querying: "Karachi se Attock orders dikhao"',
+                desc: 'Natural language speech input is parsed via phonetic normalization, generating deterministic T-SQL filters in 0.005 ms.'
+            },
+            {
+                badge: '<i class="fa-solid fa-bolt"></i> STAGE 3: FAST T-SQL & AUTO CHART GENERATION',
+                title: '0.005 ms Execution & AI Visual Insights',
+                desc: 'Bypasses LLM network delays with local pattern matching. Selects optimal charts and synthesizes executive business takeaways.'
+            },
+            {
+                badge: '<i class="fa-solid fa-file-powerpoint"></i> STAGE 4: SUB-SECOND EXECUTIVE REPORT EXPORT',
+                title: '1-Click PowerPoint PPTX & PDF Download',
+                desc: 'Generates board-ready executive PowerPoint presentations, formatted Excel, and PDFs locally in under 100 ms.'
+            }
+        ];
+
+        function runVideoSimulation() {
+            if (!isPlaying) return;
+
+            videoProgress += 0.5;
+            if (videoProgress > 100) videoProgress = 0;
+
+            const fill = document.getElementById('v-progress-fill');
+            if (fill) fill.style.width = videoProgress + '%';
+
+            const seconds = Math.floor((videoProgress / 100) * 15);
+            const timerBadge = document.getElementById('v-timer-badge');
+            if (timerBadge) timerBadge.innerText = `00:${seconds < 10 ? '0' + seconds : seconds} / 00:15 HD`;
+
+            // Select Scene (0-4s = Scene 0, 4-8s = Scene 1, 8-12s = Scene 2, 12-15s = Scene 3)
+            let sceneIdx = 0;
+            if (seconds >= 12) sceneIdx = 3;
+            else if (seconds >= 8) sceneIdx = 2;
+            else if (seconds >= 4) sceneIdx = 1;
+
+            const sc = scenes[sceneIdx];
+            const badgeEl = document.getElementById('v-stage-badge');
+            const titleEl = document.getElementById('v-scene-title');
+            const descEl = document.getElementById('v-scene-desc');
+
+            if (badgeEl && badgeEl.innerHTML !== sc.badge) {
+                badgeEl.innerHTML = sc.badge;
+                titleEl.innerText = sc.title;
+                descEl.innerText = sc.desc;
+            }
+        }
+
+        setInterval(runVideoSimulation, 75);
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            const icon = document.getElementById('play-ctrl-icon');
+            const videoEl = document.getElementById('product-hd-video');
+            if (icon) {
+                icon.className = isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+            }
+            if (videoEl) {
+                if (isPlaying) videoEl.play(); else videoEl.pause();
+            }
+        }
+
+        function restartVideo() {
+            videoProgress = 0;
+            const videoEl = document.getElementById('product-hd-video');
+            if (videoEl) videoEl.currentTime = 0;
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('mute-ctrl-icon');
+            const videoEl = document.getElementById('product-hd-video');
+            if (icon) {
+                icon.className = isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+            }
+            if (videoEl) videoEl.muted = isMuted;
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('video-container');
+            if (container) {
+                if (!document.fullscreenElement) {
+                    container.requestFullscreen().catch(err => alert("Fullscreen preview: " + err.message));
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
         function handleSubscribe(e) {
             e.preventDefault();
             alert("Thank you for subscribing to AI Data Analyst Pro product updates!");
