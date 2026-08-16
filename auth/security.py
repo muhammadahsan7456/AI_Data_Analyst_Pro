@@ -102,10 +102,14 @@ def parse_user_agent(user_agent_str: str) -> dict:
 
 def get_client_ip() -> str:
     """
-    Get client IP address handling proxies (X-Forwarded-For header).
+    Extract real client IP address handling reverse proxies, Cloudflare, and forwarded headers.
     """
-    if request.headers.get("X-Forwarded-For"):
-        return request.headers.get("X-Forwarded-For").split(",")[0].strip()
+    for header in ["CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"]:
+        val = request.headers.get(header)
+        if val:
+            ip = val.split(",")[0].strip()
+            if ip and ip != "127.0.0.1":
+                return ip
     return request.remote_addr or "127.0.0.1"
 
 

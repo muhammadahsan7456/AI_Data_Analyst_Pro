@@ -100,14 +100,19 @@
                         {% endif %}
                     </td>
                     <td style="text-align: right;">
-                        <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block;">
-                            <select name="status" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
-                                <option value="Completed" {% if p.status == 'Completed' %}selected{% endif %}>Completed</option>
-                                <option value="Pending" {% if p.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                <option value="Failed" {% if p.status == 'Failed' %}selected{% endif %}>Failed</option>
-                                <option value="Refunded" {% if p.status == 'Refunded' %}selected{% endif %}>Refunded</option>
-                            </select>
-                        </form>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                            <a href="{{ url_for('admin.view_payment_invoice', payment_id=p.id) }}" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: var(--accent-blue); padding: 4px 10px; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 8px;" title="View & Print Official Billing Receipt">
+                                <i class="fa-solid fa-file-invoice"></i> Receipt
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block;">
+                                <select name="status" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
+                                    <option value="Completed" {% if p.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                    <option value="Pending" {% if p.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Failed" {% if p.status == 'Failed' %}selected{% endif %}>Failed</option>
+                                    <option value="Refunded" {% if p.status == 'Refunded' %}selected{% endif %}>Refunded</option>
+                                </select>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% else %}

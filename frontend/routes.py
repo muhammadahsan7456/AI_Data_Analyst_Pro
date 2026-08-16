@@ -246,6 +246,30 @@ def dashboard():
     start_idx = (page - 1) * per_page
     paginated_datasets = all_datasets[start_idx:start_idx + per_page]
 
+    renewal_notice = None
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT CreatedAt FROM Users WHERE UserID = ?", (user_id,))
+            u_row = cursor.fetchone()
+            if u_row and u_row[0]:
+                reg_date = u_row[0]
+                if isinstance(reg_date, str):
+                    try:
+                        from datetime import datetime
+                        reg_date = datetime.strptime(reg_date[:19].replace("T", " "), "%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        reg_date = datetime.now()
+                from datetime import datetime, timedelta
+                days_diff = (datetime.now() - reg_date).days
+                cycle_day = days_diff % 30
+                if cycle_day >= 25 or days_diff >= 25:
+                    next_due = reg_date + timedelta(days=((days_diff // 30) + 1) * 30)
+                    from utils.helpers import format_12hr_datetime
+                    due_fmt = format_12hr_datetime(next_due)
+                    renewal_notice = f"⚠️ Your monthly 30-day billing cycle ends on {due_fmt}. Please make sure your $85/mo payment is submitted on time to prevent account suspension."
+    except Exception as ren_err:
+        print("Renewal Calculation Notice:", ren_err)
+
     context = dict(
         total_datasets=total_datasets,
         total_rows=total_rows,
@@ -258,6 +282,7 @@ def dashboard():
         most_asked_queries=most_asked_queries,
         recent_datasets=recent_datasets,
         datasets=paginated_datasets,
+        subscription_renewal_notice=renewal_notice,
         page=page,
         total_pages=total_pages,
         total_found=total_found,
