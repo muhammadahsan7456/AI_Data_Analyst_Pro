@@ -466,12 +466,51 @@
             color: var(--text-secondary);
         }
 
-        /* Live Demo Sandbox (Enhanced from Screenshot 2) */
+        /* IN-DEPTH REAL-TIME AI ENGINE PIPELINE SHOWCASE */
         section.demo-sandbox-section {
             padding: 100px 0;
-            background: linear-gradient(180deg, rgba(7, 9, 14, 1) 0%, rgba(13, 19, 34, 0.7) 50%, rgba(7, 9, 14, 1) 100%);
+            background: linear-gradient(180deg, rgba(7, 9, 14, 1) 0%, rgba(13, 19, 34, 0.8) 50%, rgba(7, 9, 14, 1) 100%);
             border-top: 1px solid var(--border-glass);
             border-bottom: 1px solid var(--border-glass);
+        }
+
+        /* Step Pipeline Cards Flow */
+        .pipeline-flow-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 36px;
+        }
+
+        .pipeline-step-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 16px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .pipeline-step-card.active-step {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .pipeline-num {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .pipeline-title {
+            font-family: var(--font-heading);
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
         }
 
         .sandbox-box {
@@ -479,9 +518,9 @@
             border: 1px solid var(--border-glow);
             border-radius: 20px;
             padding: 36px;
-            max-width: 960px;
-            margin: 0 auto;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(59, 130, 246, 0.2);
+            max-width: 1050px;
+            margin: 0 auto 40px auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(59, 130, 246, 0.25);
         }
 
         .sandbox-prompt-chips {
@@ -516,7 +555,7 @@
 
         .sandbox-result-area {
             background: #060912;
-            border-radius: 14px;
+            border-radius: 16px;
             padding: 24px;
             border: 1px solid var(--border-glass);
         }
@@ -525,6 +564,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
+            margin-bottom: 20px;
         }
 
         .sandbox-result-table th, .sandbox-result-table td {
@@ -538,6 +578,58 @@
             font-weight: 600;
             text-transform: uppercase;
             font-size: 12px;
+        }
+
+        /* AI Executive Takeaways Box inside Sandbox Result */
+        .sandbox-ai-takeaway-box {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 18px 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .sandbox-ai-takeaway-header {
+            font-family: var(--font-heading);
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Explanatory 3-Card Technical Panel Below Sandbox */
+        .sandbox-explain-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+
+        .sandbox-explain-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .sandbox-explain-title {
+            font-family: var(--font-heading);
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sandbox-explain-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
 
         /* Enhanced Security Section (From Screenshot 1) */
@@ -778,7 +870,9 @@
         @media (max-width: 992px) {
             .hero-title { font-size: 44px; }
             .feature-grid { grid-template-columns: repeat(1, 1fr); }
+            .pipeline-flow-grid { grid-template-columns: repeat(2, 1fr); }
             .security-grid { grid-template-columns: repeat(1, 1fr); }
+            .sandbox-explain-grid { grid-template-columns: 1fr; }
             .pricing-features-grid { grid-template-columns: 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
             .footer-grid { grid-template-columns: repeat(2, 1fr); }
@@ -798,6 +892,7 @@
                 padding: 24px;
                 border-bottom: 1px solid var(--border-glass);
             }
+            .pipeline-flow-grid { grid-template-columns: 1fr; }
             .hero-title { font-size: 34px; }
             .hero-cta-group { flex-direction: column; }
             .stat-grid { grid-template-columns: 1fr; }
@@ -991,35 +1086,70 @@
             </div>
         </section>
 
-        <!-- Interactive Live Sandbox Demo (Enhanced from Screenshot 2) -->
+        <!-- IN-DEPTH REAL-TIME AI ENGINE PIPELINE SHOWCASE (Deep In-Depth Sandbox) -->
         <section class="demo-sandbox-section" id="demo">
             <div class="container">
                 <div class="section-header">
-                    <div class="section-subtitle">INTERACTIVE SANDBOX</div>
-                    <h2 class="section-title">Try AI Query Engine in Real-Time</h2>
+                    <div class="section-subtitle">IN-DEPTH REAL-TIME AI ENGINE PIPELINE</div>
+                    <h2 class="section-title">How AI Data Analyst Pro Processes Your Data</h2>
+                    <p style="color: var(--text-secondary); font-size: 16px; margin-top: 12px;">
+                        Experience real-time natural language query parsing, T-SQL execution, AES-256 decryption, and automated executive takeaways under the hood.
+                    </p>
                 </div>
 
+                <!-- 4 Step Pipeline Flow Indicator -->
+                <div class="pipeline-flow-grid">
+                    <div class="pipeline-step-card active-step" id="step-card-1">
+                        <div class="pipeline-num">Stage 01</div>
+                        <div class="pipeline-title"><i class="fa-solid fa-microphone" style="color: var(--accent-blue);"></i> Prompt Ingestion</div>
+                    </div>
+                    <div class="pipeline-step-card active-step" id="step-card-2">
+                        <div class="pipeline-num">Stage 02</div>
+                        <div class="pipeline-title"><i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i> Fast 0.005s Engine</div>
+                    </div>
+                    <div class="pipeline-step-card active-step" id="step-card-3">
+                        <div class="pipeline-num">Stage 03</div>
+                        <div class="pipeline-title"><i class="fa-solid fa-key" style="color: var(--accent-purple);"></i> AES-256 Decrypt</div>
+                    </div>
+                    <div class="pipeline-step-card active-step" id="step-card-4">
+                        <div class="pipeline-num">Stage 04</div>
+                        <div class="pipeline-title"><i class="fa-solid fa-chart-pie" style="color: var(--accent-green);"></i> Insight Takeaways</div>
+                    </div>
+                </div>
+
+                <!-- Sandbox Box -->
                 <div class="sandbox-box">
                     <div style="margin-bottom: 18px; font-weight: 600; font-size: 14px; color: var(--text-secondary);">
-                        Click a sample query prompt to test instant execution:
+                        Select a real-world enterprise query use-case to simulate instant AI processing:
                     </div>
                     <div class="sandbox-prompt-chips">
                         <button class="chip-btn active" onclick="runSandbox('top10', this)">
                             <i class="fa-solid fa-chart-simple"></i> Show Top 10 Sales Orders
                         </button>
                         <button class="chip-btn" onclick="runSandbox('count', this)">
-                            <i class="fa-solid fa-hashtag"></i> Count Total Records
+                            <i class="fa-solid fa-hashtag"></i> Count Total Records (10M Scale)
                         </button>
                         <button class="chip-btn" onclick="runSandbox('last', this)">
                             <i class="fa-solid fa-file-lines"></i> Show Last 5 Booking Entries
+                        </button>
+                        <button class="chip-btn" onclick="runSandbox('revenue', this)">
+                            <i class="fa-solid fa-calculator"></i> Sum COD Revenues & Averages
+                        </button>
+                        <button class="chip-btn" onclick="runSandbox('join', this)">
+                            <i class="fa-solid fa-link"></i> Multi-Dataset INNER JOIN Match
+                        </button>
+                        <button class="chip-btn" onclick="runSandbox('urdu', this)">
+                            <i class="fa-solid fa-language"></i> Urdu Voice: "Karachi se Attock orders"
                         </button>
                     </div>
 
                     <div class="sandbox-result-area">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
-                            <span>SQL QUERY: <strong id="sandbox-sql" style="color: var(--accent-cyan);">SELECT TOP 10 * FROM [Sales_Orders] ORDER BY [Sr] ASC;</strong></span>
-                            <span style="color: var(--accent-green); font-weight: 600;"><i class="fa-solid fa-bolt"></i> 0.005 ms Execution</span>
+                            <span>GENERATED T-SQL: <strong id="sandbox-sql" style="color: var(--accent-cyan);">SELECT TOP 10 * FROM [Sales_Orders] ORDER BY [Sr] ASC;</strong></span>
+                            <span style="color: var(--accent-green); font-weight: 600;"><i class="fa-solid fa-bolt"></i> 0.005 ms Sub-Second Execution</span>
                         </div>
+
+                        <!-- Data Table Output -->
                         <div style="overflow-x: auto;">
                             <table class="sandbox-result-table" id="sandbox-table">
                                 <thead>
@@ -1059,6 +1189,48 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- AI Executive Takeaway Insights Box -->
+                        <div class="sandbox-ai-takeaway-box" id="sandbox-takeaway">
+                            <div class="sandbox-ai-takeaway-header">
+                                <i class="fa-solid fa-brain"></i> AI Executive Business Takeaways & Insights
+                            </div>
+                            <div id="sandbox-takeaway-text">
+                                📊 <strong>Data Scope</strong>: Retrieved top 10 matching records sorted deterministically by primary serial column [Sr] ASC.<br>
+                                💡 <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 100% of initial booking volume.<br>
+                                📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory allocation in primary logistics hubs.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Explanatory Technical Cards Below Sandbox -->
+                <div class="sandbox-explain-grid">
+                    <div class="sandbox-explain-card">
+                        <div class="sandbox-explain-title" style="color: var(--accent-cyan);">
+                            <i class="fa-solid fa-bolt"></i> Why Is It Sub-Second?
+                        </div>
+                        <div class="sandbox-explain-desc">
+                            Over 85% of standard data requests are evaluated locally in 0.005 ms by our fast T-SQL pattern engine, avoiding external LLM network delays completely.
+                        </div>
+                    </div>
+
+                    <div class="sandbox-explain-card">
+                        <div class="sandbox-explain-title" style="color: var(--accent-purple);">
+                            <i class="fa-solid fa-key"></i> How Is Data Secured?
+                        </div>
+                        <div class="sandbox-explain-desc">
+                            All text fields are stored encrypted in Microsoft SQL Server as `enc:gAAAAAB...` ciphertext. Authorized user sessions decrypt data transparently.
+                        </div>
+                    </div>
+
+                    <div class="sandbox-explain-card">
+                        <div class="sandbox-explain-title" style="color: var(--accent-green);">
+                            <i class="fa-solid fa-file-powerpoint"></i> How Do Exports Work?
+                        </div>
+                        <div class="sandbox-explain-desc">
+                            Clicking export computes statistical summaries locally in < 100ms, delivering instantly downloadable PowerPoint PPTX, PDF, Excel, and CSV files.
                         </div>
                     </div>
                 </div>
@@ -1288,6 +1460,7 @@
 
             const sqlElem = document.getElementById('sandbox-sql');
             const tbody = document.getElementById('sandbox-tbody');
+            const takeawayText = document.getElementById('sandbox-takeaway-text');
 
             if (type === 'top10') {
                 sqlElem.innerText = 'SELECT TOP 10 * FROM [Sales_Orders] ORDER BY [Sr] ASC;';
@@ -1296,16 +1469,62 @@
                     <tr><td>2</td><td>772846926616</td><td>#7010</td><td>KHI</td><td>NFZ</td><td>900 PKR</td></tr>
                     <tr><td>3</td><td>772846926757</td><td>#7200</td><td>KHI</td><td>SKT</td><td>900 PKR</td></tr>
                 `;
+                takeawayText.innerHTML = `
+                    📊 <strong>Data Scope</strong>: Retrieved top 10 matching records sorted deterministically by primary serial column [Sr] ASC.<br>
+                    💡 <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 100% of initial booking volume.<br>
+                    📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory allocation in primary logistics hubs.
+                `;
             } else if (type === 'count') {
                 sqlElem.innerText = 'SELECT COUNT(*) AS [TotalRecords] FROM [Sales_Orders];';
                 tbody.innerHTML = `
-                    <tr><td colspan="6"><strong>TotalRecords: 10,000,000 Rows</strong></td></tr>
+                    <tr><td colspan="6" style="text-align: center; padding: 20px;"><strong>TotalRecords: 10,000,000 Rows</strong> (Multi-Gigabyte Dataset Scale)</td></tr>
+                `;
+                takeawayText.innerHTML = `
+                    📊 <strong>Dataset Aggregation</strong>: Evaluated 10,000,000 records in 0.005 ms using streaming chunking.<br>
+                    💡 <strong>Key Insight</strong>: Enterprise database scale handles multi-gigabyte queries effortlessly with zero memory bottlenecks.<br>
+                    📈 <strong>Strategic Action</strong>: Deploy automated batch reporting for large-scale enterprise analytics.
                 `;
             } else if (type === 'last') {
                 sqlElem.innerText = 'SELECT TOP 5 * FROM [Sales_Orders] ORDER BY [Sr] DESC;';
                 tbody.innerHTML = `
                     <tr><td>10000000</td><td>772846999999</td><td>#99999</td><td>LHR</td><td>ISB</td><td>5500 PKR</td></tr>
                     <tr><td>9999999</td><td>772846999998</td><td>#99998</td><td>KHI</td><td>PEW</td><td>4200 PKR</td></tr>
+                `;
+                takeawayText.innerHTML = `
+                    📊 <strong>Recent Entries</strong>: Retrieved latest 5 dataset bookings ordered by primary key [Sr] DESC.<br>
+                    💡 <strong>Key Insight</strong>: High-value consignment orders (#99999) demonstrate active surge in Northern logistics corridors.<br>
+                    📈 <strong>Strategic Action</strong>: Monitor high-value transit shipments for real-time delivery confirmation.
+                `;
+            } else if (type === 'revenue') {
+                sqlElem.innerText = 'SELECT SUM([COD_Value]) AS [Total_Revenue], AVG([COD_Value]) AS [Avg_Order_Value] FROM [Sales_Orders];';
+                tbody.innerHTML = `
+                    <tr><td colspan="3"><strong>Total_Revenue:</strong> 9,540,200,000 PKR</td><td colspan="3"><strong>Avg_Order_Value:</strong> 954 PKR</td></tr>
+                `;
+                takeawayText.innerHTML = `
+                    📊 <strong>Financial Metrics</strong>: Aggregated total Cash-On-Delivery revenues across 10M records.<br>
+                    💡 <strong>Key Insight</strong>: Average order value is stable at <strong>954 PKR</strong> per transaction.<br>
+                    📈 <strong>Strategic Action</strong>: Incentive bundled checkout orders to drive average order size above 1,200 PKR.
+                `;
+            } else if (type === 'join') {
+                sqlElem.innerText = 'SELECT A.Consignment, A.COD_Value, B.Status FROM [Jan_Sales] A INNER JOIN [Feb_Sales] B ON A.Consignment = B.Consignment;';
+                tbody.innerHTML = `
+                    <tr><td>772846926672</td><td>999 PKR</td><td>Delivered</td><td>KHI</td><td>ATT</td><td>Matched Row</td></tr>
+                    <tr><td>772846926616</td><td>900 PKR</td><td>In Transit</td><td>KHI</td><td>NFZ</td><td>Matched Row</td></tr>
+                `;
+                takeawayText.innerHTML = `
+                    📊 <strong>Multi-Dataset Join</strong>: Blended Jan Sales and Feb Sales using INNER JOIN on Consignment ID.<br>
+                    💡 <strong>Key Insight</strong>: Discovered 100% record match with real-time delivery status updates.<br>
+                    📈 <strong>Strategic Action</strong>: Automate cross-month customer reconciliation reports.
+                `;
+            } else if (type === 'urdu') {
+                sqlElem.innerText = "SELECT * FROM [Sales_Orders] WHERE [Origin] = 'KHI' AND [Destination] = 'ATT';";
+                tbody.innerHTML = `
+                    <tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
+                `;
+                takeawayText.innerHTML = `
+                    🎙️ <strong>Voice Prompt ("Karachi se Attock orders")</strong>: Auto-parsed Roman Urdu voice input into T-SQL filter.<br>
+                    💡 <strong>Key Insight</strong>: Successfully filtered shipments originating in Karachi bound for Attock.<br>
+                    📈 <strong>Strategic Action</strong>: Enable hands-free mobile voice analytics for field logistics managers.
                 `;
             }
         }
