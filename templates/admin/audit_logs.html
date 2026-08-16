@@ -1,0 +1,56 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}System Audit Logs - Super Admin Console{% endblock %}
+{% block header_title %}<i class="fa-solid fa-shield-halved" style="color: var(--accent-purple);"></i> System Audit & Compliance Logs{% endblock %}
+
+{% block content %}
+<div class="admin-card-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin: 0;">
+            Security Audit Trail Logs (Latest {{ logs|length }})
+        </h3>
+        <span style="font-size: 12px; color: var(--text-muted);">
+            <i class="fa-solid fa-lock"></i> Immutably Logged for Enterprise Compliance
+        </span>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>User ID</th>
+                    <th>Event Category</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td style="font-family: monospace; color: var(--accent-cyan); font-weight: 600;">#{{ log.id }}</td>
+                    <td style="font-weight: 600; color: var(--text-primary);">
+                        {% if log.user_id != 'System' %}User #{{ log.user_id }}{% else %}System{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge-status" style="background: rgba(139, 92, 246, 0.15); color: #c084fc;">
+                            {{ log.event_type }}
+                        </span>
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">{{ log.description }}</td>
+                    <td style="font-family: monospace; color: var(--text-muted); font-size: 12px;">{{ log.ip_address }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">{{ log.created_at }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                        No audit events logged yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

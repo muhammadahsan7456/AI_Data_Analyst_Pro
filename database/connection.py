@@ -510,6 +510,23 @@ def init_db():
         );
     END;
 
+    IF OBJECT_ID('Payments', 'U') IS NULL
+    BEGIN
+        CREATE TABLE Payments (
+            PaymentID INT IDENTITY(1,1) PRIMARY KEY,
+            UserID INT NOT NULL,
+            Amount DECIMAL(10,2) NOT NULL DEFAULT 85.00,
+            Currency NVARCHAR(10) DEFAULT 'USD',
+            PaymentMethod NVARCHAR(50) DEFAULT 'Stripe Credit Card',
+            TransactionID NVARCHAR(100) NULL,
+            Status NVARCHAR(50) NOT NULL DEFAULT 'Completed',
+            PlanName NVARCHAR(100) DEFAULT 'Enterprise Plan ($85/mo)',
+            PaymentDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+            SubscriptionEndDate DATETIME2 NULL,
+            CONSTRAINT FK_Payments_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+        );
+    END;
+
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('EmailVerificationTokens') AND name = 'Attempts')
     BEGIN
         ALTER TABLE EmailVerificationTokens ADD Attempts INT NOT NULL DEFAULT 0;
@@ -585,9 +602,61 @@ def validate_smtp_config():
         print("[WARNING] SMTP credentials incomplete in .env. Configure SMTP_USERNAME and SMTP_PASSWORD for real Gmail inbox delivery.")
 
 
+def seed_super_admin():
+    """
+    Seed default Super Admin account and sample enterprise payment records.
+    """
+    admin_email = "admin@aidataanalystpro.com"
+    admin_pass = "AdminPassword123!"
+
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("SELECT UserID, Role FROM Users WHERE Email = ?", (admin_email,))
+            existing = cursor.fetchone()
+
+            admin_user_id = None
+            if not existing:
+                import bcrypt
+                salt = bcrypt.gensalt(rounds=12)
+                pwd_hash = bcrypt.hashpw(admin_pass.encode("utf-8"), salt).decode("utf-8")
+
+                cursor.execute("""
+                    INSERT INTO Users (FirstName, LastName, Username, FullName, Email, PasswordHash, IsActive, IsVerified, Role)
+                    VALUES ('Super', 'Admin', 'superadmin', 'System Super Admin', ?, ?, 1, 1, 'SuperAdmin')
+                """, (admin_email, pwd_hash))
+                cursor.execute("SELECT UserID FROM Users WHERE Email = ?", (admin_email,))
+                row = cursor.fetchone()
+                if row:
+                    admin_user_id = row[0]
+                print(f"[SUPER ADMIN] Created seed account: {admin_email}")
+            else:
+                admin_user_id = existing[0]
+
+            # Seed sample payments if Payments table is empty
+            cursor.execute("SELECT COUNT(*) FROM Payments")
+            p_count = cursor.fetchone()[0]
+            if p_count == 0 and admin_user_id:
+                cursor.execute("""
+                    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
+                    VALUES (?, 85.00, 'USD', 'Stripe Credit Card', 'TXN_998124819', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
+                """, (admin_user_id,))
+                cursor.execute("""
+                    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
+                    VALUES (?, 85.00, 'USD', 'Bank Wire Transfer', 'TXN_998124820', 'Pending', 'Enterprise Plan ($85/mo)', GETDATE())
+                """, (admin_user_id,))
+                cursor.execute("""
+                    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
+                    VALUES (?, 85.00, 'USD', 'PayPal Express', 'TXN_998124821', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
+                """, (admin_user_id,))
+                print("[SUPER ADMIN] Initialized sample enterprise payments records.")
+    except Exception as err:
+        print("Seed Super Admin Notice:", err)
+
+
 # Auto-run table initialization on module load
 try:
     init_db()
+    seed_super_admin()
 except Exception:
     pass
 

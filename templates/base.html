@@ -65,7 +65,13 @@
                         <a href="{{ url_for('auth.security') }}" class="sidebar-link {% if request.endpoint == 'auth.security' %}active{% endif %}">
                             <i class="fa-solid fa-lock"></i> Security & Sessions
                         </a>
+                    {% if g.user_role in ['SuperAdmin', 'Admin'] %}
+                    <li>
+                        <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link" style="color: #ef4444; font-weight: 700;">
+                            <i class="fa-solid fa-crown"></i> Super Admin Console
+                        </a>
                     </li>
+                    {% endif %}
                     {% endif %}
 
                     <li>

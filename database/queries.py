@@ -582,3 +582,75 @@ def clear_user_ai_notifications():
     DELETE FROM AINotifications
     WHERE UserID = ?
     """
+
+
+# ==========================================
+# SUPER ADMIN QUERY HELPERS
+# ==========================================
+def get_admin_kpis():
+    return """
+    SELECT
+        (SELECT COUNT(*) FROM Users) AS TotalUsers,
+        (SELECT COUNT(*) FROM Users WHERE IsActive = 1) AS ActiveUsers,
+        (SELECT COUNT(*) FROM Users WHERE IsActive = 0) AS SuspendedUsers,
+        (SELECT ISNULL(SUM(Amount), 0) FROM Payments WHERE Status = 'Completed') AS TotalRevenue,
+        (SELECT COUNT(*) FROM Payments WHERE Status = 'Completed') AS CompletedPayments,
+        (SELECT COUNT(*) FROM Payments WHERE Status = 'Pending') AS PendingPayments,
+        (SELECT COUNT(*) FROM Datasets) AS TotalDatasets
+    """
+
+
+def get_all_users_admin():
+    return """
+    SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, ProfileImage, IsActive, IsVerified, Role, CreatedAt
+    FROM Users
+    ORDER BY CreatedAt DESC
+    """
+
+
+def update_user_status_admin():
+    return """
+    UPDATE Users
+    SET IsActive = ?
+    WHERE UserID = ?
+    """
+
+
+def update_user_role_admin():
+    return """
+    UPDATE Users
+    SET Role = ?
+    WHERE UserID = ?
+    """
+
+
+def delete_user_admin():
+    return """
+    DELETE FROM Users
+    WHERE UserID = ?
+    """
+
+
+def get_all_payments_admin():
+    return """
+    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
+    FROM Payments P
+    LEFT JOIN Users U ON P.UserID = U.UserID
+    ORDER BY P.PaymentDate DESC
+    """
+
+
+def update_payment_status_admin():
+    return """
+    UPDATE Payments
+    SET Status = ?
+    WHERE PaymentID = ?
+    """
+
+
+def get_all_audit_logs_admin(limit=100):
+    return f"""
+    SELECT TOP ({int(limit)}) LogID, UserID, Action, Details, IPAddress, CreatedAt
+    FROM AuditLogs
+    ORDER BY CreatedAt DESC
+    """

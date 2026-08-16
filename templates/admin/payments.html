@@ -1,0 +1,125 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Payments & Billing Monitor - Super Admin Console{% endblock %}
+{% block header_title %}<i class="fa-solid fa-credit-card" style="color: var(--accent-green);"></i> Payments & Billing Monitor{% endblock %}
+
+{% block content %}
+<style>
+    .payment-status-chips {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .status-chip {
+        padding: 8px 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--admin-border);
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .status-chip:hover, .status-chip.active {
+        background: var(--accent-green);
+        color: #ffffff;
+        border-color: var(--accent-green);
+    }
+</style>
+
+<!-- Status Filter Chips -->
+<div class="payment-status-chips">
+    <a href="{{ url_for('admin.manage_payments') }}" class="status-chip {% if not status_filter %}active{% endif %}">
+        All Transactions
+    </a>
+    <a href="{{ url_for('admin.manage_payments', status='Completed') }}" class="status-chip {% if status_filter == 'Completed' %}active{% endif %}">
+        Completed
+    </a>
+    <a href="{{ url_for('admin.manage_payments', status='Pending') }}" class="status-chip {% if status_filter == 'Pending' %}active{% endif %}">
+        Pending Approval Queue
+    </a>
+    <a href="{{ url_for('admin.manage_payments', status='Failed') }}" class="status-chip {% if status_filter == 'Failed' %}active{% endif %}">
+        Failed / Refunded
+    </a>
+</div>
+
+<!-- Payments Data Card -->
+<div class="admin-card-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin: 0;">
+            Platform Subscriptions & Payment Transactions ({{ payments|length }})
+        </h3>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Transaction ID</th>
+                    <th>User / Customer</th>
+                    <th>Plan Tier</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td style="font-family: monospace; color: var(--accent-cyan); font-weight: 600;">
+                        {{ p.txn_id }}
+                    </td>
+                    <td>
+                        <div style="font-weight: 700; color: var(--text-primary);">{{ p.user_name }}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">{{ p.email }}</div>
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 13px; font-weight: 500;">
+                        {{ p.plan_name }}
+                    </td>
+                    <td style="font-weight: 800; color: var(--accent-green); font-size: 15px;">
+                        ${{ "%.2f"|format(p.amount) }} {{ p.currency }}
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">
+                        <i class="fa-solid fa-credit-card"></i> {{ p.payment_method }}
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 13px;">
+                        {{ p.payment_date }}
+                    </td>
+                    <td>
+                        {% if p.status == 'Completed' %}
+                        <span class="badge-status badge-active"><i class="fa-solid fa-check"></i> Completed</span>
+                        {% elif p.status == 'Pending' %}
+                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fa-solid fa-clock"></i> Pending Approval</span>
+                        {% else %}
+                        <span class="badge-status badge-suspended">{{ p.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block;">
+                            <select name="status" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
+                                <option value="Completed" {% if p.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                <option value="Pending" {% if p.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Failed" {% if p.status == 'Failed' %}selected{% endif %}>Failed</option>
+                                <option value="Refunded" {% if p.status == 'Refunded' %}selected{% endif %}>Refunded</option>
+                            </select>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                        <i class="fa-solid fa-receipt" style="font-size: 32px; margin-bottom: 8px;"></i>
+                        <div>No payment records found matching this status filter.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
