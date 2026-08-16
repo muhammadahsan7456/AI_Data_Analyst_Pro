@@ -83,10 +83,10 @@
     <div class="kpi-card">
         <i class="fa-solid fa-users kpi-icon-floating" style="color: var(--accent-blue);"></i>
         <div class="kpi-label">Total Registered Users</div>
-        <div class="kpi-value">{{ kpis.TotalUsers }}</div>
+        <div class="kpi-value">{{ kpis.TotalUsers or 0 }}</div>
         <div class="kpi-sub">
-            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.ActiveUsers }} Active</span> • 
-            <span style="color: var(--accent-red); font-weight: 600;">{{ kpis.SuspendedUsers }} Suspended</span>
+            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.ActiveUsers or 0 }} Active</span> • 
+            <span style="color: var(--accent-red); font-weight: 600;">{{ kpis.SuspendedUsers or 0 }} Suspended</span>
         </div>
     </div>
 
@@ -96,7 +96,7 @@
         <div class="kpi-label">Total Revenue Collected</div>
         <div class="kpi-value">${{ "%.2f"|format(kpis.TotalRevenue or 0.0) }}</div>
         <div class="kpi-sub">
-            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments }} Successful Transactions</span>
+            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments or 0 }} Successful Transactions</span>
         </div>
     </div>
 
@@ -104,8 +104,8 @@
     <div class="kpi-card">
         <i class="fa-solid fa-clock-rotate-left kpi-icon-floating" style="color: var(--accent-amber);"></i>
         <div class="kpi-label">Pending Approval Queue</div>
-        <div class="kpi-value" style="color: {% if kpis.PendingPayments > 0 %}var(--accent-amber){% else %}var(--text-primary){% endif %};">
-            {{ kpis.PendingPayments }}
+        <div class="kpi-value" style="color: {% if (kpis.PendingPayments or 0) > 0 %}var(--accent-amber){% else %}var(--text-primary){% endif %};">
+            {{ kpis.PendingPayments or 0 }}
         </div>
         <div class="kpi-sub">Requires Super Admin Verification</div>
     </div>
@@ -114,7 +114,7 @@
     <div class="kpi-card">
         <i class="fa-solid fa-database kpi-icon-floating" style="color: var(--accent-purple);"></i>
         <div class="kpi-label">Enterprise Datasets Scale</div>
-        <div class="kpi-value">{{ kpis.TotalDatasets }}</div>
+        <div class="kpi-value">{{ kpis.TotalDatasets or 0 }}</div>
         <div class="kpi-sub">AES-256 Encrypted at Rest</div>
     </div>
 </div>
