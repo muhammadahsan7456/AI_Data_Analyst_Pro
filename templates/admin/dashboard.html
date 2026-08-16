@@ -16,26 +16,53 @@
         background: var(--admin-card-bg);
         border: 1px solid var(--admin-border);
         border-radius: 18px;
-        padding: 24px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        padding: 22px 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
         transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
 
     .kpi-card:hover {
         transform: translateY(-4px);
         border-color: var(--accent-blue);
+        box-shadow: 0 14px 30px rgba(59, 130, 246, 0.15);
+    }
+
+    .kpi-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
     .kpi-label {
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 12px;
+        font-weight: 700;
         color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
+        letter-spacing: 0.6px;
+        line-height: 1.35;
+        flex: 1;
     }
+
+    .kpi-icon-wrapper {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .kpi-icon-wrapper.icon-blue { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.25); }
+    .kpi-icon-wrapper.icon-green { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.25); }
+    .kpi-icon-wrapper.icon-amber { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.25); }
+    .kpi-icon-wrapper.icon-purple { background: rgba(139, 92, 246, 0.12); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.25); }
 
     .kpi-value {
         font-family: 'Outfit', sans-serif;
@@ -45,18 +72,14 @@
         line-height: 1.1;
     }
 
+    .kpi-value.pending-highlight {
+        color: var(--accent-amber);
+    }
+
     .kpi-sub {
         font-size: 12px;
         color: var(--text-secondary);
         margin-top: 6px;
-    }
-
-    .kpi-icon-floating {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        font-size: 28px;
-        opacity: 0.3;
     }
 </style>
 
@@ -81,8 +104,12 @@
 <div class="admin-kpi-grid">
     <!-- KPI 1 -->
     <div class="kpi-card">
-        <i class="fa-solid fa-users kpi-icon-floating" style="color: var(--accent-blue);"></i>
-        <div class="kpi-label">Total Registered Users</div>
+        <div class="kpi-card-header">
+            <div class="kpi-label">Total Registered Users</div>
+            <div class="kpi-icon-wrapper icon-blue">
+                <i class="fa-solid fa-users"></i>
+            </div>
+        </div>
         <div class="kpi-value">{{ kpis.TotalUsers or 0 }}</div>
         <div class="kpi-sub">
             <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.ActiveUsers or 0 }} Active</span> • 
@@ -92,8 +119,12 @@
 
     <!-- KPI 2 -->
     <div class="kpi-card">
-        <i class="fa-solid fa-dollar-sign kpi-icon-floating" style="color: var(--accent-green);"></i>
-        <div class="kpi-label">Total Revenue Collected</div>
+        <div class="kpi-card-header">
+            <div class="kpi-label">Total Revenue Collected</div>
+            <div class="kpi-icon-wrapper icon-green">
+                <i class="fa-solid fa-dollar-sign"></i>
+            </div>
+        </div>
         <div class="kpi-value">${{ "%.2f"|format(kpis.TotalRevenue or 0.0) }}</div>
         <div class="kpi-sub">
             <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments or 0 }} Successful Transactions</span>
@@ -102,9 +133,13 @@
 
     <!-- KPI 3 -->
     <div class="kpi-card">
-        <i class="fa-solid fa-clock-rotate-left kpi-icon-floating" style="color: var(--accent-amber);"></i>
-        <div class="kpi-label">Pending Approval Queue</div>
-        <div class="kpi-value" style="color: {% if (kpis.PendingPayments or 0) > 0 %}var(--accent-amber){% else %}var(--text-primary){% endif %};">
+        <div class="kpi-card-header">
+            <div class="kpi-label">Pending Approval Queue</div>
+            <div class="kpi-icon-wrapper icon-amber">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+        </div>
+        <div class="kpi-value {% if (kpis.PendingPayments or 0) > 0 %}pending-highlight{% endif %}">
             {{ kpis.PendingPayments or 0 }}
         </div>
         <div class="kpi-sub">Requires Super Admin Verification</div>
@@ -112,8 +147,12 @@
 
     <!-- KPI 4 -->
     <div class="kpi-card">
-        <i class="fa-solid fa-database kpi-icon-floating" style="color: var(--accent-purple);"></i>
-        <div class="kpi-label">Enterprise Datasets Scale</div>
+        <div class="kpi-card-header">
+            <div class="kpi-label">Enterprise Datasets Scale</div>
+            <div class="kpi-icon-wrapper icon-purple">
+                <i class="fa-solid fa-database"></i>
+            </div>
+        </div>
         <div class="kpi-value">{{ kpis.TotalDatasets or 0 }}</div>
         <div class="kpi-sub">AES-256 Encrypted at Rest</div>
     </div>
