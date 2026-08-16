@@ -81,7 +81,7 @@
             --header-bg: rgba(255, 255, 255, 0.92);
             --mockup-body-bg: #f1f5f9;
             --mockup-inner-bg: #ffffff;
-            --footer-bg: #e2e8f0;
+            --footer-bg: #f1f5f9;
             --shadow-glow: 0 10px 30px -10px rgba(37, 99, 235, 0.25);
         }
 
@@ -857,12 +857,83 @@
             line-height: 1.7;
         }
 
-        /* Footer */
+        /* ULTRA-OPTIMIZED ENTERPRISE FOOTER */
         footer.site-footer {
             background: var(--footer-bg);
             border-top: 1px solid var(--border-glass);
             padding: 70px 0 30px 0;
             color: var(--text-secondary);
+            position: relative;
+        }
+
+        /* Newsletter Bar Top Row */
+        .footer-newsletter-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 32px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 60px;
+            box-shadow: var(--shadow-glow);
+            flex-wrap: wrap;
+        }
+
+        .newsletter-text-box h3 {
+            font-family: var(--font-heading);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .newsletter-text-box p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .newsletter-form {
+            display: flex;
+            gap: 10px;
+            max-width: 440px;
+            width: 100%;
+        }
+
+        .newsletter-input {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border-glass);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .newsletter-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .newsletter-btn {
+            background: var(--gradient-primary);
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .newsletter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
         }
 
         .footer-grid {
@@ -890,26 +961,65 @@
         }
         .footer-links a:hover { color: var(--accent-blue); }
 
-        .system-status-badge {
-            display: inline-flex;
+        .footer-social-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .social-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 16px;
+            justify-content: center;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-icon-btn:hover {
+            background: var(--accent-blue);
+            color: #ffffff;
+            border-color: var(--accent-blue);
+            transform: translateY(-3px);
         }
 
         .footer-bottom {
             border-top: 1px solid var(--border-glass);
             padding-top: 24px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 13px;
             color: var(--text-muted);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .back-to-top-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--gradient-primary);
+            border: none;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .back-to-top-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6);
         }
 
         /* Responsive Breakpoints */
@@ -922,6 +1032,8 @@
             .pricing-features-grid { grid-template-columns: 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
             .footer-grid { grid-template-columns: repeat(2, 1fr); }
+            .footer-newsletter-card { flex-direction: column; text-align: center; }
+            .newsletter-form { max-width: 100%; }
         }
 
         @media (max-width: 768px) {
@@ -1241,7 +1353,7 @@
                             </table>
                         </div>
 
-                        <!-- AI Executive Takeaway Insights Box -->
+                        <!-- AI Executive Takeaways Box inside Sandbox Result -->
                         <div class="sandbox-ai-takeaway-box" id="sandbox-takeaway">
                             <div class="sandbox-ai-takeaway-header">
                                 <i class="fa-solid fa-brain"></i> AI Executive Business Takeaways & Insights
@@ -1442,63 +1554,102 @@
         </section>
     </main>
 
-    <!-- Footer -->
+    <!-- ULTRA-OPTIMIZED ENTERPRISE FOOTER -->
     <footer class="site-footer">
         <div class="container">
+            <!-- Newsletter Top Banner Row -->
+            <div class="footer-newsletter-card">
+                <div class="newsletter-text-box">
+                    <h3>Stay Ahead with AI Data Intelligence</h3>
+                    <p>Get product updates, security advisories, and high-scale data analytics tips.</p>
+                </div>
+                <form class="newsletter-form" onsubmit="handleSubscribe(event)">
+                    <input type="email" class="newsletter-input" placeholder="Enter your work email address..." required>
+                    <button type="submit" class="newsletter-btn">
+                        Subscribe <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Footer 4-Column Grid -->
             <div class="footer-grid">
+                <!-- Col 1: Brand & Status -->
                 <div>
-                    <div class="brand-logo" style="margin-bottom: 16px;">
+                    <a href="/" class="brand-logo" style="margin-bottom: 16px;">
                         <div class="brand-icon-box" style="width: 36px; height: 36px; font-size: 17px;">
                             <i class="fa-solid fa-brain"></i>
                         </div>
                         <span>AI Data Analyst Pro</span>
-                    </div>
-                    <p style="font-size: 14px; max-width: 320px; line-height: 1.6;">
-                        Enterprise-grade AI data analysis platform delivering sub-second queries, AES-256 encryption at rest, and automated executive PowerPoint exports.
+                    </a>
+                    <p style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 16px;">
+                        Next-generation AI data analysis platform delivering sub-second queries, AES-256 field encryption at rest, and automated PowerPoint exports.
                     </p>
                     <div class="system-status-badge">
-                        <i class="fa-solid fa-circle" style="font-size: 8px;"></i> System Status: All Systems Operational
+                        <i class="fa-solid fa-circle" style="font-size: 8px;"></i> System Status: 99.99% Operational
+                    </div>
+
+                    <!-- Social Icons -->
+                    <div class="footer-social-row">
+                        <a href="https://github.com" target="_blank" class="social-icon-btn" title="GitHub"><i class="fa-brands fa-github"></i></a>
+                        <a href="https://linkedin.com" target="_blank" class="social-icon-btn" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+                        <a href="https://twitter.com" target="_blank" class="social-icon-btn" title="Twitter / X"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="https://discord.com" target="_blank" class="social-icon-btn" title="Discord"><i class="fa-brands fa-discord"></i></a>
                     </div>
                 </div>
 
+                <!-- Col 2: Platform Links -->
                 <div>
                     <div class="footer-title">Platform</div>
                     <ul class="footer-links">
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="#demo">Live Sandbox</a></li>
-                        <li><a href="#security">Security</a></li>
-                        <li><a href="#pricing">Pricing ($85/mo)</a></li>
+                        <li><a href="#features">Platform Capabilities</a></li>
+                        <li><a href="#demo">Live AI Engine Sandbox</a></li>
+                        <li><a href="#security">Enterprise Security Grid</a></li>
+                        <li><a href="#pricing">Enterprise Plan ($85/mo)</a></li>
+                        <li><a href="#faq">Frequently Asked Questions</a></li>
                     </ul>
                 </div>
 
+                <!-- Col 3: Resources & Legal -->
                 <div>
-                    <div class="footer-title">Resources</div>
+                    <div class="footer-title">Resources & Legal</div>
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('frontend.docs') }}">Documentation</a></li>
-                        <li><a href="{{ url_for('frontend.health') }}">System Health</a></li>
+                        <li><a href="{{ url_for('frontend.docs') }}">Documentation & API</a></li>
+                        <li><a href="{{ url_for('frontend.health') }}">System Health & SLA</a></li>
                         <li><a href="{{ url_for('frontend.terms') }}">Terms of Service</a></li>
                         <li><a href="{{ url_for('frontend.privacy') }}">Privacy Policy</a></li>
                     </ul>
                 </div>
 
+                <!-- Col 4: Enterprise Compliance & Trust -->
                 <div>
-                    <div class="footer-title">Account Access</div>
+                    <div class="footer-title">Enterprise Trust</div>
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('auth.login') }}">Sign In</a></li>
-                        <li><a href="{{ url_for('auth.signup') }}">Register Free</a></li>
-                        <li><a href="{{ url_for('frontend.dashboard') }}">Executive Dashboard</a></li>
+                        <li style="color: var(--text-primary); font-size: 14px; font-weight: 500;"><i class="fa-solid fa-shield-halved" style="color: var(--accent-green);"></i> SOC2 Type II Certified</li>
+                        <li style="color: var(--text-primary); font-size: 14px; font-weight: 500;"><i class="fa-solid fa-key" style="color: var(--accent-cyan);"></i> AES-256 Field Encrypted</li>
+                        <li style="color: var(--text-primary); font-size: 14px; font-weight: 500;"><i class="fa-solid fa-bolt" style="color: var(--accent-blue);"></i> 10M+ Scale Engine</li>
+                        <li style="color: var(--text-primary); font-size: 14px; font-weight: 500;"><i class="fa-solid fa-microphone" style="color: var(--accent-purple);"></i> Bilingual Voice AI</li>
                     </ul>
                 </div>
             </div>
 
+            <!-- Footer Bottom Row -->
             <div class="footer-bottom">
-                &copy; 2026 AI Data Analyst Pro Inc. All Rights Reserved. AES-256 Encrypted & SEO Optimized.
+                <div>&copy; 2026 AI Data Analyst Pro Inc. All Rights Reserved. AES-256 Encrypted & SEO Optimized.</div>
+                <button class="back-to-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to Top">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
             </div>
         </div>
     </footer>
 
     <!-- Interactive JS -->
     <script>
+        function handleSubscribe(e) {
+            e.preventDefault();
+            alert("Thank you for subscribing to AI Data Analyst Pro product updates!");
+            e.target.reset();
+        }
+
         function toggleWebsiteTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
