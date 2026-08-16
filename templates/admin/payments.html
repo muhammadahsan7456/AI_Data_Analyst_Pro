@@ -84,8 +84,14 @@
                     <td style="font-weight: 800; color: var(--accent-green); font-size: 15px;">
                         ${{ "%.2f"|format(p.amount) }} {{ p.currency }}
                     </td>
-                    <td style="color: var(--text-secondary); font-size: 13px;">
-                        <i class="fa-solid fa-credit-card"></i> {{ p.payment_method }}
+                    <td style="color: var(--text-primary); font-size: 13px; font-weight: 600;">
+                        {% if 'Bank' in p.payment_method or 'Wire' in p.payment_method or 'Meezan' in p.payment_method or 'HBL' in p.payment_method %}
+                        <i class="fa-solid fa-building-columns" style="color: var(--accent-green);"></i> {{ p.payment_method }}
+                        {% elif 'PayPal' in p.payment_method %}
+                        <i class="fa-brands fa-paypal" style="color: #0079C1;"></i> {{ p.payment_method }}
+                        {% else %}
+                        <i class="fa-solid fa-credit-card" style="color: var(--accent-blue);"></i> {{ p.payment_method }}
+                        {% endif %}
                     </td>
                     <td style="color: var(--text-muted); font-size: 13px;">
                         {{ p.payment_date }}
