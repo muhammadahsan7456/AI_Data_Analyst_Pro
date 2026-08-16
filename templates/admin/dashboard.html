@@ -94,7 +94,7 @@
     <div class="kpi-card">
         <i class="fa-solid fa-dollar-sign kpi-icon-floating" style="color: var(--accent-green);"></i>
         <div class="kpi-label">Total Revenue Collected</div>
-        <div class="kpi-value">${{ "%.2f"|format(kpis.TotalRevenue) }}</div>
+        <div class="kpi-value">${{ "%.2f"|format(kpis.TotalRevenue or 0.0) }}</div>
         <div class="kpi-sub">
             <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments }} Successful Transactions</span>
         </div>
@@ -193,7 +193,7 @@
                     {% for p in recent_payments %}
                     <tr>
                         <td style="font-weight: 600; color: var(--text-primary);">{{ p.user_name }}</td>
-                        <td style="font-weight: 700; color: var(--accent-green);">${{ "%.2f"|format(p.amount) }}</td>
+                        <td style="font-weight: 700; color: var(--accent-green);">${{ "%.2f"|format(p.amount or 0.0) }}</td>
                         <td>
                             {% if p.status == 'Completed' %}
                             <span class="badge-status badge-active">Completed</span>
