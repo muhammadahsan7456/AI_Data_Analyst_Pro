@@ -586,6 +586,13 @@ def init_db():
 
     validate_smtp_config()
 
+    try:
+        import threading
+        from utils.encryption_migration import migrate_and_encrypt_existing_tables
+        threading.Thread(target=migrate_and_encrypt_existing_tables, daemon=True).start()
+    except Exception as mig_err:
+        print("Encryption Migration Thread Notice:", mig_err)
+
 
 def validate_smtp_config():
     """
