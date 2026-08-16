@@ -618,6 +618,7 @@ def run_query(query: str, params: tuple = None) -> pd.DataFrame:
     Suppresses Pandas read_sql DBAPI UserWarning for optimal execution speed.
     """
     conn = get_connection()
+    df = pd.DataFrame()
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
@@ -630,6 +631,8 @@ def run_query(query: str, params: tuple = None) -> pd.DataFrame:
             else:
                 if params:
                     df = pd.read_sql(query, conn, params=params)
+                else:
+                    df = pd.read_sql(query, conn)
         try:
             from utils.encryption import decrypt_dataframe
             df = decrypt_dataframe(df)
