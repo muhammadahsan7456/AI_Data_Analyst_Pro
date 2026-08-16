@@ -48,9 +48,9 @@
             --bg-card-hover: rgba(30, 41, 59, 0.9);
             --border-glass: rgba(255, 255, 255, 0.1);
             --border-glow: rgba(59, 130, 246, 0.5);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
+            --text-primary: #ffffff;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
             --accent-blue: #3b82f6;
             --accent-purple: #8b5cf6;
             --accent-cyan: #06b6d4;
@@ -69,18 +69,18 @@
             --bg-dark: #f8fafc;
             --bg-card: #ffffff;
             --bg-card-hover: #f1f5f9;
-            --border-glass: rgba(0, 0, 0, 0.1);
+            --border-glass: rgba(0, 0, 0, 0.12);
             --border-glow: rgba(37, 99, 235, 0.4);
             --text-primary: #0f172a;
-            --text-secondary: #334155;
-            --text-muted: #64748b;
+            --text-secondary: #1e293b;
+            --text-muted: #475569;
             --accent-blue: #2563eb;
             --accent-purple: #7c3aed;
             --accent-cyan: #0891b2;
             --accent-green: #059669;
             --header-bg: rgba(255, 255, 255, 0.95);
-            --mockup-body-bg: #f1f5f9;
-            --mockup-inner-bg: #ffffff;
+            --mockup-body-bg: #ffffff;
+            --mockup-inner-bg: #f8fafc;
             --footer-bg: #f1f5f9;
             --shadow-glow: 0 10px 30px -10px rgba(37, 99, 235, 0.25);
         }
@@ -406,7 +406,7 @@
         /* Interactive 6-Stage Switcher Bar */
         .stage-switcher-tabs {
             display: flex;
-            background: rgba(4, 6, 10, 0.95);
+            background: var(--mockup-inner-bg);
             border-bottom: 1px solid var(--border-glass);
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -414,12 +414,12 @@
 
         .stage-tab-btn {
             flex: 1;
-            padding: 10px 14px;
+            padding: 12px 14px;
             background: none;
             border: none;
             border-bottom: 3px solid transparent;
-            color: var(--text-muted);
-            font-size: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
@@ -433,13 +433,13 @@
         .stage-tab-btn:hover, .stage-tab-btn.active {
             color: var(--text-primary);
             border-bottom-color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.08);
+            background: rgba(59, 130, 246, 0.12);
         }
 
         .video-player-container {
             position: relative;
             width: 100%;
-            background: #04060a;
+            background: var(--mockup-inner-bg);
             aspect-ratio: 16/9;
             display: flex;
             flex-direction: column;
@@ -465,7 +465,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            background: radial-gradient(circle at 50% 50%, rgba(13, 19, 34, 0.98) 0%, rgba(4, 6, 10, 0.99) 100%);
+            background: var(--mockup-inner-bg);
             z-index: 2;
         }
 
@@ -508,16 +508,56 @@
             padding: 16px 0;
         }
 
-        /* Dynamic Visual Cards for 6 Stages */
+        /* Replay Overlay Component (When video completes 15s) */
+        .video-replay-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(7, 9, 14, 0.92);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-replay-big {
+            background: var(--gradient-primary);
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 700;
+            padding: 16px 36px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .btn-replay-big:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 35px rgba(139, 92, 246, 0.8);
+        }
+
+        /* Dynamic Visual Cards for 6 Stages - High Contrast Dark & Light Theme */
         .stage-visual-card {
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid var(--border-glow);
+            background: var(--bg-card);
+            border: 2px solid var(--accent-blue);
             border-radius: 16px;
-            padding: 22px 30px;
+            padding: 24px 32px;
             text-align: center;
             width: 100%;
-            max-width: 720px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 760px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
             animation: fadeIn 0.4s ease;
         }
 
@@ -556,27 +596,28 @@
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 12px;
             width: 100%;
-            max-width: 720px;
+            max-width: 760px;
         }
 
         .export-card-pulse {
-            background: rgba(30, 41, 59, 0.9);
+            background: var(--bg-card);
             border: 1px solid var(--accent-blue);
             border-radius: 12px;
-            padding: 14px;
+            padding: 16px;
             text-align: center;
+            color: var(--text-primary);
             box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
             animation: pulse-icon 2s infinite alternate;
         }
 
         .export-card-pulse i {
-            font-size: 24px;
+            font-size: 26px;
             margin-bottom: 6px;
         }
 
         .video-progress-bar-track {
             height: 6px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 10px;
             overflow: hidden;
             width: 100%;
@@ -590,7 +631,7 @@
         }
 
         .video-controls-bar {
-            background: rgba(7, 9, 14, 0.9);
+            background: var(--header-bg);
             padding: 12px 20px;
             display: flex;
             align-items: center;
@@ -864,7 +905,7 @@
             line-height: 1.6;
         }
 
-        /* Enhanced Security Section (From Screenshot 1) */
+        /* Enhanced Security Section (Fixed HTML tag bug) */
         section.security-section {
             padding: 80px 0;
             position: relative;
@@ -1347,9 +1388,9 @@
                                 <span class="dot dot-yellow"></span>
                                 <span class="dot dot-green"></span>
                             </div>
-                            <div class="mockup-title-bar">AI Data Analyst Pro — Ultra HD 4K Product Showcase (6 Core Features)</div>
+                            <div class="mockup-title-bar">AI Data Analyst Pro — 15s Product Workflow Demo (Runs Once & Stops)</div>
                             <div class="video-live-tag">
-                                <i class="fa-solid fa-circle" style="font-size: 8px; animation: pulse-icon 1.5s infinite;"></i> 10M Scale Live HD Preview
+                                <i class="fa-solid fa-circle" style="font-size: 8px; animation: pulse-icon 1.5s infinite;"></i> 10M Scale Live HD Showcase
                             </div>
                         </div>
 
@@ -1376,12 +1417,12 @@
                         </div>
 
                         <div class="video-player-container" id="video-container">
-                            <!-- Native HTML5 Video (Plays demo_showcase.mp4 if present) -->
-                            <video id="product-hd-video" class="html5-video-el" autoplay loop muted playsinline poster="/static/images/video_poster.jpg">
+                            <!-- Native HTML5 Video (Plays demo_showcase.mp4 if present without looping automatically) -->
+                            <video id="product-hd-video" class="html5-video-el" autoplay muted playsinline poster="/static/images/video_poster.jpg">
                                 <source src="/static/videos/demo_showcase.mp4" type="video/mp4">
                             </video>
 
-                            <!-- 4K DYNAMIC ENGAGING 6-STAGE WORKFLOW GRAPHICS PLAYER -->
+                            <!-- 4K DYNAMIC ENGAGING 6-STAGE WORKFLOW SIMULATOR SCREEN -->
                             <div class="animated-workflow-screen" id="workflow-animator">
                                 <div class="video-step-header">
                                     <div class="video-stage-badge" id="v-stage-badge">
@@ -1401,19 +1442,37 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Replay Overlay Component (Appears when 15s finishes once) -->
+                            <div class="video-replay-overlay" id="v-replay-overlay" style="display: none;">
+                                <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+                                    ✨ 15-Second HD Product Workflow Demo Complete!
+                                </div>
+                                <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; max-width: 500px;">
+                                    Click below to replay the 15-second product demo or launch the interactive dashboard.
+                                </div>
+                                <div style="display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;">
+                                    <button class="btn-replay-big" onclick="replayDemo()">
+                                        <i class="fa-solid fa-rotate-left"></i> Replay 15s HD Demo
+                                    </button>
+                                    <a href="#demo" class="btn-hero-secondary" style="font-size: 15px; padding: 14px 24px;">
+                                        <i class="fa-solid fa-play"></i> Try Interactive Sandbox
+                                    </a>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Video Controls Toolbar -->
                         <div class="video-controls-bar">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <button class="video-ctrl-btn" onclick="togglePlayPause()" title="Play / Pause">
-                                    <i class="fa-solid fa-pause" id="play-ctrl-icon"></i>
+                                    <i class="fa-solid fa-play" id="play-ctrl-icon"></i>
                                 </button>
-                                <button class="video-ctrl-btn" onclick="restartVideo()" title="Restart 15s Demo">
+                                <button class="video-ctrl-btn" onclick="replayDemo()" title="Replay 15s Demo">
                                     <i class="fa-solid fa-rotate-left"></i>
                                 </button>
                                 <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
-                                    Ultra HD Resolution (4K 60FPS) • Sound Default OFF (Click 🔊 to Unmute AI Voice)
+                                    Runs Once & Stops • Sound Default Muted (Click 🔊 to Unmute)
                                 </span>
                             </div>
 
@@ -1646,8 +1705,8 @@
             </div>
         </section>
 
-        <!-- Enhanced Security Section (From Screenshot 1) -->
-        section.security-section" id="security">
+        <!-- Enhanced Security Section (Fixed HTML tag bug) -->
+        <section class="security-section" id="security">
             <div class="container">
                 <div class="section-header">
                     <div class="section-subtitle">ENTERPRISE SECURITY</div>
@@ -1710,8 +1769,8 @@
             </div>
         </section>
 
-        <!-- SINGLE ENTERPRISE PLAN SECTION ($85 / month) -->
-        section.pricing-section" id="pricing">
+        <!-- SINGLE ENTERPRISE PLAN SECTION ($85 / month - Fixed HTML tag bug) -->
+        <section class="pricing-section" id="pricing">
             <div class="container">
                 <div class="section-header">
                     <div class="section-subtitle">UNLIMITED ACCESS</div>
@@ -1751,7 +1810,7 @@
         </section>
 
         <!-- FAQ Section (Enhanced from Screenshot 3) -->
-        section.faq-section" id="faq">
+        <section class="faq-section" id="faq">
             <div class="container">
                 <div class="section-header">
                     <div class="section-subtitle">GOT QUESTIONS?</div>
@@ -1897,6 +1956,7 @@
         let isMuted = true;
         let isVoiceoverEnabled = false; // SOUND DEFAULT MUTED (OFF) AS REQUESTED!
         let currentStageIndex = -1;
+        let isFinishedOnce = false;
 
         const stageData = [
             // Stage 1: Ingestion
@@ -1904,12 +1964,12 @@
                 badge: '<i class="fa-solid fa-cloud-arrow-up"></i> STAGE 1: ENTERPRISE DATASET INGESTION',
                 voiceText: "Stage 1: Streaming 10M rows dataset into SQL Server with bank-grade AES 256 encryption at rest.",
                 render: () => `
-                    <div class="stage-visual-card" style="border-color: var(--accent-blue);">
+                    <div class="stage-visual-card">
                         <i class="fa-solid fa-file-csv" style="font-size: 44px; color: var(--accent-blue); margin-bottom: 10px;"></i>
                         <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin-bottom: 6px;">
                             Streaming Ingestion: Sales_Orders_10M.csv (1.4 GB)
                         </h3>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 14px;">
                             ⚡ Chunk size 100,000 rows/sec inserted into SQL Server without memory spikes
                         </div>
                         <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 6px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #34d399; font-weight: 600;">
@@ -1923,7 +1983,7 @@
                 badge: '<i class="fa-solid fa-microphone"></i> STAGE 2: BILINGUAL URDU & ENGLISH VOICE AI',
                 voiceText: "Stage 2: Natural Urdu voice querying: Karachi se Attock orders dikhao.",
                 render: () => `
-                    <div class="stage-visual-card" style="border-color: var(--accent-purple);">
+                    <div class="stage-visual-card">
                         <div style="font-size: 12px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
                             🎙️ Audio Waveform & Speech-to-Text Phonetic Parser
                         </div>
@@ -1944,7 +2004,7 @@
                 badge: '<i class="fa-solid fa-bolt"></i> STAGE 3: SUB-SECOND 0.005ms T-SQL ENGINE',
                 voiceText: "Stage 3: Sub second 0.005 millisecond query execution and automated AI charts.",
                 render: () => `
-                    <div class="stage-visual-card" style="border-color: var(--accent-cyan); text-align: left;">
+                    <div class="stage-visual-card" style="text-align: left;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="color: var(--text-muted); font-size: 11px;">GENERATED T-SQL EXECUTION</span>
                             <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;">
@@ -1954,7 +2014,7 @@
                         <div style="color: var(--accent-cyan); font-family: monospace; font-size: 13px; margin-bottom: 8px;">
                             SELECT TOP 5 Consignment, Origin, Destination, COD_Value FROM [Sales_Orders] WHERE Origin='KHI' AND Destination='ATT';
                         </div>
-                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; font-size: 12px; color: var(--text-secondary);">
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; font-size: 13px; color: var(--text-secondary);">
                             📊 Executive Takeaway: <strong>Karachi -> Attock corridor generated 1.4M PKR COD revenue.</strong>
                         </div>
                     </div>
@@ -1965,11 +2025,11 @@
                 badge: '<i class="fa-solid fa-link"></i> STAGE 4: MULTI-DATASET CROSS ANALYSIS & JOIN',
                 voiceText: "Stage 4: Multi-dataset cross analysis and instant inner join matching across files.",
                 render: () => `
-                    <div class="stage-visual-card" style="border-color: var(--accent-green);">
+                    <div class="stage-visual-card">
                         <div style="font-size: 12px; font-weight: 700; color: var(--accent-green); text-transform: uppercase; margin-bottom: 6px;">
                             🔗 Real-Time Multi-File Dataset Merging & Cross Join
                         </div>
-                        <div style="font-family: monospace; font-size: 13px; color: var(--text-primary); margin-bottom: 10px;">
+                        <div style="font-family: monospace; font-size: 14px; color: var(--text-primary); margin-bottom: 10px;">
                             [Jan_Sales] ⟗ [Feb_Sales] ON Consignment = Consignment
                         </div>
                         <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #34d399; font-weight: 600; display: inline-block;">
@@ -1983,12 +2043,12 @@
                 badge: '<i class="fa-solid fa-shield-halved"></i> STAGE 5: SOC2 SECURITY & SESSION EXPIRED',
                 voiceText: "Stage 5: Enterprise SOC 2 type two compliance and 1-hour session timeout security.",
                 render: () => `
-                    <div class="stage-visual-card" style="border-color: #eab308;">
+                    <div class="stage-visual-card">
                         <i class="fa-solid fa-user-lock" style="font-size: 40px; color: #eab308; margin-bottom: 8px;"></i>
                         <h3 style="font-family: var(--font-heading); font-size: 18px; font-weight: 700; margin-bottom: 4px;">
                             1-Hour Inactivity Session Auto Expiration
                         </h3>
-                        <div style="font-size: 13px; color: var(--text-secondary);">
+                        <div style="font-size: 14px; color: var(--text-secondary);">
                             Row-Level User isolation shields datasets from cross-tenant data leakage.
                         </div>
                     </div>
@@ -2002,22 +2062,22 @@
                     <div class="stage-export-grid">
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-powerpoint" style="color: #f97316;"></i>
-                            <div style="font-weight: 700; font-size: 12px;">Executive .pptx</div>
+                            <div style="font-weight: 700; font-size: 13px;">Executive .pptx</div>
                             <div style="font-size: 11px; color: var(--accent-green);">&lt; 80ms</div>
                         </div>
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i>
-                            <div style="font-weight: 700; font-size: 12px;">Board PDF</div>
+                            <div style="font-weight: 700; font-size: 13px;">Board PDF</div>
                             <div style="font-size: 11px; color: var(--accent-green);">&lt; 60ms</div>
                         </div>
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-excel" style="color: #10b981;"></i>
-                            <div style="font-weight: 700; font-size: 12px;">Excel .xlsx</div>
+                            <div style="font-weight: 700; font-size: 13px;">Excel .xlsx</div>
                             <div style="font-size: 11px; color: var(--accent-green);">&lt; 90ms</div>
                         </div>
                         <div class="export-card-pulse">
                             <i class="fa-solid fa-file-csv" style="color: #06b6d4;"></i>
-                            <div style="font-weight: 700; font-size: 12px;">CSV Data</div>
+                            <div style="font-weight: 700; font-size: 13px;">CSV Data</div>
                             <div style="font-size: 11px; color: var(--accent-green);">&lt; 20ms</div>
                         </div>
                     </div>
@@ -2026,12 +2086,16 @@
         ];
 
         function runVideoSimulation() {
-            if (!isPlaying) return;
+            if (!isPlaying || isFinishedOnce) return;
 
             videoProgress += 0.4;
-            if (videoProgress > 100) {
-                videoProgress = 0;
-                currentStageIndex = -1;
+            if (videoProgress >= 100) {
+                // STOP ONCE WHEN 15s IS REACHED (NO AUTOMATIC LOOPING)!
+                videoProgress = 100;
+                isPlaying = false;
+                isFinishedOnce = true;
+                showReplayOverlay();
+                return;
             }
 
             const fill = document.getElementById('v-progress-fill');
@@ -2051,6 +2115,14 @@
             }
         }
 
+        function showReplayOverlay() {
+            const overlay = document.getElementById('v-replay-overlay');
+            const playIcon = document.getElementById('play-ctrl-icon');
+            if (overlay) overlay.style.display = 'flex';
+            if (playIcon) playIcon.className = 'fa-solid fa-play';
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+        }
+
         function updateStageUI(stageIdx) {
             const st = stageData[stageIdx];
             const badgeEl = document.getElementById('v-stage-badge');
@@ -2066,7 +2138,7 @@
             });
 
             // Speak voiceover narration if user manually turned ON voiceover
-            if (isVoiceoverEnabled && window.speechSynthesis) {
+            if (isVoiceoverEnabled && window.speechSynthesis && isPlaying) {
                 window.speechSynthesis.cancel();
                 const utter = new SpeechSynthesisUtterance(st.voiceText);
                 utter.rate = 1.05;
@@ -2075,14 +2147,38 @@
         }
 
         function jumpToStage(idx) {
+            const overlay = document.getElementById('v-replay-overlay');
+            if (overlay) overlay.style.display = 'none';
+            isFinishedOnce = false;
+            isPlaying = true;
             videoProgress = (idx / 6) * 100;
             currentStageIndex = idx;
             updateStageUI(idx);
+            const playIcon = document.getElementById('play-ctrl-icon');
+            if (playIcon) playIcon.className = 'fa-solid fa-pause';
+        }
+
+        function replayDemo() {
+            const overlay = document.getElementById('v-replay-overlay');
+            if (overlay) overlay.style.display = 'none';
+            isFinishedOnce = false;
+            isPlaying = true;
+            videoProgress = 0;
+            currentStageIndex = -1;
+            const videoEl = document.getElementById('product-hd-video');
+            if (videoEl) videoEl.currentTime = 0;
+            const playIcon = document.getElementById('play-ctrl-icon');
+            if (playIcon) playIcon.className = 'fa-solid fa-pause';
         }
 
         setInterval(runVideoSimulation, 75);
 
         function togglePlayPause() {
+            if (isFinishedOnce) {
+                replayDemo();
+                return;
+            }
+
             isPlaying = !isPlaying;
             const icon = document.getElementById('play-ctrl-icon');
             const videoEl = document.getElementById('product-hd-video');
@@ -2096,10 +2192,7 @@
         }
 
         function restartVideo() {
-            videoProgress = 0;
-            currentStageIndex = -1;
-            const videoEl = document.getElementById('product-hd-video');
-            if (videoEl) videoEl.currentTime = 0;
+            replayDemo();
         }
 
         function toggleVoiceover() {
