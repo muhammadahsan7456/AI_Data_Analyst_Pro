@@ -45,9 +45,16 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(admin_bp)
 
 
+import gzip
+import io
+
 # Request-Level High Speed Context Caching & 1-Hour Inactivity Session Timeout
 @app.before_request
 def load_user_context():
+    # Bypass DB overhead for static files & favicons
+    if request.path.startswith("/static/") or request.path == "/favicon.ico":
+        return
+
     user_id = session.get("user_id")
     g.current_user = None
     g.user_settings = None
@@ -102,7 +109,7 @@ def datetime_12hr_filter(val):
     return format_12hr_datetime(val)
 
 
-# High Speed HTTP Performance & Static Asset Caching Headers
+# High Speed Gzip Response Compression & HTTP Performance Caching Headers
 @app.after_request
 def add_performance_headers(response):
     if request.path.startswith("/static/"):
@@ -114,9 +121,36 @@ def add_performance_headers(response):
 
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
+
+    # Transparent Gzip Compression for HTML, CSS, JS, JSON (> 500 bytes)
+    accept_encoding = request.headers.get("Accept-Encoding", "").lower()
+    if (
+        "gzip" in accept_encoding and
+        response.status_code == 200 and
+        not response.direct_passthrough and
+        response.content_length is not None and
+        response.content_length > 500 and
+        "Content-Encoding" not in response.headers
+    ):
+        try:
+            gzip_buffer = io.BytesIO()
+            with gzip.GzipFile(mode="wb", fileobj=gzip_buffer, compresslevel=6) as gz:
+                gz.write(response.get_data())
+            response.set_data(gzip_buffer.getvalue())
+            response.headers["Content-Encoding"] = "gzip"
+            response.headers["Content-Length"] = len(response.get_data())
+            response.headers["Vary"] = "Accept-Encoding"
+        except Exception:
+            pass
+
     return response
 
 
 if __name__ == "__main__":
-    print("🚀 Starting AI Data Analyst Pro High Performance Server on http://127.0.0.1:5000 ...")
-    app.run(debug=True, port=5000)
+    port = int(os.getenv("PORT", 5000))
+    print(f"🚀 Starting AI Data Analyst Pro High Performance Server on http://127.0.0.1:{port} ...")
+    try:
+        from waitress import serve
+        serve(app, host="127.0.0.1", port=port, threads=16)
+    except Exception:
+        app.run(debug=True, port=port)
