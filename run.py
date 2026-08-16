@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 # Auto-detect & add local .venv site-packages if executed via global python interpreter
 venv_site_packages = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".venv", "Lib", "site-packages")
@@ -25,10 +26,14 @@ try:
 except Exception as err:
     print("Database init notice:", err)
 
+from datetime import timedelta
+from flask import Flask, session, g, request, redirect, url_for, flash
+
 app = Flask(__name__)
 
-# Configure Secret Key for Sessions
+# Configure Secret Key for Sessions & 1-Hour Permanent Lifetime
 app.secret_key = os.getenv("SECRET_KEY", "super-secret-enterprise-key-ai-analyst-2026")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
 # Set 500 MB Maximum Upload Size Limit
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
@@ -38,7 +43,7 @@ app.register_blueprint(frontend)
 app.register_blueprint(auth_bp, url_prefix="/auth")
 
 
-# Request-Level High Speed Context Caching
+# Request-Level High Speed Context Caching & 1-Hour Inactivity Session Timeout
 @app.before_request
 def load_user_context():
     user_id = session.get("user_id")
@@ -46,6 +51,16 @@ def load_user_context():
     g.user_settings = None
 
     if user_id:
+        # Enforce 1-Hour (3,600 Seconds) Inactivity Security Timeout
+        now_ts = int(time.time())
+        last_act = session.get("last_activity")
+        if last_act and (now_ts - last_act > 3600):
+            session.clear()
+            flash("Your session has expired due to 1 hour of inactivity. Please log in again to continue safely.", "warning")
+            return redirect(url_for("auth.login"))
+
+        session["last_activity"] = now_ts
+
         try:
             with get_db_cursor() as cursor:
                 cursor.execute(get_user_by_id(), (user_id,))
