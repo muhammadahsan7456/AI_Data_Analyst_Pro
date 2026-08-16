@@ -307,6 +307,24 @@ def is_out_of_domain_question(question: str, columns_list: list) -> bool:
     return True
 
 
+def find_primary_key_column(columns_list: list) -> str:
+    """
+    Find best primary key / serial column (RecordID, Sr, S.No, ID, etc.) for deterministic ordering.
+    """
+    if not columns_list:
+        return ""
+    id_candidates = ["sr", "sr.", "s.no", "recordid", "id", "order_id", "order_reference", "sn", "s_no", "consignment", "consignment_id"]
+    for candidate in id_candidates:
+        for col in columns_list:
+            cleaned = col.lower().strip().replace("_", "").replace(".", "")
+            if cleaned == candidate or col.lower().strip() == candidate:
+                return col
+    for col in columns_list:
+        if col.lower().endswith("id") or col.lower().startswith("id"):
+            return col
+    return columns_list[0]
+
+
 def fast_pattern_sql_generator(question: str, table_name: str, columns_list: list) -> str:
     """
     Sub-second (0.01s) Local T-SQL Rule Engine with strict pattern matching and intelligent column sorting.
@@ -314,37 +332,48 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     question_norm = normalize_speech_phonetics(question)
     q_lower = question_norm.lower().strip()
     safe_tbl = sanitize_identifier(table_name)
+    primary_pk_col = find_primary_key_column(columns_list)
+    safe_pk = sanitize_identifier(primary_pk_col) if primary_pk_col else ""
 
     # 0. Instant "Show data" / "All data" / "Display rows" / "Get dataset"
     if re.search(r"^\s*(show|get|fetch|display|view|list)\s+(data|dataset|table|records|rows|all)\s*$", q_lower) or q_lower in ["show data", "all data", "get data", "data", "records"]:
+        if safe_pk:
+            return f"SELECT TOP 100 * FROM {safe_tbl} ORDER BY {safe_pk} ASC;"
         return f"SELECT TOP 100 * FROM {safe_tbl};"
 
     # 1. "Count total records" / "Total rows" / "Kitni rows hain"
     if re.search(r"\b(count|total|how many|kitni|kitne)\b.*\b(records|rows|data|entries|ross|raws|rose)\b", q_lower):
         return f"SELECT COUNT(*) AS [TotalRecords] FROM {safe_tbl};"
 
-    # 2. Strict "Top N records" / "Show N rows" (Ignore years like 2024 or prices)
-    top_match = re.search(r"\b(?:top|first|highest|lowest|show|get|fetch|display)\s+(\d{1,3})\b", q_lower)
+    # 2. Check for "Last N" / "Aakhri N" / "Bottom N" / "End N"
+    is_last_request = any(kw in q_lower for kw in ["last", "bottom", "aakhri", "aakhiri", "akhri", "end ke", "niche ke"])
+
+    # 3. Strict "Top N records" / "Show N rows" / "Last N rows"
+    top_match = re.search(r"\b(?:top|first|highest|lowest|last|bottom|show|get|fetch|display)\s+(\d{1,3})\b", q_lower)
     if not top_match:
         top_match = re.search(r"\b(\d{1,3})\s+(?:records|rows|entries|data|items|ross|raws|rose)\b", q_lower)
 
     if top_match and top_match.group(1):
         limit_val = int(top_match.group(1))
         if 1 <= limit_val <= 1000:
-            # Check if query requests sorting by numeric columns (e.g. 'top 5 sales', 'top 10 revenue')
             sort_col = None
             for col in columns_list:
                 col_low = col.lower()
-                if any(kw in col_low for kw in ["sales", "revenue", "amount", "total", "price", "val", "cost", "profit"]):
-                    sort_col = col
-                    break
-            
-            if sort_col:
-                return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {sanitize_identifier(sort_col)} DESC;"
-            else:
-                return f"SELECT TOP {limit_val} * FROM {safe_tbl};"
+                if col_low != primary_pk_col.lower() and any(kw in col_low for kw in ["sales", "revenue", "amount", "price", "cost", "profit"]):
+                    if col_low in q_lower:
+                        sort_col = col
+                        break
 
-    # 3. 100% Exact Entity Matching across text columns
+            if sort_col:
+                direction = "ASC" if any(kw in q_lower for kw in ["lowest", "bottom", "kam", "least"]) else "DESC"
+                return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {sanitize_identifier(sort_col)} {direction};"
+            else:
+                if is_last_request:
+                    return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {safe_pk} DESC;"
+                else:
+                    return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {safe_pk} ASC;"
+
+    # 4. 100% Exact Entity Matching across text columns
     target_entity = extract_entity_phrase(question_norm)
     if target_entity:
         matched_text_cols = []
