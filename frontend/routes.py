@@ -146,6 +146,9 @@ def home():
 @login_required
 @viewer_allowed
 def dashboard():
+    if session.get("user_role") in ["SuperAdmin", "Admin"]:
+        return redirect(url_for("admin.dashboard"))
+
     user_id = session.get("user_id")
     search_query = request.args.get("q", "").strip()
     sort_by = request.args.get("sort", "UploadDate").strip()

@@ -145,15 +145,15 @@
                 <tbody>
                     {% for u in recent_users %}
                     <tr>
-                        <td style="font-weight: 600; color: var(--text-primary);">{{ u[4] or u[3] }}</td>
-                        <td style="color: var(--text-secondary);">{{ u[5] }}</td>
+                        <td style="font-weight: 600; color: var(--text-primary);">{{ u.full_name }}</td>
+                        <td style="color: var(--text-secondary);">{{ u.email }}</td>
                         <td>
-                            <span class="badge-role {% if u[12] == 'SuperAdmin' %}badge-superadmin{% elif u[12] == 'Analyst' %}badge-analyst{% else %}badge-user{% endif %}">
-                                {{ u[12] }}
+                            <span class="badge-role {% if u.role == 'SuperAdmin' %}badge-superadmin{% elif u.role == 'Analyst' %}badge-analyst{% else %}badge-user{% endif %}">
+                                {{ u.role }}
                             </span>
                         </td>
                         <td>
-                            {% if u[10] %}
+                            {% if u.is_active %}
                             <span class="badge-status badge-active"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Active</span>
                             {% else %}
                             <span class="badge-status badge-suspended"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Suspended</span>
@@ -185,25 +185,25 @@
                     <tr>
                         <th>User</th>
                         <th>Amount</th>
-                        <th>Method</th>
                         <th>Status</th>
+                        <th>Date</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for p in recent_payments %}
                     <tr>
-                        <td style="font-weight: 600; color: var(--text-primary);">{{ p[2] or "User #" ~ p[1] }}</td>
-                        <td style="font-weight: 700; color: var(--accent-green);">${{ "%.2f"|format(p[4] or 0.0) }}</td>
-                        <td style="color: var(--text-secondary); font-size: 13px;">{{ p[6] }}</td>
+                        <td style="font-weight: 600; color: var(--text-primary);">{{ p.user_name }}</td>
+                        <td style="font-weight: 700; color: var(--accent-green);">${{ "%.2f"|format(p.amount) }}</td>
                         <td>
-                            {% if p[8] == 'Completed' %}
+                            {% if p.status == 'Completed' %}
                             <span class="badge-status badge-active">Completed</span>
-                            {% elif p[8] == 'Pending' %}
+                            {% elif p.status == 'Pending' %}
                             <span class="badge-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Pending</span>
                             {% else %}
-                            <span class="badge-status badge-suspended">{{ p[8] }}</span>
+                            <span class="badge-status badge-suspended">{{ p.status }}</span>
                             {% endif %}
                         </td>
+                        <td style="color: var(--text-muted); font-size: 12px;">{{ p.payment_date }}</td>
                     </tr>
                     {% else %}
                     <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No payments recorded yet.</td></tr>
@@ -243,7 +243,7 @@
                     <td><strong style="color: var(--text-primary);">{{ log[2] }}</strong></td>
                     <td style="color: var(--text-secondary); font-size: 13px;">{{ log[3] }}</td>
                     <td style="font-family: monospace; color: var(--text-muted); font-size: 12px;">{{ log[4] or "127.0.0.1" }}</td>
-                    <td style="color: var(--text-muted); font-size: 12px;">{{ log[6] }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">{{ log[5] }}</td>
                 </tr>
                 {% else %}
                 <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No audit events recorded yet.</td></tr>

@@ -128,13 +128,29 @@ def dashboard():
 
             # Recent Users (Top 5)
             cursor.execute(get_all_users_admin())
-            all_u = cursor.fetchall()
-            recent_users = all_u[:5] if all_u else []
+            raw_u = cursor.fetchall() or []
+            recent_users = []
+            for u in raw_u[:5]:
+                recent_users.append({
+                    "full_name": u[4] or u[3],
+                    "email": u[5],
+                    "role": u[12],
+                    "is_active": u[10],
+                    "created_at": format_12hr_datetime(u[13])
+                })
 
             # Recent Payments (Top 5)
             cursor.execute(get_all_payments_admin())
-            all_p = cursor.fetchall()
-            recent_payments = all_p[:5] if all_p else []
+            raw_p = cursor.fetchall() or []
+            recent_payments = []
+            for p in raw_p[:5]:
+                recent_payments.append({
+                    "user_name": p[2] or f"User #{p[1]}",
+                    "amount": float(p[4] or 0.0),
+                    "payment_method": p[6],
+                    "status": p[8],
+                    "payment_date": format_12hr_datetime(p[10])
+                })
 
             # Recent Audit Logs (Top 8)
             cursor.execute(get_all_audit_logs_admin(limit=8))
@@ -175,11 +191,11 @@ def manage_users():
             raw_users = cursor.fetchall() or []
 
         for u in raw_users:
-            u_id, f_name, l_name, uname, full_name, email, phone, country, city, profile_img, is_active, is_verified, role, created_at = u
+            u_id, f_name, l_name, uname, full_name, email, phone, country, city, profile_img, is_active, is_verified, role, created_at, last_ip = u[0:15] if len(u) >= 15 else (*u[0:14], "127.0.0.1")
             
             # Apply Filters
             if search_query:
-                match_text = f"{full_name} {email} {uname} {country} {city}".lower()
+                match_text = f"{full_name} {email} {uname} {country} {city} {last_ip}".lower()
                 if search_query not in match_text:
                     continue
 
@@ -204,6 +220,7 @@ def manage_users():
                 "is_active": bool(is_active),
                 "is_verified": bool(is_verified),
                 "role": role,
+                "ip_address": last_ip or "127.0.0.1",
                 "created_at": format_12hr_datetime(created_at)
             })
     except Exception as e:
