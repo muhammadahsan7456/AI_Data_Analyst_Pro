@@ -108,9 +108,10 @@ def check_availability():
 
 
 # ==========================================
-# SIGNUP ROUTE
+# SIGNUP / REGISTER ROUTE
 # ==========================================
 @auth_bp.route("/signup", methods=["GET", "POST"])
+@auth_bp.route("/register", methods=["GET", "POST"])
 def signup():
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))

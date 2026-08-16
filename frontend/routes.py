@@ -131,13 +131,12 @@ except Exception:
 
 
 # ==========================================
-# HOME
+# PUBLIC MARKETING HOME LANDING PAGE (SEO OPTIMIZED)
 # ==========================================
 @frontend.route("/")
 def home():
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
-    return redirect(url_for("frontend.dashboard"))
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("index.html", is_logged_in=is_logged_in)
 
 
 # ==========================================
