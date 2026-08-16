@@ -1311,7 +1311,7 @@
                             <span style="color: var(--accent-green); font-weight: 600;"><i class="fa-solid fa-bolt"></i> 0.005 ms Sub-Second Execution</span>
                         </div>
 
-                        <!-- Data Table Output -->
+                        <!-- Data Table Output (Exact 10 Rows for SELECT TOP 10) -->
                         <div style="overflow-x: auto;">
                             <table class="sandbox-result-table" id="sandbox-table">
                                 <thead>
@@ -1325,30 +1325,16 @@
                                     </tr>
                                 </thead>
                                 <tbody id="sandbox-tbody">
-                                    <tr>
-                                        <td>1</td>
-                                        <td>772846926672</td>
-                                        <td>#7114</td>
-                                        <td>KHI</td>
-                                        <td>ATT</td>
-                                        <td>999 PKR</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2</td>
-                                        <td>772846926616</td>
-                                        <td>#7010</td>
-                                        <td>KHI</td>
-                                        <td>NFZ</td>
-                                        <td>900 PKR</td>
-                                    </tr>
-                                    <tr>
-                                        <td>3</td>
-                                        <td>772846926757</td>
-                                        <td>#7200</td>
-                                        <td>KHI</td>
-                                        <td>SKT</td>
-                                        <td>900 PKR</td>
-                                    </tr>
+                                    <tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
+                                    <tr><td>2</td><td>772846926616</td><td>#7010</td><td>KHI</td><td>NFZ</td><td>900 PKR</td></tr>
+                                    <tr><td>3</td><td>772846926757</td><td>#7200</td><td>KHI</td><td>SKT</td><td>900 PKR</td></tr>
+                                    <tr><td>4</td><td>772846926810</td><td>#7250</td><td>LHR</td><td>ISB</td><td>1,450 PKR</td></tr>
+                                    <tr><td>5</td><td>772846926942</td><td>#7310</td><td>KHI</td><td>PEW</td><td>2,100 PKR</td></tr>
+                                    <tr><td>6</td><td>772846927005</td><td>#7388</td><td>MUX</td><td>KHI</td><td>850 PKR</td></tr>
+                                    <tr><td>7</td><td>772846927119</td><td>#7420</td><td>ISB</td><td>LHR</td><td>3,200 PKR</td></tr>
+                                    <tr><td>8</td><td>772846927233</td><td>#7501</td><td>HYD</td><td>SKT</td><td>1,150 PKR</td></tr>
+                                    <tr><td>9</td><td>772846927340</td><td>#7590</td><td>PEW</td><td>ATT</td><td>750 PKR</td></tr>
+                                    <tr><td>10</td><td>772846927488</td><td>#7634</td><td>KHI</td><td>GUJ</td><td>1,800 PKR</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1698,10 +1684,17 @@
                     <tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
                     <tr><td>2</td><td>772846926616</td><td>#7010</td><td>KHI</td><td>NFZ</td><td>900 PKR</td></tr>
                     <tr><td>3</td><td>772846926757</td><td>#7200</td><td>KHI</td><td>SKT</td><td>900 PKR</td></tr>
+                    <tr><td>4</td><td>772846926810</td><td>#7250</td><td>LHR</td><td>ISB</td><td>1,450 PKR</td></tr>
+                    <tr><td>5</td><td>772846926942</td><td>#7310</td><td>KHI</td><td>PEW</td><td>2,100 PKR</td></tr>
+                    <tr><td>6</td><td>772846927005</td><td>#7388</td><td>MUX</td><td>KHI</td><td>850 PKR</td></tr>
+                    <tr><td>7</td><td>772846927119</td><td>#7420</td><td>ISB</td><td>LHR</td><td>3,200 PKR</td></tr>
+                    <tr><td>8</td><td>772846927233</td><td>#7501</td><td>HYD</td><td>SKT</td><td>1,150 PKR</td></tr>
+                    <tr><td>9</td><td>772846927340</td><td>#7590</td><td>PEW</td><td>ATT</td><td>750 PKR</td></tr>
+                    <tr><td>10</td><td>772846927488</td><td>#7634</td><td>KHI</td><td>GUJ</td><td>1,800 PKR</td></tr>
                 `;
                 takeawayText.innerHTML = `
                     📊 <strong>Data Scope</strong>: Retrieved top 10 matching records sorted deterministically by primary serial column [Sr] ASC.<br>
-                    💡 <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 100% of initial booking volume.<br>
+                    💡 <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 60% of initial booking volume.<br>
                     📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory allocation in primary logistics hubs.
                 `;
             } else if (type === 'count') {
@@ -1717,8 +1710,11 @@
             } else if (type === 'last') {
                 sqlElem.innerText = 'SELECT TOP 5 * FROM [Sales_Orders] ORDER BY [Sr] DESC;';
                 tbody.innerHTML = `
-                    <tr><td>10000000</td><td>772846999999</td><td>#99999</td><td>LHR</td><td>ISB</td><td>5500 PKR</td></tr>
-                    <tr><td>9999999</td><td>772846999998</td><td>#99998</td><td>KHI</td><td>PEW</td><td>4200 PKR</td></tr>
+                    <tr><td>10000000</td><td>772846999999</td><td>#99999</td><td>LHR</td><td>ISB</td><td>5,500 PKR</td></tr>
+                    <tr><td>9999999</td><td>772846999998</td><td>#99998</td><td>KHI</td><td>PEW</td><td>4,200 PKR</td></tr>
+                    <tr><td>9999998</td><td>772846999997</td><td>#99997</td><td>MUX</td><td>SKT</td><td>3,100 PKR</td></tr>
+                    <tr><td>9999997</td><td>772846999996</td><td>#99996</td><td>ISB</td><td>KHI</td><td>2,800 PKR</td></tr>
+                    <tr><td>9999996</td><td>772846999995</td><td>#99995</td><td>PEW</td><td>LHR</td><td>1,950 PKR</td></tr>
                 `;
                 takeawayText.innerHTML = `
                     📊 <strong>Recent Entries</strong>: Retrieved latest 5 dataset bookings ordered by primary key [Sr] DESC.<br>
@@ -1736,24 +1732,31 @@
                     📈 <strong>Strategic Action</strong>: Incentive bundled checkout orders to drive average order size above 1,200 PKR.
                 `;
             } else if (type === 'join') {
-                sqlElem.innerText = 'SELECT A.Consignment, A.COD_Value, B.Status FROM [Jan_Sales] A INNER JOIN [Feb_Sales] B ON A.Consignment = B.Consignment;';
+                sqlElem.innerText = 'SELECT TOP 5 A.Consignment, A.COD_Value, B.Status, A.Origin, A.Destination, \'Matched\' AS MatchType FROM [Jan_Sales] A INNER JOIN [Feb_Sales] B ON A.Consignment = B.Consignment;';
                 tbody.innerHTML = `
                     <tr><td>772846926672</td><td>999 PKR</td><td>Delivered</td><td>KHI</td><td>ATT</td><td>Matched Row</td></tr>
                     <tr><td>772846926616</td><td>900 PKR</td><td>In Transit</td><td>KHI</td><td>NFZ</td><td>Matched Row</td></tr>
+                    <tr><td>772846926757</td><td>900 PKR</td><td>Delivered</td><td>KHI</td><td>SKT</td><td>Matched Row</td></tr>
+                    <tr><td>772846926810</td><td>1,450 PKR</td><td>Dispatched</td><td>LHR</td><td>ISB</td><td>Matched Row</td></tr>
+                    <tr><td>772846926942</td><td>2,100 PKR</td><td>Delivered</td><td>KHI</td><td>PEW</td><td>Matched Row</td></tr>
                 `;
                 takeawayText.innerHTML = `
                     📊 <strong>Multi-Dataset Join</strong>: Blended Jan Sales and Feb Sales using INNER JOIN on Consignment ID.<br>
-                    💡 <strong>Key Insight</strong>: Discovered 100% record match with real-time delivery status updates.<br>
+                    💡 <strong>Key Insight</strong>: Discovered 100% record match across top 5 consignments with real-time delivery status.<br>
                     📈 <strong>Strategic Action</strong>: Automate cross-month customer reconciliation reports.
                 `;
             } else if (type === 'urdu') {
-                sqlElem.innerText = "SELECT * FROM [Sales_Orders] WHERE [Origin] = 'KHI' AND [Destination] = 'ATT';";
+                sqlElem.innerText = "SELECT TOP 5 * FROM [Sales_Orders] WHERE [Origin] = 'KHI' AND [Destination] = 'ATT';";
                 tbody.innerHTML = `
                     <tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
+                    <tr><td>104</td><td>772846927811</td><td>#8020</td><td>KHI</td><td>ATT</td><td>1,250 PKR</td></tr>
+                    <tr><td>512</td><td>772846931005</td><td>#9140</td><td>KHI</td><td>ATT</td><td>2,400 PKR</td></tr>
+                    <tr><td>1290</td><td>772846942918</td><td>#11005</td><td>KHI</td><td>ATT</td><td>890 PKR</td></tr>
+                    <tr><td>4501</td><td>772846985020</td><td>#24190</td><td>KHI</td><td>ATT</td><td>1,750 PKR</td></tr>
                 `;
                 takeawayText.innerHTML = `
                     🎙️ <strong>Voice Prompt ("Karachi se Attock orders")</strong>: Auto-parsed Roman Urdu voice input into T-SQL filter.<br>
-                    💡 <strong>Key Insight</strong>: Successfully filtered shipments originating in Karachi bound for Attock.<br>
+                    💡 <strong>Key Insight</strong>: Successfully filtered 5 shipments originating in Karachi bound for Attock.<br>
                     📈 <strong>Strategic Action</strong>: Enable hands-free mobile voice analytics for field logistics managers.
                 `;
             }
