@@ -147,8 +147,13 @@ def add_performance_headers(response):
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     port = int(os.getenv("PORT", 5000))
-    print(f"🚀 Starting AI Data Analyst Pro High Performance Server on http://127.0.0.1:{port} ...")
+    print(f"[SERVER] Starting AI Data Analyst Pro High Performance Server on http://127.0.0.1:{port} ...")
     try:
         from waitress import serve
         serve(app, host="127.0.0.1", port=port, threads=16)

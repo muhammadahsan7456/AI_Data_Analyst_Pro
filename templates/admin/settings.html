@@ -233,7 +233,7 @@
                 <div style="flex: 1;">
                     <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                         Enable Site-Wide Banner
-                        <span id="ann_status_badge" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; {% if announcement.enabled %}background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.4);{% else %}background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);{% endif %}">
+                        <span id="ann_status_badge" {% if announcement.enabled %}style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.4);"{% else %}style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);"{% endif %}>
                             {% if announcement.enabled %}ACTIVE{% else %}INACTIVE{% endif %}
                         </span>
                     </div>

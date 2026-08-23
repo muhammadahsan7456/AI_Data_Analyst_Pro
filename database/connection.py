@@ -17,6 +17,60 @@ except ImportError:
     pyodbc = None
 
 
+def adapt_tsql_for_sqlite(query: str) -> str:
+    """
+    Safely transform Microsoft T-SQL syntax to SQLite syntax.
+    Handles DATEADD, GETDATE(), ISNULL(), and SELECT TOP N -> LIMIT N without syntax errors.
+    """
+    if not query or not isinstance(query, str):
+        return query
+
+    s = query.strip()
+
+    def replace_dateadd(match):
+        unit = match.group(1).lower()
+        num = match.group(2).strip()
+        if unit in ("day", "days", "dd", "d"):
+            unit_str = "days"
+        elif unit in ("minute", "minutes", "mi", "n"):
+            unit_str = "minutes"
+        elif unit in ("hour", "hours", "hh"):
+            unit_str = "hours"
+        elif unit in ("month", "months", "mm", "m"):
+            unit_str = "months"
+        elif unit in ("second", "seconds", "ss", "s"):
+            unit_str = "seconds"
+        elif unit in ("year", "years", "yy", "yyyy"):
+            unit_str = "years"
+        else:
+            unit_str = "days"
+
+        if num.startswith("-"):
+            return f"datetime('now', '{num} {unit_str}')"
+        else:
+            return f"datetime('now', '+{num} {unit_str}')"
+
+    s = re.sub(r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(?:GETDATE\(\)|CURRENT_TIMESTAMP)\s*\)", replace_dateadd, s, flags=re.IGNORECASE)
+    s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
+    s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
+    s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
+
+    # Transform SELECT TOP N ... -> SELECT ... LIMIT N
+    top_match = re.search(r"\bSELECT\s+TOP\s+\(?(\d+)\)?\s+", s, flags=re.IGNORECASE)
+    if top_match:
+        limit_val = top_match.group(1)
+        # Remove SELECT TOP N
+        s = re.sub(r"\bSELECT\s+TOP\s+\(?\d+\)?\s+", "SELECT ", s, count=1, flags=re.IGNORECASE).strip()
+        # Append LIMIT N before trailing semicolon or at end
+        if not re.search(r"\bLIMIT\s+\d+\b", s, re.IGNORECASE):
+            if s.endswith(";"):
+                s = s[:-1].strip() + f" LIMIT {limit_val};"
+            else:
+                s = s + f" LIMIT {limit_val}"
+
+    return s
+
+
 class SQLiteCursorAdapter:
     def __init__(self, cursor):
         self._cursor = cursor
@@ -25,43 +79,15 @@ class SQLiteCursorAdapter:
     def execute(self, sql, params=()):
         s = str(sql)
 
-        def replace_dateadd(match):
-            unit = match.group(1).lower()
-            num = match.group(2).strip()
-            if unit in ("day", "days", "dd", "d"):
-                unit_str = "days"
-            elif unit in ("minute", "minutes", "mi", "n"):
-                unit_str = "minutes"
-            elif unit in ("hour", "hours", "hh"):
-                unit_str = "hours"
-            elif unit in ("month", "months", "mm", "m"):
-                unit_str = "months"
-            elif unit in ("second", "seconds", "ss", "s"):
-                unit_str = "seconds"
-            elif unit in ("year", "years", "yy", "yyyy"):
-                unit_str = "years"
-            else:
-                unit_str = "days"
-
-            if num.startswith("-"):
-                return f"datetime('now', '{num} {unit_str}')"
-            else:
-                return f"datetime('now', '+{num} {unit_str}')"
-
-        s = re.sub(r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(?:GETDATE\(\)|CURRENT_TIMESTAMP)\s*\)", replace_dateadd, s, flags=re.IGNORECASE)
-        s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
-        s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
-        s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
-
-        top_match = re.search(r"SELECT\s+TOP\s+\(?(\d+)\)?\s+(.*)", s, flags=re.IGNORECASE | re.DOTALL)
-        if top_match:
-            limit_val = top_match.group(1)
-            rest_sql = top_match.group(2)
-            s = f"SELECT {rest_sql.strip()} LIMIT {limit_val}"
-
+        s = adapt_tsql_for_sqlite(s)
         self._cursor.execute(s, params or ())
         if self._cursor.lastrowid:
             self.last_inserted_id = self._cursor.lastrowid
+        return self
+
+    def executemany(self, sql, seq_of_parameters=()):
+        s = adapt_tsql_for_sqlite(str(sql))
+        self._cursor.executemany(s, seq_of_parameters or ())
         return self
 
     def fetchone(self):
@@ -90,6 +116,12 @@ class SQLiteConnectionAdapter:
             db_path = os.path.join(os.path.dirname(__file__), "AI_Data_Analyst_Pro_cloud.db")
         self.db_path = db_path
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        try:
+            self.conn.execute("PRAGMA synchronous = OFF;")
+            self.conn.execute("PRAGMA journal_mode = WAL;")
+            self.conn.execute("PRAGMA temp_store = MEMORY;")
+        except Exception:
+            pass
 
     def cursor(self):
         return SQLiteCursorAdapter(self.conn.cursor())
@@ -310,6 +342,19 @@ def init_sqlite_db(conn):
             MetadataJson TEXT,
             IsRead INTEGER DEFAULT 0,
             CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS Payments (
+            PaymentID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            Amount REAL NOT NULL DEFAULT 85.00,
+            Currency TEXT DEFAULT 'USD',
+            PaymentMethod TEXT DEFAULT 'Easypaisa',
+            TransactionID TEXT NULL,
+            Status TEXT NOT NULL DEFAULT 'Pending',
+            PlanName TEXT DEFAULT 'Enterprise Plan ($85/mo)',
+            ScreenshotPath TEXT NULL,
+            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            SubscriptionEndDate TEXT NULL
         )'''
     ]
 
@@ -319,17 +364,33 @@ def init_sqlite_db(conn):
         except Exception as e:
             print("SQLite Table Creation Notice:", e)
 
+    try:
+        cursor.execute("PRAGMA table_info(Payments)")
+        p_cols = [r[1] for r in cursor.fetchall()]
+        if "ScreenshotPath" not in p_cols:
+            cursor.execute("ALTER TABLE Payments ADD COLUMN ScreenshotPath TEXT NULL")
+    except Exception:
+        pass
+
     conn.commit()
 
+
+_db_initialized = False
 
 def init_db():
     """
     Automatically create missing core system tables, enterprise auth columns, and non-clustered performance indexes.
     """
+    global _db_initialized
+    if _db_initialized:
+        return
+    _db_initialized = True
+
     conn = get_connection()
     if isinstance(conn, SQLiteConnectionAdapter):
         init_sqlite_db(conn)
         validate_smtp_config()
+        seed_super_admin()
         return
 
     query = """
@@ -547,6 +608,11 @@ def init_db():
         ALTER TABLE PasswordResetTokens ADD UsedAt DATETIME2 NULL;
     END;
 
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ScreenshotPath')
+    BEGIN
+        ALTER TABLE Payments ADD ScreenshotPath NVARCHAR(500) NULL;
+    END;
+
     -- CREATE HIGH PERFORMANCE NON-CLUSTERED INDEXES
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Datasets_UserID_UploadDate' AND object_id = OBJECT_ID('Datasets'))
     BEGIN
@@ -585,13 +651,10 @@ def init_db():
         print("Init DB Notice:", err)
 
     validate_smtp_config()
+    seed_super_admin()
 
-    try:
-        import threading
-        from utils.encryption_migration import migrate_and_encrypt_existing_tables
-        threading.Thread(target=migrate_and_encrypt_existing_tables, daemon=True).start()
-    except Exception as mig_err:
-        print("Encryption Migration Thread Notice:", mig_err)
+    # Table value encryption disabled to ensure 100% C-speed SQL filtering and query compatibility for Ask AI
+    pass
 
 
 def validate_smtp_config():
@@ -666,12 +729,7 @@ def seed_super_admin():
         print("Seed Super Admin Notice:", err)
 
 
-# Auto-run table initialization on module load
-try:
-    init_db()
-    seed_super_admin()
-except Exception:
-    pass
+
 
 
 def is_safe_identifier(identifier: str) -> bool:
@@ -705,7 +763,7 @@ def run_query(query: str, params: tuple = None) -> pd.DataFrame:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
             if isinstance(conn, SQLiteConnectionAdapter):
-                clean_q = re.sub(r"TOP\s+(\d+)", r"LIMIT \1", str(query), flags=re.IGNORECASE)
+                clean_q = adapt_tsql_for_sqlite(str(query))
                 if params:
                     df = pd.read_sql(clean_q, conn.conn, params=params)
                 else:

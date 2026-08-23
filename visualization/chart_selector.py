@@ -22,8 +22,8 @@ def select_chart(dataframe: pd.DataFrame) -> str:
             if converted.notna().mean() > 0.5:
                 df[col] = converted
 
-    # Exclude technical IDs from numeric list
-    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$"]
+    # Exclude technical IDs and row index/serial numbers from numeric metric list
+    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$", r"^sr$", r"^s\.no$", r"^s_no$", r"^sno$", r"^index$", r"^row_num$"]
     numeric_columns = [
         c for c in df.select_dtypes(include="number").columns
         if not any(re.match(p, str(c).lower().strip()) for p in id_patterns)

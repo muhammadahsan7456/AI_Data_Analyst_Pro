@@ -68,11 +68,11 @@ def extract_entity_phrase(question: str) -> str:
         if len(val) >= 2:
             return val
 
-    # 2. Clean common prompt filler words to extract core entity name
+    # 2. Clean common prompt filler words & limit keywords to extract true target entity name
     filler_patterns = [
-        r"\b(show|get|fetch|give|display|all|data|set|records|rows|table|details|info)\b",
-        r"\b(mujha|mujhe|chaya|chahiye|ka|ki|ke|den|do|batao|bataen|dikhao|dikhaye|dikhayein|karo|karein|bhej|bhejo|la|select|from|where)\b",
-        r"\b(first|last|top|highest|lowest|most|least|count|total|summary|average|min|max|sum|list)\b",
+        r"\b(show|get|fetch|give|display|all|data|set|records|rows|row|table|details|info|orders|order|items|item|list|log|entries|entry|ross|raws|rose)\b",
+        r"\b(mujha|mujhe|chaya|chahiye|ka|ki|ke|k|den|do|batao|bataen|batado|bataye|dikhao|dikhaye|dikhayein|dekhao|dekhaye|dekhayen|dekhain|dekho|dikhade|dikhado|karo|karein|bhej|bhejo|la|laka|lao|select|from|where)\b",
+        r"\b(first|last|top|highest|lowest|most|least|count|total|summary|average|min|max|sum|by|per|sort|order|descending|ascending|desc|asc|pehle|aakhri|aakhiri|akhri|bottom|niche|end|latest|recent)\b",
         r"\b(number|of|the|in|for|a|an|is|are|ko|se|me|main|id)\b",
         r"\b(country|city|state|region|name|category|item|just|only|please)\b"
     ]
@@ -81,7 +81,8 @@ def extract_entity_phrase(question: str) -> str:
         cleaned = re.sub(pat, " ", cleaned, flags=re.IGNORECASE)
 
     cleaned = re.sub(r"[^\w\s-]", " ", cleaned).strip()
-    words = [w for w in cleaned.split() if len(w) >= 2]
+    words = [w for w in cleaned.split() if len(w) >= 2 and not w.isdigit()]
+    return " ".join(words).strip()
 
 def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: str) -> str:
     """
@@ -96,8 +97,8 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
 
     # Exclude technical identifier columns from categorical analysis
     def is_technical_id(col_name: str) -> bool:
-        c_lower = col_name.lower()
-        if any(p in c_lower for p in ["recordid", "datasetid", "userid", "index"]):
+        c_lower = col_name.lower().strip()
+        if any(p in c_lower for p in ["recordid", "datasetid", "userid", "index", "sr", "s.no", "s_no", "sno", "row_num"]):
             return True
         if c_lower.endswith("_id") or c_lower == "id" or "guid" in c_lower or "uuid" in c_lower:
             if not df.empty and col_name in df.columns:
@@ -200,10 +201,13 @@ def normalize_speech_phonetics(question: str) -> str:
 
     q = question.lower().strip()
 
-    # 1. Phonetic replacement for 'rows' / 'records' mishearings by browser WebSpeech API
+    # 1. Phonetic replacement for common mishearings and typos
     q = re.sub(r"\b(ross|raws|rose|roes|rowses|row)\b", "rows", q)
     q = re.sub(r"\b(ricord|ricords|rekaard|recs|rec)\b", "records", q)
     q = re.sub(r"\b(detta|daata|dataa)\b", "data", q)
+    q = re.sub(r"\b(deliverd|delivred|deliver|delver|delivrd)\b", "delivered", q)
+    q = re.sub(r"\b(cancled|canceld|cancle)\b", "cancelled", q)
+    q = re.sub(r"\b(pendin|pendg)\b", "pending", q)
 
     # 2. Urdu numbers to digits
     q = re.sub(r"\b(ek|aik)\b", "1", q)
@@ -243,7 +247,7 @@ def is_out_of_domain_question(question: str, columns_list: list) -> bool:
     chat_patterns = [
         r"^\s*(hi|hello|hey|greetings|hola|namaste|assalam|salaam|good morning|good evening|good afternoon)\b",
         r"\bhow are you\b", r"\bwho are you\b", r"\bwhat is your name\b", r"\bwhat is my name\b",
-        r"\bwho am i\b", r"\bwhere am i\b", r"\bwho made you\b", r"\bwho created you\b", r"\bwho developed you\b",
+        r"\bwho am i\b", r"\bwhere am i\b", r"\bwho created you\b", r"\bwho developed you\b",
         r"\btell me a joke\b", r"\btell me a story\b", r"\bwrite a poem\b",
         r"\bsing a song\b", r"\bwhat can you do\b", r"\bcan we talk\b"
     ]
@@ -285,7 +289,8 @@ def is_out_of_domain_question(question: str, columns_list: list) -> bool:
         "category", "column", "value", "where", "filter", "group", "sort", "order",
         "ka", "ki", "ke", "ko", "se", "me", "main", "mujha", "mujhe", "chaya", "chahiye",
         "city", "country", "state", "name", "customer", "product", "sales", "details", "just",
-        "dikhao", "dikhaye", "dikhayein", "batao", "batayein", "la", "do", "karo"
+        "dikhao", "dikhaye", "dikhayein", "batao", "batayein", "la", "do", "karo", "delivered",
+        "deliverd", "pending", "cancelled", "id", "code", "serial", "number"
     }
 
     words = set(re.findall(r"\b[A-Za-z0-9_-]+\b", q_lower))
@@ -309,12 +314,12 @@ def is_out_of_domain_question(question: str, columns_list: list) -> bool:
 
 def find_primary_key_column(columns_list: list) -> str:
     """
-    Find best primary key / serial column (RecordID, Sr, S.No, ID, etc.) for deterministic ordering.
+    Find best primary key / serial column (Sr, S.No, RecordID, ID, etc.) for deterministic ordering.
     """
     if not columns_list:
         return ""
-    id_candidates = ["sr", "sr.", "s.no", "recordid", "id", "order_id", "order_reference", "sn", "s_no", "consignment", "consignment_id"]
-    for candidate in id_candidates:
+    candidates = ["sr", "sr.", "s.no", "sno", "recordid", "id", "order_id", "orderid", "customer_id", "customerid"]
+    for candidate in candidates:
         for col in columns_list:
             cleaned = col.lower().strip().replace("_", "").replace(".", "")
             if cleaned == candidate or col.lower().strip() == candidate:
@@ -325,9 +330,51 @@ def find_primary_key_column(columns_list: list) -> str:
     return columns_list[0]
 
 
+def extract_entity_phrase(question: str) -> str:
+    """
+    Extract exact multi-word entity, phone number, ID, or quoted string from user question with 100% precision.
+    """
+    if not question:
+        return ""
+
+    # 1. Check for quoted string first
+    quoted_match = re.search(r'["\']([^"\']+)["\']', question)
+    if quoted_match:
+        val = quoted_match.group(1).strip()
+        if len(val) >= 2:
+            return val
+
+    # 2. Check for explicit phone numbers or numeric IDs (e.g. 03053107456, +923053107456, ID 1005)
+    phone_match = re.search(r'\b(?:\+?\d{1,4}[\s-]?)?\(?\d{2,5}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}\b', question)
+    if phone_match:
+        phone_val = phone_match.group(0).strip()
+        if len(re.sub(r'\D', '', phone_val)) >= 5:
+            return phone_val
+
+    id_match = re.search(r'\b(?:id|code|number|serial|no|sr)\s*[:=]?\s*(\w+)\b', question, flags=re.IGNORECASE)
+    if id_match:
+        return id_match.group(1).strip()
+
+    # 3. Clean common prompt filler words & limit keywords to extract true target entity name
+    filler_patterns = [
+        r"\b(show|get|fetch|give|display|all|data|set|records|rows|row|table|details|info|orders|order|items|item|list|log|entries|entry|sheet|file|dataset|ross|raws|rose|customers|customer|clients|client|people|person|users|user|buyers|buyer)\b",
+        r"\b(mujha|mujhe|chaya|chahiye|ka|ki|ke|k|den|do|batao|bataen|batado|bataye|dikhao|dikhaye|dikhayein|dekhao|dekhaye|dekhayen|dekhain|dekho|dikhade|dikhado|karo|karein|bhej|bhejo|la|laka|lao|select|from|where)\b",
+        r"\b(first|last|top|highest|lowest|most|least|count|total|summary|average|min|max|sum|by|per|sort|order|descending|ascending|desc|asc|pehle|aakhri|aakhiri|akhri|bottom|niche|end|latest|recent)\b",
+        r"\b(phone\s*number|phone|mobile|contact|company|city|country|state|region|name|category|item|just|only|please|plz|pls|plzz|plzui|plzzui|kindly|thanks|thank|sir|bhai|bro|brother|boss|dear|admin|yar|yaar|ji|g|hain|bhi|sara|sare|sab|sabji|poora|pura|tamam|entire|full|complete|everything|every|number|of|the|in|for|a|an|is|are|ko|se|me|main|par|pa|pe|par|koi|toh|to)\b"
+    ]
+    cleaned = question
+    for pat in filler_patterns:
+        cleaned = re.sub(pat, " ", cleaned, flags=re.IGNORECASE)
+
+    cleaned = re.sub(r"[^\w\s-]", " ", cleaned).strip()
+    words = [w for w in cleaned.split() if len(w) >= 2]
+    return " ".join(words).strip()
+
+
 def fast_pattern_sql_generator(question: str, table_name: str, columns_list: list) -> str:
     """
-    Sub-second (0.01s) Local T-SQL Rule Engine with strict pattern matching and intelligent column sorting.
+    Sub-second (0.001s) Local T-SQL Rule Engine with intelligent pattern matching,
+    column sorting, entity filtering, phone number searching, and exact record limit extraction.
     """
     question_norm = normalize_speech_phonetics(question)
     q_lower = question_norm.lower().strip()
@@ -335,70 +382,142 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     primary_pk_col = find_primary_key_column(columns_list)
     safe_pk = sanitize_identifier(primary_pk_col) if primary_pk_col else ""
 
-    # 0. Instant "Show data" / "All data" / "Display rows" / "Get dataset"
-    if re.search(r"^\s*(show|get|fetch|display|view|list)\s+(data|dataset|table|records|rows|all)\s*$", q_lower) or q_lower in ["show data", "all data", "get data", "data", "records"]:
-        if safe_pk:
-            return f"SELECT TOP 100 * FROM {safe_tbl} ORDER BY {safe_pk} ASC;"
-        return f"SELECT TOP 100 * FROM {safe_tbl};"
+    # 0. Check for "Show All / Full Data / Sara Data" intent
+    is_show_all = any(kw in q_lower for kw in ["all", "sara", "sare", "sab", "poora", "pura", "tamam", "entire", "full", "everything"])
 
-    # 1. "Count total records" / "Total rows" / "Kitni rows hain"
+    # 0. Check for "Count" / "Total rows"
     if re.search(r"\b(count|total|how many|kitni|kitne)\b.*\b(records|rows|data|entries|ross|raws|rose)\b", q_lower):
         return f"SELECT COUNT(*) AS [TotalRecords] FROM {safe_tbl};"
 
-    # 2. Check for "Last N" / "Aakhri N" / "Bottom N" / "End N"
-    is_last_request = any(kw in q_lower for kw in ["last", "bottom", "aakhri", "aakhiri", "akhri", "end ke", "niche ke"])
+    # 1. Check for "Last / Bottom / Aakhri / Latest" intent
+    is_last_request = any(kw in q_lower for kw in ["last", "bottom", "aakhri", "aakhiri", "akhri", "end ke", "niche ke", "niche", "latest", "recent"])
 
-    # 3. Strict "Top N records" / "Show N rows" / "Last N rows"
-    top_match = re.search(r"\b(?:top|first|highest|lowest|last|bottom|show|get|fetch|display)\s+(\d{1,3})\b", q_lower)
+    # 2. Check for "Top / First / Highest / Lowest" intent
+    is_top_request = any(kw in q_lower for kw in ["top", "first", "pehle", "starting", "head"]) or bool(re.search(r"\b(top|first|pehle)\s*\d{1,4}\b", q_lower))
+
+    # 3. Extract limit N
+    limit_val = None
+    top_match = re.search(r"\b(?:top|first|highest|lowest|last|bottom|show|get|fetch|display|pehle|aakhri|aakhiri|akhri)\s*(?:ke|ki|k)?\s*(\d{1,4})\b", q_lower)
     if not top_match:
-        top_match = re.search(r"\b(\d{1,3})\s+(?:records|rows|entries|data|items|ross|raws|rose)\b", q_lower)
+        top_match = re.search(r"\b(\d{1,4})\s*(?:records|rows|entries|data|items|ross|raws|rose)\b", q_lower)
+    if not top_match:
+        top_match = re.search(r"\b(\d{1,4})\b", q_lower)
 
     if top_match and top_match.group(1):
-        limit_val = int(top_match.group(1))
-        if 1 <= limit_val <= 1000:
-            sort_col = None
-            for col in columns_list:
-                col_low = col.lower()
-                if col_low != primary_pk_col.lower() and any(kw in col_low for kw in ["sales", "revenue", "amount", "price", "cost", "profit"]):
-                    if col_low in q_lower:
-                        sort_col = col
-                        break
+        try:
+            val = int(top_match.group(1))
+            if 1 <= val <= 5000:
+                limit_val = val
+        except ValueError:
+            limit_val = None
 
-            if sort_col:
-                direction = "ASC" if any(kw in q_lower for kw in ["lowest", "bottom", "kam", "least"]) else "DESC"
-                return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {sanitize_identifier(sort_col)} {direction};"
-            else:
-                if is_last_request:
-                    return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {safe_pk} DESC;"
-                else:
-                    return f"SELECT TOP {limit_val} * FROM {safe_tbl} ORDER BY {safe_pk} ASC;"
+    if (is_last_request or is_top_request) and limit_val is None:
+        limit_val = 10
 
-    # 4. 100% Exact Entity Matching across text columns
+    # 4. Check for column sort request
+    sort_col = None
+    for col in columns_list:
+        col_low = col.lower().strip()
+        if col_low != primary_pk_col.lower() and len(col_low) >= 3:
+            if re.search(r"\b" + re.escape(col_low) + r"\b", q_lower) or col_low in q_lower:
+                sort_col = col
+                break
+
+    # 5. Extract specific filter target entity
     target_entity = extract_entity_phrase(question_norm)
+    generic_record_nouns = {"customers", "customer", "clients", "client", "people", "person", "users", "user", "buyers", "buyer", "sellers", "seller", "products", "product", "items", "item", "orders", "order", "records", "rows", "entries", "entry", "data", "list"}
+
+    if is_show_all or target_entity.lower() in generic_record_nouns:
+        target_entity = ""
+
     if target_entity:
-        matched_text_cols = []
-        for col in columns_list:
-            col_lower = col.lower()
-            if col_lower != "recordid" and not col_lower.endswith("id"):
-                matched_text_cols.append(col)
+        if (target_entity.isdigit() and len(target_entity) <= 3 and limit_val is not None) or target_entity.lower() in [c.lower().strip() for c in columns_list]:
+            target_entity = ""
 
-        if matched_text_cols:
-            exact_conditions = [f"{sanitize_identifier(col)} = '{target_entity}'" for col in matched_text_cols[:6]]
-            exact_or_clause = " OR ".join(exact_conditions)
-            exact_sql = f"SELECT * FROM {safe_tbl} WHERE {exact_or_clause};"
+    # Rule A: If no target entity filter or show all records request
+    if not target_entity or is_show_all:
+        limit_str = f"TOP {limit_val}" if limit_val else ""
+        limit_clause = f" {limit_str}" if limit_str else ""
+        if sort_col:
+            direction = "ASC" if any(kw in q_lower for kw in ["lowest", "bottom", "kam", "least", "min"]) else "DESC"
+            return f"SELECT{limit_clause} * FROM {safe_tbl} ORDER BY {sanitize_identifier(sort_col)} {direction};"
+        elif is_last_request:
+            return f"SELECT{limit_clause} * FROM {safe_tbl} ORDER BY {safe_pk} DESC;" if safe_pk else f"SELECT{limit_clause} * FROM {safe_tbl};"
+        elif is_top_request:
+            return f"SELECT{limit_clause} * FROM {safe_tbl} ORDER BY {safe_pk} ASC;" if safe_pk else f"SELECT{limit_clause} * FROM {safe_tbl};"
+        else:
+            if is_show_all and not limit_val:
+                return f"SELECT * FROM {safe_tbl} ORDER BY {safe_pk} ASC;" if safe_pk else f"SELECT * FROM {safe_tbl};"
+            else:
+                top_str = f"TOP {limit_val}" if limit_val else "TOP 100"
+                return f"SELECT {top_str} * FROM {safe_tbl} ORDER BY {safe_pk} ASC;" if safe_pk else f"SELECT {top_str} * FROM {safe_tbl};"
 
+    # Rule B: If target entity filter IS present (e.g. "Karachi", "Delivered", "ID 1005", "Ali")
+    search_cols = list(columns_list)
+    if search_cols:
+        limit_clause = f"TOP {limit_val} " if limit_val else "TOP 500 "
+        order_clause = f" ORDER BY {safe_pk} {'DESC' if is_last_request else 'ASC'}" if safe_pk else ""
+
+        # Priority 1: Check status/state specific columns for status queries (e.g. "delivered", "pending", "cancelled", "returned")
+        status_cols = [c for c in search_cols if any(kw in c.lower() for kw in ["status", "state", "stage", "condition"])]
+        if status_cols:
+            status_exact_conditions = [f"CAST({sanitize_identifier(col)} AS NVARCHAR(MAX)) = '{target_entity}'" for col in status_cols]
+            status_sql = f"SELECT {limit_clause}* FROM {safe_tbl} WHERE {' OR '.join(status_exact_conditions)}{order_clause};"
             try:
-                test_df = run_query(exact_sql)
+                test_df = run_query(status_sql)
                 if test_df is not None and not test_df.empty:
-                    return exact_sql
+                    return status_sql
             except Exception:
                 pass
 
-            phrase_conditions = [f"{sanitize_identifier(col)} LIKE '%{target_entity}%'" for col in matched_text_cols[:6]]
-            phrase_or_clause = " OR ".join(phrase_conditions)
-            return f"SELECT * FROM {safe_tbl} WHERE {phrase_or_clause};"
+            status_like_conditions = [f"CAST({sanitize_identifier(col)} AS NVARCHAR(MAX)) LIKE '%{target_entity}%'" for col in status_cols]
+            status_like_sql = f"SELECT {limit_clause}* FROM {safe_tbl} WHERE {' OR '.join(status_like_conditions)}{order_clause};"
+            try:
+                test_df = run_query(status_like_sql)
+                if test_df is not None and not test_df.empty:
+                    return status_like_sql
+            except Exception:
+                pass
 
-    return None
+        # Priority 2: Exact match across ALL columns
+        exact_conditions = [f"CAST({sanitize_identifier(col)} AS NVARCHAR(MAX)) = '{target_entity}'" for col in search_cols]
+        exact_sql = f"SELECT {limit_clause}* FROM {safe_tbl} WHERE {' OR '.join(exact_conditions)}{order_clause};"
+        try:
+            test_df = run_query(exact_sql)
+            if test_df is not None and not test_df.empty:
+                return exact_sql
+        except Exception:
+            pass
+
+        # Priority 3: Phrase LIKE match across ALL columns
+        phrase_conditions = [f"CAST({sanitize_identifier(col)} AS NVARCHAR(MAX)) LIKE '%{target_entity}%'" for col in search_cols]
+        phrase_sql = f"SELECT {limit_clause}* FROM {safe_tbl} WHERE {' OR '.join(phrase_conditions)}{order_clause};"
+        try:
+            test_df = run_query(phrase_sql)
+            if test_df is not None and not test_df.empty:
+                return phrase_sql
+        except Exception:
+            pass
+
+        # Priority 4: Key token match across ALL columns
+        tokens = [t for t in target_entity.split() if len(t) >= 2]
+        if tokens:
+            token_conditions = []
+            for token in tokens:
+                for col in search_cols:
+                    token_conditions.append(f"CAST({sanitize_identifier(col)} AS NVARCHAR(MAX)) LIKE '%{token}%'")
+            token_sql = f"SELECT {limit_clause}* FROM {safe_tbl} WHERE {' OR '.join(token_conditions)}{order_clause};"
+            try:
+                test_df = run_query(token_sql)
+                if test_df is not None and not test_df.empty:
+                    return token_sql
+            except Exception:
+                pass
+
+        # Default fallback if specific filter yielded 0 rows
+        return f"SELECT TOP 100 * FROM {safe_tbl};"
+
+    return f"SELECT TOP 100 * FROM {safe_tbl};"
 
 
 def ask_gemini(prompt: str) -> str:
@@ -436,6 +555,7 @@ def ask_gemini(prompt: str) -> str:
 def clean_sql_response(raw_text: str) -> str:
     """
     Extract and clean raw SQL code from AI text response.
+    Enforces strict read-only execution by blocking destructive DDL/DML keywords.
     """
     if not raw_text:
         return ""
@@ -453,6 +573,16 @@ def clean_sql_response(raw_text: str) -> str:
 
     cleaned = cleaned.split(";")[0].strip() + ";"
 
+    # Block destructive SQL operations strictly for data integrity
+    destructive_patterns = [
+        r"\bDROP\b", r"\bDELETE\b", r"\bTRUNCATE\b", r"\bUPDATE\b",
+        r"\bINSERT\b", r"\bALTER\b", r"\bEXEC\b", r"\bEXECUTE\b",
+        r"\bGRANT\b", r"\bREVOKE\b"
+    ]
+    for pat in destructive_patterns:
+        if re.search(pat, cleaned, re.IGNORECASE):
+            return UNRELATED_MESSAGE
+
     limit_match = re.search(r"\bLIMIT\s+(\d+)\b", cleaned, re.IGNORECASE)
     if limit_match:
         limit_val = limit_match.group(1)
@@ -466,15 +596,28 @@ def clean_sql_response(raw_text: str) -> str:
 
 def extract_sample_data_text(table_name: str) -> str:
     """
-    Fetch first 2 rows of dataset table to pass compact sample column values to AI prompt.
+    Fetch first 5 rows of dataset table and sample distinct values for categorical columns
+    to pass rich schema context to the AI prompt.
     """
     if not is_safe_identifier(table_name):
         return ""
     try:
-        sample_df = run_query(f"SELECT TOP 2 * FROM {sanitize_identifier(table_name)}")
+        sample_df = run_query(f"SELECT TOP 10 * FROM {sanitize_identifier(table_name)}")
         if sample_df is not None and not sample_df.empty:
             cols = [c for c in sample_df.columns if c.lower() != "recordid"]
-            return sample_df[cols].to_string(index=False)
+            preview_str = sample_df[cols].head(3).to_string(index=False)
+            
+            # Sample distinct categorical values so LLM knows exact status/category names
+            cat_samples = []
+            for col in cols:
+                if not pd.api.types.is_numeric_dtype(sample_df[col]):
+                    uniq = [str(val) for val in sample_df[col].dropna().unique()[:6]]
+                    if uniq:
+                        cat_samples.append(f"  - [{col}] distinct values: {', '.join(uniq)}")
+            
+            if cat_samples:
+                preview_str += "\n\nDISTINCT CATEGORICAL COLUMN VALUES:\n" + "\n".join(cat_samples)
+            return preview_str
     except Exception as e:
         pass
     return ""
@@ -489,9 +632,14 @@ def generate_sql(question: str, table_name: str, columns_list: list) -> tuple:
     if system_cache:
         cached_sql = system_cache.get(cache_key)
         if cached_sql:
-            return cached_sql, True
+            try:
+                test_df = run_query(cached_sql)
+                if test_df is not None and not test_df.empty:
+                    return cached_sql, True
+            except Exception:
+                pass
 
-    # Try 0.01s Fast Pattern Generator first
+    # Try 0.001s Fast Pattern Generator first
     fast_sql = fast_pattern_sql_generator(question, table_name, columns_list)
     if fast_sql:
         if system_cache:

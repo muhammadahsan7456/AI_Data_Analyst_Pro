@@ -359,7 +359,19 @@ def manage_payments():
             raw_p = cursor.fetchall() or []
 
         for p in raw_p:
-            p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
+            p_id = p[0]
+            u_id = p[1]
+            full_name = p[2]
+            email = p[3]
+            amount = p[4]
+            currency = p[5]
+            method = p[6]
+            txn_id = p[7]
+            status = p[8]
+            plan = p[9]
+            p_date = p[10]
+            screenshot_path = p[11] if len(p) > 11 else None
+
             if status_filter and status.lower() != status_filter.lower():
                 continue
 
@@ -374,7 +386,8 @@ def manage_payments():
                 "txn_id": txn_id or f"TXN_{p_id}9021",
                 "status": status or "Completed",
                 "plan_name": plan or "Enterprise Plan ($85/mo)",
-                "payment_date": format_12hr_datetime(p_date)
+                "payment_date": format_12hr_datetime(p_date),
+                "screenshot_path": screenshot_path
             })
     except Exception as e:
         print("Admin Payments Fetch Error:", e)
@@ -443,6 +456,10 @@ def update_payment_status(payment_id):
             p_row = cursor.fetchone()
 
             cursor.execute(update_payment_status_admin(), (new_status, payment_id))
+
+            # Auto-activate user account if payment verified & completed
+            if new_status == "Completed" and p_row and p_row[1]:
+                cursor.execute("UPDATE Users SET IsActive = 1, IsVerified = 1 WHERE UserID = ?", (p_row[1],))
 
         if p_row:
             _, u_id, u_name, u_email, p_amount, txn_id, plan_name = p_row

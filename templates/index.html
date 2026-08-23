@@ -1347,7 +1347,226 @@
             .stat-val { font-size: 18px; }
             .security-card { padding: 20px; flex-direction: column; gap: 12px; }
             .security-icon { width: 42px; height: 42px; font-size: 18px; }
-            .footer-bottom { flex-direction: column; text-align: center; }
+        }
+
+        /* EASYPAISA & NAYAPAY PAYMENT MODAL STYLES (UNIVERSAL TOP-LEVEL SCOPE) */
+        .payment-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 8, 15, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 999999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .payment-modal-overlay.active,
+        .payment-modal-overlay[style*="display: flex"],
+        .payment-modal-overlay[style*="display:flex"] {
+            display: flex !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            animation: fadeInModal 0.25s ease forwards;
+        }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .payment-modal-card {
+            background: #0f172a;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(59, 130, 246, 0.2);
+            border-radius: 20px;
+            max-width: 620px;
+            width: 100%;
+            padding: 30px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .payment-modal-close {
+            position: absolute;
+            top: 18px; right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .payment-modal-close:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .payment-modal-badge {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .payment-methods-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        @media (max-width: 600px) {
+            .payment-methods-grid { grid-template-columns: 1fr; }
+        }
+
+        .method-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+        .easypaisa-card { border-color: rgba(16, 185, 129, 0.4); }
+        .easypaisa-card:hover { border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.25); }
+        .nayapay-card { border-color: rgba(6, 182, 212, 0.4); }
+        .nayapay-card:hover { border-color: #06b6d4; box-shadow: 0 0 15px rgba(6, 182, 212, 0.25); }
+
+        .method-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .method-badge {
+            font-size: 12px; font-weight: 800; border-radius: 6px; padding: 4px 10px;
+        }
+        .easypaisa-badge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .nayapay-badge { background: rgba(6, 182, 212, 0.15); color: #38bdf8; }
+
+        .method-title {
+            font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;
+        }
+
+        .method-number-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        .num-text {
+            font-family: monospace; font-size: 15px; font-weight: 800; color: #ffffff; letter-spacing: 1px;
+        }
+
+        .btn-copy {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-copy:hover {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+
+        .verification-steps-box {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .v-step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .v-step-num {
+            background: #3b82f6;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 11px;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .btn-whatsapp-direct {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 15px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            text-decoration: none;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+            transition: all 0.25s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .btn-whatsapp-direct:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.5);
+        }
+
+        .payment-divider {
+            text-align: center; margin: 16px 0; position: relative;
+        }
+        .payment-divider::before {
+            content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.1);
+        }
+        .payment-divider span {
+            position: relative; background: #0f172a; padding: 0 12px; font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: 1px;
+        }
+
+        .btn-submit-payment-proof {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-submit-payment-proof:hover {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -1465,7 +1684,7 @@
 
                         <div class="video-player-container" id="video-container">
                             <!-- Native HTML5 Video (Plays demo_showcase.mp4 if present without looping automatically) -->
-                            <video id="product-hd-video" class="html5-video-el" autoplay muted playsinline poster="/static/images/video_poster.jpg">
+                            <video id="product-hd-video" class="html5-video-el" autoplay muted playsinline poster="/static/images/video_poster.jpg" onerror="this.style.display='none';">
                                 <source src="/static/videos/demo_showcase.mp4" type="video/mp4">
                             </video>
 
@@ -1843,15 +2062,20 @@
                         <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> 24/7 Dedicated Priority Support & SLA</div>
                     </div>
 
-                    {% if is_logged_in %}
-                    <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-primary" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-gauge"></i> Access Dashboard (Active Plan)
-                    </a>
-                    {% else %}
-                    <a href="{{ url_for('auth.signup') }}" class="btn-hero-primary" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-rocket"></i> Get Started Now — $85/mo
-                    </a>
-                    {% endif %}
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" id="main-pay-btn" onclick="openPaymentModal(); return false;" class="btn-hero-primary btn-pay-modal-trigger" style="flex: 1; justify-content: center; cursor: pointer; border: none; position: relative; z-index: 10;">
+                            <i class="fa-solid fa-credit-card"></i> Pay via Easypaisa / Nayapay — $85/mo
+                        </button>
+                        {% if is_logged_in %}
+                        <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-secondary" style="justify-content: center;">
+                            <i class="fa-solid fa-gauge"></i> Access Dashboard
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('auth.signup') }}" class="btn-hero-secondary" style="justify-content: center;">
+                            <i class="fa-solid fa-user-plus"></i> Create Account
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </section>
@@ -2448,6 +2672,232 @@
                 icon.className = 'fa-solid fa-chevron-up';
             }
         }
+    </script>
+
+    <!-- ULTRA-PROFESSIONAL EASYPAISA & NAYAPAY LOCAL PAYMENT MODAL -->
+    <div id="paymentModal" class="payment-modal-overlay" style="display: none;">
+        <div class="payment-modal-card">
+            <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
+            
+            <div style="text-align: center; margin-bottom: 20px;">
+                <span class="payment-modal-badge">⚡ INSTANT LOCAL PAYMENT ACCESS</span>
+                <h2 style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #ffffff; margin: 10px 0 6px 0;">
+                    Enterprise Plan — $85 / month
+                </h2>
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 0 auto; max-width: 500px;">
+                    Transfer payment via <strong>Easypaisa</strong> or <strong>Nayapay</strong>. Send payment screenshot on WhatsApp with your registered email for instant automatic dashboard activation!
+                </p>
+            </div>
+
+            <!-- PAYMENT METHODS GRID (Easypaisa & Nayapay) -->
+            <div class="payment-methods-grid">
+                <!-- Easypaisa Card -->
+                <div class="method-card easypaisa-card">
+                    <div class="method-header">
+                        <span class="method-badge easypaisa-badge">
+                            <i class="fa-solid fa-mobile-screen-button"></i> Easypaisa
+                        </span>
+                        <span style="font-size: 11px; color: #10b981; font-weight: 700;">Account Active</span>
+                    </div>
+                    <div class="method-body">
+                        <div class="method-title">Account Holder: <strong>Muhammad Ahsan</strong></div>
+                        <div class="method-number-box">
+                            <span class="num-text" id="easypaisa-num">03053107456</span>
+                            <button type="button" class="btn-copy" onclick="copyPaymentDetail('03053107456', 'Easypaisa Number')">
+                                <i class="fa-regular fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nayapay Card -->
+                <div class="method-card nayapay-card">
+                    <div class="method-header">
+                        <span class="method-badge nayapay-badge">
+                            <i class="fa-solid fa-wallet"></i> Nayapay
+                        </span>
+                        <span style="font-size: 11px; color: #06b6d4; font-weight: 700;">Account Active</span>
+                    </div>
+                    <div class="method-body">
+                        <div class="method-title">Account Holder: <strong>Muhammad Ahsan</strong></div>
+                        <div class="method-number-box">
+                            <span class="num-text" id="nayapay-num">03053107456</span>
+                            <button type="button" class="btn-copy" onclick="copyPaymentDetail('03053107456', 'Nayapay Number')">
+                                <i class="fa-regular fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3-STEP VERIFICATION INSTRUCTIONS -->
+            <div class="verification-steps-box">
+                <div class="v-step-item">
+                    <span class="v-step-num">1</span>
+                    <div>
+                        <strong>Transfer Amount</strong>: Send $85 (or PKR equivalent) to Easypaisa or Nayapay account number <code>03053107456</code>.
+                    </div>
+                </div>
+                <div class="v-step-item">
+                    <span class="v-step-num">2</span>
+                    <div>
+                        <strong>Take Screenshot</strong>: Save your payment confirmation receipt screenshot on your mobile/PC.
+                    </div>
+                </div>
+                <div class="v-step-item">
+                    <span class="v-step-num">3</span>
+                    <div>
+                        <strong>Send Proof & Email</strong>: Send screenshot & your registered account email to WhatsApp <code>03053107456</code> or use the verification form below.
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIRECT WHATSAPP ACTION BUTTON -->
+            <div style="margin: 20px 0 16px 0; text-align: center;">
+                <a id="whatsapp-proof-btn" href="https://wa.me/923053107456?text=Hello%20Muhammad%20Ahsan,%20I%20have%20completed%20the%20payment%20for%20AI%20Data%20Analyst%20Pro.%20My%20registered%20email%20is:%20" target="_blank" class="btn-whatsapp-direct">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 20px;"></i> Send Payment Screenshot on WhatsApp (03053107456)
+                </a>
+            </div>
+
+            <!-- OR DIVIDER -->
+            <div class="payment-divider"><span>OR SUBMIT PROOF ONLINE</span></div>
+
+            <!-- IN-APP PROOF FORM -->
+            <form id="payment-proof-form" onsubmit="handlePaymentProofSubmit(event)" style="margin-top: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Registered Email Address</label>
+                        <input type="email" id="proof-email" required placeholder="your-email@example.com" value="{{ current_user[5] if current_user and current_user|length > 5 else '' }}" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #ffffff; font-size: 13px; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method Used</label>
+                        <select id="proof-method" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #ffffff; font-size: 13px; box-sizing: border-box;">
+                            <option value="Easypaisa">Easypaisa (03053107456)</option>
+                            <option value="Nayapay">Nayapay (03053107456)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 12px; font-weight: 700; color: var(--accent-blue); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Payment Screenshot Receipt (Required)
+                    </label>
+                    <input type="file" id="proof-screenshot" accept="image/png, image/jpeg, image/jpg, image/webp" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px dashed rgba(59, 130, 246, 0.5); background: rgba(15, 23, 42, 0.8); color: #ffffff; font-size: 12px; box-sizing: border-box; cursor: pointer;">
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Accepted formats: PNG, JPG, JPEG, WEBP. Send original receipt screenshot.</span>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Transaction ID / Reference (Optional)</label>
+                    <input type="text" id="proof-txnid" placeholder="e.g. TRX-9981248 or Screenshot Sent via WhatsApp" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #ffffff; font-size: 13px; box-sizing: border-box;">
+                </div>
+                <button type="submit" id="btn-submit-proof" class="btn-submit-payment-proof">
+                    <i class="fa-solid fa-paper-plane"></i> Upload Screenshot & Submit Request
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.openPaymentModal = function() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                modal.classList.add('active');
+            } else {
+                alert("Easypaisa & Nayapay Account Details:\n\nAccount Title: Muhammad Ahsan\nEasypaisa: 03053107456\nNayapay: 03053107456\n\nWhatsApp Proof: 03053107456");
+            }
+            return false;
+        };
+
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
+        };
+
+        document.addEventListener('click', function(e) {
+            const triggerBtn = e.target.closest('#main-pay-btn, .btn-pay-modal-trigger');
+            if (triggerBtn) {
+                e.preventDefault();
+                openPaymentModal();
+            }
+        });
+
+        function copyPaymentDetail(text, label) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(`✅ Copied ${label}: ${text}`);
+                }).catch(() => {
+                    alert(`Copied ${label}: ${text}`);
+                });
+            } else {
+                alert(`Copied ${label}: ${text}`);
+            }
+        }
+
+        function handlePaymentProofSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('proof-email').value.trim();
+            const method = document.getElementById('proof-method').value;
+            const txnid = document.getElementById('proof-txnid').value.trim();
+            const fileInput = document.getElementById('proof-screenshot');
+            const btn = document.getElementById('btn-submit-proof');
+
+            if (!email) {
+                alert('Please enter your registered email address.');
+                return;
+            }
+
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                alert('Please select and upload your payment proof screenshot image.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading Screenshot & Request...';
+
+            const formData = new FormData();
+            formData.append('email', email);
+            formData.append('payment_method', method);
+            formData.append('transaction_id', txnid);
+            formData.append('screenshot_file', fileInput.files[0]);
+
+            fetch('/submit-payment-proof', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Upload Screenshot & Submit Request';
+                if (data.success) {
+                    alert('✨ Payment screenshot uploaded successfully!\n\nSuper Admin will verify your transaction shortly. Once verified, your dashboard access will activate automatically.');
+                    closePaymentModal();
+                    if (document.getElementById('payment-proof-form')) document.getElementById('payment-proof-form').reset();
+                } else {
+                    alert('Notice: ' + (data.message || 'Failed to submit payment request. Please try again.'));
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Upload Screenshot & Submit Request';
+                alert('Payment verification request recorded!\n\nPlease also send your payment screenshot on WhatsApp 03053107456 for fast instant approval.');
+                closePaymentModal();
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('paymentModal');
+            if (e.target === modal) {
+                closePaymentModal();
+            }
+        });
+
+        {% if open_payment_modal %}
+        window.addEventListener('DOMContentLoaded', () => {
+            openPaymentModal();
+        });
+        {% endif %}
     </script>
 </body>
 </html>

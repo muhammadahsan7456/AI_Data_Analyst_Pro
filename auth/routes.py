@@ -514,6 +514,13 @@ def login():
 
         user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active, is_verified, role, failed_attempts, lockout_until, created_at = user
 
+        # Check Account Suspension
+        if not is_active:
+            log_login_attempt(user_id, "Suspended")
+            trigger_ai_event(user_id, build_account_locked_card())
+            flash("❌ Your account has been suspended by the administrator. Please contact support.", "error")
+            return render_template("login.html")
+
         # Check Account Lockout
         if lockout_until:
             try:

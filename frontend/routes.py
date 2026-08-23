@@ -13,7 +13,8 @@ from flask import (
     Response,
     abort,
     jsonify,
-    session
+    session,
+    send_from_directory
 )
 
 try:
@@ -123,11 +124,13 @@ frontend = Blueprint(
 
 
 
-# Auto initialize system tables & columns
-try:
-    init_db()
-except Exception:
-    pass
+@frontend.route("/favicon.ico")
+def favicon():
+    favicon_dir = os.path.join(frontend.static_folder, "images")
+    favicon_path = os.path.join(favicon_dir, "favicon.ico")
+    if os.path.exists(favicon_path):
+        return send_from_directory(favicon_dir, "favicon.ico", mimetype="image/vnd.microsoft.icon")
+    return "", 204
 
 
 # ==========================================
@@ -137,6 +140,88 @@ except Exception:
 def home():
     is_logged_in = bool(session.get("user_id"))
     return render_template("index.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/pricing")
+def pricing():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("index.html", is_logged_in=is_logged_in, open_payment_modal=True)
+
+
+@frontend.route("/submit-payment-proof", methods=["POST"])
+def submit_payment_proof():
+    """
+    Handle user manual payment proof submission for Easypaisa / Nayapay with screenshot image upload.
+    Inserts a Pending payment record in database for SuperAdmin verification.
+    """
+    try:
+        from werkzeug.utils import secure_filename
+        data = request.form if request.form else (request.get_json(silent=True) or {})
+        email = (data.get("email") or "").strip().lower()
+        method = (data.get("payment_method") or "Easypaisa").strip()
+        txn_id = (data.get("transaction_id") or "").strip()
+
+        if not email:
+            return jsonify({"success": False, "message": "Registered email address is required."}), 400
+
+        # Handle Screenshot Image Upload
+        screenshot_path = None
+        file_obj = request.files.get("screenshot_file") or request.files.get("screenshot")
+        if file_obj and file_obj.filename:
+            upload_dir = os.path.join(frontend.static_folder, "uploads", "payment_screenshots")
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            ext = os.path.splitext(file_obj.filename)[1].lower()
+            if ext not in [".png", ".jpg", ".jpeg", ".webp", ".jfif"]:
+                ext = ".png"
+            
+            safe_name = f"proof_{int(time.time())}_{secure_filename(file_obj.filename)}"
+            if not safe_name.endswith(ext):
+                safe_name += ext
+                
+            save_dest = os.path.join(upload_dir, safe_name)
+            file_obj.save(save_dest)
+            screenshot_path = f"/static/uploads/payment_screenshots/{safe_name}"
+
+        user_id = session.get("user_id")
+        user_name = "Valued Customer"
+
+        with get_db_cursor(commit=True) as cursor:
+            # Lookup user ID if not in session
+            cursor.execute("SELECT UserID, FullName FROM Users WHERE LOWER(Email) = ?", (email,))
+            row = cursor.fetchone()
+
+            if row:
+                user_id = row[0]
+                user_name = row[1] or user_name
+            else:
+                # Fallback to current session or first user
+                cursor.execute("SELECT TOP 1 UserID FROM Users ORDER BY UserID ASC")
+                first_u = cursor.fetchone()
+                user_id = first_u[0] if first_u else 1
+
+            if not txn_id:
+                txn_id = f"PAY_{int(time.time())}"
+
+            method_display = f"{method} (Acc: 03053107456 - Muhammad Ahsan)"
+
+            cursor.execute("""
+                INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, ScreenshotPath, PaymentDate)
+                VALUES (?, 85.00, 'USD', ?, ?, 'Pending', 'Enterprise Plan ($85/mo)', ?, GETDATE())
+            """, (user_id, method_display, txn_id, screenshot_path))
+
+        try:
+            log_audit_event("PAYMENT_PROOF_SUBMITTED", f"Submitted {method} payment proof & screenshot for {email} (Txn: {txn_id})", user_id=user_id)
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "message": "Payment screenshot & verification request recorded successfully! Super Admin will verify your transaction shortly."
+        })
+    except Exception as e:
+        print("Submit Payment Proof Error:", e)
+        return jsonify({"success": False, "message": f"Error saving payment proof: {str(e)}"}), 500
 
 
 # ==========================================
@@ -273,6 +358,16 @@ def dashboard():
     except Exception as ren_err:
         print("Renewal Calculation Notice:", ren_err)
 
+    pending_payment_notice = None
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT TOP 1 Status, PaymentDate FROM Payments WHERE UserID = ? ORDER BY PaymentDate DESC", (user_id,))
+            p_row = cursor.fetchone()
+            if p_row and p_row[0] == 'Pending':
+                pending_payment_notice = "⏳ Payment Proof Verification Pending: Your Easypaisa / Nayapay payment screenshot has been received and is under review by Super Admin. Full account access will be activated automatically upon verification!"
+    except Exception as p_err:
+        print("Pending Payment Check Notice:", p_err)
+
     context = dict(
         total_datasets=total_datasets,
         total_rows=total_rows,
@@ -286,6 +381,7 @@ def dashboard():
         recent_datasets=recent_datasets,
         datasets=paginated_datasets,
         subscription_renewal_notice=renewal_notice,
+        pending_payment_notice=pending_payment_notice,
         page=page,
         total_pages=total_pages,
         total_found=total_found,
@@ -435,15 +531,17 @@ def chat():
         return render_template("chat.html", user_datasets=[], selected_dataset=None, error="No dataset uploaded in your account. Please upload a dataset first.")
 
     if request.is_json and request.get_json():
-        json_data = request.get_json()
-        question = str(json_data.get("question", "")).strip()
+        json_data = request.get_json() or {}
+        question = str(json_data.get("question") or json_data.get("query") or "").strip()
         dataset_id = json_data.get("dataset_id")
         if dataset_id is not None:
             try: dataset_id = int(dataset_id)
             except Exception: dataset_id = None
     else:
-        question = request.values.get("question", "").strip()
-        dataset_id = request.values.get("dataset_id", type=int)
+        question = str(request.form.get("question") or request.values.get("question") or request.args.get("question") or "").strip()
+        raw_ds = request.form.get("dataset_id") or request.values.get("dataset_id") or request.args.get("dataset_id")
+        try: dataset_id = int(raw_ds) if raw_ds is not None else None
+        except Exception: dataset_id = None
 
     selected_dataset = None
 
