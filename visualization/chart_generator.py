@@ -109,8 +109,8 @@ def generate_pure_svg_chart(df: pd.DataFrame, chart_type: str = "bar") -> str:
     df_clean = df.copy()
     numeric_cols = df_clean.select_dtypes(include="number").columns.tolist()
     
-    # Filter out ID columns from numeric list
-    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$"]
+    # Filter out ID columns and serial numbers from numeric list
+    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$", r"^sr$", r"^s\.no$", r"^s_no$", r"^sno$", r"^index$", r"^row_num$"]
     numeric_cols = [c for c in numeric_cols if not any(re.match(p, str(c).lower().strip()) for p in id_patterns)]
 
     categorical_cols = [c for c in df_clean.columns if c not in numeric_cols and c.lower() not in ["recordid", "id"]]

@@ -24,12 +24,12 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                 <div>
                     <label for="first_name" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">First Name</label>
-                    <input type="text" name="first_name" id="first_name" required autocomplete="off" value="{{ form_data.first_name if form_data else '' }}" placeholder="Muhammad" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
+                    <input type="text" name="first_name" id="first_name" required autocomplete="off" value="{{ form_data.first_name if form_data else '' }}" placeholder="e.g. John" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
                     <div id="first_name-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
                 </div>
                 <div>
                     <label for="last_name" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Last Name</label>
-                    <input type="text" name="last_name" id="last_name" required autocomplete="off" value="{{ form_data.last_name if form_data else '' }}" placeholder="Ahsan" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
+                    <input type="text" name="last_name" id="last_name" required autocomplete="off" value="{{ form_data.last_name if form_data else '' }}" placeholder="e.g. Doe" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
                     <div id="last_name-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
                 </div>
             </div>
@@ -38,12 +38,12 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                 <div>
                     <label for="username" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Username</label>
-                    <input type="text" name="username" id="username" required autocomplete="off" value="{{ form_data.username if form_data else '' }}" placeholder="ahsan_pro" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
+                    <input type="text" name="username" id="username" required autocomplete="off" value="{{ form_data.username if form_data else '' }}" placeholder="e.g. john_doe" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
                     <div id="username-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
                 </div>
                 <div>
                     <label for="email" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Email Address</label>
-                    <input type="email" name="email" id="email" required autocomplete="off" value="{{ form_data.email if form_data else '' }}" placeholder="ahsan@example.com" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
+                    <input type="email" name="email" id="email" required autocomplete="off" value="{{ form_data.email if form_data else '' }}" placeholder="name@company.com" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
                     <div id="email-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
                 </div>
             </div>
@@ -52,15 +52,15 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                 <div>
                     <label for="phone" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Phone</label>
-                    <input type="text" name="phone" id="phone" autocomplete="off" value="{{ form_data.phone if form_data else '' }}" placeholder="+1 234 567 890" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px; outline: none;">
+                    <input type="text" name="phone" id="phone" autocomplete="off" value="{{ form_data.phone if form_data else '' }}" placeholder="e.g. +1 234 567 8900" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px; outline: none;">
                 </div>
                 <div>
                     <label for="country" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">Country</label>
-                    <input type="text" name="country" id="country" autocomplete="off" value="{{ form_data.country if form_data else '' }}" placeholder="Pakistan" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px; outline: none;">
+                    <input type="text" name="country" id="country" autocomplete="off" value="{{ form_data.country if form_data else '' }}" placeholder="e.g. United States" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px; outline: none;">
                 </div>
                 <div>
                     <label for="city" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px;">City</label>
-                    <input type="text" name="city" id="city" autocomplete="off" value="{{ form_data.city if form_data else '' }}" placeholder="Karachi" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px; outline: none;">
+                    <input type="text" name="city" id="city" autocomplete="off" value="{{ form_data.city if form_data else '' }}" placeholder="e.g. New York" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px; outline: none;">
                 </div>
             </div>
 

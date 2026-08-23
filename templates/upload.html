@@ -185,6 +185,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const xhr = new XMLHttpRequest();
         const startTime = new Date().getTime();
 
+        let processingTimer = null;
+        let processingSecs = 0;
+
         xhr.upload.addEventListener("progress", function (e) {
             if (e.lengthComputable) {
                 const percent = Math.round((e.loaded / e.total) * 100);
@@ -195,13 +198,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 progressBar.style.width = percent + "%";
                 progressPercentage.textContent = percent + "%";
-                progressStatus.textContent = percent < 100 ? "Uploading & Ingesting Datasets..." : "Processing & Creating SQL Tables...";
+                
+                if (percent < 100) {
+                    progressStatus.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Uploading ${loadedMB} / ${totalMB} MB to Server...`;
+                } else {
+                    if (!processingTimer) {
+                        processingTimer = setInterval(function () {
+                            processingSecs++;
+                            if (processingSecs <= 1) {
+                                progressStatus.innerHTML = `⚡ <i class="fa-solid fa-file-csv fa-spin"></i> Step 1/3: Parsing ${totalMB} MB Data...`;
+                            } else if (processingSecs <= 3) {
+                                progressStatus.innerHTML = `🔐 <i class="fa-solid fa-shield-halved fa-spin"></i> Step 2/3: Optimizing Memory & Headers...`;
+                            } else {
+                                progressStatus.innerHTML = `🚀 <i class="fa-solid fa-database fa-spin"></i> Step 3/3: Bulk Ingesting Rows into DB...`;
+                            }
+                        }, 1000);
+                    }
+                }
                 progressSpeed.textContent = `Speed: ${speedKB} KB/s`;
                 progressDetails.textContent = `${loadedMB} / ${totalMB} MB`;
             }
         });
 
         function resetSubmitBtn() {
+            if (processingTimer) {
+                clearInterval(processingTimer);
+                processingTimer = null;
+            }
             progressContainer.style.display = "none";
             if (typeof window.hideLoading === "function") {
                 window.hideLoading();

@@ -59,7 +59,13 @@ def migrate_and_encrypt_existing_tables():
             try:
                 # Read all rows from existing dataset table
                 query = f"SELECT * FROM {safe_table}"
-                df = pd.read_sql(query, conn)
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=UserWarning)
+                    if isinstance(conn, SQLiteConnectionAdapter):
+                        df = pd.read_sql(query, conn.conn)
+                    else:
+                        df = pd.read_sql(query, conn)
                 if df is None or df.empty:
                     continue
 

@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initLiveAvailabilityCheck();
     initAIAssistant();
     initMobileSidebar();
+    initGlobalDownloadLoader();
 });
 
 function initMobileSidebar() {
@@ -611,45 +612,58 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
-function showToast(message, type = "info", title = "") {
-    let container = document.getElementById("toast-container");
-    if (!container) {
-        container = document.createElement("div");
-        container.id = "toast-container";
-        document.body.appendChild(container);
+function showLoading(message = "Processing request...") {
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) {
+        const textElem = overlay.querySelector(".loading-text");
+        if (textElem) textElem.textContent = message;
+        overlay.style.display = "flex";
     }
-
-    const toast = document.createElement("div");
-    toast.className = `toast toast-${type} animated-toast`;
-    toast.style.cssText = "position: fixed; top: 24px; right: 24px; z-index: 99999; min-width: 320px; max-width: 440px; padding: 16px 20px; border-radius: 12px; background: var(--bg-card, #ffffff); color: var(--text-color, #1e293b); box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-left: 5px solid #2563eb; animation: toastSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; transition: all 0.3s ease;";
-
-    if (type === "success") toast.style.borderLeftColor = "#10b981";
-    if (type === "error") toast.style.borderLeftColor = "#ef4444";
-    if (type === "warning") toast.style.borderLeftColor = "#f59e0b";
-
-    let icon = "✅";
-    if (type === "error") icon = "❌";
-    if (type === "warning") icon = "⚠️";
-    if (type === "info") icon = "ℹ️";
-
-    let titleHtml = title ? `<strong style="display:block; font-size: 14px; font-weight: 700; margin-bottom: 2px;">${escapeHtml(title)}</strong>` : "";
-
-    toast.innerHTML = `
-        <div style="display: flex; align-items: flex-start; gap: 12px; width: 100%;">
-            <span style="font-size: 20px; line-height: 1;">${icon}</span>
-            <div style="flex: 1;">
-                ${titleHtml}
-                <div style="font-size: 13px; line-height: 1.4;">${message}</div>
-            </div>
-            <button onclick="this.closest('.animated-toast').remove()" style="background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; font-size: 16px;">&times;</button>
-        </div>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateY(-12px)";
-        setTimeout(() => toast.remove(), 350);
-    }, 4000);
 }
+
+function hideLoading() {
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) {
+        overlay.style.display = "none";
+    }
+}
+
+function initGlobalDownloadLoader() {
+    document.addEventListener("click", (e) => {
+        const target = e.target.closest("a, button, [data-download]");
+        if (!target) return;
+
+        const href = (target.getAttribute("href") || "").toLowerCase();
+        const onclick = (target.getAttribute("onclick") || "").toLowerCase();
+        const classList = (target.className || "").toLowerCase();
+        const id = (target.id || "").toLowerCase();
+
+        const isExportLink = href.includes("/export") || 
+                             href.includes("export_type") || 
+                             href.includes("format_type") ||
+                             href.includes("/download") ||
+                             href.includes("invoice") ||
+                             classList.includes("btn-download") ||
+                             classList.includes("btn-export") ||
+                             classList.includes("download") ||
+                             classList.includes("export") ||
+                             id.includes("download") ||
+                             id.includes("export") ||
+                             onclick.includes("export") ||
+                             onclick.includes("download");
+
+        if (isExportLink) {
+            showToast("📥 Generating & Preparing File Download... Please wait", "info", "File Exporting");
+            showLoading("📥 Generating report file... Download starting shortly!");
+            setTimeout(() => {
+                hideLoading();
+            }, 2600);
+        }
+    });
+}
+
+// Register Window Globals
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;
+window.showToast = showToast;
+window.initGlobalDownloadLoader = initGlobalDownloadLoader;

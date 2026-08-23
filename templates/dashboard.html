@@ -6,6 +6,17 @@
 
 {% block content %}
 
+{% if pending_payment_notice %}
+<div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 14px; padding: 16px 22px; margin-bottom: 20px; color: #60a5fa; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);">
+    <div>
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 16px; margin-right: 8px;"></i> {{ pending_payment_notice }}
+    </div>
+    <span style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); color: #93c5fd; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap;">
+        ⚡ PENDING APPROVAL
+    </span>
+</div>
+{% endif %}
+
 {% if subscription_renewal_notice %}
 <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; color: #fbbf24; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
     <div>

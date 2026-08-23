@@ -173,17 +173,17 @@ def parse_uploaded_file(uploaded_file, ext: str, format_label: str) -> pd.DataFr
     try:
         if format_label == "CSV":
             try:
-                df = pd.read_csv(uploaded_file, encoding="utf-8", low_memory=False)
+                df = pd.read_csv(uploaded_file, encoding="utf-8", low_memory=False, engine="c", on_bad_lines="skip")
             except (UnicodeDecodeError, Exception):
                 uploaded_file.seek(0)
-                df = pd.read_csv(uploaded_file, encoding="latin1", low_memory=False)
+                df = pd.read_csv(uploaded_file, encoding="latin1", low_memory=False, engine="c", on_bad_lines="skip")
 
         elif format_label == "TSV":
             try:
-                df = pd.read_csv(uploaded_file, sep="\t", encoding="utf-8", low_memory=False)
+                df = pd.read_csv(uploaded_file, sep="\t", encoding="utf-8", low_memory=False, engine="c", on_bad_lines="skip")
             except (UnicodeDecodeError, Exception):
                 uploaded_file.seek(0)
-                df = pd.read_csv(uploaded_file, sep="\t", encoding="latin1", low_memory=False)
+                df = pd.read_csv(uploaded_file, sep="\t", encoding="latin1", low_memory=False, engine="c", on_bad_lines="skip")
 
         elif format_label == "TXT":
             uploaded_file.seek(0)

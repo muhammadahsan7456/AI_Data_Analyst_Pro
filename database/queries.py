@@ -634,7 +634,7 @@ def delete_user_admin():
 
 def get_all_payments_admin():
     return """
-    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
+    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate, P.ScreenshotPath
     FROM Payments P
     LEFT JOIN Users U ON P.UserID = U.UserID
     ORDER BY P.PaymentDate DESC
