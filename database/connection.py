@@ -355,6 +355,51 @@ def init_sqlite_db(conn):
             ScreenshotPath TEXT NULL,
             PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             SubscriptionEndDate TEXT NULL
+        )''',
+        '''CREATE TABLE IF NOT EXISTS QueryHistory (
+            HistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            DatasetID INTEGER NULL,
+            UserQuestion TEXT NOT NULL,
+            GeneratedSQL TEXT NOT NULL,
+            ExecutionStatus TEXT NOT NULL DEFAULT 'Success',
+            RowsReturned INTEGER DEFAULT 0,
+            ExecutionTimeMS REAL DEFAULT 0.0,
+            ChartType TEXT DEFAULT 'auto',
+            ErrorMessage TEXT NULL,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS ScheduledReports (
+            ReportID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            DatasetID INTEGER NOT NULL,
+            ReportType TEXT NOT NULL DEFAULT 'Executive Summary',
+            Frequency TEXT NOT NULL DEFAULT 'Daily',
+            RecipientEmail TEXT NOT NULL,
+            ScheduleTime TEXT DEFAULT '09:00',
+            IsEnabled INTEGER NOT NULL DEFAULT 1,
+            LastRunAt TEXT NULL,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS AlertRules (
+            AlertID INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserID INTEGER NOT NULL,
+            DatasetID INTEGER NOT NULL,
+            MetricName TEXT NOT NULL,
+            ConditionOperator TEXT NOT NULL DEFAULT '>',
+            ThresholdValue REAL NOT NULL,
+            RecipientEmail TEXT NOT NULL,
+            IsEnabled INTEGER NOT NULL DEFAULT 1,
+            LastTriggeredAt TEXT NULL,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS AlertHistory (
+            HistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
+            AlertID INTEGER NOT NULL,
+            UserID INTEGER NOT NULL,
+            TriggeredValue REAL NOT NULL,
+            Message TEXT NOT NULL,
+            TriggeredAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )'''
     ]
 

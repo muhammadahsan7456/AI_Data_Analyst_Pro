@@ -20,55 +20,45 @@ def export_to_csv(df: pd.DataFrame) -> bytes:
 
 def export_to_excel(df: pd.DataFrame, dataset_name: str = "Dataset") -> bytes:
     """
-    Export DataFrame to styled Excel (.xlsx) bytes stream.
+    Ultra-fast high-performance Excel exporter.
+    Uses pandas ExcelWriter with openpyxl engine for bulk vector writing.
     """
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Data"
-
-    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    cell_alignment = Alignment(horizontal="left", vertical="center")
-    thin_border = Border(
-        left=Side(style='thin', color='E5E7EB'),
-        right=Side(style='thin', color='E5E7EB'),
-        top=Side(style='thin', color='E5E7EB'),
-        bottom=Side(style='thin', color='E5E7EB')
-    )
-
-    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
-        ws.append(row)
-        for c_idx in range(1, len(row) + 1):
-            cell = ws.cell(row=r_idx, column=c_idx)
-            cell.alignment = cell_alignment
-            cell.border = thin_border
-            if r_idx == 1:
-                cell.fill = header_fill
-                cell.font = header_font
-
-    for col in ws.columns:
-        max_len = max(len(str(cell.value or '')) for cell in col)
-        col_letter = col[0].column_letter
-        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
-
-    ws_summary = wb.create_sheet(title="Summary")
-    ws_summary.append(["Property", "Value"])
-    ws_summary.cell(1, 1).font = header_font
-    ws_summary.cell(1, 2).font = header_font
-
-    ws_summary.append(["Dataset Name", dataset_name])
-    ws_summary.append(["Total Records", len(df)])
-    ws_summary.append(["Total Columns", len(df.columns)])
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
 
     buffer = io.BytesIO()
-    wb.save(buffer)
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name="Data", index=False)
+        
+        summary_df = pd.DataFrame([
+            {"Property": "Dataset Name", "Value": str(dataset_name)},
+            {"Property": "Total Records", "Value": len(df)},
+            {"Property": "Total Columns", "Value": len(df.columns)}
+        ])
+        summary_df.to_excel(writer, sheet_name="Summary", index=False)
+        
+        ws = writer.sheets["Data"]
+        header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            
+        sample_df = df.head(30)
+        for idx, col in enumerate(df.columns, 1):
+            max_len = max(sample_df[col].astype(str).str.len().max() if not sample_df[col].empty else 0, len(str(col)))
+            col_letter = openpyxl.utils.get_column_letter(idx)
+            ws.column_dimensions[col_letter].width = max(int(max_len) + 4, 12)
+
     buffer.seek(0)
     return buffer.getvalue()
 
 
 def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insights: list = None, chart_file_path: str = None) -> bytes:
     """
-    Generate Executive PDF report with Logo, KPIs, Insights, Charts, and ALL Query Records (Multi-Page Paginated Table).
+    Generate Executive PDF report rapidly (Sub-second paginated PDF table).
+    Limits table preview to top 300 rows for instant PDF compilation.
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -134,7 +124,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     elements = []
 
     elements.append(Paragraph("Executive Data Analysis Report", title_style))
-    elements.append(Paragraph(f"<b>Dataset / Query:</b> {dataset_name} | <b>Total Records:</b> {len(df)} | <b>Total Columns:</b> {len(df.columns)}", body_style))
+    elements.append(Paragraph(f"<b>Dataset / Query:</b> {dataset_name} | <b>Total Records:</b> {len(df):,} | <b>Total Columns:</b> {len(df.columns)}", body_style))
     elements.append(Spacer(1, 8))
 
     if insights:
@@ -151,15 +141,18 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
             elements.append(img)
             elements.append(Spacer(1, 10))
 
-    elements.append(Paragraph(f"📋 Complete Records View ({len(df)} Matching Rows)", h2_style))
+    # Fast Table preview limit (up to 300 rows)
+    max_pdf_rows = 300
+    df_pdf = df.head(max_pdf_rows)
+    record_note = f"📋 Query Records View (Showing Top {len(df_pdf):,} of {len(df):,} Matching Rows)" if len(df) > max_pdf_rows else f"📋 Complete Records View ({len(df):,} Matching Rows)"
+    elements.append(Paragraph(record_note, h2_style))
 
-    # Process ALL rows of df (no truncation) - Fast tuple iteration
-    cols_to_render = df.columns[:8]
-    col_indices = [df.columns.get_loc(c) for c in cols_to_render]
+    cols_to_render = df_pdf.columns[:8]
+    col_indices = [df_pdf.columns.get_loc(c) for c in cols_to_render]
     col_width = 540 / max(len(cols_to_render), 1)
 
     table_data = [[Paragraph(f"<b>{col}</b>", table_hdr_style) for col in cols_to_render]]
-    for row_tuple in df.itertuples(index=False):
+    for row_tuple in df_pdf.itertuples(index=False):
         row_cells = []
         for idx in col_indices:
             val_raw = row_tuple[idx]

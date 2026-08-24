@@ -655,3 +655,161 @@ def get_all_audit_logs_admin(limit=100):
     FROM AuditLogs
     ORDER BY CreatedAt DESC
     """
+
+
+# ==========================================
+# QUERY HISTORY QUERIES (USER DATA ISOLATION)
+# ==========================================
+
+def insert_query_history():
+    return """
+    INSERT INTO QueryHistory (UserID, DatasetID, UserQuestion, GeneratedSQL, ExecutionStatus, RowsReturned, ExecutionTimeMS, ChartType, ErrorMessage, CreatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+    """
+
+
+def get_user_query_history(limit=50):
+    return f"""
+    SELECT TOP ({int(limit)}) HistoryID, DatasetID, UserQuestion, GeneratedSQL, ExecutionStatus, RowsReturned, ExecutionTimeMS, ChartType, ErrorMessage, CreatedAt
+    FROM QueryHistory
+    WHERE UserID = ?
+    ORDER BY CreatedAt DESC
+    """
+
+
+def delete_query_history_item():
+    return """
+    DELETE FROM QueryHistory
+    WHERE HistoryID = ? AND UserID = ?
+    """
+
+
+def clear_user_query_history():
+    return """
+    DELETE FROM QueryHistory
+    WHERE UserID = ?
+    """
+
+
+# ==========================================
+# SCHEDULED REPORTS QUERIES
+# ==========================================
+
+def create_scheduled_report():
+    return """
+    INSERT INTO ScheduledReports (UserID, DatasetID, ReportType, Frequency, RecipientEmail, ScheduleTime, IsEnabled, CreatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, 1, GETDATE())
+    """
+
+
+def get_user_scheduled_reports():
+    return """
+    SELECT R.ReportID, R.DatasetID, D.DatasetName, R.ReportType, R.Frequency, R.RecipientEmail, R.ScheduleTime, R.IsEnabled, R.LastRunAt, R.CreatedAt
+    FROM ScheduledReports R
+    LEFT JOIN Datasets D ON R.DatasetID = D.DatasetID
+    WHERE R.UserID = ?
+    ORDER BY R.CreatedAt DESC
+    """
+
+
+def toggle_scheduled_report():
+    return """
+    UPDATE ScheduledReports
+    SET IsEnabled = CASE WHEN IsEnabled = 1 THEN 0 ELSE 1 END
+    WHERE ReportID = ? AND UserID = ?
+    """
+
+
+def delete_scheduled_report():
+    return """
+    DELETE FROM ScheduledReports
+    WHERE ReportID = ? AND UserID = ?
+    """
+
+
+def get_due_scheduled_reports():
+    return """
+    SELECT R.ReportID, R.UserID, R.DatasetID, D.DatasetName, D.TableName, R.ReportType, R.Frequency, R.RecipientEmail, R.ScheduleTime, R.LastRunAt
+    FROM ScheduledReports R
+    JOIN Datasets D ON R.DatasetID = D.DatasetID
+    WHERE R.IsEnabled = 1
+    """
+
+
+def update_scheduled_report_last_run():
+    return """
+    UPDATE ScheduledReports
+    SET LastRunAt = GETDATE()
+    WHERE ReportID = ?
+    """
+
+
+# ==========================================
+# ALERT RULES & HISTORY QUERIES
+# ==========================================
+
+def create_alert_rule():
+    return """
+    INSERT INTO AlertRules (UserID, DatasetID, MetricName, ConditionOperator, ThresholdValue, RecipientEmail, IsEnabled, CreatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, 1, GETDATE())
+    """
+
+
+def get_user_alert_rules():
+    return """
+    SELECT A.AlertID, A.DatasetID, D.DatasetName, A.MetricName, A.ConditionOperator, A.ThresholdValue, A.RecipientEmail, A.IsEnabled, A.LastTriggeredAt, A.CreatedAt
+    FROM AlertRules A
+    LEFT JOIN Datasets D ON A.DatasetID = D.DatasetID
+    WHERE A.UserID = ?
+    ORDER BY A.CreatedAt DESC
+    """
+
+
+def toggle_alert_rule():
+    return """
+    UPDATE AlertRules
+    SET IsEnabled = CASE WHEN IsEnabled = 1 THEN 0 ELSE 1 END
+    WHERE AlertID = ? AND UserID = ?
+    """
+
+
+def delete_alert_rule():
+    return """
+    DELETE FROM AlertRules
+    WHERE AlertID = ? AND UserID = ?
+    """
+
+
+def get_active_alert_rules():
+    return """
+    SELECT A.AlertID, A.UserID, A.DatasetID, D.DatasetName, D.TableName, A.MetricName, A.ConditionOperator, A.ThresholdValue, A.RecipientEmail, A.LastTriggeredAt
+    FROM AlertRules A
+    JOIN Datasets D ON A.DatasetID = D.DatasetID
+    WHERE A.IsEnabled = 1
+    """
+
+
+def update_alert_rule_last_triggered():
+    return """
+    UPDATE AlertRules
+    SET LastTriggeredAt = GETDATE()
+    WHERE AlertID = ?
+    """
+
+
+def record_alert_trigger():
+    return """
+    INSERT INTO AlertHistory (AlertID, UserID, TriggeredValue, Message, TriggeredAt)
+    VALUES (?, ?, ?, ?, GETDATE())
+    """
+
+
+def get_user_alert_history(limit=50):
+    return f"""
+    SELECT TOP ({int(limit)}) H.HistoryID, H.AlertID, H.TriggeredValue, H.Message, H.TriggeredAt, A.MetricName, D.DatasetName
+    FROM AlertHistory H
+    LEFT JOIN AlertRules A ON H.AlertID = A.AlertID
+    LEFT JOIN Datasets D ON A.DatasetID = D.DatasetID
+    WHERE H.UserID = ?
+    ORDER BY H.TriggeredAt DESC
+    """

@@ -21,11 +21,13 @@ from frontend.routes import frontend
 from auth import auth_bp
 from admin import admin_bp
 
-# Auto-initialize database tables on launch
+# Auto-initialize database tables and background scheduler thread on launch
 try:
     init_db()
+    from utils.scheduler import start_scheduler
+    start_scheduler()
 except Exception as err:
-    print("Database init notice:", err)
+    print("Database & Scheduler init notice:", err)
 
 from datetime import timedelta
 from flask import Flask, session, g, request, redirect, url_for, flash
