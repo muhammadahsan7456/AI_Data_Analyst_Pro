@@ -22,9 +22,12 @@ def evaluate_alert_rules_batch() -> list:
 
     try:
         rules = []
-        with get_db_cursor() as cursor:
-            cursor.execute(get_active_alert_rules())
-            rules = cursor.fetchall()
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute(get_active_alert_rules())
+                rules = cursor.fetchall()
+        except Exception:
+            return triggered_events
 
         if not rules:
             return triggered_events
@@ -121,7 +124,7 @@ def evaluate_alert_rules_batch() -> list:
                     "value": current_value
                 })
 
-    except Exception as err:
-        print("Alert Evaluation Engine Error:", err)
+    except Exception:
+        pass
 
     return triggered_events
