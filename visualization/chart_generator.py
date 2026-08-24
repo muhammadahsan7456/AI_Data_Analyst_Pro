@@ -270,3 +270,59 @@ def generate_chart_svg(df: pd.DataFrame, chart_type: str) -> bytes:
 
     buffer.seek(0)
     return buffer.getvalue()
+
+
+def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -> dict:
+    """
+    Generate structured interactive Plotly/Chart.js JSON spec.
+    Includes labels, values, numeric matrix for heatmaps, tooltips, and compatible types.
+    """
+    if df is None or df.empty:
+        return {}
+
+    df_clean = df.copy()
+    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$", r"^sr$", r"^s\.no$", r"^s_no$", r"^sno$", r"^index$", r"^row_num$"]
+    numeric_cols = [c for c in df_clean.select_dtypes(include="number").columns if not any(re.match(p, str(c).lower().strip()) for p in id_patterns)]
+    cat_cols = [c for c in df_clean.columns if c not in numeric_cols and c.lower() not in ["recordid", "id"]]
+
+    x_col = cat_cols[0] if cat_cols else (df_clean.columns[0] if not df_clean.columns.empty else "")
+    y_col = numeric_cols[0] if numeric_cols else (df_clean.columns[-1] if len(df_clean.columns) > 1 else x_col)
+
+    labels = []
+    values = []
+    
+    if x_col and y_col and x_col != y_col:
+        sub_df = df_clean[[x_col, y_col]].dropna().head(30)
+        labels = sub_df[x_col].astype(str).tolist()
+        values = pd.to_numeric(sub_df[y_col], errors="coerce").fillna(0).tolist()
+    elif x_col:
+        val_counts = df_clean[x_col].value_counts().head(20)
+        labels = val_counts.index.astype(str).tolist()
+        values = val_counts.values.tolist()
+
+    # Heatmap matrix if requested
+    matrix = []
+    matrix_cols = []
+    if len(numeric_cols) >= 2:
+        matrix_cols = numeric_cols[:8]
+        corr_df = df_clean[matrix_cols].corr().fillna(0)
+        matrix = corr_df.values.tolist()
+
+    try:
+        from visualization.chart_selector import get_compatible_chart_types
+        compatible_types = get_compatible_chart_types(df_clean)
+    except Exception:
+        compatible_types = ["auto", "bar", "line", "pie"]
+
+    return {
+        "chart_type": chart_type or "bar",
+        "title": f"{y_col} by {x_col}" if x_col and y_col else "Dataset Analytics",
+        "x_col": x_col,
+        "y_col": y_col,
+        "labels": labels,
+        "values": values,
+        "matrix": matrix,
+        "matrix_cols": matrix_cols,
+        "total_records": len(df_clean),
+        "compatible_types": compatible_types
+    }
