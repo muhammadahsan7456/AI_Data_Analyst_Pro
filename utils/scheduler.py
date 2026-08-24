@@ -9,7 +9,7 @@ import threading
 from datetime import datetime
 from database.connection import get_db_cursor
 from database.queries import get_due_scheduled_reports, update_scheduled_report_last_run
-from utils.exporters import export_to_pdf_report, generate_fast_export_insights
+from utils.exporters import export_to_pdf_report
 from ai.insight_engine import generate_automated_insights
 from auth.email_service import email_service
 from utils.alert_engine import evaluate_alert_rules_batch
@@ -24,9 +24,12 @@ def process_due_scheduled_reports():
     """
     try:
         due_reports = []
-        with get_db_cursor() as cursor:
-            cursor.execute(get_due_scheduled_reports())
-            due_reports = cursor.fetchall()
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute(get_due_scheduled_reports())
+                due_reports = cursor.fetchall()
+        except Exception:
+            return
 
         for report in due_reports:
             report_id = report[0]
@@ -65,8 +68,8 @@ def process_due_scheduled_reports():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(update_scheduled_report_last_run(), (report_id,))
 
-    except Exception as err:
-        print("Scheduled Reports Worker Error:", err)
+    except Exception:
+        pass
 
 
 def _scheduler_loop():

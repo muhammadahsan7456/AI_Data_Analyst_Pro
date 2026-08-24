@@ -466,3 +466,7 @@ AI Data Analyst Pro Security Team
 </html>"""
 
         return self._send_email_async(to_email, subject, html_body, plain_text)
+
+
+# Singleton Instance
+email_service = EmailService()
