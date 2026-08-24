@@ -89,109 +89,98 @@ def extract_entity_phrase(question: str) -> str:
     words = [w for w in cleaned.split() if len(w) >= 2 and not w.isdigit()]
     return " ".join(words).strip()
 
+def is_technical_or_id_column(col_name: str, sample_val=None) -> bool:
+    """
+    Check if a column is a technical ID, serial number, tracking number, phone number, or CNIC code.
+    Prevents summing or averaging tracking IDs, phone numbers, or CNICs.
+    """
+    c_lower = col_name.lower().strip()
+    id_terms = [
+        "recordid", "datasetid", "userid", "index", "sr", "s.no", "s_no", "sno",
+        "consignment", "tracking", "cnic", "contact", "phone", "mobile", "zip",
+        "pincode", "account", "card", "ref", "reference", "order_id", "status_code",
+        "code", "row_num", "guid", "uuid"
+    ]
+    if any(term in c_lower for term in id_terms):
+        return True
+    if c_lower.endswith("_id") or c_lower == "id":
+        return True
+    return False
+
+
 def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: str) -> str:
     """
-    Generate deep, detailed, executive-level AI business insights explaining what the data shows,
-    record synthesis, top performers, numerical aggregations, and strategic recommendations in <0.01s.
+    Generate deep, readable, highly attractive executive-level AI business insights.
+    Directly answers user question, formats key breakdowns, and excludes tracking IDs from numerical sums.
     """
     if df is None or df.empty:
-        return f"No matching records found in dataset [{table_name}] for query '{question}'."
+        return f"No matching records found in dataset `[{table_name}]` for query *'{question}'*."
 
     total_rows = len(df)
     total_cols = len(df.columns)
 
-    # Exclude technical identifier columns from categorical analysis
-    def is_technical_id(col_name: str) -> bool:
-        c_lower = col_name.lower().strip()
-        if any(p in c_lower for p in ["recordid", "datasetid", "userid", "index", "sr", "s.no", "s_no", "sno", "row_num"]):
-            return True
-        if c_lower.endswith("_id") or c_lower == "id" or "guid" in c_lower or "uuid" in c_lower:
-            if not df.empty and col_name in df.columns:
-                sample_val = str(df[col_name].dropna().iloc[0]) if not df[col_name].dropna().empty else ""
-                if len(sample_val) > 10 and df[col_name].nunique() == len(df):
-                    return True
-        return False
+    # Clean text columns and real numeric metric columns
+    real_numeric_cols = []
+    for col in df.columns:
+        if not is_technical_or_id_column(col) and pd.api.types.is_numeric_dtype(df[col]):
+            # Verify values aren't giant tracking numbers (e.g. > 10,000,000)
+            valid_num = df[col].dropna()
+            if not valid_num.empty and valid_num.max() < 10000000:
+                real_numeric_cols.append(col)
 
-    analysis_cols = [c for c in df.columns if not is_technical_id(c)]
-    num_cols = df[analysis_cols].select_dtypes(include="number").columns.tolist()
-    text_cols = df[analysis_cols].select_dtypes(include="object").columns.tolist()
-
-    # Fallback if all text columns were filtered out
-    if not text_cols:
-        text_cols = df.select_dtypes(include="object").columns.tolist()
+    text_cols = [c for c in df.columns if not is_technical_or_id_column(c) and not pd.api.types.is_numeric_dtype(df[c])]
 
     summary_parts = []
 
-    # 1. Data Scope & Executive Context
+    # 1. Core Direct Query Answer
     summary_parts.append(
-        f"📊 **Data Scope & Executive Overview**:\n"
-        f"Retrieved **{total_rows:,} matching records** across **{total_cols} attributes** from dataset `[{table_name}]` for question *'{question}'*."
+        f"🎯 **Executive Query Summary**:\n"
+        f"Retrieved **{total_rows:,} matching records** across **{total_cols} columns** from dataset `[{table_name}]` for question: *'{question}'*."
     )
 
-    # 2. Detailed Record Synthesis & Key Findings
-    narrative_items = []
-    for col in text_cols[:3]:
-        unique_vals = df[col].dropna().unique()
-        if len(unique_vals) > 0:
-            sample_str = ", ".join([f"**{v}**" for v in unique_vals[:4]])
-            cnt_str = f"and {len(unique_vals) - 4} more" if len(unique_vals) > 4 else ""
-            narrative_items.append(f"• **{col}**: Features entries like {sample_str} {cnt_str} (Total {len(unique_vals)} unique values).")
-
-    if narrative_items:
-        summary_parts.append("📝 **Detailed Record Synthesis & Key Findings**:\n" + "\n".join(narrative_items))
-
-    # 3. Category Breakdown & Distribution
-    if text_cols:
-        cat_details = []
-        for col in text_cols[:4]:
+    # 2. Key Category & Location Breakdown
+    cat_highlights = []
+    for col in text_cols:
+        col_low = col.lower()
+        if any(k in col_low for k in ["origin", "destination", "city", "status", "area", "address", "service", "detail"]):
             val_counts = df[col].dropna().value_counts()
             if not val_counts.empty:
                 top_name = str(val_counts.index[0])
-                top_count = int(val_counts.iloc[0])
-                pct = round((top_count / total_rows) * 100, 1)
-                unique_cnt = len(val_counts)
+                top_cnt = int(val_counts.iloc[0])
+                pct = round((top_cnt / total_rows) * 100, 1)
 
-                if unique_cnt > 1:
-                    cat_details.append(
-                        f"• **{col}**: Dominant category is **{top_name}** with **{top_count} records** ({pct}% share). Spans {unique_cnt} distinct categories."
-                    )
+                if len(val_counts) == 1:
+                    cat_highlights.append(f"• **{col}**: All {total_rows} records belong exclusively to **{top_name}**.")
                 else:
-                    cat_details.append(
-                        f"• **{col}**: All {total_rows} records belong exclusively to **{top_name}**."
-                    )
+                    top_3 = ", ".join([f"**{idx}** ({val})" for idx, val in val_counts.head(3).items()])
+                    cat_highlights.append(f"• **{col}**: Top entries are {top_3}.")
 
-        if cat_details:
-            summary_parts.append("🔍 **Category Breakdown & Distribution**:\n" + "\n".join(cat_details))
+    if cat_highlights:
+        summary_parts.append("📌 **Key Category & Location Breakdown**:\n" + "\n".join(cat_highlights[:4]))
 
-    # 4. Aggregated Business Metrics & Financial Highs/Lows
-    if num_cols:
-        metric_details = []
-        for col in num_cols[:4]:
+    # 3. Real Financial & Operational Metrics (No ID/Phone Number Sums)
+    if real_numeric_cols:
+        metric_items = []
+        for col in real_numeric_cols[:4]:
             col_sum = df[col].sum()
             col_avg = df[col].mean()
             col_max = df[col].max()
-            col_min = df[col].min()
 
             if pd.notna(col_sum) and abs(col_sum) > 0:
-                metric_details.append(
-                    f"• **{col}**: Combined Total = **{col_sum:,.2f}** | Mean Average = **{col_avg:,.2f}** (Highest Peak: **{col_max:,.2f}**, Lowest: **{col_min:,.2f}**)"
+                metric_items.append(
+                    f"• **{col}**: Total = **{col_sum:,.2f}** | Mean Average = **{col_avg:,.2f}** (Peak: **{col_max:,.2f}**)"
                 )
-        if metric_details:
-            summary_parts.append("📈 **Aggregated Financial & Operational Metrics**:\n" + "\n".join(metric_details))
+        if metric_items:
+            summary_parts.append("💰 **Financial & Operational Metrics**:\n" + "\n".join(metric_items))
 
-    # 5. Strategic Executive Takeaway
-    takeaways = []
-    if text_cols:
-        first_col = text_cols[0]
-        top_val = df[first_col].dropna().value_counts().index[0] if not df[first_col].dropna().empty else "key categories"
-        takeaways.append(f"Dataset reveals strong concentration around **{first_col}** (leading value: **{top_val}**).")
+    # 4. Strategic Executive Actionable Takeaway
+    takeaway_text = f"The retrieved **{total_rows:,} records** demonstrate clear operational distribution. "
+    if "return" in question.lower():
+        takeaway_text += "Management should investigate top destination areas with high return rates to reduce logistics overhead and improve fulfillment success."
+    else:
+        takeaway_text += "Business teams should leverage these filtered insights to streamline delivery routes, optimize stock allocation, and improve customer satisfaction."
 
-    if num_cols:
-        takeaways.append(f"Financial and numerical indicators for **{num_cols[0]}** demonstrate stable distribution across returned rows.")
-
-    takeaways.append("Management should leverage these record insights to prioritize high-value entities, address outlier cases, and streamline operational workflows.")
-
-    summary_parts.append("💡 **Strategic Executive Takeaway & Action Plan**:\n" + " ".join(takeaways))
+    summary_parts.append("💡 **Strategic Action Plan**:\n" + takeaway_text)
 
     return "\n\n".join(summary_parts)
 
