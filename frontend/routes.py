@@ -705,10 +705,13 @@ def chat():
     tts_speech = format_tts_response(question, df, explanation)
 
     chart_path = None
+    chart_spec = {}
     try:
+        from visualization.chart_generator import generate_interactive_chart_spec
         chart_type = select_chart(df)
         if chart_type:
             chart_path = generate_chart(df, chart_type)
+            chart_spec = generate_interactive_chart_spec(df, chart_type)
     except Exception as chart_err:
         print("Chart Error:", chart_err)
 
@@ -740,6 +743,7 @@ def chat():
             "explanation": format_ai_explanation(explanation),
             "tts_speech": tts_speech,
             "chart": chart_path,
+            "chart_spec": chart_spec,
             "execution_time_ms": ai_result["execution_time_ms"],
             "confidence": ai_result["confidence"],
             "retries": ai_result["retries"],
@@ -755,6 +759,7 @@ def chat():
         result=result_html,
         explanation=explanation,
         chart=chart_path,
+        chart_spec=chart_spec,
         execution_time_ms=ai_result["execution_time_ms"],
         confidence=ai_result["confidence"],
         retries=ai_result["retries"],
