@@ -57,3 +57,31 @@ def select_chart(dataframe: pd.DataFrame) -> str:
         return "bar"
 
     return "bar"
+
+
+def get_compatible_chart_types(dataframe: pd.DataFrame) -> list:
+    """
+    Return list of compatible chart types based on DataFrame column structure.
+    """
+    if dataframe is None or dataframe.empty:
+        return ["table"]
+
+    types = ["auto", "table", "bar", "horizontal_bar"]
+
+    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^sr$", r"^s\.no$", r"^sno$"]
+    numeric_cols = [
+        c for c in dataframe.select_dtypes(include="number").columns
+        if not any(re.match(p, str(c).lower().strip()) for p in id_patterns)
+    ]
+    cat_cols = [c for c in dataframe.columns if c not in numeric_cols]
+
+    if len(cat_cols) >= 1:
+        types.extend(["pie", "donut"])
+
+    if len(numeric_cols) >= 1:
+        types.extend(["line", "area", "histogram", "boxplot"])
+
+    if len(numeric_cols) >= 2:
+        types.extend(["scatter", "heatmap"])
+
+    return types

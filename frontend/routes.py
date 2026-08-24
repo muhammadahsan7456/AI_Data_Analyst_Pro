@@ -684,6 +684,18 @@ def chat():
     session["last_query"] = question
     session["last_sql"] = ai_result["sql"]
 
+    # Record User Query History (User Data Isolation)
+    try:
+        from database.queries import insert_query_history
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(insert_query_history(), (
+                user_id, selected_dataset[0], question, ai_result["sql"],
+                "Success", len(df), ai_result.get("execution_time_ms", 0.0),
+                "auto", None
+            ))
+    except Exception as h_err:
+        pass
+
     try:
         explanation = generate_data_business_summary(selected_dataset[2], df, question)
     except Exception:
@@ -1520,6 +1532,220 @@ def api_ai_notifications_clear():
         return jsonify({"success": True})
     except Exception as err:
         return jsonify({"success": False, "error": str(err)}), 500
+
+
+# ==========================================
+# ENTERPRISE DATA QUALITY & INSIGHTS APIS
+# ==========================================
+
+@frontend.route("/api/dataset/<int:dataset_id>/quality")
+@login_required
+def api_dataset_quality(dataset_id):
+    """
+    Fetch Data Quality & Health Score (0-100) for dataset.
+    Enforces strict user data isolation.
+    """
+    user_id = session.get("user_id")
+    with get_db_cursor() as cursor:
+        cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"success": False, "error": "Dataset not found or access denied."}), 403
+        tbl_name = row[3]
+
+    from ai.data_quality import analyze_dataset_quality
+    quality_res = analyze_dataset_quality(tbl_name)
+    return jsonify({"success": True, "quality": quality_res})
+
+
+@frontend.route("/api/dataset/<int:dataset_id>/insights")
+@login_required
+def api_dataset_insights(dataset_id):
+    """
+    Fetch Automated Insights, Anomalies, and Executive AI Summary.
+    Enforces strict user data isolation.
+    """
+    user_id = session.get("user_id")
+    with get_db_cursor() as cursor:
+        cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"success": False, "error": "Dataset not found or access denied."}), 403
+        tbl_name = row[3]
+
+    from ai.insight_engine import generate_automated_insights
+    insights_res = generate_automated_insights(tbl_name)
+    return jsonify({"success": True, "insights": insights_res})
+
+
+# ==========================================
+# QUERY HISTORY APIS (USER ISOLATION)
+# ==========================================
+
+@frontend.route("/api/query-history")
+@login_required
+def api_query_history():
+    user_id = session.get("user_id")
+    history_items = []
+    try:
+        from database.queries import get_user_query_history
+        with get_db_cursor() as cursor:
+            cursor.execute(get_user_query_history(limit=50), (user_id,))
+            for r in cursor.fetchall():
+                history_items.append({
+                    "id": r[0],
+                    "dataset_id": r[1],
+                    "question": r[2],
+                    "sql": r[3],
+                    "status": r[4],
+                    "rows": r[5],
+                    "time_ms": r[6],
+                    "chart_type": r[7],
+                    "created_at": r[9].strftime("%b %d, %Y %I:%M %p") if r[9] else ""
+                })
+    except Exception as err:
+        print("Query History Error:", err)
+
+    return jsonify({"success": True, "history": history_items})
+
+
+@frontend.route("/api/query-history/delete/<int:history_id>", methods=["DELETE", "POST"])
+@login_required
+def api_delete_query_history(history_id):
+    user_id = session.get("user_id")
+    try:
+        from database.queries import delete_query_history_item
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(delete_query_history_item(), (history_id, user_id))
+        return jsonify({"success": True})
+    except Exception as err:
+        return jsonify({"success": False, "error": str(err)}), 500
+
+
+@frontend.route("/api/query-history/clear", methods=["POST"])
+@login_required
+def api_clear_query_history():
+    user_id = session.get("user_id")
+    try:
+        from database.queries import clear_user_query_history
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(clear_user_query_history(), (user_id,))
+        return jsonify({"success": True})
+    except Exception as err:
+        return jsonify({"success": False, "error": str(err)}), 500
+
+
+# ==========================================
+# SCHEDULED REPORTS & ALERTS APIS
+# ==========================================
+
+@frontend.route("/api/scheduled-reports", methods=["GET", "POST"])
+@login_required
+def api_scheduled_reports():
+    user_id = session.get("user_id")
+
+    if request.method == "POST":
+        data = request.get_json() or {}
+        ds_id = data.get("dataset_id")
+        report_type = data.get("report_type", "Executive Summary")
+        frequency = data.get("frequency", "Daily")
+        recipient = data.get("recipient_email", session.get("user_email"))
+        sched_time = data.get("schedule_time", "09:00")
+
+        if not ds_id:
+            return jsonify({"success": False, "error": "Dataset required."}), 400
+
+        try:
+            from database.queries import create_scheduled_report
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(create_scheduled_report(), (user_id, ds_id, report_type, frequency, recipient, sched_time))
+            return jsonify({"success": True})
+        except Exception as err:
+            return jsonify({"success": False, "error": str(err)}), 500
+
+    # GET: List reports
+    reports = []
+    try:
+        from database.queries import get_user_scheduled_reports
+        with get_db_cursor() as cursor:
+            cursor.execute(get_user_scheduled_reports(), (user_id,))
+            for r in cursor.fetchall():
+                reports.append({
+                    "id": r[0],
+                    "dataset_id": r[1],
+                    "dataset_name": r[2],
+                    "report_type": r[3],
+                    "frequency": r[4],
+                    "recipient_email": r[5],
+                    "schedule_time": r[6],
+                    "is_enabled": bool(r[7]),
+                    "last_run_at": r[8].strftime("%b %d, %Y %I:%M %p") if r[8] else "Never"
+                })
+    except Exception as err:
+        print("Error fetching scheduled reports:", err)
+
+    return jsonify({"success": True, "reports": reports})
+
+
+@frontend.route("/api/scheduled-reports/toggle/<int:report_id>", methods=["POST"])
+@login_required
+def api_toggle_scheduled_report(report_id):
+    user_id = session.get("user_id")
+    try:
+        from database.queries import toggle_scheduled_report
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(toggle_scheduled_report(), (report_id, user_id))
+        return jsonify({"success": True})
+    except Exception as err:
+        return jsonify({"success": False, "error": str(err)}), 500
+
+
+@frontend.route("/api/alert-rules", methods=["GET", "POST"])
+@login_required
+def api_alert_rules():
+    user_id = session.get("user_id")
+
+    if request.method == "POST":
+        data = request.get_json() or {}
+        ds_id = data.get("dataset_id")
+        metric_name = data.get("metric_name", "Return Rate")
+        op = data.get("operator", ">")
+        threshold = float(data.get("threshold", 20.0))
+        recipient = data.get("recipient_email", session.get("user_email"))
+
+        if not ds_id:
+            return jsonify({"success": False, "error": "Dataset required."}), 400
+
+        try:
+            from database.queries import create_alert_rule
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(create_alert_rule(), (user_id, ds_id, metric_name, op, threshold, recipient))
+            return jsonify({"success": True})
+        except Exception as err:
+            return jsonify({"success": False, "error": str(err)}), 500
+
+    # GET: List active alert rules
+    rules = []
+    try:
+        from database.queries import get_user_alert_rules
+        with get_db_cursor() as cursor:
+            cursor.execute(get_user_alert_rules(), (user_id,))
+            for r in cursor.fetchall():
+                rules.append({
+                    "id": r[0],
+                    "dataset_id": r[1],
+                    "dataset_name": r[2],
+                    "metric_name": r[3],
+                    "operator": r[4],
+                    "threshold": r[5],
+                    "recipient_email": r[6],
+                    "is_enabled": bool(r[7]),
+                    "last_triggered": r[8].strftime("%b %d, %Y %I:%M %p") if r[8] else "Never"
+                })
+    except Exception as err:
+        print("Error fetching alert rules:", err)
+
+    return jsonify({"success": True, "rules": rules})
 
 
 # ==========================================

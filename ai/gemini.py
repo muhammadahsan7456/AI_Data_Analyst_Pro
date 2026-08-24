@@ -14,10 +14,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 try:
     from ai.sql_agent import generate_sql_prompt
+    from ai.semantic_matcher import resolve_query_semantic_columns
     from database.connection import run_query, is_safe_identifier, sanitize_identifier
     from utils.cache import system_cache
 except ModuleNotFoundError:
     from sql_agent import generate_sql_prompt
+    try:
+        from semantic_matcher import resolve_query_semantic_columns
+    except ModuleNotFoundError:
+        resolve_query_semantic_columns = None
     from connection import run_query, is_safe_identifier, sanitize_identifier
     try:
         from utils.cache import system_cache
@@ -39,7 +44,7 @@ if api_key:
         client = None
 
 
-UNRELATED_MESSAGE = "I can only answer questions related to uploaded datasets."
+UNRELATED_MESSAGE = "I'm currently analyzing your selected dataset. Please ask a question related to its records, columns, trends, statistics, or business insights."
 
 # Priority list of ultra-fast OpenRouter models
 FAST_MODELS = [
@@ -457,6 +462,19 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     if search_cols:
         limit_clause = f"TOP {limit_val} " if limit_val else "TOP 500 "
         order_clause = f" ORDER BY {safe_pk} {'DESC' if is_last_request else 'ASC'}" if safe_pk else ""
+
+        # Priority 0: Semantic Multi-Condition Resolution (e.g. "returned orders from Karachi")
+        if resolve_query_semantic_columns:
+            sem_res = resolve_query_semantic_columns(question, table_name, columns_list)
+            if sem_res and sem_res.get("filter_conditions") and len(sem_res["filter_conditions"]) >= 2:
+                cond_strs = [f"CAST({sanitize_identifier(fc['col'])} AS NVARCHAR(MAX)) = '{fc['val']}'" for fc in sem_res["filter_conditions"]]
+                sem_sql = f"SELECT {limit_clause}* FROM {safe_tbl} WHERE {' AND '.join(cond_strs)}{order_clause};"
+                try:
+                    test_df = run_query(sem_sql)
+                    if test_df is not None and not test_df.empty:
+                        return sem_sql
+                except Exception:
+                    pass
 
         # Priority 1: Check status/state specific columns for status queries (e.g. "delivered", "pending", "cancelled", "returned")
         status_cols = [c for c in search_cols if any(kw in c.lower() for kw in ["status", "state", "stage", "condition"])]
