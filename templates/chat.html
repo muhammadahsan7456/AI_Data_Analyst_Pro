@@ -8,8 +8,14 @@
 
 <!-- Plotly Interactive Visualization Engine CDN - loaded unconditionally on this page
      (the only page that renders charts) so it's warm and ready before the first query,
-     rather than every other page in the app paying for it. -->
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+     rather than every other page in the app paying for it. "async" keeps a slow/congested
+     connection to this CDN from stalling the rest of the page - unlike "defer", it doesn't
+     hold up DOMContentLoaded either, so the form and every other interactive element on
+     this page work immediately even if this script is still downloading. If a chart needs
+     to render before Plotly finishes loading, the existing "is Plotly still undefined?"
+     retry logic in renderInteractivePlotlyChart() (which dynamically (re)injects this same
+     script) already covers that gap - this was written for exactly that race. -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js" async></script>
 
 <!-- Hidden speech text container for Voice Synthesis -->
 {% if tts_speech %}

@@ -164,8 +164,8 @@
         <h2 class="table-title">📚 All Uploaded Datasets ({{ total_found }})</h2>
         
         <form method="GET" action="{{ url_for('frontend.dashboard') }}" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <input type="date" name="date_from" value="{{ date_from }}" title="Uploaded From" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
-            <input type="date" name="date_to" value="{{ date_to }}" title="Uploaded To" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+            <input type="date" name="date_from" value="{{ date_from or '' }}" title="Uploaded From" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+            <input type="date" name="date_to" value="{{ date_to or '' }}" title="Uploaded To" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
 
             <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
                 <option value="UploadDate" {% if sort_by == 'UploadDate' %}selected{% endif %}>Sort by Date</option>
