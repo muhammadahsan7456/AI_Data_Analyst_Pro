@@ -1,0 +1,117 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Customer Reviews — AI Data Analyst Pro | Trusted by 500+ Data Analysts</title>
+<meta name="description" content="See verified reviews from 500+ enterprise data analysts and business leaders using AI Data Analyst Pro for automated SQL querying, voice AI, and executive report generation.">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>Reviews</li></ol></div></div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-star"></i> Verified User Reviews</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Loved by <span class="gradient-text">500+ Data Analysts</span> & Business Leaders</h1>
+            <p class="section-subtitle">See how top analytics teams use AI Data Analyst Pro to automate SQL queries, generate PowerPoint briefings, and speed up decisions.</p>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-grid reveal stagger-children" style="margin-top: 0; margin-bottom: 56px;">
+            <div class="stat-card" data-tilt>
+                <div class="counter-value" data-counter data-target="512" data-suffix="+" data-duration="2000">0</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+            <div class="stat-card" data-tilt>
+                <div class="counter-value" data-counter data-target="4.9" data-suffix="/5" data-decimals="1" data-duration="1500">0</div>
+                <div class="stat-label">Average Rating</div>
+            </div>
+            <div class="stat-card" data-tilt>
+                <div class="counter-value" data-counter data-target="98" data-suffix="%" data-duration="1800">0</div>
+                <div class="stat-label">Satisfaction Rate</div>
+            </div>
+            <div class="stat-card" data-tilt>
+                <div class="counter-value" data-counter data-target="54" data-suffix="hrs" data-duration="1600">0</div>
+                <div class="stat-label">Avg. Time Saved / Month</div>
+            </div>
+        </div>
+
+        <!-- Testimonials Grid -->
+        <div class="testimonial-grid stagger-children">
+            <div class="testimonial-card reveal" data-tilt>
+                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                <p class="testimonial-text">"We used to spend 15+ hours a week writing T-SQL queries and building charts manually. AI Data Analyst Pro does it in 0.005 milliseconds. The natural Roman Urdu voice query feature is unbelievable!"</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">HK</div>
+                    <div><div class="testimonial-name">Haris Khan</div><div class="testimonial-role">Lead Supply Chain Analyst • Karachi, Pakistan</div></div>
+                </div>
+            </div>
+
+            <div class="testimonial-card reveal" data-tilt>
+                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                <p class="testimonial-text">"The automated PowerPoint and PDF exports save us hours before executive board meetings. Plus, the AES-256 field encryption gives our compliance team complete peace of mind."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #10b981, #06b6d4);">MA</div>
+                    <div><div class="testimonial-name">Muhammad Ahmed</div><div class="testimonial-role">Head of Business Intelligence • Lahore, Pakistan</div></div>
+                </div>
+            </div>
+
+            <div class="testimonial-card reveal" data-tilt>
+                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                <p class="testimonial-text">"The multi-dataset JOIN engine is top notch. We connected sales and inventory datasets and got instant cross-analysis insights without writing a single complex SQL JOIN statement."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">SA</div>
+                    <div><div class="testimonial-name">Syed Ali Farhan</div><div class="testimonial-role">E-commerce Director • Dubai, UAE</div></div>
+                </div>
+            </div>
+
+            <div class="testimonial-card reveal" data-tilt>
+                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                <p class="testimonial-text">"Our logistics team uses the voice AI feature daily. Just saying 'Karachi se Lahore orders dikhao' gives us instant results. It's like having a bilingual data scientist on call 24/7."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #a855f7, #ec4899);">FN</div>
+                    <div><div class="testimonial-name">Fatima Noor</div><div class="testimonial-role">Operations Manager • Islamabad, Pakistan</div></div>
+                </div>
+            </div>
+
+            <div class="testimonial-card reveal" data-tilt>
+                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                <p class="testimonial-text">"Processing 10 million rows of sales data used to crash our tools. AI Data Analyst Pro handles it effortlessly with streaming chunking. The speed difference is night and day."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #14b8a6, #0ea5e9);">RJ</div>
+                    <div><div class="testimonial-name">Rizwan Javed</div><div class="testimonial-role">Senior Data Engineer • Faisalabad, Pakistan</div></div>
+                </div>
+            </div>
+
+            <div class="testimonial-card reveal" data-tilt>
+                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                <p class="testimonial-text">"The ROI was immediate. We replaced 3 separate analytics tools with just AI Data Analyst Pro. The automated chart generation and executive takeaways are incredibly polished."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #f97316, #dc2626);">AH</div>
+                    <div><div class="testimonial-name">Ahmed Hassan</div><div class="testimonial-role">CTO • Rawalpindi, Pakistan</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AdSense -->
+<div class="adsense-slot adsense-between-sections">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="TESTIMONIALS_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- CTA -->
+<section class="landing-section" style="padding: 60px 0; text-align: center;">
+    <div class="container reveal">
+        <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: 16px;">Join 500+ Happy Analysts</h2>
+        <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('auth.register_payment') }}" class="btn-hero-primary"><i class="fa-solid fa-rocket"></i> Start Your Journey</a>
+            <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary"><i class="fa-solid fa-play"></i> Try Demo First</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

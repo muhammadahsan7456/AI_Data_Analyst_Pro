@@ -1,34 +1,74 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 
-{% block title %}About | AI Data Analyst Pro{% endblock %}
-{% block header_title %}About AI Data Analyst Pro{% endblock %}
-{% block header_subtitle %}Enterprise AI Analytics, Natural Language T-SQL Engine, and Data Intelligence SaaS.{% endblock %}
+{% block seo_meta %}
+<title>About — AI Data Analyst Pro | Enterprise AI Analytics Platform</title>
+<meta name="description" content="Learn about AI Data Analyst Pro v2.5 Enterprise — a production-grade commercial data SaaS transforming raw datasets into actionable business intelligence with AI.">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>About</li></ol></div></div>
+{% endblock %}
 
 {% block content %}
-<div class="table-card" style="max-width: 900px;">
-    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
-        <div class="sidebar-brand-icon" style="width: 56px; height: 56px; font-size: 28px;">
-            <i class="fa-solid fa-brain"></i>
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-circle-info"></i> About Us</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">About <span class="gradient-text">AI Data Analyst Pro</span></h1>
+            <p class="section-subtitle">Production-grade enterprise AI data analysis SaaS — v2.5 Enterprise Edition.</p>
         </div>
-        <div>
-            <h2 style="font-size: 22px; font-weight: 800;">AI Data Analyst Pro v2.5 Enterprise</h2>
-            <p style="color: var(--text-secondary);">Production-Grade Commercial Data SaaS Solution</p>
+
+        <!-- Platform Info Card -->
+        <div class="reveal" style="max-width: 900px; margin: 0 auto;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-xl); padding: 36px; backdrop-filter: blur(10px);">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 28px;">
+                    <div class="brand-icon-box" style="width: 64px; height: 64px; font-size: 32px;"><i class="fa-solid fa-brain"></i></div>
+                    <div>
+                        <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">AI Data Analyst Pro v2.5 Enterprise</h2>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Production-Grade Commercial Data SaaS Solution</p>
+                    </div>
+                </div>
+
+                <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.8; margin-bottom: 24px;">
+                    <strong style="color: var(--text-primary);">AI Data Analyst Pro</strong> transforms raw spreadsheets and tabular datasets into actionable business intelligence using cutting-edge AI models, automated Microsoft SQL Server table creation, and self-correcting query execution loops. Built for enterprise scale with bank-grade security.
+                </p>
+
+                <h3 style="font-family: var(--font-heading); font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--accent-blue);">
+                    <i class="fa-solid fa-sparkles"></i> Core Platform Capabilities
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    {% set capabilities = [
+                        ('Automated Schema Engine', 'Reads CSV, Excel, JSON, XML, Parquet files and creates optimized SQL Server tables dynamically.', 'fa-database', '--accent-blue'),
+                        ('AI Natural Language to T-SQL', 'Converts plain English or Roman Urdu questions into T-SQL queries with automated 3-attempt error-repair loops.', 'fa-robot', '--accent-purple'),
+                        ('Domain Guardrails', 'Strictly dataset-focused AI agent that refuses out-of-domain general knowledge requests in 0.001 seconds.', 'fa-shield-halved', '--accent-green'),
+                        ('Multi-Format Exporters', 'Generates executive PDF reports, styled Excel workbooks, PowerPoint decks, CSV files, and SVG charts.', 'fa-file-export', '--accent-amber'),
+                        ('8 Visualization Types', 'Auto-detects features and renders Bar, Line, Scatter, Pie, Histogram, Box Plot, Area, and Heatmaps.', 'fa-chart-pie', '--accent-cyan'),
+                        ('Voice AI Querying', 'Bilingual English and Roman Urdu voice queries with real-time Web Speech API transcription and phonetic correction.', 'fa-microphone', '--accent-red')
+                    ] %}
+                    {% for title, desc, icon, color in capabilities %}
+                    <div style="display: flex; gap: 12px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); transition: all 0.3s ease;" class="reveal">
+                        <i class="fa-solid {{ icon }}" style="color: var({{ color }}); font-size: 20px; margin-top: 2px;"></i>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">{{ title }}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">{{ desc }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Creator Section -->
+        <div class="reveal" style="max-width: 900px; margin: 48px auto 0;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: var(--radius-xl); padding: 36px; text-align: center; box-shadow: var(--shadow-glow);">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px; font-weight: 800; color: #fff;">MA</div>
+                <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; margin-bottom: 4px;">Muhammad Ahsan</h3>
+                <p style="color: var(--accent-blue); font-size: 14px; font-weight: 600; margin-bottom: 16px;">Creator & Lead Developer</p>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; max-width: 600px; margin: 0 auto;">Passionate about building enterprise-grade AI solutions that transform how businesses interact with their data. AI Data Analyst Pro represents years of innovation in AI-powered analytics.</p>
+            </div>
         </div>
     </div>
-
-    <div style="line-height: 1.8; color: var(--text-secondary); display: flex; flex-direction: column; gap: 16px;">
-        <p>
-            <strong>AI Data Analyst Pro</strong> transforms raw spreadsheets and tabular datasets into actionable business intelligence using cutting-edge AI models, automated Microsoft SQL Server table creation, and self-correcting query execution loops.
-        </p>
-
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Core Platform Capabilities:</h3>
-        <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
-            <li><strong>Automated Schema Engine:</strong> Reads CSV and Excel (.xlsx, .xls) files up to 100MB and creates optimized SQL Server tables dynamically.</li>
-            <li><strong>AI Natural Language to T-SQL:</strong> Converts plain English user questions into T-SQL queries with automated 3-attempt error-repair loops.</li>
-            <li><strong>Domain Guardrails:</strong> Strictly dataset-focused AI agent that refuses out-of-domain general knowledge requests.</li>
-            <li><strong>Multi-Format Exporters:</strong> Generates executive PDF reports via ReportLab, styled multi-sheet Excel workbooks via openpyxl, CSV data files, and scalable SVG/PNG charts.</li>
-            <li><strong>8 Visualization Types:</strong> Automatically detects feature distributions and renders Bar, Line, Scatter, Pie, Histogram, Box Plot, Area, and Correlation Heatmaps.</li>
-        </ul>
-    </div>
-</div>
+</section>
 {% endblock %}

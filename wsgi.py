@@ -4,7 +4,6 @@ Runs high-concurrency production WSGI server using Waitress.
 """
 
 import os
-import sys
 from run import app
 
 if __name__ == "__main__":

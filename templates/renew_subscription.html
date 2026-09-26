@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Renew Subscription & Payment Proof Upload - AI Data Analyst Pro{% endblock %}
+{% block header_title %}Subscription Plan Renewal{% endblock %}
+{% block header_subtitle %}Upload payment proof screenshot to extend your one-month enterprise access{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; padding: 20px 0;">
+
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 30px; margin-bottom: 24px; box-shadow: var(--shadow-lg);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 24px;">
+            <div>
+                <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+                    {% if account_status == 'rejected' %}⚠️ Payment Verification Issue{% elif account_status == 'pending_approval' %}⏳ Payment Under Review{% else %}💳 Subscription Expired - Renew Now{% endif %}
+                </h2>
+                <p style="font-size: 13px; color: var(--text-muted);">
+                    Current Account Status:
+                    <span class="badge {% if account_status in ['suspended', 'rejected'] %}badge-danger{% else %}badge-warning{% endif %}" style="padding: 4px 12px; font-size: 12px; text-transform: uppercase;">
+                        {{ account_status|replace('_', ' ') }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        {% if account_status == 'rejected' and rejection_reason %}
+        <div style="background: rgba(239, 68, 68, 0.12); border-left: 4px solid #ef4444; border-radius: 6px; padding: 14px 18px; margin-bottom: 24px;">
+            <strong style="color: #dc2626;">Reason your last payment was not approved:</strong>
+            <p style="color: var(--text-primary); margin-top: 4px; font-size: 13px;">{{ rejection_reason }}</p>
+        </div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px;">
+            <div style="background: var(--bg-primary); padding: 20px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.05);">
+                <h4 style="font-size: 15px; font-weight: 700; color: #38bdf8; margin-bottom: 12px;">
+                    <i class="fa-solid fa-building-columns"></i> Payment Transfer Options
+                </h4>
+                <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; list-style: none; padding: 0;">
+                    {% if settings.account_title %}<li><strong>Account Title:</strong> {{ settings.account_title }}</li>{% endif %}
+                    {% if settings.bank_name %}<li><strong>Bank:</strong> {{ settings.bank_name }}</li>{% endif %}
+                    {% if settings.account_number %}<li><strong>Account Number:</strong> {{ settings.account_number }}</li>{% endif %}
+                    {% if settings.iban %}<li><strong>IBAN:</strong> {{ settings.iban }}</li>{% endif %}
+                    {% if settings.jazzcash_number %}<li><strong>JazzCash:</strong> {{ settings.jazzcash_number }}</li>{% endif %}
+                    {% if settings.easypaisa_number %}<li><strong>Easypaisa:</strong> {{ settings.easypaisa_number }}</li>{% endif %}
+                    {% if settings.sadapay_number %}<li><strong>SadaPay:</strong> {{ settings.sadapay_number }}</li>{% endif %}
+                    <li><strong>Subscription Fee:</strong> {{ settings.plan_price_label }}</li>
+                </ul>
+            </div>
+
+            <div style="background: var(--bg-primary); padding: 20px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.05);">
+                <h4 style="font-size: 15px; font-weight: 700; color: #a855f7; margin-bottom: 12px;">
+                    <i class="fa-solid fa-shield-check"></i> Super Admin Verification Process
+                </h4>
+                <ol style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; padding-left: 18px;">
+                    <li>Transfer payment via any supported method above.</li>
+                    <li>Upload a clear payment screenshot on the form right here.</li>
+                    <li>Super Admin reviews and verifies the payment.</li>
+                    <li>Your account is instantly re-activated for a new one-month period!</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Payment Receipt Upload Form -->
+        <form action="{{ url_for('frontend.renew_subscription') }}" method="POST" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+                    📤 Upload Payment Screenshot *
+                </label>
+                <input type="file" name="receipt_file" accept=".jpg,.jpeg,.png,.webp" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); width: 100%;">
+                <small style="color: var(--text-muted); display: block; margin-top: 6px;">Supported formats: JPG, JPEG, PNG, WEBP (Max 5MB)</small>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+                    🏦 Select Payment Bank / Transfer Method Used *
+                </label>
+                <select name="bank_method" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); width: 100%;">
+                    <option value="">-- Select Payment Method --</option>
+                    <option value="Easypaisa">Easypaisa Mobile Account</option>
+                    <option value="SadaPay">SadaPay</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+                    💵 Payment Transfer Amount (PKR) *
+                </label>
+                <input type="number" name="payment_amount" value="25000" min="25000" step="100" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: #34d399; font-weight: 700; font-size: 16px; padding: 12px; border-radius: var(--radius-md); width: 100%;">
+                <small style="color: #ef4444; display: block; margin-top: 6px; font-weight: 600;">⚠️ Minimum Acceptable Subscription Fee: PKR 25,000. Submissions under PKR 25,000 will be automatically rejected.</small>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+                    📝 Transaction ID / Payment Reference Number *
+                </label>
+                <input type="text" name="transaction_note" required placeholder="e.g. TXN-99887766 or Bank Ref #12345" class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); width: 100%;">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: var(--radius-md);">
+                <i class="fa-solid fa-paper-plane"></i> Submit Payment Proof Receipt to Super Admin
+            </button>
+        </form>
+    </div>
+
+    <!-- Recent Payment History -->
+    {% if payments %}
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">
+            📜 Payment & Renewal Receipt Submissions
+        </h3>
+        <div style="overflow-x: auto;">
+            <table class="table table-bordered custom-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Plan Name</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Receipt Proof</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payments %}
+                    <tr>
+                        <td>{{ p.payment_date }}</td>
+                        <td>{{ p.plan_name }}</td>
+                        <td>PKR {{ "{:,.2f}".format(p.amount) }}</td>
+                        <td>
+                            <span class="badge {% if p.status == 'Completed' %}badge-success{% elif p.status == 'Pending_Review' %}badge-warning{% else %}badge-danger{% endif %}">
+                                {{ p.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if p.screenshot_path %}
+                            <a href="{{ url_for('frontend.secure_payment_screenshot', payment_id=p.id) }}" target="_blank" class="btn btn-sm btn-secondary" style="font-size: 11px;">
+                                👁️ View Receipt Proof
+                            </a>
+                            {% else %}
+                            <span style="color: var(--text-muted);">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,43 +1,24 @@
 import os
 import sys
 import io
-import re
-import gc
-import math
 import json
 import pandas as pd
-from typing import Tuple, Dict, Any, List, Optional
+from typing import Tuple, Dict, Any, Optional
 
 # Ensure workspace root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-try:
-    from database.connection import get_db_cursor, sanitize_identifier
-    from database.queries import insert_dataset
-    from uploads.data_loader import (
-        clean_table_name,
-        clean_column_name,
-        create_table,
-        insert_dataframe,
-        optimize_dataframe_memory,
-        auto_repair_dataframe_headers
-    )
-    from utils.logger import log_event
-except ModuleNotFoundError:
-    from connection import get_db_cursor, sanitize_identifier
-    from queries import insert_dataset
-    from data_loader import (
-        clean_table_name,
-        clean_column_name,
-        create_table,
-        insert_dataframe,
-        optimize_dataframe_memory,
-        auto_repair_dataframe_headers
-    )
-    try:
-        from utils.logger import log_event
-    except ModuleNotFoundError:
-        def log_event(*args, **kwargs): pass
+from database.connection import get_db_cursor
+from database.queries import insert_dataset
+from uploads.data_loader import (
+    clean_table_name,
+    create_table,
+    insert_dataframe,
+    create_high_performance_indexes,
+    optimize_dataframe_memory,
+    auto_repair_dataframe_headers
+)
+from utils.logger import log_event
 
 # 9 Supported File Extensions
 SUPPORTED_EXTENSIONS = {
@@ -52,7 +33,86 @@ SUPPORTED_EXTENSIONS = {
     ".feather": "FEATHER"
 }
 
-MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500 MB Max Limit
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "500"))
+MAX_FILE_SIZE_BYTES = MAX_UPLOAD_MB * 1024 * 1024  # Configurable MB Limit
+
+# Files at or above this size are ingested via the streaming path below instead of being
+# fully loaded into one in-memory DataFrame.
+STREAMING_THRESHOLD_BYTES = 50 * 1024 * 1024  # 50 MB
+STREAMING_SAMPLE_ROWS = 20000
+STREAMING_CHUNK_SIZE = 50000
+
+
+def process_large_delimited_file_streaming(uploaded_file, sep: str, table_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Stream-parse and stream-insert a large CSV/TSV file in bounded chunks instead of loading
+    the entire file into one DataFrame, so peak memory stays roughly constant regardless of
+    file size. Column names are inferred once from a sample (the same heuristic the normal
+    path already uses) and reused for every subsequent chunk. Unlike the normal path, this
+    does NOT drop columns that look empty in the sample - a column empty in the first 20,000
+    rows may still contain real data further into the file, and dropping it there would
+    silently lose that data.
+    """
+    uploaded_file.seek(0)
+    try:
+        sample_df = pd.read_csv(uploaded_file, sep=sep, encoding="utf-8", engine="c",
+                                 on_bad_lines="skip", low_memory=False, nrows=STREAMING_SAMPLE_ROWS)
+        encoding_used = "utf-8"
+    except (UnicodeDecodeError, Exception):
+        uploaded_file.seek(0)
+        sample_df = pd.read_csv(uploaded_file, sep=sep, encoding="latin1", engine="c",
+                                 on_bad_lines="skip", low_memory=False, nrows=STREAMING_SAMPLE_ROWS)
+        encoding_used = "latin1"
+
+    if sample_df is None or sample_df.empty:
+        return None
+
+    sample_df = sample_df.dropna(how="all")
+    if sample_df.empty:
+        return None
+
+    sample_df = auto_repair_dataframe_headers(sample_df)
+    sample_df = optimize_dataframe_memory(sample_df)
+    final_columns = list(sample_df.columns)
+    n_cols = len(final_columns)
+
+    create_table(table_name, sample_df.copy())
+
+    preview_df = sample_df.head(500).copy()
+    first_result = insert_dataframe(table_name, sample_df)
+
+    total_parsed = len(sample_df)
+    total_inserted = first_result["inserted"]
+    total_failed = first_result["failed"]
+
+    uploaded_file.seek(0)
+    reader = pd.read_csv(
+        uploaded_file, sep=sep, encoding=encoding_used, engine="c",
+        on_bad_lines="skip", low_memory=False,
+        skiprows=range(1, STREAMING_SAMPLE_ROWS + 1), chunksize=STREAMING_CHUNK_SIZE
+    )
+    for chunk in reader:
+        chunk = chunk.dropna(how="all")
+        if chunk.empty:
+            continue
+        if len(chunk.columns) != n_cols:
+            chunk = chunk.iloc[:, :n_cols]
+        chunk.columns = final_columns
+        chunk = optimize_dataframe_memory(chunk)
+
+        result = insert_dataframe(table_name, chunk)
+        total_parsed += len(chunk)
+        total_inserted += result["inserted"]
+        total_failed += result["failed"]
+        del chunk
+
+    return {
+        "parsed_rows": total_parsed,
+        "inserted_rows": total_inserted,
+        "failed_rows": total_failed,
+        "total_cols": n_cols,
+        "preview_df": preview_df
+    }
 
 
 def sanitize_and_clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -131,30 +191,36 @@ def validate_file_pre_upload(uploaded_file, user_id: int) -> Tuple[bool, str, Di
     if file_length > MAX_FILE_SIZE_BYTES:
         return False, f"File '{filename}' exceeds maximum allowed size of 500 MB ({round(file_length / (1024*1024), 2)} MB).", {}
 
-    # Duplicate dataset name check (case-insensitive for filename & table_name)
+    # User-isolated table name generation & smooth duplicate auto-versioning
+    base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
+    file_ext_part = f".{ext.strip('.')}" if ext else ""
     table_name = clean_table_name(filename, user_id=user_id)
-    base_name = filename.rsplit(".", 1)[0]
+    final_filename = filename
+
     try:
         with get_db_cursor() as cursor:
             cursor.execute(
                 """
-                SELECT OriginalFileName FROM Datasets 
-                WHERE UserID = ? AND (
-                    LOWER(OriginalFileName) = LOWER(?) 
-                    OR LOWER(DatasetName) = LOWER(?)
-                    OR LOWER(OriginalFileName) = LOWER(?)
-                )
+                SELECT OriginalFileName, DatasetName FROM Datasets 
+                WHERE UserID = ?
                 """,
-                (user_id, filename, table_name, base_name)
+                (user_id,)
             )
-            existing = cursor.fetchone()
-            if existing:
-                return False, f"Kindly note that a dataset with the name '{filename}' already exists in your account. Please rename your file or choose a different dataset name because a dataset with this name is already uploaded.", {}
+            rows = cursor.fetchall() or []
+            existing_files = {str(r[0]).lower() for r in rows if r[0]}
+            existing_tables = {str(r[1]).lower() for r in rows if r[1]}
+
+            version = 1
+            while final_filename.lower() in existing_files or table_name.lower() in existing_tables:
+                version += 1
+                final_filename = f"{base_name} ({version}){file_ext_part}"
+                table_name = clean_table_name(final_filename, user_id=user_id)
     except Exception as err:
         log_event("UPLOAD_LOG", f"Duplicate check notice: {err}", user_id=user_id)
 
     meta = {
-        "filename": filename,
+        "filename": final_filename,
+        "original_filename": filename,
         "extension": ext,
         "format_label": format_label,
         "size_bytes": file_length,
@@ -255,30 +321,64 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tu
     format_label = meta["format_label"]
     table_name = meta["table_name"]
     storage_size_kb = meta["storage_size_kb"]
+    size_bytes = meta.get("size_bytes", 0)
 
     try:
-        df = parse_uploaded_file(uploaded_file, ext, format_label)
+        use_streaming = format_label in ("CSV", "TSV") and size_bytes >= STREAMING_THRESHOLD_BYTES
 
-        if df is None or df.empty:
-            return False, f"File '{filename}' contains no rows or data records."
+        if use_streaming:
+            # Large delimited file: parse and insert in bounded chunks instead of loading
+            # the whole file into one DataFrame (keeps peak memory roughly constant).
+            sep = "\t" if format_label == "TSV" else ","
+            stream_result = process_large_delimited_file_streaming(uploaded_file, sep, table_name)
+            if not stream_result:
+                return False, f"File '{filename}' contains no rows or data records."
 
-        # Sanitize headers, clean blank rows/cols, fix unnamed columns
-        df = sanitize_and_clean_dataframe(df)
+            parsed_rows = stream_result["parsed_rows"]
+            total_cols = stream_result["total_cols"]
+            total_rows = stream_result["inserted_rows"]
+            failed_rows = stream_result["failed_rows"]
+            df = stream_result["preview_df"]
 
-        if df is None or df.empty:
-            return False, f"File '{filename}' contains only blank rows or invalid data."
+            log_event("UPLOAD_LOG", f"Streamed large {format_label} file '{filename}' ({round(size_bytes/1024/1024, 1)} MB) into table [{table_name}]", user_id=user_id)
+        else:
+            df = parse_uploaded_file(uploaded_file, ext, format_label)
 
-        # Memory optimization for large datasets
-        df = optimize_dataframe_memory(df)
+            if df is None or df.empty:
+                return False, f"File '{filename}' contains no rows or data records."
 
-        total_rows = int(df.shape[0])
-        total_cols = int(df.shape[1])
+            # Sanitize headers, clean blank rows/cols, fix unnamed columns
+            df = sanitize_and_clean_dataframe(df)
 
-        # Create SQL Table
-        create_table(table_name, df)
+            if df is None or df.empty:
+                return False, f"File '{filename}' contains only blank rows or invalid data."
 
-        # Batch Insert Data
-        insert_dataframe(table_name, df)
+            # Memory optimization for large datasets
+            df = optimize_dataframe_memory(df)
+
+            parsed_rows = int(df.shape[0])
+            total_cols = int(df.shape[1])
+
+            # Create SQL Table
+            create_table(table_name, df)
+
+            # Batch Insert Data - report the ACTUAL rows committed to the database,
+            # not just the rows parsed from the file, since insertion can partially fail.
+            insert_result = insert_dataframe(table_name, df)
+            total_rows = insert_result["inserted"]
+            failed_rows = insert_result["failed"]
+
+        if failed_rows > 0:
+            log_event(
+                "UPLOAD_LOG",
+                f"Dataset '{filename}' -> table [{table_name}]: parsed {parsed_rows} rows, "
+                f"inserted {total_rows}, {failed_rows} row(s) failed to insert and were skipped.",
+                user_id=user_id,
+                level="WARNING"
+            )
+
+        # Create non-clustered high performance indexes on search columns
+        create_high_performance_indexes(table_name, df)
 
         # Record dataset metadata
         with get_db_cursor(commit=True) as cursor:
@@ -306,18 +406,31 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tu
                     (user_id, table_name, filename, format_label, total_rows, total_cols, storage_size_kb)
                 )
 
-        log_event("UPLOAD_LOG", f"Successfully ingested {format_label} file '{filename}' into table [{table_name}] ({total_rows} rows, {total_cols} cols)", user_id=user_id)
+        dataset_id = None
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT DatasetID FROM Datasets WHERE UserID = ? AND DatasetName = ?", (user_id, table_name))
+                row = cursor.fetchone()
+                if row:
+                    dataset_id = row[0]
+        except Exception:
+            pass
 
-        preview_html = df.head(10).to_html(
-            classes="table table-bordered table-striped custom-table",
+        log_event("UPLOAD_LOG", f"Successfully ingested {format_label} file '{filename}' into table [{table_name}] (parsed {parsed_rows}, inserted {total_rows}, {failed_rows} failed, {total_cols} cols)", user_id=user_id)
+
+        preview_html = df.head(500).to_html(
+            classes="table table-bordered table-striped custom-table upload-preview-table",
             index=False
         )
 
         return True, {
+            "dataset_id": dataset_id,
             "table_name": table_name,
             "file_name": filename,
             "file_type": format_label,
             "rows": total_rows,
+            "parsed_rows": parsed_rows,
+            "failed_rows": failed_rows,
             "columns": total_cols,
             "storage_kb": storage_size_kb,
             "preview": preview_html

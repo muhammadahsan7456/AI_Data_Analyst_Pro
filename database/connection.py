@@ -13,6 +13,10 @@ load_dotenv()
 
 try:
     import pyodbc
+    # Reuse physical ODBC connections across get_connection() calls instead of a fresh
+    # TCP/login handshake per request. This is pyodbc's default already, set explicitly
+    # here so it's documented and doesn't depend on the driver's default staying True.
+    pyodbc.pooling = True
 except ImportError:
     pyodbc = None
 
@@ -167,13 +171,21 @@ def get_connection_string():
 
 def get_connection():
     """
-    Establish and return database connection (SQL Server primary, SQLite cloud fallback).
+    Establish and return a SQL Server database connection.
+    A local SQLite fallback is available ONLY when ALLOW_SQLITE_FALLBACK=true is set in
+    .env, for local development/testing convenience. By default (including production),
+    a SQL Server outage raises a real error instead of silently switching to SQLite and
+    serving different (and likely empty) data without anyone noticing.
     """
+    allow_fallback = os.getenv("ALLOW_SQLITE_FALLBACK", "false").strip().lower() == "true"
+    last_err = None
+
     if pyodbc is not None:
         try:
             conn_str = get_connection_string()
             return pyodbc.connect(conn_str, timeout=3)
-        except Exception:
+        except Exception as primary_err:
+            last_err = primary_err
             try:
                 fallback_str = (
                     "DRIVER={SQL Server};"
@@ -182,10 +194,18 @@ def get_connection():
                     "Trusted_Connection=yes;"
                 )
                 return pyodbc.connect(fallback_str, timeout=3)
-            except Exception:
-                pass
+            except Exception as secondary_err:
+                last_err = secondary_err
 
-    # Seamless cloud fallback to local SQLite database when SQL Server is unreachable
+    if not allow_fallback:
+        print(f"[DATABASE ERROR] Could not connect to SQL Server ({type(last_err).__name__ if last_err else 'pyodbc unavailable'}).")
+        raise ConnectionError(
+            "Could not connect to the SQL Server database. Set ALLOW_SQLITE_FALLBACK=true "
+            "in .env only if you intend to run against a local SQLite database for "
+            "development/testing."
+        ) from last_err
+
+    # Local development/testing fallback only - never used unless explicitly enabled.
     return SQLiteConnectionAdapter()
 
 
@@ -346,15 +366,33 @@ def init_sqlite_db(conn):
         '''CREATE TABLE IF NOT EXISTS Payments (
             PaymentID INTEGER PRIMARY KEY AUTOINCREMENT,
             UserID INTEGER NOT NULL,
-            Amount REAL NOT NULL DEFAULT 85.00,
-            Currency TEXT DEFAULT 'USD',
+            Amount REAL NOT NULL DEFAULT 25000.00,
+            Currency TEXT DEFAULT 'PKR',
             PaymentMethod TEXT DEFAULT 'Easypaisa',
             TransactionID TEXT NULL,
             Status TEXT NOT NULL DEFAULT 'Pending',
-            PlanName TEXT DEFAULT 'Enterprise Plan ($85/mo)',
+            PlanName TEXT DEFAULT 'Enterprise Plan (PKR 25,000/mo)',
             ScreenshotPath TEXT NULL,
             PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            SubscriptionEndDate TEXT NULL
+        )''',
+        '''CREATE TABLE IF NOT EXISTS NewsletterSubscribers (
+            SubscriberID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Email TEXT NOT NULL UNIQUE,
+            Status TEXT NOT NULL DEFAULT 'Active',
+            IPAddress TEXT NULL,
+            SubscribedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS ContactMessages (
+            MessageID INTEGER PRIMARY KEY AUTOINCREMENT,
+            FullName TEXT NOT NULL,
+            Email TEXT NOT NULL,
+            Subject TEXT NOT NULL DEFAULT 'General Inquiry',
+            Message TEXT NOT NULL,
+            Status TEXT NOT NULL DEFAULT 'New',
+            IPAddress TEXT NULL,
+            AdminReply TEXT NULL,
+            RepliedAt TEXT NULL,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''',
         '''CREATE TABLE IF NOT EXISTS QueryHistory (
             HistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -435,7 +473,6 @@ def init_db():
     if isinstance(conn, SQLiteConnectionAdapter):
         init_sqlite_db(conn)
         validate_smtp_config()
-        seed_super_admin()
         return
 
     query = """
@@ -621,15 +658,116 @@ def init_db():
         CREATE TABLE Payments (
             PaymentID INT IDENTITY(1,1) PRIMARY KEY,
             UserID INT NOT NULL,
-            Amount DECIMAL(10,2) NOT NULL DEFAULT 85.00,
-            Currency NVARCHAR(10) DEFAULT 'USD',
-            PaymentMethod NVARCHAR(50) DEFAULT 'Stripe Credit Card',
+            Amount DECIMAL(10,2) NOT NULL DEFAULT 25000.00,
+            Currency NVARCHAR(10) DEFAULT 'PKR',
+            PaymentMethod NVARCHAR(50) DEFAULT 'Easypaisa',
             TransactionID NVARCHAR(100) NULL,
             Status NVARCHAR(50) NOT NULL DEFAULT 'Completed',
-            PlanName NVARCHAR(100) DEFAULT 'Enterprise Plan ($85/mo)',
+            PlanName NVARCHAR(100) DEFAULT 'Enterprise Plan (PKR 25,000/mo)',
             PaymentDate DATETIME2 NOT NULL DEFAULT GETDATE(),
             SubscriptionEndDate DATETIME2 NULL,
             CONSTRAINT FK_Payments_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+        );
+    END;
+
+    IF OBJECT_ID('NewsletterSubscribers', 'U') IS NULL
+    BEGIN
+        CREATE TABLE NewsletterSubscribers (
+            SubscriberID INT IDENTITY(1,1) PRIMARY KEY,
+            Email NVARCHAR(255) NOT NULL UNIQUE,
+            Status NVARCHAR(50) NOT NULL DEFAULT 'Active',
+            IPAddress NVARCHAR(100) NULL,
+            SubscribedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
+    IF OBJECT_ID('ContactMessages', 'U') IS NULL
+    BEGIN
+        CREATE TABLE ContactMessages (
+            MessageID INT IDENTITY(1,1) PRIMARY KEY,
+            FullName NVARCHAR(200) NOT NULL,
+            Email NVARCHAR(255) NOT NULL,
+            Subject NVARCHAR(200) NOT NULL DEFAULT 'General Inquiry',
+            Message NVARCHAR(MAX) NOT NULL,
+            Status NVARCHAR(50) NOT NULL DEFAULT 'New',
+            IPAddress NVARCHAR(100) NULL,
+            CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
+    IF OBJECT_ID('QueryHistory', 'U') IS NULL
+    BEGIN
+        CREATE TABLE QueryHistory (
+            HistoryID INT IDENTITY(1,1) PRIMARY KEY,
+            UserID INT NOT NULL,
+            DatasetID INT NULL,
+            UserQuestion NVARCHAR(MAX) NOT NULL,
+            GeneratedSQL NVARCHAR(MAX) NOT NULL,
+            ExecutionStatus NVARCHAR(50) NOT NULL DEFAULT 'Success',
+            RowsReturned INT DEFAULT 0,
+            ExecutionTimeMS FLOAT DEFAULT 0.0,
+            ChartType NVARCHAR(50) DEFAULT 'auto',
+            ErrorMessage NVARCHAR(MAX) NULL,
+            CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+            CONSTRAINT FK_QueryHistory_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+        );
+    END;
+
+    IF OBJECT_ID('SiteAnnouncement', 'U') IS NULL
+    BEGIN
+        CREATE TABLE SiteAnnouncement (
+            AnnouncementID INT IDENTITY(1,1) PRIMARY KEY,
+            Title NVARCHAR(200) NOT NULL DEFAULT 'Platform Announcement',
+            Message NVARCHAR(MAX) NOT NULL DEFAULT '',
+            IsEnabled BIT NOT NULL DEFAULT 0,
+            UpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
+    IF OBJECT_ID('ScheduledReports', 'U') IS NULL
+    BEGIN
+        CREATE TABLE ScheduledReports (
+            ReportID INT IDENTITY(1,1) PRIMARY KEY,
+            UserID INT NOT NULL,
+            DatasetID INT NOT NULL,
+            ReportType NVARCHAR(100) NOT NULL DEFAULT 'Executive Summary',
+            Frequency NVARCHAR(50) NOT NULL DEFAULT 'Daily',
+            RecipientEmail NVARCHAR(255) NOT NULL,
+            ScheduleTime NVARCHAR(20) DEFAULT '09:00',
+            IsEnabled BIT NOT NULL DEFAULT 1,
+            LastRunAt DATETIME2 NULL,
+            CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+            CONSTRAINT FK_ScheduledReports_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+        );
+    END;
+
+    IF OBJECT_ID('AlertRules', 'U') IS NULL
+    BEGIN
+        CREATE TABLE AlertRules (
+            AlertID INT IDENTITY(1,1) PRIMARY KEY,
+            UserID INT NOT NULL,
+            DatasetID INT NOT NULL,
+            MetricName NVARCHAR(200) NOT NULL,
+            ConditionOperator NVARCHAR(10) NOT NULL DEFAULT '>',
+            ThresholdValue FLOAT NOT NULL,
+            RecipientEmail NVARCHAR(255) NOT NULL,
+            IsEnabled BIT NOT NULL DEFAULT 1,
+            LastTriggeredAt DATETIME2 NULL,
+            CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+            CONSTRAINT FK_AlertRules_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+        );
+    END;
+
+    IF OBJECT_ID('AlertHistory', 'U') IS NULL
+    BEGIN
+        CREATE TABLE AlertHistory (
+            HistoryID INT IDENTITY(1,1) PRIMARY KEY,
+            AlertID INT NOT NULL,
+            UserID INT NOT NULL,
+            TriggeredValue FLOAT NOT NULL,
+            Message NVARCHAR(MAX) NOT NULL,
+            TriggeredAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+            CONSTRAINT FK_AlertHistory_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
         );
     END;
 
@@ -658,6 +796,106 @@ def init_db():
         ALTER TABLE Payments ADD ScreenshotPath NVARCHAR(500) NULL;
     END;
 
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ContactMessages') AND name = 'AdminReply')
+    BEGIN
+        ALTER TABLE ContactMessages ADD AdminReply NVARCHAR(MAX) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ContactMessages') AND name = 'RepliedAt')
+    BEGIN
+        ALTER TABLE ContactMessages ADD RepliedAt DATETIME2 NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SubscriptionStatus')
+    BEGIN
+        ALTER TABLE Users ADD SubscriptionStatus NVARCHAR(50) DEFAULT 'active';
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SubscriptionEndDate')
+    BEGIN
+        ALTER TABLE Users ADD SubscriptionEndDate DATETIME2 NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SuspendedAt')
+    BEGIN
+        ALTER TABLE Users ADD SuspendedAt DATETIME2 NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SuspensionReason')
+    BEGIN
+        ALTER TABLE Users ADD SuspensionReason NVARCHAR(500) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PaymentType')
+    BEGIN
+        ALTER TABLE Payments ADD PaymentType NVARCHAR(20) NOT NULL DEFAULT 'New';
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'RejectionReason')
+    BEGIN
+        ALTER TABLE Payments ADD RejectionReason NVARCHAR(500) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ReviewedBy')
+    BEGIN
+        ALTER TABLE Payments ADD ReviewedBy INT NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ReviewedAt')
+    BEGIN
+        ALTER TABLE Payments ADD ReviewedAt DATETIME2 NULL;
+    END;
+
+    IF OBJECT_ID('PaymentSettings', 'U') IS NULL
+    BEGIN
+        CREATE TABLE PaymentSettings (
+            SettingID INT IDENTITY(1,1) PRIMARY KEY,
+            PlanName NVARCHAR(200) NOT NULL DEFAULT 'Enterprise Plan',
+            PlanPriceLabel NVARCHAR(100) NOT NULL DEFAULT 'PKR 25,000 / month',
+            AccountTitle NVARCHAR(200) NOT NULL DEFAULT '',
+            BankName NVARCHAR(200) NULL,
+            AccountNumber NVARCHAR(100) NULL,
+            IBAN NVARCHAR(100) NULL,
+            JazzCashNumber NVARCHAR(50) NULL,
+            EasypaisaNumber NVARCHAR(50) NULL,
+            SadaPayNumber NVARCHAR(50) NULL,
+            Instructions NVARCHAR(MAX) NULL,
+            UpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PaymentSettings') AND name = 'SadaPayNumber')
+    BEGIN
+        ALTER TABLE PaymentSettings ADD SadaPayNumber NVARCHAR(50) NULL;
+    END;
+
+    IF OBJECT_ID('ReminderLog', 'U') IS NULL
+    BEGIN
+        CREATE TABLE ReminderLog (
+            LogID INT IDENTITY(1,1) PRIMARY KEY,
+            UserID INT NOT NULL,
+            ReminderType NVARCHAR(20) NOT NULL,
+            ForDueDate DATE NOT NULL,
+            SentAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+            CONSTRAINT UQ_ReminderLog_User_Type_Date UNIQUE (UserID, ReminderType, ForDueDate),
+            CONSTRAINT FK_ReminderLog_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+        );
+    END;
+
+    IF NOT EXISTS (SELECT * FROM PaymentSettings)
+    BEGIN
+        INSERT INTO PaymentSettings (PlanName, PlanPriceLabel, AccountTitle, BankName, AccountNumber, IBAN, JazzCashNumber, EasypaisaNumber, Instructions)
+        VALUES (
+            'Enterprise Plan', 'PKR 25,000 / month', 'AI Data Analyst Pro',
+            'Meezan Bank', '03053107456', NULL, '03053107456', '03053107456',
+            'Pay the amount to the account below, take a screenshot of the payment, and upload it in the form.'
+        );
+    END;
+
+    -- Initialize NULL subscription dates & statuses
+    UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE())) WHERE SubscriptionEndDate IS NULL;
+    UPDATE Users SET SubscriptionStatus = 'active' WHERE SubscriptionStatus IS NULL;
+
     -- CREATE HIGH PERFORMANCE NON-CLUSTERED INDEXES
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Datasets_UserID_UploadDate' AND object_id = OBJECT_ID('Datasets'))
     BEGIN
@@ -679,6 +917,11 @@ def init_db():
         CREATE NONCLUSTERED INDEX IX_QueryLogs_DatasetID ON QueryLogs(DatasetID, CreatedAt DESC);
     END;
 
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_QueryHistory_UserID_CreatedAt' AND object_id = OBJECT_ID('QueryHistory'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX IX_QueryHistory_UserID_CreatedAt ON QueryHistory(UserID, CreatedAt DESC);
+    END;
+
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_AINotifications_UserID_CreatedAt' AND object_id = OBJECT_ID('AINotifications'))
     BEGIN
         CREATE NONCLUSTERED INDEX IX_AINotifications_UserID_CreatedAt ON AINotifications(UserID, CreatedAt DESC);
@@ -696,7 +939,6 @@ def init_db():
         print("Init DB Notice:", err)
 
     validate_smtp_config()
-    seed_super_admin()
 
     # Table value encryption disabled to ensure 100% C-speed SQL filtering and query compatibility for Ask AI
     pass
@@ -715,65 +957,6 @@ def validate_smtp_config():
         print(f"[SMTP SERVICE] Configured: {host} (User: {user})")
     else:
         print("[WARNING] SMTP credentials incomplete in .env. Configure SMTP_USERNAME and SMTP_PASSWORD for real Gmail inbox delivery.")
-
-
-def seed_super_admin():
-    """
-    Seed default Super Admin account and sample enterprise payment records.
-    """
-    admin_email = "admin@aidataanalystpro.com"
-    admin_pass = "AdminPassword123!"
-
-    try:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute("SELECT UserID, Role FROM Users WHERE Email = ?", (admin_email,))
-            existing = cursor.fetchone()
-
-            admin_user_id = None
-            if not existing:
-                import bcrypt
-                salt = bcrypt.gensalt(rounds=12)
-                pwd_hash = bcrypt.hashpw(admin_pass.encode("utf-8"), salt).decode("utf-8")
-
-                cursor.execute("""
-                    INSERT INTO Users (FirstName, LastName, Username, FullName, Email, PasswordHash, IsActive, IsVerified, Role)
-                    VALUES ('Super', 'Admin', 'superadmin', 'System Super Admin', ?, ?, 1, 1, 'SuperAdmin')
-                """, (admin_email, pwd_hash))
-                cursor.execute("SELECT UserID FROM Users WHERE Email = ?", (admin_email,))
-                row = cursor.fetchone()
-                if row:
-                    admin_user_id = row[0]
-                print(f"[SUPER ADMIN] Created seed account: {admin_email}")
-            else:
-                admin_user_id = existing[0]
-
-            # Seed sample payments if Payments table is empty
-            cursor.execute("SELECT COUNT(*) FROM Payments")
-            p_count = cursor.fetchone()[0]
-            if p_count == 0 and admin_user_id:
-                # Retrieve additional registered user IDs for realistic payment tracking
-                cursor.execute("SELECT UserID FROM Users WHERE Email IN ('moiz05366@gmail.com', 'hamzahussain0163@gmail.com') ORDER BY UserID ASC")
-                other_u = [r[0] for r in cursor.fetchall()]
-                user_a = other_u[0] if len(other_u) > 0 else admin_user_id
-                user_b = other_u[1] if len(other_u) > 1 else admin_user_id
-
-                cursor.execute("""
-                    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
-                    VALUES (?, 85.00, 'USD', 'Credit Card (Visa ending in 4242)', 'TXN_998124819', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
-                """, (user_a,))
-                cursor.execute("""
-                    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
-                    VALUES (?, 85.00, 'USD', 'Meezan Bank Wire (Acc: PK36MEZN00123456)', 'TXN_998124820', 'Pending', 'Enterprise Plan ($85/mo)', GETDATE())
-                """, (user_b,))
-                cursor.execute("""
-                    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate)
-                    VALUES (?, 85.00, 'USD', 'PayPal Checkout (admin@aidataanalystpro.com)', 'TXN_998124821', 'Completed', 'Enterprise Plan ($85/mo)', GETDATE())
-                """, (admin_user_id,))
-                print("[SUPER ADMIN] Initialized sample enterprise payments records.")
-    except Exception as err:
-        print("Seed Super Admin Notice:", err)
-
-
 
 
 
@@ -909,7 +1092,7 @@ def get_table_preview(table_name: str, limit: int = 100, offset: int = 0) -> pd.
     if not is_safe_identifier(table_name):
         return pd.DataFrame()
 
-    safe_limit = max(1, min(int(limit), 1000))
+    safe_limit = max(1, min(int(limit), 1000000))
     safe_offset = max(0, int(offset))
 
     conn = get_connection()

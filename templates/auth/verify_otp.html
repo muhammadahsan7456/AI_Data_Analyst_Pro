@@ -1,22 +1,22 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 
-{% block title %}Verify Email | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Verify Your Email{% endblock %}
-{% block header_subtitle %}Please enter the 6-digit verification code sent to your email address.{% endblock %}
+{% block seo_meta %}
+<title>Verify Email — AI Data Analyst Pro</title>
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: center; align-items: center; min-height: 75vh; padding: 20px 0;">
-    <div class="table-card glass-card" style="width: 100%; max-width: 520px; border-top: 4px solid var(--accent-blue); box-shadow: var(--shadow-lg); text-align: center; padding: 36px 30px;">
-        
-        <div style="width: 70px; height: 70px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-size: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 2px solid #bfdbfe;">
+<div class="auth-luxury-page">
+    <div class="auth-luxury-card" style="text-align: center; max-width: 520px;">
+        <div class="auth-brand-badge">
             <i class="fa-solid fa-envelope-open-text"></i>
         </div>
 
-        <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary);">Verify Your Email</h2>
+        <h1 class="auth-title">Verify Your Email</h1>
         
-        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; line-height: 1.6;">
+        <p class="auth-subtitle" style="margin-bottom: 24px;">
             We've sent a 6-digit verification code to<br>
-            <strong style="color: var(--accent-blue); font-size: 16px;">
+            <strong style="color: var(--accent-gold); font-size: 15px;">
                 {% if pending_otp and pending_otp.email %}
                 {{ pending_otp.email }}
                 {% else %}
@@ -25,7 +25,7 @@
             </strong>
         </p>
 
-        <form method="POST" action="{{ url_for('auth.verify_otp') }}" id="otp-form">
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" id="otp-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="otp_code" id="otp_code_full">
 
             <!-- 6 Separate Input Boxes for OTP -->
@@ -44,21 +44,21 @@
                 <span id="timer-status">Code expires in <strong id="countdown-timer" style="color: #2563eb;">09:59</strong></span>
             </div>
 
-            <button type="submit" class="btn btn-primary" id="btn-verify" style="width: 100%; padding: 14px; font-size: 16px; font-weight: 700; border-radius: 10px; margin-bottom: 16px;">
+            <button type="submit" class="auth-submit-btn" id="btn-verify" style="margin-bottom: 16px;">
                 <i class="fa-solid fa-circle-check"></i> Verify Code & Continue
             </button>
         </form>
 
         <!-- Resend OTP Form & Links -->
-        <div style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
-            <form method="POST" action="{{ url_for('auth.resend_otp') }}" id="resend-form" style="width: 100%;">
-                <button type="submit" class="btn btn-secondary" id="btn-resend" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px;">
+        <div style="border-top: 1px solid var(--border-glass); padding-top: 20px; margin-top: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <form method="POST" action="{{ url_for('auth.resend_otp') }}" id="resend-form" style="width: 100%;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-otp-resend" id="btn-resend" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px;">
                     <i class="fa-solid fa-arrows-rotate"></i> Resend Verification Code
                 </button>
             </form>
 
             <div style="display: flex; justify-content: space-between; width: 100%; font-size: 13px; margin-top: 6px;">
-                <a href="{{ url_for('auth.signup', change_email=1) }}" style="color: var(--text-muted); text-decoration: none;">
+                <a href="{{ url_for('auth.register_details', change_email=1) }}" style="color: var(--text-muted); text-decoration: none;">
                     <i class="fa-solid fa-user-pen"></i> Change Email
                 </a>
                 <a href="{{ url_for('auth.login') }}" style="color: var(--accent-blue); font-weight: 600; text-decoration: none;">
@@ -105,7 +105,7 @@
     font-size: 26px;
     font-weight: 800;
     border-radius: 10px;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--border-glass);
     background: var(--bg-surface);
     color: var(--text-primary);
     outline: none;
@@ -121,6 +121,22 @@
 .otp-box-digit.filled {
     border-color: #34d399;
     box-shadow: 0 0 10px rgba(52,211,153,0.3);
+}
+.btn-otp-resend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border-glass);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-otp-resend:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
 }
 </style>
 

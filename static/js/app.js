@@ -3,7 +3,6 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-    initTheme();
     initCopyButtons();
     initDragAndDrop();
     initFavorites();
@@ -56,39 +55,9 @@ function initMobileSidebar() {
 }
 
 /* ==========================================================================
-   Theme Management (Light / Dark Mode with Persistence)
+   Theme Management now lives in theme.js (single shared implementation used
+   site-wide instead of separate copies per page).
    ========================================================================== */
-function initTheme() {
-    const themeBtn = document.getElementById("theme-toggle");
-    const savedTheme = localStorage.getItem("app-theme") || "light";
-
-    if (savedTheme === "dark") {
-        document.documentElement.setAttribute("data-theme", "dark");
-        updateThemeBtnIcon(true);
-    }
-
-    if (themeBtn) {
-        themeBtn.addEventListener("click", () => {
-            const currentTheme = document.documentElement.getAttribute("data-theme");
-            const isDark = currentTheme === "dark";
-            const newTheme = isDark ? "light" : "dark";
-
-            document.documentElement.setAttribute("data-theme", newTheme);
-            localStorage.setItem("app-theme", newTheme);
-            updateThemeBtnIcon(!isDark);
-            showToast(`Switched to ${newTheme.toUpperCase()} mode`, "info");
-        });
-    }
-}
-
-function updateThemeBtnIcon(isDark) {
-    const iconSpan = document.getElementById("theme-icon");
-    const textSpan = document.getElementById("theme-text");
-    if (iconSpan && textSpan) {
-        iconSpan.textContent = isDark ? "☀️" : "🌙";
-        textSpan.textContent = isDark ? "Light Mode" : "Dark Mode";
-    }
-}
 
 /* ==========================================================================
    Show / Hide Password Toggle Helper
@@ -314,21 +283,9 @@ function updateFileNameDisplay(name) {
     }
 }
 
-function showLoading(msg = "AI is processing your request...") {
-    let overlay = document.getElementById("loading-overlay");
-    if (overlay) {
-        const textElem = overlay.querySelector(".loading-text");
-        if (textElem) textElem.textContent = msg;
-        overlay.style.display = "flex";
-    }
-}
-
-function hideLoading() {
-    let overlay = document.getElementById("loading-overlay");
-    if (overlay) {
-        overlay.style.display = "none";
-    }
-}
+// NOTE: showLoading()/hideLoading() are defined once, further down this file
+// (they were previously duplicated here as dead code that a later declaration
+// silently overrode).
 
 /* ==========================================================================
    FLOATING AI ASSISTANT & NOTIFICATION CENTER CONTROLLER
@@ -653,14 +610,22 @@ function initGlobalDownloadLoader() {
                              onclick.includes("download");
 
         if (isExportLink) {
-            showToast("📥 Generating & Preparing File Download... Please wait", "info", "File Exporting");
-            showLoading("📥 Generating report file... Download starting shortly!");
-            setTimeout(() => {
-                hideLoading();
-            }, 2600);
+            // A file download is a lightweight, browser-handled background action -
+            // blocking the entire page behind a full-screen spinner for a guessed,
+            // fixed duration (regardless of how long the export actually takes) isn't
+            // the standard pattern here. A brief toast is enough, same as Gmail/Drive.
+            showToast("📥 Preparing your file... download will start shortly.", "info", "File Export");
         }
     });
 }
+
+// Auto-hide loading overlay on page load & BFCache page restore
+document.addEventListener("DOMContentLoaded", function () {
+    hideLoading();
+});
+window.addEventListener("pageshow", function () {
+    hideLoading();
+});
 
 // Register Window Globals
 window.showLoading = showLoading;

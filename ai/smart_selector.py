@@ -1,7 +1,7 @@
 import re
 import os
 import sys
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 
 # Ensure workspace root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -36,14 +36,19 @@ def detect_best_dataset_for_query(question: str, user_id: int) -> Optional[Dict[
     if not datasets:
         return None
 
+    from database.connection import run_query
+    tbl_df = run_query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
+    existing_tables = set(tbl_df['TABLE_NAME'].str.lower().tolist()) if (tbl_df is not None and not tbl_df.empty) else set()
+
     # Score each dataset based on column & filename relevance
     best_score = -1
     best_dataset = None
 
     for ds in datasets:
-        # ds structure: (DatasetID, DatasetName, OriginalFileName, FileType, TotalRows, TotalColumns, StorageSizeKB, IsFavorite, Tags, LastOpenedAt, UploadDate)
         dataset_id = ds[0]
-        table_name = ds[1]
+        table_name = str(ds[1]).strip()
+        if table_name.lower() not in existing_tables:
+            continue
         orig_filename = ds[2].lower() if len(ds) > 2 and ds[2] else ""
         tags = ds[8].lower() if len(ds) > 8 and ds[8] else ""
 

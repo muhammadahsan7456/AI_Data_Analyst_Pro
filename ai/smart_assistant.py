@@ -7,7 +7,7 @@ device security analysis, and persistent notification tracking.
 
 import json
 from datetime import datetime
-from flask import session, request
+from flask import session
 from database.connection import get_db_cursor
 from database.queries import (
     create_ai_notification,
@@ -251,7 +251,7 @@ def build_profile_updated_card(name):
     Format AI card after profile update.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Profile updated successfully."
+    speech = f"Profile updated successfully, {first_name}."
     return {
         "category": "profile_updated",
         "title": "Profile Saved",
@@ -266,7 +266,7 @@ def build_avatar_updated_card(name):
     Format AI card after profile picture update.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Profile picture updated successfully."
+    speech = f"Profile picture updated successfully, {first_name}."
     return {
         "category": "avatar_updated",
         "title": "Profile Picture Updated",
@@ -327,7 +327,7 @@ def build_ai_query_initiated_card(name):
     return {
         "category": "query_init",
         "title": "Analyzing Dataset...",
-        "lines": [f"Analyzing dataset. Please wait..."],
+        "lines": ["Analyzing dataset. Please wait..."],
         "speech": "",
         "auto_dismiss": 0
     }

@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- Apply saved theme before first paint - prevents a flash/flip to the wrong theme -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem("theme") || localStorage.getItem("app-theme") || localStorage.getItem("website_theme");
+                if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+            } catch (e) {}
+        })();
+    </script>
     <title>{% block title %}AI Data Analyst Pro{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,8 +28,15 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
+    <!-- Page-specific stylesheets (e.g. Bootstrap, for the handful of report-style pages
+         built with Bootstrap's grid/card/list-group classes) - deliberately placed BEFORE
+         style.css so anything both define (like .btn/.badge) still resolves to this app's
+         own theme-aware version, while classes only Bootstrap defines (.card, .row, .col-*,
+         .list-group, .table-dark, spacing utilities) still work. -->
+    {% block extra_css %}{% endblock %}
+
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20260730_v3">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20260918_v5">
 </head>
 <body>
 
@@ -30,7 +52,7 @@
                 </div>
 
                 <ul class="sidebar-menu">
-                    {% if is_logged_in %}
+                    {% if is_logged_in and (g.user_role in ['SuperAdmin', 'Admin'] or not subscription_info or subscription_info.status in ['active', 'expiring_soon']) %}
                     <li>
                         <a href="{{ url_for('frontend.dashboard') }}" class="sidebar-link {% if request.endpoint == 'frontend.dashboard' %}active{% endif %}">
                             <i class="fa-solid fa-chart-line"></i> Dashboard
@@ -57,6 +79,11 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ url_for('frontend.receipts') }}" class="sidebar-link {% if request.endpoint in ['frontend.receipts', 'frontend.view_receipt'] %}active{% endif %}">
+                            <i class="fa-solid fa-receipt"></i> Payment Receipts
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ url_for('auth.profile') }}" class="sidebar-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
                             <i class="fa-solid fa-user-gear"></i> Profile & Account
                         </a>
@@ -65,6 +92,7 @@
                         <a href="{{ url_for('auth.security') }}" class="sidebar-link {% if request.endpoint == 'auth.security' %}active{% endif %}">
                             <i class="fa-solid fa-lock"></i> Security & Sessions
                         </a>
+                    </li>
                     {% if g.user_role in ['SuperAdmin', 'Admin'] %}
                     <li>
                         <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link" style="color: #ef4444; font-weight: 700;">
@@ -72,6 +100,13 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% elif is_logged_in %}
+                    <li>
+                        <a href="{{ url_for('frontend.waiting_approval') if subscription_info.status == 'pending_approval' else url_for('frontend.renew_subscription') }}" class="sidebar-link active" style="color: #f59e0b; font-weight: 700;">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                            {% if subscription_info.status == 'pending_approval' %}Pending Approval{% elif subscription_info.status == 'rejected' %}Payment Rejected{% else %}Account Suspended{% endif %}
+                        </a>
+                    </li>
                     {% endif %}
 
                     <li>
@@ -123,7 +158,7 @@
                     <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm" style="justify-content: center;">
                         <i class="fa-solid fa-right-to-bracket"></i> Sign In
                     </a>
-                    <a href="{{ url_for('auth.signup') }}" class="btn btn-secondary btn-sm" style="justify-content: center;">
+                    <a href="{{ url_for('auth.register_payment') }}" class="btn btn-secondary btn-sm" style="justify-content: center;">
                         <i class="fa-solid fa-user-plus"></i> Create Account
                     </a>
                 </div>
@@ -140,6 +175,23 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            {% if is_logged_in and subscription_info and subscription_info.show_banner %}
+            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}linear-gradient(135deg, #7f1d1d, #b91c1c){% else %}linear-gradient(135deg, #7c2d12, #c2410c){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}#f87171{% else %}#fb923c{% endif %};">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid {% if subscription_info.status == 'suspended' %}fa-ban{% elif subscription_info.status == 'expired' %}fa-triangle-exclamation{% else %}fa-clock{% endif %}" style="font-size: 20px; color: #fef08a;"></i>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px;">{{ subscription_info.banner_message }}</div>
+                        <div style="font-size: 12px; opacity: 0.9;">Plan Expiry Date: <strong>{{ subscription_info.end_date }}</strong> ({{ subscription_info.days_left }} days remaining)</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <a href="{{ url_for('frontend.renew_subscription') }}" class="btn btn-sm" style="background: #ffffff; color: #0f172a; font-weight: 700; border: none; padding: 8px 16px; border-radius: 20px; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        💳 Renew / Upload Receipt Proof
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="top-bar">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <button id="mobile-sidebar-toggle" class="mobile-sidebar-btn" title="Toggle Navigation Menu">
@@ -206,9 +258,101 @@
     <!-- Toast Notifications Container -->
     <div id="toast-container"></div>
 
+    {% if subscription_info and subscription_info.show_banner and subscription_info.banner_type in ['warning', 'danger'] %}
+    <!-- Subscription Renewal Popup: a one-time-per-session attention nudge for expiring/expired
+         plans, in addition to the persistent inline dashboard banner. Built from the same
+         subscription_info the banner already uses (utils/subscription.py), so there is a
+         single source of truth for the status text. -->
+    <div id="sub-expiry-modal-overlay" class="sub-expiry-modal-overlay">
+        <div class="sub-expiry-modal {% if subscription_info.banner_type == 'danger' %}is-danger{% else %}is-warning{% endif %}">
+            <div class="sub-expiry-modal-icon">
+                <i class="fa-solid {% if subscription_info.status == 'expired' %}fa-lock{% else %}fa-triangle-exclamation{% endif %}"></i>
+            </div>
+            <h3>{% if subscription_info.status == 'expired' %}Your Plan Has Expired{% else %}Your Plan Is Ending Soon{% endif %}</h3>
+            <p>{{ subscription_info.banner_message }}</p>
+            <div class="sub-expiry-modal-actions">
+                <a href="{{ url_for('frontend.renew_subscription') }}" class="sub-expiry-btn-primary">
+                    <i class="fa-solid fa-credit-card"></i> Pay Now (PKR 25,000)
+                </a>
+                <button type="button" class="sub-expiry-btn-secondary" onclick="dismissSubExpiryModal()">Remind Me Later</button>
+            </div>
+        </div>
+    </div>
+    <style>
+        .sub-expiry-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 9999998;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .sub-expiry-modal-overlay.is-visible { display: flex; }
+        .sub-expiry-modal {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border-radius: var(--radius-lg);
+            max-width: 440px;
+            width: 100%;
+            padding: 32px 28px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            border-top: 4px solid var(--accent-amber);
+        }
+        .sub-expiry-modal.is-danger { border-top-color: var(--accent-red); }
+        .sub-expiry-modal-icon {
+            width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; background: rgba(245, 158, 11, 0.12); color: var(--accent-amber);
+        }
+        .sub-expiry-modal.is-danger .sub-expiry-modal-icon { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); }
+        .sub-expiry-modal h3 { font-size: 19px; font-weight: 800; margin-bottom: 10px; }
+        .sub-expiry-modal p { font-size: 14px; line-height: 1.6; color: var(--text-muted); margin-bottom: 22px; }
+        .sub-expiry-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+        .sub-expiry-btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: #fff; text-decoration: none; padding: 12px 20px; border-radius: var(--radius-md);
+            font-weight: 700; font-size: 14px;
+        }
+        .sub-expiry-btn-secondary {
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+            padding: 10px 20px; border-radius: var(--radius-md); font-weight: 600; font-size: 13px; cursor: pointer;
+        }
+    </style>
+    <script>
+        (function () {
+            function dismissSubExpiryModal() {
+                var overlay = document.getElementById("sub-expiry-modal-overlay");
+                if (overlay) overlay.classList.remove("is-visible");
+                try { sessionStorage.setItem("subExpiryModalShown", "1"); } catch (e) {}
+            }
+            window.dismissSubExpiryModal = dismissSubExpiryModal;
+
+            document.addEventListener("DOMContentLoaded", function () {
+                var alreadyShown = false;
+                try { alreadyShown = sessionStorage.getItem("subExpiryModalShown") === "1"; } catch (e) {}
+                if (!alreadyShown) {
+                    var overlay = document.getElementById("sub-expiry-modal-overlay");
+                    if (overlay) overlay.classList.add("is-visible");
+                }
+            });
+        })();
+    </script>
+    {% endif %}
+
+    <!-- Plotly (~3.6MB) is loaded only on the chat page, which actually renders charts -
+         it was previously loaded here unconditionally on every single page (dashboard,
+         settings, profile, help, about, docs, etc.), most of which never use it at all.
+         renderInteractivePlotlyChart() already lazy-loads it on demand as a fallback. -->
     <!-- JavaScript -->
-    <script src="{{ url_for('frontend.static', filename='js/app.js') }}?v=20260807_v4"></script>
-    <script src="{{ url_for('frontend.static', filename='js/voice_ai.js') }}?v=20260807_v4"></script>
+    <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
+    <script src="{{ url_for('frontend.static', filename='js/app.js') }}?v=20260918_v6"></script>
+    <script src="{{ url_for('frontend.static', filename='js/voice_ai.js') }}?v=20260918_v3"></script>
 
     {% if session.get('toast') %}
     <script>

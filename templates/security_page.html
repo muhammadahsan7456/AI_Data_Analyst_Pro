@@ -1,0 +1,81 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Enterprise Security — AI Data Analyst Pro | AES-256 Encryption & Data Protection</title>
+<meta name="description" content="AI Data Analyst Pro provides bank-grade security: AES-256 field encryption at rest, 1-hour inactivity timeouts, row-level user data isolation, and automated audit logging.">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>Security</li></ol></div></div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-shield-halved"></i> Enterprise Security</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">100% Data Protection & <span class="gradient-text">Compliance</span></h1>
+            <p class="section-subtitle">Your enterprise data is protected with bank-grade encryption, strict access controls, and comprehensive audit logging.</p>
+        </div>
+
+        <div class="security-grid stagger-children">
+            <div class="security-card reveal">
+                <div class="security-icon icon-green"><i class="fa-solid fa-clock"></i></div>
+                <div>
+                    <h3 class="security-card-title">1-Hour Inactivity Session Timeout</h3>
+                    <p class="security-card-desc">Automated session tracking logs users out after 60 minutes of inactivity, protecting sensitive corporate datasets from unauthorized access on unattended workstations.</p>
+                </div>
+            </div>
+            <div class="security-card reveal">
+                <div class="security-icon icon-purple"><i class="fa-solid fa-shield-virus"></i></div>
+                <div>
+                    <h3 class="security-card-title">Row-Level User Data Isolation</h3>
+                    <p class="security-card-desc">Strict SQL Server UserID filtering isolates every uploaded dataset and query result set strictly to its owner, preventing cross-tenant data leakage with zero exceptions.</p>
+                </div>
+            </div>
+            <div class="security-card reveal">
+                <div class="security-icon icon-cyan"><i class="fa-solid fa-key"></i></div>
+                <div>
+                    <h3 class="security-card-title">AES-256 Field Encryption at Rest</h3>
+                    <p class="security-card-desc">String and text columns are encrypted using Fernet AES-256 ciphers before database storage, shielding customer records from direct SQL inspection even by database administrators.</p>
+                </div>
+            </div>
+            <div class="security-card reveal">
+                <div class="security-icon icon-blue"><i class="fa-solid fa-clipboard-check"></i></div>
+                <div>
+                    <h3 class="security-card-title">Automated Audit & Compliance Logging</h3>
+                    <p class="security-card-desc">Comprehensive audit logs record all user query executions, login events, file uploads, and export operations for enterprise compliance verification and forensic analysis.</p>
+                </div>
+            </div>
+            <div class="security-card reveal">
+                <div class="security-icon icon-amber"><i class="fa-solid fa-user-shield"></i></div>
+                <div>
+                    <h3 class="security-card-title">Role-Based Access Control (RBAC)</h3>
+                    <p class="security-card-desc">Granular role assignments (SuperAdmin, Admin, Analyst, Viewer) control access levels. Viewers can only read data, Analysts can query, and Admins manage the entire platform.</p>
+                </div>
+            </div>
+            <div class="security-card reveal">
+                <div class="security-icon icon-green"><i class="fa-solid fa-robot"></i></div>
+                <div>
+                    <h3 class="security-card-title">AI Context Domain Guardrails</h3>
+                    <p class="security-card-desc">Strict AI guardrails prevent the system from answering non-dataset questions (e.g., general knowledge, jokes, weather). AI responses are strictly scoped to uploaded data only.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AdSense -->
+<div class="adsense-slot adsense-between-sections">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="SECURITY_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<section class="landing-section" style="padding: 60px 0; text-align: center;">
+    <div class="container reveal">
+        <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: 16px;">Your Data, Fully Protected</h2>
+        <a href="{{ url_for('frontend.pricing_page') }}" class="btn-hero-primary"><i class="fa-solid fa-rocket"></i> Start Secure Analysis — PKR 25,000/mo</a>
+    </div>
+</section>
+{% endblock %}

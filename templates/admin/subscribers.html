@@ -1,0 +1,112 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Newsletter Subscribers - Super Admin Console{% endblock %}
+{% block header_title %}<i class="fa-solid fa-envelope-open-text" style="color: var(--accent-cyan);"></i> Newsletter Email Subscribers{% endblock %}
+
+{% block content %}
+<!-- Top KPI Summary Bar -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Total Subscribers</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: var(--text-primary);">{{ subscribers|length }}</div>
+        </div>
+    </div>
+
+    <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Active Subscriptions</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: var(--accent-green);">{{ active_count }}</div>
+        </div>
+    </div>
+
+    <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-paper-plane"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Welcome Emails Sent</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: var(--accent-purple);">100% Sent</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Table Card Box -->
+<div class="admin-card-box">
+    <!-- Header & Search Toolbar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+        <div>
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary);">
+                Newsletter Subscribers Directory ({{ subscribers|length }})
+            </h3>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                <i class="fa-solid fa-envelope"></i> Real-time records of users who subscribed via the homepage newsletter box
+            </div>
+        </div>
+
+        <form method="GET" action="{{ url_for('admin.subscribers') }}" style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Search email..." style="padding: 8px 14px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px; outline: none;">
+            <button type="submit" class="btn btn-sm" style="background: var(--accent-blue); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer;">
+                <i class="fa-solid fa-magnifying-glass"></i> Filter
+            </button>
+            {% if search_query %}
+            <a href="{{ url_for('admin.subscribers') }}" class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: var(--text-secondary); text-decoration: none; border-radius: 8px; padding: 8px 12px;">Reset</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th># ID</th>
+                    <th>Subscribed Email</th>
+                    <th>Status</th>
+                    <th>IP Address</th>
+                    <th>Subscribed Date</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscribers %}
+                <tr>
+                    <td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">#{{ sub.id }}</td>
+                    <td style="font-weight: 600; color: var(--text-primary);">
+                        <i class="fa-solid fa-envelope" style="color: var(--accent-blue); margin-right: 6px;"></i>
+                        {{ sub.email }}
+                    </td>
+                    <td>
+                        <span class="badge-status badge-active" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">
+                            <i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> {{ sub.status }}
+                        </span>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-muted); font-size: 12px;">{{ sub.ip_address }}</td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">{{ sub.subscribed_at }}</td>
+                    <td style="text-align: right;">
+                        <form method="POST" action="{{ url_for('admin.delete_subscriber', subscriber_id=sub.id) }}" onsubmit="return confirm('Are you sure you want to delete subscriber {{ sub.email }}?')" style="display: inline;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Delete Subscriber">
+                                <i class="fa-solid fa-trash-can"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fa-solid fa-inbox" style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.5;"></i>
+                        No newsletter subscribers found yet. Subscriptions from the homepage will appear here instantly!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

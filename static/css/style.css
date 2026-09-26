@@ -58,7 +58,20 @@
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+html {
+    /* Safety net: catches any element that would otherwise force horizontal page
+       scroll on a narrow device, without having to hunt down every individual cause. */
+    overflow-x: hidden;
+    width: 100%;
+}
+
+img, video, canvas, svg, iframe {
+    max-width: 100%;
+    height: auto;
+}
+
 body {
+    overflow-x: hidden;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
@@ -184,6 +197,7 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 20px;
+    color: #ffffff;
 }
 
 .sidebar-title {
@@ -491,6 +505,36 @@ body {
 .badge-success { background-color: #d1fae5; color: #065f46; }
 .badge-warning { background-color: #fef3c7; color: #92400e; }
 .badge-info { background-color: #e0f2fe; color: #075985; }
+.badge-error, .badge-danger { background-color: #fee2e2; color: #991b1b; }
+
+/* Dark mode: swap flat pastel badge fills for translucent tinted ones so they read
+   clearly against a dark surface instead of glowing like a light-mode sticker. */
+[data-theme="dark"] .badge-success { background-color: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); }
+[data-theme="dark"] .badge-warning { background-color: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); }
+[data-theme="dark"] .badge-info { background-color: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+[data-theme="dark"] .badge-error, [data-theme="dark"] .badge-danger { background-color: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.35); }
+
+/* Filter/tag chip pills (e.g. "Applied Filters" under an AI query result) - a plain
+   .badge grows to fit whatever text it's given, which is fine for a handful of short
+   labels but breaks down once a query has many filters or one filter value is long:
+   the chip row needs to wrap freely (handled by the flex+gap wrapper around them in
+   the template) and any single chip's own text needs to stop growing and truncate
+   instead of stretching the row or overflowing past its rounded pill background. */
+.filter-chip {
+    gap: 6px;
+    padding: 6px 14px;
+    font-family: var(--font-mono, monospace);
+    max-width: 100%;
+    cursor: default;
+}
+.filter-chip-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: min(220px, 50vw);
+    display: inline-block;
+    vertical-align: bottom;
+}
 
 /* Toast Notifications */
 #toast-container {
@@ -507,6 +551,7 @@ body {
     background: var(--bg-surface);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    border-left: 4px solid var(--border-color);
     padding: 14px 20px;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
@@ -516,6 +561,13 @@ body {
     font-size: 14px;
     animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Toast/flash category colors - previously undefined, so every toast rendered with
+   identical neutral styling regardless of success/error/warning/info. */
+.toast-success { border-left-color: var(--accent-green); }
+.toast-error { border-left-color: var(--accent-red); }
+.toast-warning { border-left-color: var(--accent-yellow); }
+.toast-info { border-left-color: var(--accent-blue); }
 
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
@@ -548,6 +600,74 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Standard striped/animated progress bar (referenced in upload.html but previously had
+   no CSS at all, so it just sat as a plain static, motionless bar once at 100% while the
+   server kept processing - looked frozen/broken instead of "still working"). */
+.progress-bar-striped {
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%, transparent 25%,
+        transparent 50%, rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%, transparent 75%,
+        transparent
+    );
+    background-size: 1rem 1rem;
+}
+
+.progress-bar-animated {
+    animation: progressStripeMove 1s linear infinite;
+}
+
+@keyframes progressStripeMove {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+/* Top-of-page navigation progress bar (see static/js/page-progress.js) */
+#page-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    z-index: 999999;
+    opacity: 0;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+    transition: width 2.2s cubic-bezier(0.1, 0.7, 0.3, 1), opacity 0.2s ease;
+}
+
+#page-progress-bar.page-progress-active {
+    width: 80%;
+    opacity: 1;
+}
+
+/* Small round spinner badge shown alongside the top bar during real page navigations -
+   the thin bar alone is easy to miss, this makes "the page is loading" unmistakable. */
+#page-progress-spinner {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-lg);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+}
+#page-progress-spinner.page-progress-spinner-active { display: flex; }
+.page-progress-spinner-ring {
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(37, 99, 235, 0.2);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 0.7s infinite linear;
 }
 
 /* Responsive Breakpoints */
@@ -1040,14 +1160,20 @@ body {
 @media (max-width: 992px) {
     .main-content {
         padding: 16px !important;
+        width: 100% !important;
+        margin-left: 0 !important;
     }
     .cards-grid, .grid-4 {
         grid-template-columns: repeat(2, 1fr) !important;
     }
+    .payment-modal-card {
+        max-width: 95vw !important;
+        padding: 20px !important;
+    }
 }
 
 @media (max-width: 768px) {
-    .container, .main-content, .content-area {
+    .container, .main-content, .content-area, .admin-content-area {
         padding: 12px !important;
         margin-left: 0 !important;
         width: 100% !important;
@@ -1065,15 +1191,22 @@ body {
         gap: 10px;
     }
 
-    .table-container, .table-responsive {
+    .table-container, .table-responsive, .custom-table {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         width: 100% !important;
+        display: block !important;
     }
 
     .chat-container, .chat-box {
         padding: 10px !important;
-        height: calc(100vh - 120px) !important;
+        height: auto !important;
+        min-height: calc(100vh - 140px) !important;
+    }
+
+    .js-plotly-plot, .plotly, .plot-container {
+        width: 100% !important;
+        max-width: 100% !important;
     }
 }
 
@@ -1086,6 +1219,11 @@ body {
         width: 100% !important;
         justify-content: center !important;
         margin-bottom: 6px !important;
+    }
+
+    .table-card {
+        padding: 12px !important;
+        border-radius: 12px !important;
     }
 }
 

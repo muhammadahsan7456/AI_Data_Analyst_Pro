@@ -1,0 +1,164 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Features — AI Data Analyst Pro | Enterprise AI Analytics Platform Capabilities</title>
+<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and 8 chart types.">
+<meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, AES-256 Encryption, Multi-Dataset Join, PowerPoint Export, Data Visualization">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Features — AI Data Analyst Pro",
+  "description": "Comprehensive overview of AI Data Analyst Pro enterprise analytics platform capabilities.",
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "{{ request.url_root }}"},
+      {"@type": "ListItem", "position": 2, "name": "Features", "item": "{{ request.url }}"}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Features</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-sparkles"></i> Platform Capabilities</div>
+            <h1 class="section-title" style="font-size: clamp(32px, 5vw, 52px);">
+                Enterprise Features Built for <span class="gradient-text">Maximum Impact</span>
+            </h1>
+            <p class="section-subtitle">Every feature is designed for production-grade reliability, speed, and security at scale.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Core Features Grid -->
+<section class="landing-section" style="padding-top: 0;">
+    <div class="container">
+        <div class="feature-grid stagger-children">
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-database"></i></div>
+                <h3 class="feature-card-title">10M+ Enterprise Scale Ingestion</h3>
+                <p class="feature-card-desc">High-performance streaming chunking (chunksize=100k) and dynamic memory downcasting handle multi-gigabyte CSV, Excel, JSON, XML, Parquet, and Feather files with zero memory bottlenecks.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);"><i class="fa-solid fa-lock"></i></div>
+                <h3 class="feature-card-title">AES-256 Field Encryption at Rest</h3>
+                <p class="feature-card-desc">Bank-grade Fernet encryption protects all sensitive text/string columns stored in SQL Server tables. Authorized user sessions decrypt data transparently in real-time.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4, #0e7490);"><i class="fa-solid fa-bolt"></i></div>
+                <h3 class="feature-card-title">Sub-Second 0.005ms T-SQL Engine</h3>
+                <p class="feature-card-desc">85%+ of standard data requests are evaluated locally in under 0.005ms by our fast T-SQL pattern engine, avoiding external LLM network delays completely.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #047857);"><i class="fa-solid fa-microphone"></i></div>
+                <h3 class="feature-card-title">Bilingual Voice AI Querying</h3>
+                <p class="feature-card-desc">Ask questions via voice or text in English or Roman Urdu. Web Speech API transcription with automatic phonetic normalization (e.g., "top 5 ross" → "top 5 rows").</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-diagram-project"></i></div>
+                <h3 class="feature-card-title">Multi-Dataset Cross Analysis & JOIN</h3>
+                <p class="feature-card-desc">Perform instant INNER JOIN matching across multiple uploaded datasets. Auto-detect matching columns and merge data for cross-file metrics discovery.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ef4444, #b91c1c);"><i class="fa-solid fa-chart-pie"></i></div>
+                <h3 class="feature-card-title">Automated AI Chart Generation</h3>
+                <p class="feature-card-desc">AI automatically selects the best chart type (Bar, Line, Pie, Scatter, Histogram, Box Plot, Area, Heatmap) and generates interactive Plotly visualizations.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ec4899, #be185d);"><i class="fa-solid fa-file-powerpoint"></i></div>
+                <h3 class="feature-card-title">1-Click Executive Report Exports</h3>
+                <p class="feature-card-desc">Generate professional PowerPoint (PPTX), PDF, Word (DOCX), Excel (XLSX), CSV, and SVG chart exports in under 100ms with AI executive takeaways included.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #14b8a6, #0f766e);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <h3 class="feature-card-title">AI Forecasting & Predictions</h3>
+                <p class="feature-card-desc">Generate automated time-series forecasts and AI-driven business predictions from your dataset columns with confidence intervals and trend analysis.</p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #a855f7, #7e22ce);"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3 class="feature-card-title">Row-Level Data Isolation</h3>
+                <p class="feature-card-desc">Strict SQL Server UserID filtering isolates every uploaded dataset and query result to its owner. Zero cross-tenant data leakage guaranteed.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AdSense: Between sections -->
+<div class="adsense-slot adsense-between-sections">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="FEATURES_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- Supported File Formats -->
+<section class="landing-section">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-file-import"></i> Multi-Format Support</div>
+            <h2 class="section-title">9 Enterprise File Formats <span class="gradient-text">Supported</span></h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;" class="stagger-children">
+            {% set formats = [
+                ('CSV (.csv)', 'fa-file-csv', '#10b981'),
+                ('TSV (.tsv)', 'fa-file-lines', '#06b6d4'),
+                ('Excel (.xlsx)', 'fa-file-excel', '#059669'),
+                ('Excel (.xls)', 'fa-file-excel', '#047857'),
+                ('JSON (.json)', 'fa-file-code', '#8b5cf6'),
+                ('XML (.xml)', 'fa-file-code', '#a855f7'),
+                ('Parquet', 'fa-database', '#3b82f6'),
+                ('Feather', 'fa-feather-pointed', '#f59e0b'),
+                ('Text (.txt)', 'fa-file-lines', '#ef4444')
+            ] %}
+            {% for name, icon, color in formats %}
+            <div class="reveal" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 20px; text-align: center; transition: all 0.3s ease;">
+                <i class="fa-solid {{ icon }}" style="font-size: 28px; color: {{ color }}; margin-bottom: 10px; display: block;"></i>
+                <div style="font-weight: 700; font-size: 14px;">{{ name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="landing-section" style="padding: 60px 0;">
+    <div class="container" style="text-align: center;">
+        <div class="reveal">
+            <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: 16px;">Ready to Experience These Features?</h2>
+            <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 28px;">Try the live interactive demo or start your enterprise plan today.</p>
+            <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-primary"><i class="fa-solid fa-play"></i> Try Live Demo</a>
+                <a href="{{ url_for('frontend.pricing_page') }}" class="btn-hero-secondary"><i class="fa-solid fa-credit-card"></i> View Pricing</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

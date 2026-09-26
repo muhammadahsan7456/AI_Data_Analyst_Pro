@@ -1,5 +1,4 @@
 import os
-import re
 import time
 import numpy as np
 import pandas as pd
@@ -7,8 +6,28 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from database.connection import run_query, sanitize_identifier, get_db_cursor
-from utils.cache import system_cache
+from database.connection import get_db_cursor
+
+
+def fit_linear_trend(y_vals) -> tuple:
+    """
+    Authoritative linear-trend fit (slope, intercept, residual std error).
+    This is the single shared trend model used by BOTH the interactive dashboard
+    forecast (generate_forecast, below) and the scheduled/exported report forecast
+    (ai.prediction_engine.generate_dataset_forecast), so the two surfaces can never
+    silently diverge on the underlying trend numbers for the same historical data.
+    Each caller keeps its own aggregation granularity, smoothing, and confidence-
+    interval widening strategy on top of this shared core.
+    """
+    y_vals = np.asarray(y_vals, dtype=float)
+    x_vals = np.arange(len(y_vals))
+    slope, intercept = np.polyfit(x_vals, y_vals, 1)
+    residuals = y_vals - (slope * x_vals + intercept)
+    if len(residuals) > 0:
+        std_err = float(np.std(residuals))
+    else:
+        std_err = float(np.mean(y_vals) * 0.1) if len(y_vals) else 1.0
+    return float(slope), float(intercept), std_err
 
 
 def detect_time_and_target_columns(df: pd.DataFrame):
@@ -103,8 +122,8 @@ def generate_forecast(df: pd.DataFrame, target_col: str = None, date_col: str = 
     x_vals = np.arange(len(y_vals))
 
     # Fit Trend Model (Linear & Exponential Moving Average)
-    slope, intercept = np.polyfit(x_vals, y_vals, 1)
-    
+    slope, intercept, _base_std_err = fit_linear_trend(y_vals)
+
     # Generate Future X values
     future_x = np.arange(len(y_vals), len(y_vals) + forecast_days)
     trend_future = slope * future_x + intercept
@@ -121,8 +140,7 @@ def generate_forecast(df: pd.DataFrame, target_col: str = None, date_col: str = 
     forecast_vals = np.maximum(0, forecast_vals)  # Non-negative prediction guard
 
     # Confidence Intervals (95% CI)
-    residuals = y_vals - (slope * x_vals + intercept)
-    std_err = np.std(residuals) if len(residuals) > 0 else 1.0
+    std_err = _base_std_err
     margin_of_error = 1.96 * std_err * (1 + (np.arange(forecast_days) / float(forecast_days)))
 
     upper_bound = forecast_vals + margin_of_error
@@ -139,10 +157,8 @@ def generate_forecast(df: pd.DataFrame, target_col: str = None, date_col: str = 
         last_date = ts_series.index[-1]
         future_dates = [last_date + pd.Timedelta(days=i + 1) for i in range(forecast_days)]
         future_date_strs = [d.strftime("%Y-%m-%d") for d in future_dates]
-        hist_date_strs = [d.strftime("%Y-%m-%d") for d in ts_series.index[-50:]]
     else:
         future_date_strs = [f"Day +{i+1}" for i in range(forecast_days)]
-        hist_date_strs = [f"Point {i+1}" for i in range(min(50, len(y_vals)))]
 
     # Generate Forecast Visualization Chart
     chart_filename = f"forecast_{int(time.time())}_{hash(target_col)}.png"

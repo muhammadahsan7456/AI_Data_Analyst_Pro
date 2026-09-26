@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="table-card" style="max-width: 600px;">
-    <form method="POST">
+    <form method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="margin-bottom: 20px;">
             <label for="dataset_name" style="font-weight: 700; display: block; margin-bottom: 8px;">Dataset Display Name</label>
             <input type="text" id="dataset_name" name="dataset_name" value="{{ dataset[2] }}" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 15px;">

@@ -18,39 +18,87 @@
             return null;
         }
 
+        let silenceTimer = null;
+        let finalTranscript = "";
+
         const rec = new SpeechRecognition();
-        rec.continuous = false;
-        rec.interimResults = false;
+        rec.continuous = true;
+        rec.interimResults = true;
         rec.lang = window.navigator.language || "en-US";
 
         rec.onstart = function () {
             isListening = true;
+            finalTranscript = "";
             updateMicUI(true);
-            showToast("🎤 Listening... Speak your prompt clearly.", "info");
+            showToast("🎤 Listening... Speak your complete question.", "info");
         };
 
         rec.onresult = function (event) {
-            isListening = false;
-            updateMicUI(false);
-            const transcript = event.results[0][0].transcript.trim();
-            console.log("Voice Input Received:", transcript);
+            let interimTranscript = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript + " ";
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
 
-            handleVoiceCommand(transcript);
+            const currentText = (finalTranscript + interimTranscript).trim();
+            const questionInput = document.getElementById("question-input") || document.getElementById("chat-prompt-input");
+            if (questionInput && currentText) {
+                questionInput.value = currentText;
+            }
+
+            // Reset 5.0s silence auto-submit timer (gives user ample time to pause & speak long multi-part prompts)
+            if (silenceTimer) clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(function () {
+                if (isListening && currentText.length > 0) {
+                    rec.stop();
+                }
+            }, 5000);
         };
 
         rec.onerror = function (event) {
             isListening = false;
+            if (silenceTimer) clearTimeout(silenceTimer);
             updateMicUI(false);
-            console.error("Speech Recognition Error:", event.error);
-            showToast("⚠️ Voice Recognition Error: " + event.error, "error");
+            if (event.error !== "no-speech") {
+                console.error("Speech Recognition Error:", event.error);
+                showToast(describeVoiceError(event.error), "warning");
+            }
         };
 
         rec.onend = function () {
             isListening = false;
+            if (silenceTimer) clearTimeout(silenceTimer);
             updateMicUI(false);
+            const questionInput = document.getElementById("question-input") || document.getElementById("chat-prompt-input");
+            const textToSubmit = questionInput ? questionInput.value.trim() : finalTranscript.trim();
+            if (textToSubmit.length >= 2) {
+                handleVoiceCommand(textToSubmit);
+            }
         };
 
         return rec;
+    }
+
+    // Translate raw Web Speech API error codes into clear, actionable guidance.
+    // A browser's microphone permission is a browser/OS-level security decision that no
+    // website can override - the best a site can do is explain exactly what to click.
+    function describeVoiceError(code) {
+        switch (code) {
+            case "not-allowed":
+            case "service-not-allowed":
+                return "🎤 Microphone access is blocked. Click the lock/site-info icon in your browser's address bar, allow Microphone access, then try again.";
+            case "audio-capture":
+                return "🎤 No microphone was found. Please connect a microphone and try again.";
+            case "network":
+                return "🎤 Voice recognition needs an internet connection. Please check your connection and try again.";
+            case "aborted":
+                return "🎤 Voice input was stopped.";
+            default:
+                return "🎤 Voice recognition couldn't start (" + code + "). You can still type your question instead.";
+        }
     }
 
     // Initialize Text-To-Speech Voices
@@ -205,16 +253,75 @@
                     `;
                 }
 
-                if (data.chart) {
+                if (data.chart_spec || data.chart) {
+                    window.currentChartSpec = data.chart_spec || {};
+                    const chartSrc = data.chart ? `/static/${data.chart.replace(/^static\//, '')}` : '#';
                     html += `
-                        <div class="table-card" style="text-align: center;">
-                            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;"><i class="fa-solid fa-chart-line"></i> Automated Chart Visualization</h3>
-                            <img src="/static/${data.chart.replace(/^static\//, '')}" alt="Generated Chart" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md);">
+                        <div class="table-card glass-card" style="border-top: 4px solid var(--accent-purple); background: var(--bg-surface); padding: 24px; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); margin-top: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+                                <h3 style="font-size: 18px; font-weight: 800; color: var(--accent-purple); display: flex; align-items: center; gap: 10px; margin: 0;">
+                                    <i class="fa-solid fa-chart-column" style="font-size: 20px;"></i> Executive AI Interactive Analytics & Chart Visualization
+                                </h3>
+                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                    <span class="badge badge-success" style="font-size: 11px; padding: 6px 12px; background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> Hover Data Active
+                                    </span>
+                                    <a href="${chartSrc}" download="AI_Chart_Analysis.png" class="btn btn-secondary btn-sm" style="font-size: 12px; font-weight: 700; padding: 6px 14px;">
+                                        <i class="fa-solid fa-download"></i> Download HD Chart
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="chart-type-switcher-bar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 14px; background: rgba(15, 23, 42, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); align-items: center;">
+                                <span style="font-size: 12px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-sliders"></i> Switch Chart Format:
+                                </span>
+                                <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid #38bdf8; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                    🍕 Pie Chart (Gol)
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="donut" onclick="selectVisualChartMode('donut', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    🍩 Donut Ring
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="bar" onclick="selectVisualChartMode('bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    📊 Vertical Bar
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="horizontal_bar" onclick="selectVisualChartMode('horizontal_bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    📈 Horizontal Bar
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="line" onclick="selectVisualChartMode('line', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    📉 Line Chart (Trend)
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="area" onclick="selectVisualChartMode('area', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    🌊 Area Chart
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="scatter" onclick="selectVisualChartMode('scatter', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    🎯 Scatter Plot
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="heatmap" onclick="selectVisualChartMode('heatmap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    🔥 Heatmap
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="treemap" onclick="selectVisualChartMode('treemap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    🧱 Treemap
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="funnel" onclick="selectVisualChartMode('funnel', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
+                                    🔻 Funnel Flow
+                                </button>
+                            </div>
+
+                            <div id="interactive-plotly-chart" style="width: 100%; min-height: 480px; height: 500px; display: block; border-radius: var(--radius-md); background: rgba(15, 23, 42, 0.6); padding: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);"></div>
+                            <img id="static-chart-image" src="${chartSrc}" alt="Generated Chart" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: none; margin: 0 auto;">
                         </div>
                     `;
                 }
 
                 container.innerHTML = html;
+
+                if (data.chart_spec && data.chart_spec.labels && data.chart_spec.labels.length > 0) {
+                    setTimeout(() => {
+                        if (window.updateCompatibleChartDropdown) window.updateCompatibleChartDropdown(data.chart_spec);
+                        if (window.renderInteractivePlotlyChart) window.renderInteractivePlotlyChart(data.chart_spec, data.chart_spec.chart_type || "pie");
+                    }, 50);
+                }
 
                 if (data.tts_speech) {
                     speakText(data.tts_speech);
@@ -244,12 +351,37 @@
 
         if (isListening) {
             recognition.stop();
-        } else {
+            return;
+        }
+
+        function startRecognition() {
             try {
                 recognition.start();
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        // Check known permission state first (not supported in every browser, and some
+        // browsers throw synchronously rather than rejecting the promise for an
+        // unrecognized permission name - wrapped so any failure here still falls back
+        // to just starting recognition instead of silently breaking the button).
+        try {
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: "microphone" })
+                    .then(status => {
+                        if (status.state === "denied") {
+                            showToast(describeVoiceError("not-allowed"), "warning");
+                        } else {
+                            startRecognition();
+                        }
+                    })
+                    .catch(startRecognition);
+            } else {
+                startRecognition();
+            }
+        } catch (permErr) {
+            startRecognition();
         }
     };
 

@@ -15,7 +15,7 @@
             <p style="color: var(--text-secondary); font-size: 14px;">Review devices currently logged into your account.</p>
         </div>
 
-        <form method="POST" action="{{ url_for('auth.security') }}">
+        <form method="POST" action="{{ url_for('auth.security') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="logout_other_devices">
             <button type="submit" class="btn btn-danger" onclick="return confirm('Log out of all other active sessions across browsers and devices?')">
                 <i class="fa-solid fa-right-from-bracket"></i> Logout Other Devices

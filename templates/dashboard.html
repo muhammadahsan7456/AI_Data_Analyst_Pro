@@ -22,8 +22,8 @@
     <div>
         <i class="fa-solid fa-clock-rotate-left"></i> {{ subscription_renewal_notice }}
     </div>
-    <a href="{{ url_for('frontend.pricing') }}" style="background: #f59e0b; color: #000000; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap;">
-        Renew $85/mo Plan <i class="fa-solid fa-arrow-right"></i>
+    <a href="{{ url_for('frontend.renew_subscription') }}" style="background: #f59e0b; color: #000000; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap;">
+        Renew PKR 25,000/mo Plan <i class="fa-solid fa-arrow-right"></i>
     </a>
 </div>
 {% endif %}
@@ -33,7 +33,7 @@
     <i class="fa-solid fa-bolt-lightning" style="font-size: 20px; color: var(--accent-amber);"></i>
     <div style="flex: 1; position: relative;">
         <input type="text" id="smart-search-input" placeholder="🔍 Search datasets by name, filename, or tag..." style="width: 100%; padding: 12px 16px 12px 40px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box;">
-        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
+        <i class="fa-solid fa-magnifying-glass" id="smart-search-icon" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
         <div id="smart-search-results" class="glass-card" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 999; max-height: 350px; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); padding: 12px;"></div>
     </div>
 </div>
@@ -225,8 +225,11 @@
                         <a href="{{ url_for('frontend.view_dataset', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="View Records">
                             <i class="fa-solid fa-eye"></i> View
                         </a>
-                        <a href="{{ url_for('frontend.dataset_details', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="Profiling & Stats">
-                            <i class="fa-solid fa-chart-bar"></i> Profile
+                        <a href="{{ url_for('frontend.dataset_details', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="Profiling & Health Stats">
+                            <i class="fa-solid fa-heart-pulse" style="color: var(--accent-blue);"></i> Health
+                        </a>
+                        <a href="{{ url_for('frontend.report_builder', dataset_id=ds[0]) }}" class="btn btn-secondary btn-sm" title="Executive Report Builder">
+                            <i class="fa-solid fa-file-invoice" style="color: var(--accent-purple);"></i> Report
                         </a>
                         <a href="{{ url_for('frontend.export_dataset', dataset_id=ds[0], format_type='excel') }}" class="btn btn-secondary btn-sm" title="Export Excel">
                             <i class="fa-solid fa-file-excel" style="color: var(--accent-green);"></i> Excel
@@ -274,36 +277,50 @@
 document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("smart-search-input");
     const resultsBox = document.getElementById("smart-search-results");
+    const searchIcon = document.getElementById("smart-search-icon");
 
     if (searchInput) {
+        let searchDebounce;
         searchInput.addEventListener("input", function () {
             const query = this.value.trim();
+            clearTimeout(searchDebounce);
             if (query.length < 2) {
                 resultsBox.style.display = "none";
+                if (searchIcon) searchIcon.className = "fa-solid fa-magnifying-glass";
                 return;
             }
 
-            fetch(`/api/smart-search?q=${encodeURIComponent(query)}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.results && data.results.length > 0) {
-                        let html = "";
-                        data.results.forEach(res => {
-                            html += `
-                                <a href="${res.url}" style="display: block; padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-decoration: none; color: inherit;">
-                                    <span class="badge badge-info" style="font-size: 10px;">${res.category}</span>
-                                    <strong style="margin-left: 6px;">${res.title}</strong>
-                                    <div style="font-size: 12px; color: var(--text-secondary);">${res.subtitle}</div>
-                                </a>
-                            `;
-                        });
-                        resultsBox.innerHTML = html;
+            searchDebounce = setTimeout(function () {
+                if (searchIcon) searchIcon.className = "fa-solid fa-spinner fa-spin";
+
+                fetch(`/api/smart-search?q=${encodeURIComponent(query)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (searchIcon) searchIcon.className = "fa-solid fa-magnifying-glass";
+                        if (data.results && data.results.length > 0) {
+                            let html = "";
+                            data.results.forEach(res => {
+                                html += `
+                                    <a href="${res.url}" style="display: block; padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-decoration: none; color: inherit;">
+                                        <span class="badge badge-info" style="font-size: 10px;">${res.category}</span>
+                                        <strong style="margin-left: 6px;">${res.title}</strong>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">${res.subtitle}</div>
+                                    </a>
+                                `;
+                            });
+                            resultsBox.innerHTML = html;
+                            resultsBox.style.display = "block";
+                        } else {
+                            resultsBox.innerHTML = "<div style='padding: 8px; font-size: 13px; color: var(--text-muted);'>No matching datasets or history found.</div>";
+                            resultsBox.style.display = "block";
+                        }
+                    })
+                    .catch(function () {
+                        if (searchIcon) searchIcon.className = "fa-solid fa-magnifying-glass";
+                        resultsBox.innerHTML = "<div style='padding: 8px; font-size: 13px; color: var(--accent-red);'>Search failed. Please try again.</div>";
                         resultsBox.style.display = "block";
-                    } else {
-                        resultsBox.innerHTML = "<div style='padding: 8px; font-size: 13px; color: var(--text-muted);'>No matching datasets or history found.</div>";
-                        resultsBox.style.display = "block";
-                    }
-                });
+                    });
+            }, 250);
         });
 
         document.addEventListener("click", function (e) {

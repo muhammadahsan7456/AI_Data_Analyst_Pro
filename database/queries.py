@@ -313,9 +313,9 @@ def get_all_datasets(user_id=None, sort_by="UploadDate", order="DESC", date_from
     if user_id:
         where_clauses.append(f"UserID = {int(user_id)}")
     if date_from:
-        where_clauses.append(f"UploadDate >= '{date_from}'")
+        where_clauses.append("UploadDate >= ?")
     if date_to:
-        where_clauses.append(f"UploadDate <= '{date_to}'")
+        where_clauses.append("UploadDate <= ?")
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -397,9 +397,9 @@ def search_datasets(user_id=None, sort_by="UploadDate", order="DESC", date_from=
     if user_id:
         where_clauses.append(f"UserID = {int(user_id)}")
     if date_from:
-        where_clauses.append(f"UploadDate >= '{date_from}'")
+        where_clauses.append("UploadDate >= ?")
     if date_to:
-        where_clauses.append(f"UploadDate <= '{date_to}'")
+        where_clauses.append("UploadDate <= ?")
 
     where_sql = "WHERE " + " AND ".join(where_clauses)
 
@@ -595,17 +595,97 @@ def get_admin_kpis():
         (SELECT COUNT(*) FROM Users WHERE IsActive = 0) AS SuspendedUsers,
         (SELECT ISNULL(SUM(Amount), 0) FROM Payments WHERE Status = 'Completed') AS TotalRevenue,
         (SELECT COUNT(*) FROM Payments WHERE Status = 'Completed') AS CompletedPayments,
-        (SELECT COUNT(*) FROM Payments WHERE Status = 'Pending') AS PendingPayments,
-        (SELECT COUNT(*) FROM Datasets) AS TotalDatasets
+        (SELECT COUNT(*) FROM Payments WHERE Status IN ('Pending', 'Pending_Review')) AS PendingPayments,
+        (SELECT COUNT(*) FROM Datasets) AS TotalDatasets,
+        (SELECT COUNT(*) FROM Users WHERE SubscriptionStatus = 'expiring_soon' AND Role NOT IN ('SuperAdmin', 'Admin')) AS ExpiringSoonUsers,
+        (SELECT COUNT(*) FROM Users WHERE SubscriptionStatus = 'expired' AND Role NOT IN ('SuperAdmin', 'Admin')) AS ExpiredUsers
+    """
+
+
+def get_site_announcement():
+    return "SELECT TOP 1 Title, Message, IsEnabled FROM SiteAnnouncement ORDER BY AnnouncementID DESC"
+
+
+def upsert_site_announcement():
+    return """
+    UPDATE SiteAnnouncement SET Title = ?, Message = ?, IsEnabled = ?, UpdatedAt = GETDATE()
+    """
+
+
+def insert_site_announcement():
+    return """
+    INSERT INTO SiteAnnouncement (Title, Message, IsEnabled, UpdatedAt)
+    VALUES (?, ?, ?, GETDATE())
+    """
+
+
+def get_per_user_storage_admin():
+    return """
+    SELECT U.UserID, U.FullName, U.Email,
+           COUNT(D.DatasetID) AS DatasetCount,
+           ISNULL(SUM(D.StorageSizeKB), 0) AS TotalStorageKB,
+           ISNULL(SUM(D.TotalRows), 0) AS TotalRows
+    FROM Users U
+    LEFT JOIN Datasets D ON D.UserID = U.UserID
+    WHERE U.Role NOT IN ('SuperAdmin', 'Admin')
+    GROUP BY U.UserID, U.FullName, U.Email
+    HAVING COUNT(D.DatasetID) > 0
+    ORDER BY TotalStorageKB DESC
+    """
+
+
+def get_monthly_revenue_trend():
+    """
+    Takes (start_date, end_date) as bind params - the Super Admin dashboard lets the
+    date range be picked freely instead of a fixed lookback window.
+    """
+    return """
+    SELECT FORMAT(PaymentDate, 'yyyy-MM') AS MonthLabel, SUM(Amount) AS Revenue
+    FROM Payments
+    WHERE Status = 'Completed' AND PaymentDate >= ? AND PaymentDate < DATEADD(day, 1, ?)
+    GROUP BY FORMAT(PaymentDate, 'yyyy-MM')
+    ORDER BY MonthLabel ASC
+    """
+
+
+def get_monthly_signups_trend():
+    """
+    Takes (start_date, end_date) as bind params - see get_monthly_revenue_trend().
+    """
+    return """
+    SELECT FORMAT(CreatedAt, 'yyyy-MM') AS MonthLabel, COUNT(*) AS NewUsers
+    FROM Users
+    WHERE CreatedAt >= ? AND CreatedAt < DATEADD(day, 1, ?)
+    GROUP BY FORMAT(CreatedAt, 'yyyy-MM')
+    ORDER BY MonthLabel ASC
+    """
+
+
+def get_expiring_users_admin(limit=10):
+    return f"""
+    SELECT TOP {int(limit)} UserID, FullName, Email, SubscriptionStatus, SubscriptionEndDate
+    FROM Users
+    WHERE SubscriptionStatus IN ('expiring_soon', 'expired')
+      AND Role NOT IN ('SuperAdmin', 'Admin')
+    ORDER BY SubscriptionEndDate ASC
     """
 
 
 def get_all_users_admin():
     return """
     SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
-           ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs WHERE UserID = U.UserID AND IPAddress IS NOT NULL ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress
+           ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs WHERE UserID = U.UserID AND IPAddress IS NOT NULL ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress,
+           ISNULL(U.SubscriptionStatus, 'active') AS SubscriptionStatus,
+           U.SubscriptionEndDate
     FROM Users U
-    ORDER BY U.CreatedAt DESC
+    ORDER BY 
+        CASE 
+            WHEN U.IsActive = 0 OR U.SubscriptionStatus = 'suspended' THEN 1
+            WHEN U.SubscriptionStatus = 'expired' THEN 2
+            WHEN U.SubscriptionStatus = 'expiring_soon' THEN 3
+            ELSE 4
+        END ASC,
+        U.CreatedAt DESC
     """
 
 
@@ -632,12 +712,14 @@ def delete_user_admin():
     """
 
 
-def get_all_payments_admin():
-    return """
-    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate, P.ScreenshotPath
+def get_all_payments_admin(order_by="DESC"):
+    sort_dir = "ASC" if str(order_by).upper() == "ASC" else "DESC"
+    return f"""
+    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate, P.ScreenshotPath,
+           P.PaymentType, P.RejectionReason, P.ReviewedBy, P.ReviewedAt, U.PhoneNumber
     FROM Payments P
     LEFT JOIN Users U ON P.UserID = U.UserID
-    ORDER BY P.PaymentDate DESC
+    ORDER BY P.PaymentDate {sort_dir}
     """
 
 
@@ -647,6 +729,153 @@ def update_payment_status_admin():
     SET Status = ?
     WHERE PaymentID = ?
     """
+
+
+def approve_payment_admin():
+    return """
+    UPDATE Payments
+    SET Status = 'Completed', ReviewedBy = ?, ReviewedAt = GETDATE(), RejectionReason = NULL
+    WHERE PaymentID = ?
+    """
+
+
+def reject_payment_admin():
+    return """
+    UPDATE Payments
+    SET Status = 'Rejected', RejectionReason = ?, ReviewedBy = ?, ReviewedAt = GETDATE()
+    WHERE PaymentID = ?
+    """
+
+
+def get_payment_by_id():
+    return """
+    SELECT P.PaymentID, P.UserID, P.Amount, P.TransactionID, P.PlanName, P.PaymentType, P.Status,
+           U.FullName, U.Email, U.SubscriptionStatus, U.SubscriptionEndDate
+    FROM Payments P
+    LEFT JOIN Users U ON P.UserID = U.UserID
+    WHERE P.PaymentID = ?
+    """
+
+
+def check_duplicate_transaction_id():
+    return "SELECT COUNT(*) FROM Payments WHERE TransactionID = ? AND Status != 'Rejected'"
+
+
+def check_user_has_pending_payment():
+    return "SELECT COUNT(*) FROM Payments WHERE UserID = ? AND Status IN ('Pending', 'Pending_Review')"
+
+
+def insert_payment_full():
+    return """
+    INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentType, ScreenshotPath, PaymentDate)
+    OUTPUT INSERTED.PaymentID
+    VALUES (?, ?, 'PKR', ?, ?, 'Pending', ?, ?, ?, GETDATE())
+    """
+
+
+# ==========================================
+# PAYMENT-FIRST REGISTRATION & SUBSCRIPTION LIFECYCLE
+# ==========================================
+
+def get_payment_settings():
+    return "SELECT TOP 1 PlanName, PlanPriceLabel, AccountTitle, BankName, AccountNumber, IBAN, JazzCashNumber, EasypaisaNumber, SadaPayNumber, Instructions FROM PaymentSettings ORDER BY SettingID DESC"
+
+
+def update_payment_settings():
+    return """
+    UPDATE PaymentSettings
+    SET PlanName = ?, PlanPriceLabel = ?, AccountTitle = ?, BankName = ?, AccountNumber = ?, IBAN = ?, JazzCashNumber = ?, EasypaisaNumber = ?, SadaPayNumber = ?, Instructions = ?, UpdatedAt = GETDATE()
+    """
+
+
+def set_user_pending_approval():
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'pending_approval', SubscriptionEndDate = NULL, SuspensionReason = NULL
+    WHERE UserID = ?
+    """
+
+
+def activate_user_new_subscription():
+    """
+    Fresh calendar-month cycle starting from the approval moment (used for new
+    registrations and for reactivating an already-suspended/rejected user).
+    SQL Server's DATEADD(month, ...) clamps automatically to the last valid day of the
+    target month (e.g. 31 Jan + 1 month -> 28/29 Feb), which is exactly the "one
+    calendar month" rule this feature needs.
+    """
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'active',
+        SubscriptionEndDate = DATEADD(month, 1, CAST(GETDATE() AS DATE)),
+        SuspensionReason = NULL,
+        IsActive = 1
+    WHERE UserID = ?
+    """
+
+
+def extend_user_subscription_one_month():
+    """
+    Used when a user renews BEFORE their current period has expired - extends from
+    their existing end date rather than from today, so no remaining days are lost.
+    """
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'active',
+        SubscriptionEndDate = DATEADD(month, 1, CAST(SubscriptionEndDate AS DATE)),
+        SuspensionReason = NULL,
+        IsActive = 1
+    WHERE UserID = ?
+    """
+
+
+def set_user_rejected():
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'rejected', SuspensionReason = ?
+    WHERE UserID = ?
+    """
+
+
+def auto_suspend_overdue_users():
+    """
+    Bulk sweep: any non-admin user whose subscription end date has passed and who is
+    still marked 'active' gets suspended. Runs as one statement so it's cheap even at
+    scale and safe to run repeatedly (idempotent - already-suspended rows are excluded).
+    """
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'suspended', SuspensionReason = 'Subscription period expired without a renewed payment.'
+    OUTPUT INSERTED.UserID, INSERTED.FullName, INSERTED.Email
+    WHERE SubscriptionStatus = 'active'
+      AND SubscriptionEndDate IS NOT NULL
+      AND SubscriptionEndDate < GETDATE()
+      AND Role NOT IN ('SuperAdmin', 'Admin')
+    """
+
+
+def get_users_due_on_date():
+    """
+    Users whose SubscriptionEndDate falls on the given date (still 'active', not yet
+    suspended). The target date is computed in Python using Asia/Karachi time and
+    passed in as a bind parameter, so reminder timing is correct regardless of what
+    timezone the database server itself happens to be running in.
+    """
+    return """
+    SELECT UserID, FullName, Email, SubscriptionEndDate
+    FROM Users
+    WHERE SubscriptionStatus = 'active'
+      AND Role NOT IN ('SuperAdmin', 'Admin')
+      AND CAST(SubscriptionEndDate AS DATE) = ?
+    """
+
+
+def has_reminder_been_sent():
+    return "SELECT COUNT(*) FROM ReminderLog WHERE UserID = ? AND ReminderType = ? AND ForDueDate = ?"
+
+
+def log_reminder_sent():
+    return "INSERT INTO ReminderLog (UserID, ReminderType, ForDueDate) VALUES (?, ?, ?)"
 
 
 def get_all_audit_logs_admin(limit=100):
@@ -691,6 +920,13 @@ def clear_user_query_history():
     """
 
 
+def get_user_query_count_since():
+    return """
+    SELECT COUNT(*) FROM QueryHistory
+    WHERE UserID = ? AND CreatedAt >= ?
+    """
+
+
 # ==========================================
 # SCHEDULED REPORTS QUERIES
 # ==========================================
@@ -728,10 +964,13 @@ def delete_scheduled_report():
 
 
 def get_due_scheduled_reports():
+    # The extra "D.UserID = R.UserID" is a defense-in-depth invariant, not just a join
+    # condition - it stops a report row from ever being processed against a dataset it
+    # doesn't actually belong to, even if one somehow got created that way.
     return """
-    SELECT R.ReportID, R.UserID, R.DatasetID, D.DatasetName, D.TableName, R.ReportType, R.Frequency, R.RecipientEmail, R.ScheduleTime, R.LastRunAt
+    SELECT R.ReportID, R.UserID, R.DatasetID, D.OriginalFileName, D.DatasetName, R.ReportType, R.Frequency, R.RecipientEmail, R.ScheduleTime, R.LastRunAt
     FROM ScheduledReports R
-    JOIN Datasets D ON R.DatasetID = D.DatasetID
+    JOIN Datasets D ON R.DatasetID = D.DatasetID AND D.UserID = R.UserID
     WHERE R.IsEnabled = 1
     """
 
@@ -781,10 +1020,13 @@ def delete_alert_rule():
 
 
 def get_active_alert_rules():
+    # The extra "D.UserID = A.UserID" is a defense-in-depth invariant, not just a join
+    # condition - it stops an alert rule from ever being evaluated against a dataset it
+    # doesn't actually belong to, even if one somehow got created that way.
     return """
-    SELECT A.AlertID, A.UserID, A.DatasetID, D.DatasetName, D.TableName, A.MetricName, A.ConditionOperator, A.ThresholdValue, A.RecipientEmail, A.LastTriggeredAt
+    SELECT A.AlertID, A.UserID, A.DatasetID, D.OriginalFileName, D.DatasetName, A.MetricName, A.ConditionOperator, A.ThresholdValue, A.RecipientEmail, A.LastTriggeredAt
     FROM AlertRules A
-    JOIN Datasets D ON A.DatasetID = D.DatasetID
+    JOIN Datasets D ON A.DatasetID = D.DatasetID AND D.UserID = A.UserID
     WHERE A.IsEnabled = 1
     """
 
@@ -812,4 +1054,54 @@ def get_user_alert_history(limit=50):
     LEFT JOIN Datasets D ON A.DatasetID = D.DatasetID
     WHERE H.UserID = ?
     ORDER BY H.TriggeredAt DESC
+    """
+
+
+# ==========================================
+# PUBLIC CONTACT FORM QUERIES
+# ==========================================
+
+def insert_contact_message():
+    return """
+    INSERT INTO ContactMessages (FullName, Email, Subject, Message, Status, IPAddress, CreatedAt)
+    VALUES (?, ?, ?, ?, 'New', ?, GETDATE())
+    """
+
+
+def get_all_contact_messages():
+    return """
+    SELECT MessageID, FullName, Email, Subject, Message, Status, IPAddress, CreatedAt, AdminReply, RepliedAt
+    FROM ContactMessages
+    ORDER BY CreatedAt DESC
+    """
+
+
+def update_contact_message_status():
+    return """
+    UPDATE ContactMessages
+    SET Status = ?
+    WHERE MessageID = ?
+    """
+
+
+def save_contact_message_reply():
+    return """
+    UPDATE ContactMessages
+    SET AdminReply = ?, RepliedAt = GETDATE(), Status = 'Responded'
+    WHERE MessageID = ?
+    """
+
+
+def get_contact_message_by_id():
+    return """
+    SELECT MessageID, FullName, Email, Subject, Message
+    FROM ContactMessages
+    WHERE MessageID = ?
+    """
+
+
+def delete_contact_message():
+    return """
+    DELETE FROM ContactMessages
+    WHERE MessageID = ?
     """

@@ -12,7 +12,7 @@
             <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-purple);"></i> Generate New Forecast
         </h3>
 
-        <form method="POST" action="{{ url_for('frontend.predictions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+        <form method="POST" action="{{ url_for('frontend.predictions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
                 <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Select Dataset</label>
                 <select name="dataset_id" required style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">

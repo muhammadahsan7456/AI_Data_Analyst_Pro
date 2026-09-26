@@ -2,4 +2,6 @@ from flask import Blueprint
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
-from admin import routes  # noqa: F401, E402
+from admin import routes
+
+__all__ = ["admin_bp", "routes"]

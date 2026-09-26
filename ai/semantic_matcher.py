@@ -11,7 +11,7 @@ Ensures 100% ACCURACY with ZERO hallucinated column names in generated T-SQL.
 
 import re
 from difflib import SequenceMatcher
-from database.connection import run_query, sanitize_identifier
+from database.connection import sanitize_identifier
 
 SYNONYM_MAP = {
     "returned": ["delivery_status", "status_description", "order_status", "status", "return_status", "returned"],
@@ -90,7 +90,6 @@ def resolve_query_semantic_columns(question: str, table_name: str, columns_list:
     Handles city abbreviations (e.g. Karachi -> KHI) and status variations (Returned -> RETURN TO ORIGIN).
     """
     q_lower = question.lower().strip()
-    safe_tbl = sanitize_identifier(table_name)
 
     # Detect all potential target columns
     status_cols = [c for c in columns_list if any(kw in c.lower() for kw in ["status", "state", "condition"])]
@@ -126,21 +125,90 @@ def resolve_query_semantic_columns(question: str, table_name: str, columns_list:
             break
 
     if matched_city_tokens and city_cols:
+        # Select single primary city column to prevent ORing origin and destination
+        primary_city_col = None
+        if "origin" in q_lower:
+            primary_city_col = next((c for c in city_cols if "origin" in c.lower()), None)
+        if not primary_city_col:
+            primary_city_col = next((c for c in city_cols if any(k in c.lower() for k in ["destination_city", "dest_city", "destination", "customer_city", "shipping_city", "consignee_city", "city"])), city_cols[0])
+
+        safe_col = sanitize_identifier(primary_city_col)
         city_conds = []
-        for col in city_cols:
-            safe_col = sanitize_identifier(col)
-            for alias in matched_city_tokens:
-                city_conds.append(f"UPPER(CAST({safe_col} AS NVARCHAR(MAX))) = '{alias.upper()}'")
-                city_conds.append(f"CAST({safe_col} AS NVARCHAR(MAX)) LIKE '%{alias}%'")
+        for alias in matched_city_tokens:
+            city_conds.append(f"UPPER(CAST({safe_col} AS NVARCHAR(MAX))) = '{alias.upper()}'")
+            city_conds.append(f"CAST({safe_col} AS NVARCHAR(MAX)) LIKE '%{alias}%'")
 
         filter_clauses.append(f"({' OR '.join(city_conds)})")
-        resolved_cols.extend(city_cols)
+        resolved_cols.append(primary_city_col)
+
+    # 3. AREA & REGION INTENT RESOLUTION (e.g. "along with their areas", "area wise")
+    area_cols = [c for c in columns_list if any(kw in c.lower() for kw in ["area", "district", "zone", "address", "location", "region"])]
+    if any(kw in q_lower for kw in ["area", "areas", "district", "zone", "region"]) and area_cols:
+        resolved_cols.extend(area_cols)
 
     # Return structured resolution object
     return {
         "has_filters": len(filter_clauses) > 0,
         "filter_sql_where": " AND ".join(filter_clauses) if filter_clauses else "",
+        "filter_count": len(filter_clauses),
         "resolved_columns": list(set(resolved_cols)),
         "status_cols": status_cols,
-        "city_cols": city_cols
+        "city_cols": city_cols,
+        "area_cols": area_cols
     }
+
+
+def build_sql_query_plan(question: str, table_name: str, columns_list: list) -> dict:
+    """
+    Constructs an internal structured query plan BEFORE SQL generation:
+    {
+        "intent": str,
+        "dataset_table": str,
+        "columns_needed": list,
+        "filters": list,
+        "group_by": list,
+        "aggregation": list,
+        "sort": list,
+        "limit": int/None
+    }
+    """
+    sem = resolve_query_semantic_columns(question, table_name, columns_list)
+    q_lower = question.lower().strip()
+
+    limit = None
+    top_match = re.search(r"\b(?:top|first|last|aakhri|pehle)\s*(\d+)\b", q_lower)
+    if top_match:
+        limit = int(top_match.group(1))
+
+    # Detect grouping & aggregations
+    group_cols = []
+    agg_funcs = []
+    if "by" in q_lower or "wise" in q_lower:
+        for col in columns_list:
+            if col.lower() in q_lower:
+                group_cols.append(col)
+
+    if any(kw in q_lower for kw in ["total", "sum", "overall"]):
+        agg_funcs.append("SUM")
+    if any(kw in q_lower for kw in ["average", "avg", "mean"]):
+        agg_funcs.append("AVG")
+    if any(kw in q_lower for kw in ["count", "number of", "how many"]):
+        agg_funcs.append("COUNT")
+
+    intent = "filter_select"
+    if group_cols or agg_funcs:
+        intent = "aggregate_analysis"
+    elif limit and not sem["has_filters"]:
+        intent = "range_sample"
+
+    return {
+        "intent": intent,
+        "dataset_table": table_name,
+        "columns_needed": sem["resolved_columns"] if sem["resolved_columns"] else columns_list[:6],
+        "filters": [sem["filter_sql_where"]] if sem["filter_sql_where"] else [],
+        "group_by": group_cols,
+        "aggregation": agg_funcs,
+        "sort": ["RecordID DESC"] if "last" in q_lower or "aakhri" in q_lower else [],
+        "limit": limit
+    }
+

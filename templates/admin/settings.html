@@ -195,6 +195,80 @@
 </style>
 
 <div class="settings-grid">
+    <!-- Payment Account Details Card -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-icon-badge icon-badge-green">
+                <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <div>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    Payment Account Details
+                </h3>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
+                    Shown to users on the registration payment page and the renewal screen.
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.update_payment_settings_route') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <div class="form-group-label"><span>Plan Name</span></div>
+                    <input type="text" name="plan_name" value="{{ payment_settings.plan_name }}" class="setting-input-field" required>
+                </div>
+                <div>
+                    <div class="form-group-label"><span>Plan Price Label</span></div>
+                    <input type="text" name="plan_price_label" value="{{ payment_settings.plan_price_label }}" class="setting-input-field" required>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <div class="form-group-label"><span>Account Title</span></div>
+                    <input type="text" name="account_title" value="{{ payment_settings.account_title or '' }}" class="setting-input-field">
+                </div>
+                <div>
+                    <div class="form-group-label"><span>Bank Name</span></div>
+                    <input type="text" name="bank_name" value="{{ payment_settings.bank_name or '' }}" class="setting-input-field">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <div class="form-group-label"><span>Account Number</span></div>
+                    <input type="text" name="account_number" value="{{ payment_settings.account_number or '' }}" class="setting-input-field">
+                </div>
+                <div>
+                    <div class="form-group-label"><span>IBAN</span></div>
+                    <input type="text" name="iban" value="{{ payment_settings.iban or '' }}" class="setting-input-field">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <div class="form-group-label"><span>JazzCash Number</span></div>
+                    <input type="text" name="jazzcash_number" value="{{ payment_settings.jazzcash_number or '' }}" class="setting-input-field">
+                </div>
+                <div>
+                    <div class="form-group-label"><span>Easypaisa Number</span></div>
+                    <input type="text" name="easypaisa_number" value="{{ payment_settings.easypaisa_number or '' }}" class="setting-input-field">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <div class="form-group-label"><span>SadaPay Number</span></div>
+                    <input type="text" name="sadapay_number" value="{{ payment_settings.sadapay_number or '' }}" class="setting-input-field">
+                </div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div class="form-group-label"><span>Instructions Shown to Users</span></div>
+                <textarea name="instructions" rows="2" class="setting-textarea-field">{{ payment_settings.instructions or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn-save-settings">
+                <i class="fa-solid fa-floppy-disk"></i> Save Payment Details
+            </button>
+        </form>
+    </div>
+
     <!-- Site Announcement Form Card -->
     <div class="settings-card">
         <div class="settings-card-header">
@@ -211,7 +285,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ url_for('admin.settings') }}">
+        <form method="POST" action="{{ url_for('admin.settings') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="margin-bottom: 18px;">
                 <div class="form-group-label">
                     <span>Announcement Header Title</span>
@@ -260,6 +334,29 @@
 
             <button type="submit" class="btn-save-settings">
                 <i class="fa-solid fa-floppy-disk"></i> Save Announcement Settings
+            </button>
+        </form>
+    </div>
+
+    <!-- Database Backup Card -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-icon-badge icon-badge-blue">
+                <i class="fa-solid fa-database"></i>
+            </div>
+            <div>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    Database Backup
+                </h3>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
+                    An automatic full backup runs once every day. You can also trigger one manually below.
+                </div>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('admin.trigger_backup_now') }}" onsubmit="return confirm('Run a full database backup now? This may take a moment on a large database.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-save-settings" style="background: linear-gradient(135deg, #2563eb, #38bdf8);">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Backup Now
             </button>
         </form>
     </div>

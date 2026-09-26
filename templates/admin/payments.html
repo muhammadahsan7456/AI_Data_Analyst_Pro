@@ -30,28 +30,71 @@
     }
 </style>
 
-<!-- Status Filter Chips -->
-<div class="payment-status-chips">
-    <a href="{{ url_for('admin.manage_payments') }}" class="status-chip {% if not status_filter %}active{% endif %}">
-        All Transactions
-    </a>
-    <a href="{{ url_for('admin.manage_payments', status='Completed') }}" class="status-chip {% if status_filter == 'Completed' %}active{% endif %}">
-        Completed
-    </a>
-    <a href="{{ url_for('admin.manage_payments', status='Pending') }}" class="status-chip {% if status_filter == 'Pending' %}active{% endif %}">
-        Pending Approval Queue
-    </a>
-    <a href="{{ url_for('admin.manage_payments', status='Failed') }}" class="status-chip {% if status_filter == 'Failed' %}active{% endif %}">
-        Failed / Refunded
-    </a>
-</div>
+<!-- Advanced Payment Filter Bar -->
+<form method="GET" action="{{ url_for('admin.manage_payments') }}" style="background: rgba(15, 23, 42, 0.6); padding: 18px; border-radius: 12px; border: 1px solid var(--admin-border); margin-bottom: 24px; display: grid; grid-template-columns: 2fr 1.2fr 1.5fr 1fr 1fr auto; gap: 12px; align-items: center;">
+    <!-- 1. Search Box -->
+    <div style="position: relative;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, email, TXN ID..." class="admin-search-input" style="padding-left: 36px; width: 100%; height: 38px; font-size: 12px;">
+    </div>
+
+    <!-- 2. Sort Order (Newest / Oldest) -->
+    <select name="sort" class="admin-select-filter" style="height: 38px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
+        <option value="newest" {% if sort_order == 'newest' %}selected{% endif %}>📅 Newest First (DESC)</option>
+        <option value="oldest" {% if sort_order == 'oldest' %}selected{% endif %}>📅 Oldest First (ASC)</option>
+    </select>
+
+    <!-- 3. Bank / Method Filter (EasyPaisa, NayaPay, JazzCash, Meezan, UBL, HBL) -->
+    <select name="method" class="admin-select-filter" style="height: 38px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
+        <option value="">🏦 All Banks / Methods</option>
+        <option value="EasyPaisa" {% if method_filter == 'EasyPaisa' %}selected{% endif %}>🟢 EasyPaisa</option>
+        <option value="NayaPay" {% if method_filter == 'NayaPay' %}selected{% endif %}>🔵 NayaPay</option>
+        <option value="JazzCash" {% if method_filter == 'JazzCash' %}selected{% endif %}>🔴 JazzCash</option>
+        <option value="Meezan" {% if method_filter == 'Meezan' %}selected{% endif %}>🏦 Meezan Bank</option>
+        <option value="UBL" {% if method_filter == 'UBL' %}selected{% endif %}>🏦 UBL Bank</option>
+        <option value="HBL" {% if method_filter == 'HBL' %}selected{% endif %}>🏦 HBL Bank</option>
+        <option value="Alfalah" {% if method_filter == 'Alfalah' %}selected{% endif %}>🏦 Bank Alfalah</option>
+        <option value="SadaPay" {% if method_filter == 'SadaPay' %}selected{% endif %}>💳 SadaPay</option>
+        <option value="Stripe" {% if method_filter == 'Stripe' %}selected{% endif %}>💳 Credit Card / Stripe</option>
+    </select>
+
+    <!-- 4. Start Date -->
+    <div>
+        <input type="date" name="start_date" value="{{ start_date }}" class="admin-search-input" style="height: 38px; font-size: 12px; padding: 6px; width: 100%;" title="From Date">
+    </div>
+
+    <!-- 5. End Date -->
+    <div>
+        <input type="date" name="end_date" value="{{ end_date }}" class="admin-search-input" style="height: 38px; font-size: 12px; padding: 6px; width: 100%;" title="To Date">
+    </div>
+
+    <!-- Filter Action Buttons -->
+    <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 38px; padding: 0 16px; font-size: 12px; font-weight: 700;">
+            <i class="fa-solid fa-filter"></i> Apply
+        </button>
+        {% if search_query or method_filter or start_date or end_date or status_filter %}
+        <a href="{{ url_for('admin.manage_payments') }}" class="btn btn-secondary btn-sm" style="height: 38px; padding: 0 12px; font-size: 12px; display: flex; align-items: center;" title="Clear All Filters">
+            <i class="fa-solid fa-xmark"></i> Reset
+        </a>
+        {% endif %}
+    </div>
+</form>
 
 <!-- Payments Data Card -->
 <div class="admin-card-box">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin: 0;">
             Platform Subscriptions & Payment Transactions ({{ payments|length }})
         </h3>
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('admin.export_payments_admin', format_type='csv') }}" class="btn btn-sm" style="background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.35); color: var(--text-secondary); padding: 6px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 12px;">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+            </a>
+            <a href="{{ url_for('admin.export_payments_admin', format_type='excel') }}" class="btn btn-sm" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: var(--accent-green); padding: 6px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 12px;">
+                <i class="fa-solid fa-file-excel"></i> Export Excel
+            </a>
+        </div>
     </div>
 
     <div style="overflow-x: auto;">
@@ -74,6 +117,9 @@
                 <tr>
                     <td style="font-family: monospace; color: var(--accent-cyan); font-weight: 600;">
                         {{ p.txn_id }}
+                        <div style="margin-top: 4px;">
+                            <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; {% if p.payment_type == 'Renewal' %}background: rgba(139, 92, 246, 0.15); color: #a78bfa;{% else %}background: rgba(56, 189, 248, 0.15); color: #38bdf8;{% endif %}">{{ p.payment_type }}</span>
+                        </div>
                     </td>
                     <td>
                         <div style="font-weight: 700; color: var(--text-primary);">{{ p.user_name }}</div>
@@ -83,7 +129,7 @@
                         {{ p.plan_name }}
                     </td>
                     <td style="font-weight: 800; color: var(--accent-green); font-size: 15px;">
-                        ${{ "%.2f"|format(p.amount) }} {{ p.currency }}
+                        PKR {{ "{:,.2f}".format(p.amount) }}
                     </td>
                     <td style="color: var(--text-primary); font-size: 13px; font-weight: 600;">
                         {% if 'Easypaisa' in p.payment_method %}
@@ -100,9 +146,10 @@
                     </td>
                     <td>
                         {% if p.screenshot_path %}
+                        {% set secure_shot_url = url_for('frontend.secure_payment_screenshot', payment_id=p.id) %}
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <img src="{{ p.screenshot_path }}" alt="Payment Proof" onclick="openScreenshotZoom('{{ p.screenshot_path }}')" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.4); cursor: pointer; transition: transform 0.2s ease;" title="Click to Expand Payment Screenshot">
-                            <button type="button" onclick="openScreenshotZoom('{{ p.screenshot_path }}')" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                            <img src="{{ secure_shot_url }}" alt="Payment Proof" onclick="openScreenshotZoom('{{ secure_shot_url }}')" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.4); cursor: pointer; transition: transform 0.2s ease;" title="Click to Expand Payment Screenshot">
+                            <button type="button" onclick="openScreenshotZoom('{{ secure_shot_url }}')" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer;">
                                 <i class="fa-solid fa-expand"></i> View
                             </button>
                         </div>
@@ -116,30 +163,33 @@
                     <td>
                         {% if p.status == 'Completed' %}
                         <span class="badge-status badge-active"><i class="fa-solid fa-check"></i> Completed</span>
-                        {% elif p.status == 'Pending' %}
-                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fa-solid fa-clock"></i> Pending Approval</span>
+                        {% elif p.status in ['Pending', 'Pending_Review'] %}
+                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;"><i class="fa-solid fa-clock"></i> Pending Review</span>
                         {% else %}
                         <span class="badge-status badge-suspended">{{ p.status }}</span>
                         {% endif %}
                     </td>
-                    <td style="text-align: right;">
-                        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                            {% if p.status == 'Pending' %}
-                            <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block;">
+                    <td style="text-align: right; min-width: 250px;">
+                        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                            {% if p.status in ['Pending', 'Pending_Review'] %}
+                            <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block; margin: 0;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="status" value="Completed">
-                                <button type="submit" class="btn btn-sm" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; padding: 4px 12px; font-size: 12px; font-weight: 800; border-radius: 8px; cursor: pointer;" title="Verify received screenshot & activate account access">
-                                    <i class="fa-solid fa-check"></i> Approve & Activate Access
+                                <button type="submit" class="btn btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 5px 12px; font-size: 12px; font-weight: 800; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);" title="Approve received receipt & activate customer access">
+                                    <i class="fa-solid fa-circle-check"></i> Approve
                                 </button>
                             </form>
+                            <button type="button" onclick="document.getElementById('reject-modal-{{ p.id }}').style.display='flex'" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer;" title="Reject payment receipt">
+                                <i class="fa-solid fa-xmark"></i> Reject
+                            </button>
                             {% endif %}
-                            <a href="{{ url_for('admin.view_payment_invoice', payment_id=p.id) }}" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: var(--accent-blue); padding: 4px 10px; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 8px;" title="View & Print Official Billing Receipt">
+                            <a href="{{ url_for('admin.view_payment_invoice', payment_id=p.id) }}" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: var(--accent-blue); padding: 5px 10px; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 8px;" title="View Billing Receipt">
                                 <i class="fa-solid fa-file-invoice"></i> Receipt
                             </a>
-                            <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block;">
-                                <select name="status" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.form.submit()">
+                            <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block; margin: 0;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="status" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.value === 'Rejected' ? document.getElementById('reject-modal-{{ p.id }}').style.display='flex' : this.form.submit()">
                                     <option value="Completed" {% if p.status == 'Completed' %}selected{% endif %}>Completed</option>
-                                    <option value="Pending" {% if p.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Failed" {% if p.status == 'Failed' %}selected{% endif %}>Failed</option>
+                                    <option value="Pending_Review" {% if p.status in ['Pending', 'Pending_Review'] %}selected{% endif %}>Pending Review</option>
+                                    <option value="Rejected" {% if p.status in ['Failed', 'Rejected'] %}selected{% endif %}>Rejected</option>
                                     <option value="Refunded" {% if p.status == 'Refunded' %}selected{% endif %}>Refunded</option>
                                 </select>
                             </form>
@@ -158,6 +208,35 @@
         </table>
     </div>
 </div>
+
+<!-- Reject Reason Modals: one per payment, requires the admin to state why before the
+     customer is notified and marked 'rejected'. -->
+{% for p in payments %}
+{% if p.status in ['Pending', 'Pending_Review'] %}
+<div id="reject-modal-{{ p.id }}" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--admin-card-bg); border: 1px solid var(--admin-border); border-radius: 16px; max-width: 480px; width: 100%; padding: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">
+                <i class="fa-solid fa-xmark" style="color: #f87171;"></i> Reject Payment from {{ p.user_name }}
+            </h3>
+            <button type="button" onclick="document.getElementById('reject-modal-{{ p.id }}').style.display='none'" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="Rejected">
+            <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Reason (shown to the customer) *</label>
+            <textarea name="reason" required rows="4" placeholder="e.g. Payment not received, Screenshot unclear, Wrong amount..." style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+                <button type="button" onclick="document.getElementById('reject-modal-{{ p.id }}').style.display='none'" style="background: rgba(255,255,255,0.08); border: 1px solid var(--admin-border); color: var(--text-secondary); padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+                <button type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i> Confirm Rejection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 
 <!-- FULL SCREEN PAYMENT RECEIPT SCREENSHOT ZOOM MODAL -->
 <div id="screenshotZoomModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(5, 8, 15, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 999999; align-items: center; justify-content: center; padding: 20px;">

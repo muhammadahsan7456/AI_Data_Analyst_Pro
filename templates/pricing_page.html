@@ -1,0 +1,177 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Pricing — AI Data Analyst Pro | Enterprise Plan PKR 25,000/month</title>
+<meta name="description" content="AI Data Analyst Pro Enterprise Plan: PKR 25,000/month. Full access to 10M+ row analytics, AES-256 encryption, voice AI, multi-dataset joins, and sub-second PPTX/PDF exports.">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>Pricing</li></ol></div></div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-credit-card"></i> Unlimited Access</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Single <span class="gradient-text">Enterprise Plan</span></h1>
+            <p class="section-subtitle">One plan, all features included. No hidden fees, no usage limits.</p>
+        </div>
+
+        <!-- Pricing Card -->
+        <div class="pricing-card reveal" data-tilt>
+            <div class="pricing-badge">⚡ All-Inclusive Enterprise Plan</div>
+            <h2 class="pricing-plan-title">Complete Platform Access</h2>
+            <div class="pricing-price">PKR 25,000 <span>/ month</span></div>
+            <p style="color: var(--text-secondary); font-size: 14px; max-width: 500px; margin: 0 auto 28px;">Full access to all 10M+ enterprise scale tools, AES-256 data encryption at rest, voice AI querying, and sub-second exports.</p>
+
+            <div class="pricing-features-grid">
+                {% set features = [
+                    '10,000,000+ Rows Scale (Streaming Chunking)',
+                    'AES-256 Field Encryption at Rest in SQL Server',
+                    'Sub-Second Fast Exports (PPTX, PDF, Excel, CSV)',
+                    'Bilingual Voice AI & Natural Urdu Search',
+                    'Multi-Dataset Cross Analysis & Instant Joins',
+                    'Automated AI Charts & Executive Profiling',
+                    '1-Hour Inactivity Security Session Timeout',
+                    '24/7 Dedicated Priority Support & SLA'
+                ] %}
+                {% for feat in features %}
+                <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> {{ feat }}</div>
+                {% endfor %}
+            </div>
+
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+                <button type="button" id="main-pay-btn" onclick="openPaymentModal(); return false;" class="btn-hero-primary" style="flex: 1; max-width: 400px; justify-content: center; cursor: pointer; border: none;">
+                    <i class="fa-solid fa-credit-card"></i> Pay via Easypaisa / Nayapay — PKR 25,000/mo
+                </button>
+                {% if is_logged_in %}
+                <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-secondary" style="justify-content: center;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+                {% else %}
+                <a href="{{ url_for('auth.register_payment') }}" class="btn-hero-secondary" style="justify-content: center;"><i class="fa-solid fa-user-plus"></i> Create Account</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ROI Calculator -->
+<section class="landing-section">
+    <div class="container">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; align-items: center;">
+            <div class="reveal-left">
+                <div style="color: var(--accent-blue); font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;">INTERACTIVE TIME & COST CALCULATOR</div>
+                <h2 style="font-family: var(--font-heading); font-size: 30px; font-weight: 800; margin-bottom: 16px;">Calculate How Much AI Data Analyst Pro Saves Your Team</h2>
+                <p style="color: var(--text-muted); font-size: 15px; line-height: 1.7; margin-bottom: 24px;">Traditional manual SQL query writing and chart creation cost enterprises thousands in lost productivity every month.</p>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        <span>Monthly Dataset Rows Analyzed:</span>
+                        <span id="slider-rows-val" style="color: var(--accent-cyan); font-weight: 700;">500,000 Rows</span>
+                    </div>
+                    <input type="range" min="10000" max="10000000" step="50000" value="500000" oninput="updateRoiCalc()" id="slider-rows" class="roi-slider">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        <span>Hours Spent on SQL & Reports / Week:</span>
+                        <span id="slider-hours-val" style="color: var(--accent-purple); font-weight: 700;">15 Hours / Wk</span>
+                    </div>
+                    <input type="range" min="5" max="40" step="1" value="15" oninput="updateRoiCalc()" id="slider-hours" class="roi-slider">
+                </div>
+            </div>
+            <div class="roi-result-box reveal-right">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px;">ESTIMATED MONTHLY SAVINGS</div>
+                <div class="roi-big-number" id="roi-time-saved">54 Hours Saved</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">Equivalent to <strong style="color: var(--accent-blue);" id="roi-money-saved">PKR 380,000 / Month</strong> in analyst productivity!</div>
+                <a href="#" onclick="openPaymentModal(); return false;" class="btn-hero-primary" style="width: 100%; justify-content: center; padding: 14px;">
+                    <i class="fa-solid fa-bolt"></i> Start Saving — PKR 25,000/mo
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="payment-modal-overlay" style="display: none;">
+    <div class="payment-modal-card">
+        <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span class="payment-modal-badge">⚡ INSTANT LOCAL PAYMENT ACCESS</span>
+            <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 10px 0 6px;">Enterprise Plan — PKR 25,000 / month</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Transfer via <strong>Easypaisa</strong> or <strong>Nayapay</strong>. Send payment screenshot on WhatsApp with your email for instant activation!</p>
+        </div>
+        <div class="payment-methods-grid">
+            <div class="method-card">
+                <div class="method-header"><span class="method-badge easypaisa-badge"><i class="fa-solid fa-mobile-screen-button"></i> Easypaisa</span><span style="font-size: 11px; color: var(--accent-green); font-weight: 700;">Active</span></div>
+                <div class="method-body">
+                    <div class="method-title">Account Holder: <strong>Muhammad Ahsan</strong></div>
+                    <div class="method-number-box"><span class="num-text">03053107456</span><button type="button" class="btn-copy" onclick="copyNum('03053107456','Easypaisa')"><i class="fa-regular fa-copy"></i> Copy</button></div>
+                </div>
+            </div>
+            <div class="method-card">
+                <div class="method-header"><span class="method-badge nayapay-badge"><i class="fa-solid fa-wallet"></i> Nayapay</span><span style="font-size: 11px; color: var(--accent-cyan); font-weight: 700;">Active</span></div>
+                <div class="method-body">
+                    <div class="method-title">Account Holder: <strong>Muhammad Ahsan</strong></div>
+                    <div class="method-number-box"><span class="num-text">03053107456</span><button type="button" class="btn-copy" onclick="copyNum('03053107456','Nayapay')"><i class="fa-regular fa-copy"></i> Copy</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="verification-steps-box">
+            <div class="v-step-item"><span class="v-step-num">1</span><div><strong>Transfer Amount</strong>: Send PKR 25,000 to Easypaisa/Nayapay <code>03053107456</code>.</div></div>
+            <div class="v-step-item"><span class="v-step-num">2</span><div><strong>Take Screenshot</strong>: Save your payment confirmation receipt.</div></div>
+            <div class="v-step-item"><span class="v-step-num">3</span><div><strong>Send Proof</strong>: Send screenshot & registered email to WhatsApp <code>03053107456</code> or use form below.</div></div>
+        </div>
+        <div style="margin: 20px 0 16px; text-align: center;">
+            <a href="https://wa.me/923053107456?text=Hello%20Muhammad%20Ahsan,%20I%20have%20completed%20the%20payment%20for%20AI%20Data%20Analyst%20Pro.%20My%20registered%20email%20is:%20" target="_blank" class="btn-whatsapp-direct">
+                <i class="fa-brands fa-whatsapp" style="font-size: 20px;"></i> Send Proof on WhatsApp (03053107456)
+            </a>
+        </div>
+        <div class="payment-divider"><span>OR SUBMIT PROOF ONLINE</span></div>
+        <form id="payment-proof-form" onsubmit="handlePaymentProof(event)" style="margin-top: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Email Address</label><input type="email" id="proof-email" required placeholder="you@email.com" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
+                <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method</label><select id="proof-method" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"><option value="Easypaisa">Easypaisa</option><option value="Nayapay">Nayapay</option></select></div>
+            </div>
+            <div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:700;color:var(--accent-blue);display:flex;align-items:center;gap:6px;margin-bottom:4px;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payment Screenshot (Required)</label><input type="file" id="proof-screenshot" accept="image/*" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px dashed rgba(59,130,246,0.5);font-size:12px;box-sizing:border-box;cursor:pointer;color:var(--text-secondary);"></div>
+            <div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px;">Transaction ID (Optional)</label><input type="text" id="proof-txnid" placeholder="TRX-XXXXXXX" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
+            <button type="submit" id="btn-submit-proof" class="btn-submit-payment-proof"><i class="fa-solid fa-paper-plane"></i> Upload & Submit</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateRoiCalc() {
+    const rows = parseInt(document.getElementById('slider-rows').value);
+    const hours = parseInt(document.getElementById('slider-hours').value);
+    document.getElementById('slider-rows-val').textContent = rows.toLocaleString() + ' Rows';
+    document.getElementById('slider-hours-val').textContent = hours + ' Hours / Wk';
+    const saved = Math.round(hours * 0.9 * 4);
+    const money = Math.round(saved * 7000);
+    document.getElementById('roi-time-saved').textContent = saved + ' Hours Saved';
+    document.getElementById('roi-money-saved').textContent = 'PKR ' + money.toLocaleString() + ' / Month';
+}
+window.openPaymentModal = function() { const m = document.getElementById('paymentModal'); if(m){m.style.display='flex';} };
+window.closePaymentModal = function() { const m = document.getElementById('paymentModal'); if(m){m.style.display='none';} };
+function copyNum(t,l) { navigator.clipboard && navigator.clipboard.writeText(t).then(()=>alert('✅ Copied '+l+': '+t)).catch(()=>alert('Copied '+l+': '+t)); }
+function handlePaymentProof(e) {
+    e.preventDefault();
+    const btn=document.getElementById('btn-submit-proof');
+    const fd=new FormData();
+    fd.append('email',document.getElementById('proof-email').value);
+    fd.append('payment_method',document.getElementById('proof-method').value);
+    fd.append('transaction_id',document.getElementById('proof-txnid').value);
+    const f=document.getElementById('proof-screenshot');
+    if(f&&f.files[0]) fd.append('screenshot_file',f.files[0]);
+    btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+    fetch('/submit-payment-proof',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+        btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit';
+        if(d.success){alert('✨ Payment screenshot uploaded! Admin will verify shortly.'); closePaymentModal();}
+        else alert(d.message||'Error. Please try again.');
+    }).catch(()=>{btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit'; alert('Recorded! Also send proof on WhatsApp 03053107456.'); closePaymentModal();});
+}
+window.addEventListener('click',(e)=>{if(e.target===document.getElementById('paymentModal'))closePaymentModal();});
+{% if open_payment_modal %}window.addEventListener('DOMContentLoaded',()=>openPaymentModal());{% endif %}
+</script>
+{% endblock %}

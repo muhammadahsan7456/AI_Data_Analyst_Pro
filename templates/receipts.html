@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Receipts - AI Data Analyst Pro{% endblock %}
+{% block header_title %}Payment Receipts & History{% endblock %}
+{% block header_subtitle %}View, print, or download every payment receipt on your account.{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; padding: 20px 0;">
+
+    {% if error %}
+    <div class="card" style="background: rgba(239, 68, 68, 0.08); border: 1px solid var(--accent-red); border-radius: var(--radius-lg); padding: 24px; text-align: center; color: var(--accent-red);">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; margin-bottom: 8px;"></i>
+        <p style="margin: 0; font-weight: 600;">{{ error }}</p>
+    </div>
+
+    {% elif not receipts %}
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center;">
+        <i class="fa-solid fa-receipt" style="font-size: 40px; color: var(--text-muted); margin-bottom: 16px;"></i>
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">No Receipts Yet</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin: 0;">Once you make a payment, your receipts will show up here.</p>
+    </div>
+
+    {% else %}
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px;">
+        <div style="overflow-x: auto;">
+            <table class="table table-bordered custom-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction ID</th>
+                        <th>Plan</th>
+                        <th>Method</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in receipts %}
+                    <tr>
+                        <td>{{ r.payment_date }}</td>
+                        <td style="font-family: monospace; font-size: 13px;">{{ r.txn_id }}</td>
+                        <td>{{ r.plan_name }}<div style="font-size: 11px; color: var(--text-muted);">{{ r.payment_type }}</div></td>
+                        <td>{{ r.method }}</td>
+                        <td>{{ r.currency }} {{ "{:,.2f}".format(r.amount) }}</td>
+                        <td>
+                            <span class="badge {% if r.status == 'Completed' %}badge-success{% elif r.status in ['Pending', 'Pending_Review'] %}badge-warning{% else %}badge-error{% endif %}">
+                                {{ r.status }}
+                            </span>
+                            {% if r.status == 'Rejected' and r.rejection_reason %}
+                            <div style="font-size: 11px; color: var(--accent-red); margin-top: 4px; max-width: 200px;">{{ r.rejection_reason }}</div>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{{ url_for('frontend.view_receipt', payment_id=r.id) }}" class="btn btn-secondary btn-sm" title="View Receipt" target="_blank">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                            <a href="{{ url_for('frontend.download_receipt_pdf', payment_id=r.id) }}" class="btn btn-secondary btn-sm" title="Download PDF Receipt">
+                                <i class="fa-solid fa-file-arrow-down"></i> Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

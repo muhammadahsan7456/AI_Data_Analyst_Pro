@@ -63,7 +63,7 @@
                     <td style="text-align: right; white-space: nowrap;">
                         <!-- Role Assignment Form (Admin Only) -->
                         {% if session.get('user_role') == 'Admin' %}
-                        <form method="POST" action="{{ url_for('auth.update_role', target_user_id=u[0]) }}" style="display: inline-flex; gap: 6px; align-items: center;">
+                        <form method="POST" action="{{ url_for('auth.update_role', target_user_id=u[0]) }}" style="display: inline-flex; gap: 6px; align-items: center;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <select name="role" style="padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
                                 <option value="Admin" {% if u[11] == 'Admin' %}selected{% endif %}>Admin</option>
                                 <option value="Manager" {% if u[11] == 'Manager' %}selected{% endif %}>Manager</option>
@@ -75,7 +75,7 @@
                         {% endif %}
 
                         <!-- Toggle Status -->
-                        <form method="POST" action="{{ url_for('auth.toggle_user_active', target_user_id=u[0]) }}" style="display: inline-block; margin-left: 6px;">
+                        <form method="POST" action="{{ url_for('auth.toggle_user_active', target_user_id=u[0]) }}" style="display: inline-block; margin-left: 6px;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm {% if u[9] %}btn-danger{% else %}btn-secondary{% endif %}" title="Toggle Active Status">
                                 {% if u[9] %}<i class="fa-solid fa-user-slash"></i> Disable{% else %}<i class="fa-solid fa-user-check"></i> Enable{% endif %}
                             </button>

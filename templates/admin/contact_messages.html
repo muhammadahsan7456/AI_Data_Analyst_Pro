@@ -1,0 +1,163 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Contact Messages - Super Admin Console{% endblock %}
+{% block header_title %}<i class="fa-solid fa-comments" style="color: var(--accent-cyan);"></i> Contact Us Messages{% endblock %}
+
+{% block content %}
+<!-- Top KPI Summary Bar -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-inbox"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Total Messages</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: var(--text-primary);">{{ messages|length }}</div>
+        </div>
+    </div>
+
+    <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-envelope-circle-check"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Awaiting Response (New)</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: #f87171;">{{ new_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Table Card Box -->
+<div class="admin-card-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+        <div>
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary);">
+                Customer Queries & Complaints ({{ messages|length }})
+            </h3>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                <i class="fa-solid fa-paper-plane"></i> Real-time submissions from the public Contact Us page
+            </div>
+        </div>
+
+        <form method="GET" action="{{ url_for('admin.contact_messages') }}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Search name, email, message..." style="padding: 8px 14px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px; outline: none; min-width: 200px;">
+            <select name="status" style="padding: 8px 14px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px; outline: none;">
+                <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+                <option value="New" {% if status_filter == 'New' %}selected{% endif %}>New</option>
+                <option value="Read" {% if status_filter == 'Read' %}selected{% endif %}>Read</option>
+                <option value="Responded" {% if status_filter == 'Responded' %}selected{% endif %}>Responded</option>
+            </select>
+            <button type="submit" class="btn btn-sm" style="background: var(--accent-blue); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer;">
+                <i class="fa-solid fa-magnifying-glass"></i> Filter
+            </button>
+            {% if search_query or status_filter %}
+            <a href="{{ url_for('admin.contact_messages') }}" class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: var(--text-secondary); text-decoration: none; border-radius: 8px; padding: 8px 12px;">Reset</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>From</th>
+                    <th style="min-width: 110px;">Subject</th>
+                    <th style="min-width: 240px;">Message</th>
+                    <th>Received</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in messages %}
+                <tr>
+                    <td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">#{{ m.id }}</td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary);">{{ m.full_name }}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-envelope" style="margin-right: 4px;"></i>{{ m.email }}</div>
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 13px; min-width: 110px; max-width: 160px; white-space: normal;">{{ m.subject }}</td>
+                    <td style="color: var(--text-secondary); font-size: 13px; min-width: 240px; max-width: 380px; white-space: normal; word-break: break-word;" title="{{ m.message }}">
+                        {{ m.message[:220] }}{% if m.message|length > 220 %}&hellip;{% endif %}
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 12px; white-space: nowrap;">{{ m.created_at }}</td>
+                    <td>
+                        {% if m.status == 'New' %}
+                        <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> New</span>
+                        {% elif m.status == 'Responded' %}
+                        <span class="badge-status" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> Responded</span>
+                        {% else %}
+                        <span class="badge-status" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> Read</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <form method="POST" action="{{ url_for('admin.update_contact_message', message_id=m.id) }}" style="display: inline-flex; gap: 4px; align-items: center;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="status" onchange="this.form.submit()" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 12px;">
+                                <option value="New" {% if m.status == 'New' %}selected{% endif %}>New</option>
+                                <option value="Read" {% if m.status == 'Read' %}selected{% endif %}>Read</option>
+                                <option value="Responded" {% if m.status == 'Responded' %}selected{% endif %}>Responded</option>
+                            </select>
+                        </form>
+                        <button type="button" onclick="document.getElementById('reply-modal-{{ m.id }}').style.display='flex'" class="btn btn-sm" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Reply directly to the customer's email">
+                            <i class="fa-solid fa-reply"></i> Reply
+                        </button>
+                        <form method="POST" action="{{ url_for('admin.delete_contact_message_route', message_id=m.id) }}" onsubmit="return confirm('Delete this message from {{ m.full_name }}?')" style="display: inline;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Delete Message">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fa-solid fa-inbox" style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.5;"></i>
+                        No contact messages found yet. Submissions from the public Contact Us page will appear here instantly!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Reply Modals: one per message, sends the typed response straight to the customer's
+     email (the same address they submitted the Contact Us form with). Kept outside the
+     table markup since a modal overlay isn't valid content inside <tbody>. -->
+{% for m in messages %}
+<div id="reply-modal-{{ m.id }}" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--admin-card-bg); border: 1px solid var(--admin-border); border-radius: 16px; max-width: 560px; width: 100%; padding: 28px; max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">
+                <i class="fa-solid fa-reply" style="color: #38bdf8;"></i> Reply to {{ m.full_name }}
+            </h3>
+            <button type="button" onclick="document.getElementById('reply-modal-{{ m.id }}').style.display='none'" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Sending to: <strong style="color: var(--text-primary);">{{ m.email }}</strong></div>
+
+        <div style="background: var(--admin-bg-dark); border: 1px solid var(--admin-border); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; max-height: 100px; overflow-y: auto;">
+            <strong style="color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Original Message:</strong><br>{{ m.message }}
+        </div>
+
+        {% if m.admin_reply %}
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+            <strong style="color: #34d399; font-size: 11px; text-transform: uppercase;">Previously Sent Reply ({{ m.replied_at }}):</strong><br>{{ m.admin_reply }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('admin.reply_contact_message', message_id=m.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="reply_message" required rows="6" placeholder="Type your response here... it will be emailed directly to the customer." style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+                <button type="button" onclick="document.getElementById('reply-modal-{{ m.id }}').style.display='none'" style="background: rgba(255,255,255,0.08); border: 1px solid var(--admin-border); color: var(--text-secondary); padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+                <button type="submit" style="background: linear-gradient(135deg, #2563eb, #38bdf8); border: none; color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                    <i class="fa-solid fa-paper-plane"></i> Send Reply to Email
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

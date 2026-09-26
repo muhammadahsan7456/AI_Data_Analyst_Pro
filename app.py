@@ -9,7 +9,6 @@ from ai.gemini import ask_gemini, execute_sql_with_retry
 from ai.sql_agent import explain_result
 from database.connection import (
     get_connection,
-    run_query,
     get_latest_table,
     get_table_columns
 )

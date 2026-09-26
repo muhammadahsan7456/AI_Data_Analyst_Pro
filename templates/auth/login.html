@@ -1,71 +1,97 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 
-{% block title %}Sign In | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Sign In to Enterprise Portal{% endblock %}
-{% block header_subtitle %}Access your datasets, natural language AI engine, and executive reports.{% endblock %}
+{% block seo_meta %}
+<title>Sign In — AI Data Analyst Pro | Enterprise AI Analytics Platform</title>
+<meta name="description" content="Sign in to your AI Data Analyst Pro enterprise account. Access sub-second SQL queries, voice AI, automated exports, and executive dashboards.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 20px 0;">
-    <div class="table-card" style="width: 100%; max-width: 440px; border-top: 4px solid var(--accent-blue); box-shadow: var(--shadow-lg);">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <div class="sidebar-brand-icon" style="width: 56px; height: 56px; font-size: 28px; margin: 0 auto 12px auto;">
-                <i class="fa-solid fa-brain"></i>
-            </div>
-            <h2 style="font-size: 22px; font-weight: 800;">Welcome Back</h2>
-            <p style="color: var(--text-secondary); font-size: 14px;">Sign in to your AI Data Analyst Pro account</p>
+<div class="auth-luxury-page">
+    <div class="auth-luxury-card">
+        <div class="auth-brand-badge">
+            <i class="fa-solid fa-brain"></i>
         </div>
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to your AI Data Analyst Pro enterprise workspace</p>
 
         {% if unverified_email %}
-        <div style="background: #fffbebf5; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; text-align: left; font-size: 13px; color: #92400e;">
-            <strong style="display: block; margin-bottom: 4px; font-size: 14px; color: #b45309;"><i class="fa-solid fa-triangle-exclamation"></i> Email Not Verified</strong>
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid var(--accent-gold); padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 20px; text-align: left; font-size: 13px; color: var(--text-primary);">
+            <strong style="display: block; margin-bottom: 4px; font-size: 14px; color: var(--accent-gold);"><i class="fa-solid fa-triangle-exclamation"></i> Email Not Verified</strong>
             Please verify your email address (<strong>{{ unverified_email }}</strong>) before logging in.
-            <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="margin-top: 10px;">
-                <button type="submit" class="btn btn-warning btn-sm" style="font-weight: 700; font-size: 12px; width: 100%; justify-content: center; padding: 8px 12px;">
+            <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="margin-top: 10px;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-hero-secondary" style="font-weight: 700; font-size: 12px; width: 100%; justify-content: center; padding: 9px 12px; border-radius: var(--radius-sm); border-color: rgba(245, 158, 11, 0.4); color: var(--accent-gold);">
                     <i class="fa-solid fa-paper-plane"></i> Resend Verification Code
                 </button>
             </form>
         </div>
         {% endif %}
 
-        <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" id="login-form">
-            <div style="margin-bottom: 16px;">
-                <label for="email_or_username" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 14px;">
-                    Email or Username
+        <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" id="login-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="auth-form-group">
+                <label for="email_or_username" class="auth-label">
+                    Email Address or Username
                 </label>
-                <div style="position: relative;">
-                    <i class="fa-solid fa-user" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
-                    <input type="text" name="email_or_username" id="email_or_username" required placeholder="name@company.com or username" style="width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
+                <div class="auth-input-wrapper">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" name="email_or_username" id="email_or_username" required placeholder="name@company.com or username" class="auth-input" autocomplete="username">
                 </div>
             </div>
 
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label for="password" style="font-weight: 600; font-size: 14px;">Password</label>
-                    <a href="{{ url_for('auth.forgot_password') }}" style="font-size: 12px; color: var(--accent-blue); text-decoration: none; font-weight: 600;">Forgot Password?</a>
+            <div class="auth-form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+                    <label for="password" class="auth-label" style="margin-bottom: 0;">Password</label>
+                    <a href="{{ url_for('auth.forgot_password') }}" style="font-size: 12px; color: var(--accent-gold); text-decoration: none; font-weight: 600;">Forgot Password?</a>
                 </div>
-                <div style="position: relative;">
-                    <i class="fa-solid fa-lock" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
-                    <input type="password" name="password" id="password" required placeholder="••••••••" style="width: 100%; padding: 12px 40px 12px 40px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
-                    <i class="fa-solid fa-eye btn-toggle-pwd" data-target="password" style="position: absolute; right: 14px; top: 14px; color: var(--text-muted); cursor: pointer;"></i>
+                <div class="auth-input-wrapper">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input type="password" name="password" id="password" required placeholder="••••••••" class="auth-input" autocomplete="current-password">
+                    <i class="fa-solid fa-eye btn-toggle-pwd" data-target="password" title="Show/Hide password"></i>
                 </div>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-secondary);">
-                    <input type="checkbox" name="remember" style="width: 16px; height: 16px;">
+                    <input type="checkbox" name="remember" style="width: 16px; height: 16px; accent-color: var(--accent-gold);">
                     Remember me on this device
                 </label>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px;" onclick="showLoading('Authenticating enterprise credentials...')">
-                <i class="fa-solid fa-right-to-bracket"></i> Sign In
+            <button type="submit" class="auth-submit-btn" id="btn-login-submit">
+                <i class="fa-solid fa-right-to-bracket"></i> Sign In to Workspace
             </button>
         </form>
 
-        <div style="text-align: center; margin-top: 24px; font-size: 14px; color: var(--text-secondary);">
-            Don't have an account yet?
-            <a href="{{ url_for('auth.signup') }}" style="color: var(--accent-blue); font-weight: 700; text-decoration: none;">Create Enterprise Account</a>
+        <div class="auth-footer-links">
+            Don't have an enterprise account yet?
+            <a href="{{ url_for('auth.register_payment') }}">Create Account Free</a>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Password toggle
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (input) {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        this.classList.remove('fa-eye');
+                        this.classList.add('fa-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        this.classList.remove('fa-eye-slash');
+                        this.classList.add('fa-eye');
+                    }
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

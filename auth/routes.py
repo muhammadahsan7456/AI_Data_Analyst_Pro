@@ -1,9 +1,12 @@
 import os
+import time
 import uuid
 import secrets
 import threading
 from datetime import datetime
+from markupsafe import escape
 from PIL import Image
+from werkzeug.utils import secure_filename
 from flask import (
     render_template,
     request,
@@ -11,9 +14,7 @@ from flask import (
     url_for,
     flash,
     session,
-    g,
-    jsonify,
-    current_app
+    jsonify
 )
 
 from auth import auth_bp
@@ -23,10 +24,9 @@ from auth.security import (
     generate_secure_token,
     validate_password_strength,
     log_login_attempt,
-    log_audit_event,
-    get_client_ip
+    log_audit_event
 )
-from auth.decorators import login_required, admin_required, manager_required, role_required
+from auth.decorators import login_required, admin_required, manager_required
 
 from auth.email_service import EmailService
 
@@ -60,14 +60,17 @@ from database.queries import (
     invalidate_user_session,
     invalidate_all_other_sessions,
     get_active_sessions_for_user,
-    get_user_audit_logs
+    get_user_audit_logs,
+    get_payment_settings,
+    check_duplicate_transaction_id,
+    insert_payment_full,
+    set_user_pending_approval
 )
 
 from ai.smart_assistant import (
     trigger_ai_event,
     build_welcome_back_card,
     build_farewell_card,
-    build_signup_card,
     build_email_verified_card,
     build_forgot_password_card,
     build_password_changed_card,
@@ -80,6 +83,33 @@ from ai.smart_assistant import (
 )
 
 email_service = EmailService()
+
+
+def _notify_admins_new_payment(user_name, user_email, amount, txn_id):
+    """
+    Emails every active Super Admin/Admin and drops an in-app notification whenever a
+    new payment screenshot is submitted (registration or renewal), so approvals don't
+    depend on someone remembering to check the Payments page.
+    """
+    from database.queries import create_ai_notification
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT UserID, Email FROM Users WHERE Role IN ('SuperAdmin', 'Admin') AND IsActive = 1")
+        admins = cursor.fetchall() or []
+
+    title = "New Payment Submitted"
+    message = f"{user_name} ({user_email}) submitted a payment of PKR {amount:,.2f} (Txn: {txn_id}) awaiting your review."
+
+    for admin_id, admin_email in admins:
+        try:
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(create_ai_notification(), (admin_id, "payment_submitted", title, message, None))
+        except Exception:
+            pass
+        if admin_email:
+            try:
+                email_service.send_admin_new_payment_alert_email(admin_email, user_name, user_email, amount, txn_id)
+            except Exception:
+                pass
 
 
 # ==========================================
@@ -108,14 +138,132 @@ def check_availability():
 
 
 # ==========================================
-# SIGNUP / REGISTER ROUTE
+# STEP 1: PAYMENT-FIRST REGISTRATION GATE
 # ==========================================
-@auth_bp.route("/signup", methods=["GET", "POST"])
+ALLOWED_SCREENSHOT_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def _get_payment_settings_dict():
+    with get_db_cursor() as cursor:
+        cursor.execute(get_payment_settings())
+        row = cursor.fetchone()
+    if not row:
+        return {
+            "plan_name": "Enterprise Plan", "plan_price_label": "PKR 25,000 / month",
+            "account_title": "", "bank_name": "", "account_number": "", "iban": "",
+            "jazzcash_number": "", "easypaisa_number": "", "sadapay_number": "", "instructions": ""
+        }
+    return {
+        "plan_name": row[0], "plan_price_label": row[1], "account_title": row[2],
+        "bank_name": row[3], "account_number": row[4], "iban": row[5],
+        "jazzcash_number": row[6], "easypaisa_number": row[7], "sadapay_number": row[8], "instructions": row[9]
+    }
+
+
+@auth_bp.route("/signup", methods=["GET"])
+def signup_alias():
+    """Old bookmarked/linked URL - the flow now starts at the payment step."""
+    return redirect(url_for("auth.register_payment"))
+
+
 @auth_bp.route("/register", methods=["GET", "POST"])
-def signup():
+def register_payment():
+    """
+    Step 1 of registration: payment proof must be uploaded and validated BEFORE the
+    account details form is even shown - "no payment = no access" starts right here,
+    not as an afterthought once the account already exists.
+    """
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))
 
+    settings = _get_payment_settings_dict()
+
+    if request.method == "POST":
+        txn_id = request.form.get("transaction_id", "").strip()
+        payment_method = request.form.get("payment_method", "").strip()
+        amount_str = request.form.get("amount", "").strip()
+        payment_date_str = request.form.get("payment_date", "").strip()
+        screenshot = request.files.get("screenshot")
+
+        errors = []
+        if not txn_id:
+            errors.append("Transaction ID / reference number is required.")
+        if not payment_method:
+            errors.append("Please select the payment method you used.")
+        try:
+            amount = float(amount_str)
+            if amount < 25000.0:
+                errors.append("Amount must be at least PKR 25,000 (the monthly plan price).")
+        except ValueError:
+            amount = 0.0
+            errors.append("Please enter a valid payment amount.")
+        if not payment_date_str:
+            errors.append("Please select the date you made the payment.")
+        if not screenshot or not screenshot.filename:
+            errors.append("Payment screenshot is required - please upload proof of payment.")
+        else:
+            ext = os.path.splitext(screenshot.filename)[1].lower()
+            if ext not in ALLOWED_SCREENSHOT_EXT:
+                errors.append("Screenshot must be a JPG, JPEG, PNG, or WEBP image.")
+            screenshot.seek(0, os.SEEK_END)
+            size = screenshot.tell()
+            screenshot.seek(0)
+            if size > MAX_SCREENSHOT_BYTES:
+                errors.append("Screenshot file is too large - maximum size is 5 MB.")
+
+        if txn_id:
+            with get_db_cursor() as cursor:
+                cursor.execute(check_duplicate_transaction_id(), (txn_id,))
+                if cursor.fetchone()[0] > 0:
+                    errors.append("This transaction ID has already been used for a previous payment. Please check and enter the correct reference number.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("register_payment.html", settings=settings, form_data=request.form, today_date=datetime.now().strftime("%Y-%m-%d"))
+
+        upload_dir = os.path.join("static", "uploads", "payment_screenshots")
+        os.makedirs(upload_dir, exist_ok=True)
+        safe_name = f"REG_{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}"
+        save_path = os.path.join(upload_dir, safe_name)
+        screenshot.save(save_path)
+
+        # Held in session (not the DB yet - there's no UserID until the account details
+        # step below completes) so it can be attached to the Payments row at that point.
+        session["reg_payment"] = {
+            "transaction_id": txn_id,
+            "payment_method": payment_method,
+            "amount": amount,
+            "payment_date": payment_date_str,
+            "screenshot_path": f"/static/uploads/payment_screenshots/{safe_name}"
+        }
+
+        flash("Payment proof received! Now please complete your account details.", "success")
+        return redirect(url_for("auth.register_details"))
+
+    return render_template("register_payment.html", settings=settings, form_data={}, today_date=datetime.now().strftime("%Y-%m-%d"))
+
+
+# ==========================================
+# STEP 2: ACCOUNT DETAILS (ONLY AFTER PAYMENT PROOF)
+# ==========================================
+@auth_bp.route("/register/details", methods=["GET", "POST"])
+def register_details():
+    if session.get("user_id"):
+        return redirect(url_for("frontend.dashboard"))
+
+    # A pending unverified account (e.g. using "Change Email" mid-OTP-verification)
+    # already has its payment proof recorded - only a brand-new registration attempt
+    # needs to be sent back to submit one first.
+    if not session.get("reg_payment") and not session.get("pending_otp"):
+        flash("Please submit your payment proof first to start registration.", "warning")
+        return redirect(url_for("auth.register_payment"))
+
+    return signup()
+
+
+def signup():
     if request.method == "POST":
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
@@ -167,7 +315,7 @@ def signup():
             cursor.execute(get_user_by_username(), (username,))
             existing_uname_user = cursor.fetchone()
             if existing_uname_user and existing_uname_user[0] != pending_user_id:
-                flash(f"Username '{username}' is already taken. Please choose a different username.", "error")
+                flash(f"Username '{escape(username)}' is already taken. Please choose a different username.", "error")
                 return render_template("signup.html", form_data=request.form)
 
         # Hash password using bcrypt
@@ -215,6 +363,27 @@ def signup():
 
             if not new_user_id:
                 raise ValueError("Failed to retrieve User ID for registration.")
+
+            # Attach the payment proof from Step 1 to this new account and put the
+            # account in pending_approval - only a Super Admin approval flips this to
+            # active, no matter how far along signup/email-verification gets from here.
+            reg_payment = session.get("reg_payment")
+            if reg_payment and not is_updating_existing:
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(
+                        insert_payment_full(),
+                        (new_user_id, reg_payment["amount"], reg_payment["payment_method"],
+                         reg_payment["transaction_id"], "Enterprise Plan (PKR 25,000/mo)", "New",
+                         reg_payment["screenshot_path"])
+                    )
+                    cursor.execute(set_user_pending_approval(), (new_user_id,))
+                session.pop("reg_payment", None)
+
+                try:
+                    email_service.send_payment_received_email(email, full_name)
+                    _notify_admins_new_payment(full_name, email, reg_payment["amount"], reg_payment["transaction_id"])
+                except Exception as notify_err:
+                    print("Registration payment notification error:", notify_err)
 
             # Generate 6-Digit Verification OTP Code using secrets
             otp_code = f"{secrets.randbelow(900000) + 100000}"
@@ -323,7 +492,7 @@ def verify_otp():
                     "title": f"👋 Hello {full_name}!",
                     "message": "Your email address has been verified successfully. You can now log in."
                 }
-                flash(f"👋 Hello {full_name}! Your email has been verified successfully.", "success")
+                flash(f"👋 Hello {escape(full_name)}! Your email has been verified successfully.", "success")
                 return redirect(url_for("auth.login"))
             except Exception as err:
                 flash(f"Verification error: {str(err)}", "error")
@@ -362,8 +531,6 @@ def resend_otp():
 
     user_id = pending.get("user_id")
     email = pending.get("email")
-    phone = pending.get("phone")
-    channel = pending.get("channel", "email")
     full_name = pending.get("full_name", "User")
 
     # Rate Limit Check: Max 3 resend requests within 15 minutes
@@ -627,11 +794,22 @@ def login():
                 build_welcome_back_card(user_id, user_display_name)
             )
 
+        flash(f"👋 Hello {escape(user_display_name)}! You have successfully logged in.", "success")
+
+        # Payment-gated accounts go straight to their gate screen, not wherever "next"
+        # or the dashboard would otherwise send them - login_required would redirect
+        # them there anyway on the very next request, but this skips that extra hop.
+        from auth.decorators import get_user_access_status
+        allowed, gate_status, _ = get_user_access_status(user_id)
+        if not allowed:
+            if gate_status == "pending_approval":
+                return redirect(url_for("frontend.waiting_approval"))
+            return redirect(url_for("frontend.renew_subscription"))
+
         next_page = request.args.get("next")
-        flash(f"👋 Hello {user_display_name}! You have successfully logged in.", "success")
-        if role in ["SuperAdmin", "Admin"]:
-            return redirect(next_page or url_for("admin.dashboard"))
-        return redirect(next_page or url_for("frontend.dashboard"))
+        if next_page:
+            return redirect(next_page)
+        return redirect(url_for("frontend.dashboard"))
 
     return render_template("login.html")
 
@@ -664,9 +842,13 @@ def forgot_password():
             log_audit_event("FORGOT_PASSWORD_REQUEST", f"Password reset OTP generated for {email}", user_id=user_id)
             trigger_ai_event(user_id, build_forgot_password_card(full_name))
 
-        # Always flash generic message to prevent account enumeration
+        # Always flash the same generic message AND redirect to the same generic URL
+        # regardless of whether the account exists - putting the real email in the URL
+        # only when it matched (the previous behavior) let anyone enumerate registered
+        # accounts just by watching which redirect target came back, and the email was
+        # never actually usable to prefill anything anyway (only a 6-digit OTP is).
         flash("If an account exists with this email, a password reset code has been sent.", "info")
-        return redirect(url_for("auth.reset_password", token=email if user else "verify"))
+        return redirect(url_for("auth.reset_password", token="verify"))
 
     return render_template("forgot_password.html")
 
@@ -988,7 +1170,9 @@ def logout():
     if user_id:
         trigger_ai_event(user_id, farewell_card)
 
-    session.clear()
+    user_keys = ["user_id", "user_name", "user_email", "user_role", "session_token", "last_activity", "signup_form_data", "pending_otp"]
+    for k in user_keys:
+        session.pop(k, None)
     session["pending_ai_card"] = farewell_card
     session["toast"] = {
         "type": "success",
@@ -996,7 +1180,7 @@ def logout():
         "message": "You have successfully logged out."
     }
 
-    flash(f"👋 Goodbye {user_name}! You have successfully logged out.", "info")
+    flash(f"👋 Goodbye {escape(user_name)}! You have successfully logged out.", "info")
     return redirect(url_for("auth.login"))
 
 

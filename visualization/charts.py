@@ -1,7 +1,4 @@
-import io
 import re
-import gc
-import base64
 try:
     import matplotlib
     matplotlib.use('Agg')
@@ -128,12 +125,24 @@ def preprocess_chart_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_numeric_columns_clean(df: pd.DataFrame) -> list:
-    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$"]
+    id_patterns = [
+        r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$",
+        r"^sr$", r"^sr\.$", r"^sr_no$", r"^srno$", r"^s\.no$", r"^s_no$", r"^sno$",
+        r"^index$", r"^row_num$", r"^row$", r"^#$", r"^sl_no$", r"^slno$",
+        r"^consignment$", r"^tracking$", r"^cnic$", r"^cnic_number$", r"^phone$",
+        r"^mobile$", r"^contact$", r"^consignee_contact$", r"^order_reference$", r"^order_ref$"
+    ]
     numeric_cols = []
     for col in df.select_dtypes(include="number").columns:
-        if not any(re.match(p, str(col).lower().strip()) for p in id_patterns):
-            numeric_cols.append(col)
-    return numeric_cols
+        c_clean = str(col).lower().strip()
+        if not any(re.match(p, c_clean) for p in id_patterns):
+            valid_vals = df[col].dropna()
+            if not valid_vals.empty and valid_vals.max() < 10000000 and valid_vals.nunique() < len(df):
+                numeric_cols.append(col)
+    
+    # Prioritize business financial/quantity metrics if present
+    priority = [c for c in numeric_cols if any(kw in str(c).lower() for kw in ["count", "total", "cod", "value", "amount", "weight", "price", "cost", "revenue"])]
+    return priority if priority else numeric_cols
 
 
 # 1. ENHANCED BAR CHART WITH MULTI-COLOR GRADIENT & BADGES
@@ -180,9 +189,9 @@ def create_bar_chart(dataframe: pd.DataFrame):
     else:
         unique_cnt = int(unique_cnt)
 
-    if unique_cnt > 15:
+    if unique_cnt > 100:
         data = np.array(sample_df[y_col].values, dtype=float).flatten()
-        fig, ax = plt.subplots(figsize=(10, 5.5))
+        fig, ax = plt.subplots(figsize=(12, 5.5))
         # Glow line effect
         ax.plot(range(1, len(data) + 1), data, color=COLOR_PALETTE[0], linewidth=6, alpha=0.25, zorder=2)
         ax.plot(range(1, len(data) + 1), data, marker="o", color=COLOR_PALETTE[0], linewidth=2.2, markersize=3 if len(data) > 100 else 5, zorder=3)
@@ -194,7 +203,7 @@ def create_bar_chart(dataframe: pd.DataFrame):
         plt.tight_layout()
         return fig
 
-    data = sample_df.groupby(x_col)[y_col].sum().sort_values(ascending=False).head(10)
+    data = sample_df.groupby(x_col)[y_col].sum().sort_values(ascending=False).head(100)
     fig, ax = plt.subplots(figsize=(10, 5.5))
     colors = COLOR_PALETTE[:len(data)]
     bars = ax.bar(data.index.astype(str), data.values, color=colors, edgecolor="none", width=0.55, zorder=3, alpha=0.9)
@@ -402,10 +411,33 @@ def create_heatmap(dataframe: pd.DataFrame):
     setup_style(dark=True)
     df = preprocess_chart_dataframe(dataframe)
     numeric = get_numeric_columns_clean(df)
-    if len(numeric) < 2:
-        return None
+    categorical = get_clean_categorical_columns(df)
 
-    corr = df[numeric[:8]].corr()
+    if len(numeric) < 2:
+        if len(categorical) >= 2:
+            # Categorical Crosstab Heatmap Fallback
+            c1, c2 = categorical[0], categorical[1]
+            ct = pd.crosstab(df[c1].astype(str).str[:12], df[c2].astype(str).str[:12]).head(10).iloc[:, :10]
+            fig, ax = plt.subplots(figsize=(8, 6.5))
+            cax = ax.matshow(ct.values, cmap='viridis')
+            fig.colorbar(cax)
+            ax.set_xticks(np.arange(len(ct.columns)))
+            ax.set_yticks(np.arange(len(ct.index)))
+            ax.set_xticklabels(ct.columns, rotation=45, ha="left", fontsize=9)
+            ax.set_yticklabels(ct.index, fontsize=9)
+            ax.set_title(f"Frequency Crosstab: {c1} vs {c2}", pad=25, fontweight="bold")
+            plt.tight_layout()
+            return fig
+        else:
+            # Informative fallback chart figure
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.text(0.5, 0.5, "Heatmap requires at least 2 numerical\nor 2 categorical columns for matrix correlation.",
+                    ha='center', va='center', color='#38bdf8', fontsize=12, fontweight='bold')
+            ax.axis('off')
+            plt.tight_layout()
+            return fig
+
+    corr = df[numeric[:8]].corr().fillna(0)
     fig, ax = plt.subplots(figsize=(8, 6.5))
     cax = ax.matshow(corr, cmap='magma', vmin=-1, vmax=1)
     fig.colorbar(cax)
@@ -447,3 +479,23 @@ def create_bubble_chart(dataframe: pd.DataFrame):
 # 15. CANDLESTICK
 def create_candlestick_chart(dataframe: pd.DataFrame):
     return create_line_chart(dataframe)
+
+
+def show_chart(chart_type: str, dataframe: pd.DataFrame):
+    """Render and display chart window for CLI or interactive mode."""
+    chart_type_lower = str(chart_type).lower().strip()
+    builder_map = {
+        "bar": create_bar_chart,
+        "line": create_line_chart,
+        "pie": create_pie_chart,
+        "histogram": create_histogram,
+        "scatter": create_scatter_chart,
+        "box": create_box_plot,
+        "boxplot": create_box_plot,
+        "area": create_area_chart,
+        "heatmap": create_heatmap,
+    }
+    builder = builder_map.get(chart_type_lower, create_bar_chart)
+    fig = builder(dataframe)
+    if fig and plt:
+        plt.show()

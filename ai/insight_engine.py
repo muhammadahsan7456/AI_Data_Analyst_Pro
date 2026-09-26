@@ -8,7 +8,6 @@ Automated Insights & Anomaly Detection Engine
 """
 
 import pandas as pd
-import numpy as np
 from database.connection import run_query, sanitize_identifier
 
 
@@ -72,7 +71,10 @@ def generate_automated_insights(table_name: str) -> dict:
     Generate comprehensive automated business insights and anomalies for active dataset.
     """
     safe_tbl = sanitize_identifier(table_name)
-    df = run_query(f"SELECT * FROM {safe_tbl};")
+    # See the identical comment in ai/data_quality.py::analyze_dataset_quality - an
+    # unbounded SELECT * against a large dataset can take minutes before insight
+    # generation even starts. 100k rows is still a statistically solid sample.
+    df = run_query(f"SELECT TOP 100000 * FROM {safe_tbl};")
 
     if df is None or df.empty:
         return {

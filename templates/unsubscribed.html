@@ -1,0 +1,24 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Unsubscribed — AI Data Analyst Pro</title>
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="container" style="max-width: 560px; text-align: center;">
+        <div style="width: 72px; height: 72px; margin: 0 auto 24px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); display: flex; align-items: center; justify-content: center; font-size: 30px; color: #10b981;">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <h1 class="section-title" style="font-size: clamp(24px, 3.5vw, 34px);">You've Been Unsubscribed</h1>
+        <p class="section-subtitle" style="margin-top: 12px;">
+            <strong>{{ email }}</strong> will no longer receive newsletter emails from AI Data Analyst Pro.
+            You can resubscribe at any time from our homepage.
+        </p>
+        <a href="{{ url_for('frontend.home') }}" class="btn-hero-primary" style="margin-top: 24px; display: inline-flex;">
+            <i class="fa-solid fa-house"></i> Back to Home
+        </a>
+    </div>
+</section>
+{% endblock %}

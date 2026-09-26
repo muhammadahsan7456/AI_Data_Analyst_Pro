@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Waiting for Approval - AI Data Analyst Pro{% endblock %}
+{% block header_title %}Account Verification{% endblock %}
+{% block header_subtitle %}Your payment is being reviewed{% endblock %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 60px auto; text-align: center;">
+    <div style="width: 88px; height: 88px; margin: 0 auto 24px; border-radius: 50%; background: rgba(245, 158, 11, 0.12); border: 2px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center; font-size: 38px; color: #f59e0b;">
+        <i class="fa-solid fa-hourglass-half"></i>
+    </div>
+    <h1 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px;">Thank You!</h1>
+    <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 32px;">
+        Your payment has been received and is being verified by our team. Your dashboard will be activated shortly.
+        You will be notified by email and notification as soon as it is enabled.
+    </p>
+
+    {% if payment %}
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; text-align: left; margin-bottom: 24px;">
+        <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;">Your Submitted Payment</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div><strong style="color: var(--text-muted); font-size: 12px; display: block;">Amount</strong>PKR {{ "{:,.2f}".format(payment.amount) }}</div>
+            <div><strong style="color: var(--text-muted); font-size: 12px; display: block;">Method</strong>{{ payment.method }}</div>
+            <div><strong style="color: var(--text-muted); font-size: 12px; display: block;">Transaction ID</strong>{{ payment.transaction_id }}</div>
+            <div><strong style="color: var(--text-muted); font-size: 12px; display: block;">Submitted</strong>{{ payment.date }}</div>
+        </div>
+        <div style="margin-top: 14px;">
+            <span class="badge badge-warning" style="padding: 4px 12px; font-size: 12px; text-transform: uppercase;">Pending Review</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('auth.logout') }}" style="color: var(--text-muted); font-size: 13px; text-decoration: none;">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+    </a>
+</div>
+{% endblock %}

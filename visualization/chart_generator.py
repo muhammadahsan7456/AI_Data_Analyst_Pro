@@ -118,7 +118,25 @@ def generate_pure_svg_chart(df: pd.DataFrame, chart_type: str = "bar") -> str:
     cat_col = categorical_cols[0] if categorical_cols else df_clean.columns[0]
     num_col = numeric_cols[0] if numeric_cols else df_clean.columns[-1]
 
-    sub_df = df_clean[[cat_col, num_col]].dropna().head(12)
+    if cat_col == num_col:
+        # Only one usable column was resolved (single-column dataset, or every other
+        # column was filtered out as an ID). Selecting [cat_col, num_col] would produce
+        # a DataFrame with two identically-named columns and crash downstream, so derive
+        # a sensible category axis instead of duplicating the same column.
+        if numeric_cols:
+            vals_series = pd.to_numeric(df_clean[num_col], errors="coerce").dropna().head(100)
+            sub_df = pd.DataFrame({
+                "_Row": [f"#{i + 1}" for i in range(len(vals_series))],
+                num_col: vals_series.tolist()
+            })
+            cat_col = "_Row"
+        else:
+            counts = df_clean[cat_col].astype(str).value_counts().head(15)
+            sub_df = pd.DataFrame({cat_col: counts.index.tolist(), "Count": counts.values.tolist()})
+            num_col = "Count"
+    else:
+        sub_df = df_clean[[cat_col, num_col]].dropna().head(100)
+
     if sub_df.empty:
         return ""
 
@@ -281,24 +299,115 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
         return {}
 
     df_clean = df.copy()
-    id_patterns = [r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$", r"^sr$", r"^s\.no$", r"^s_no$", r"^sno$", r"^index$", r"^row_num$"]
-    numeric_cols = [c for c in df_clean.select_dtypes(include="number").columns if not any(re.match(p, str(c).lower().strip()) for p in id_patterns)]
-    cat_cols = [c for c in df_clean.columns if c not in numeric_cols and c.lower() not in ["recordid", "id"]]
+    id_patterns = [
+        r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$",
+        r"^sr$", r"^sr\.$", r"^sr_no$", r"^srno$", r"^s\.no$", r"^s_no$", r"^sno$",
+        r"^index$", r"^row_num$", r"^row$", r"^#$", r"^sl_no$", r"^slno$",
+        r"^consignment$", r"^tracking$", r"^cnic$", r"^cnic_number$", r"^phone$",
+        r"^mobile$", r"^contact$", r"^consignee_contact$", r"^order_reference$", r"^order_ref$"
+    ]
 
-    x_col = cat_cols[0] if cat_cols else (df_clean.columns[0] if not df_clean.columns.empty else "")
-    y_col = numeric_cols[0] if numeric_cols else (df_clean.columns[-1] if len(df_clean.columns) > 1 else x_col)
+    numeric_cols = []
+    for c in df_clean.select_dtypes(include="number").columns:
+        c_clean = str(c).lower().strip()
+        if not any(re.match(p, c_clean) for p in id_patterns):
+            valid_vals = df_clean[c].dropna()
+            # If max value is huge (> 1,000,000) or values are tracking IDs, exclude from numeric bar metrics
+            if not valid_vals.empty and valid_vals.max() < 10000000 and valid_vals.nunique() < len(df_clean):
+                numeric_cols.append(c)
+
+    cat_cols = []
+    business_cat_cols = []
+    status_location_cols = []
+
+    priority_cat_keywords = ["status", "destination", "city", "area", "service", "category", "type", "origin"]
+    for kw in priority_cat_keywords:
+        for c in df_clean.columns:
+            c_clean = str(c).lower().strip()
+            if c not in numeric_cols and not any(re.match(p, c_clean) for p in id_patterns):
+                if kw in c_clean and df_clean[c].nunique() > 1:
+                    status_location_cols.append(c)
+                    break
+
+    for c in df_clean.columns:
+        c_clean = str(c).lower().strip()
+        if any(re.match(p, c_clean) for p in id_patterns):
+            continue
+        if c in numeric_cols:
+            continue
+        cat_cols.append(c)
+        if df_clean[c].nunique() < len(df_clean):
+            business_cat_cols.append(c)
+
+    # Dynamic Column Selection Strategy: Respect SQL Query's Returned Schema First
+    x_col = ""
+    y_col = ""
+
+    # 1. Check if query returned explicit 2-column aggregated result (e.g. [Destination], [Order_Count])
+    if len(df_clean.columns) == 2:
+        c1, c2 = df_clean.columns[0], df_clean.columns[1]
+        if not pd.api.types.is_numeric_dtype(df_clean[c1]) and pd.api.types.is_numeric_dtype(df_clean[c2]):
+            x_col, y_col = c1, c2
+        elif pd.api.types.is_numeric_dtype(df_clean[c1]) and not pd.api.types.is_numeric_dtype(df_clean[c2]):
+            x_col, y_col = c2, c1
+
+    # Fallback to smart column detection if not explicit 2-column output
+    if not x_col:
+        x_col = status_location_cols[0] if status_location_cols else (business_cat_cols[0] if business_cat_cols else (cat_cols[0] if cat_cols else ""))
+    if not y_col:
+        priority_metrics = [c for c in numeric_cols if any(kw in str(c).lower() for kw in ["count", "total", "cod", "value", "amount", "weight", "price", "cost", "revenue"])]
+        y_col = priority_metrics[0] if priority_metrics else (numeric_cols[0] if numeric_cols else "")
 
     labels = []
     values = []
-    
-    if x_col and y_col and x_col != y_col:
-        sub_df = df_clean[[x_col, y_col]].dropna().head(30)
+    override_chart_type = None
+
+    # Case A: Explicit Aggregated Group By Query (e.g. Destination + Count, Status + Count)
+    if len(df_clean.columns) == 2 and x_col and y_col and len(df_clean) > 1 and len(df_clean) <= 50:
+        sub_df = df_clean[[x_col, y_col]].dropna().head(25)
         labels = sub_df[x_col].astype(str).tolist()
-        values = pd.to_numeric(sub_df[y_col], errors="coerce").fillna(0).tolist()
-    elif x_col:
-        val_counts = df_clean[x_col].value_counts().head(20)
-        labels = val_counts.index.astype(str).tolist()
-        values = val_counts.values.tolist()
+        values = [float(v) if pd.notnull(v) else 0.0 for v in pd.to_numeric(sub_df[y_col], errors="coerce").fillna(0).tolist()]
+        if len(labels) <= 10:
+            override_chart_type = "pie"
+        else:
+            override_chart_type = "horizontal_bar"
+
+    # Case B: Single Row Aggregated Metric (e.g. Total_Orders: 335)
+    elif len(df_clean) == 1 and numeric_cols:
+        labels = [str(c).replace("_", " ") for c in numeric_cols]
+        values = [float(df_clean[c].iloc[0]) if pd.notnull(df_clean[c].iloc[0]) else 0.0 for c in numeric_cols]
+        override_chart_type = "bar"
+
+    # Case C: Sub-Area Address Neighborhood Slicing (For Address/Location queries)
+    else:
+        address_col = next((c for c in df_clean.columns if any(kw in str(c).lower() for kw in ["address", "location", "consignee_address", "street"])), None)
+        parsed_area_counts = None
+        if address_col and df_clean[address_col].dropna().count() > 0:
+            try:
+                from ai.area_intelligence import parse_address_neighborhood
+                parsed_areas = df_clean[address_col].dropna().apply(parse_address_neighborhood)
+                if parsed_areas.nunique() > 1:
+                    parsed_area_counts = parsed_areas.value_counts().head(12)
+            except Exception:
+                parsed_area_counts = None
+
+        if parsed_area_counts is not None and len(parsed_area_counts) >= 2:
+            labels = parsed_area_counts.index.astype(str).tolist()
+            values = [float(v) for v in parsed_area_counts.values.tolist()]
+            x_col = "Sub-Area Neighborhood"
+            y_col = "Order Count"
+            override_chart_type = "pie"
+        elif x_col:
+            val_counts = df_clean[x_col].dropna().value_counts().head(20)
+            labels = val_counts.index.astype(str).tolist()
+            values = [float(v) for v in val_counts.values.tolist()]
+            if len(labels) >= 2 and len(labels) <= 10:
+                override_chart_type = "pie"
+            elif len(labels) > 10:
+                override_chart_type = "horizontal_bar"
+        elif numeric_cols:
+            labels = [str(c).replace("_", " ") for c in numeric_cols]
+            values = [float(df_clean[c].mean()) if pd.notnull(df_clean[c].mean()) else 0.0 for c in numeric_cols]
 
     # Heatmap matrix if requested
     matrix = []
@@ -309,13 +418,15 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
         matrix = corr_df.values.tolist()
 
     try:
-        from visualization.chart_selector import get_compatible_chart_types
+        from visualization.chart_selector import select_chart, get_compatible_chart_types
+        best_chart = override_chart_type or (select_chart(df_clean) if (not chart_type or chart_type == "auto") else chart_type)
         compatible_types = get_compatible_chart_types(df_clean)
     except Exception:
-        compatible_types = ["auto", "bar", "line", "pie"]
+        best_chart = override_chart_type or chart_type or "pie"
+        compatible_types = ["auto", "pie", "donut", "bar", "horizontal_bar", "line"]
 
     return {
-        "chart_type": chart_type or "bar",
+        "chart_type": best_chart or "bar",
         "title": f"{y_col} by {x_col}" if x_col and y_col else "Dataset Analytics",
         "x_col": x_col,
         "y_col": y_col,

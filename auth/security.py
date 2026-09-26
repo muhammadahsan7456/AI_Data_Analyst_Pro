@@ -1,8 +1,7 @@
 import re
 import secrets
-from datetime import datetime, timezone
 import bcrypt
-from flask import request, session, g
+from flask import request, session
 
 from database.connection import get_db_cursor
 from database.queries import insert_audit_log, log_login_event

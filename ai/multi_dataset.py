@@ -1,4 +1,3 @@
-import re
 import os
 import sys
 import pandas as pd
@@ -70,32 +69,52 @@ def execute_multi_dataset_analysis(
                 "explanation": f"Compared {len(dataset_tables)} datasets ({', '.join(file_names)}). Summary metrics generated above."
             }
 
-        # 2. Find Common Records / Common Entities
-        if any(kw in q_lower for kw in ["common", "matching", "overlap", "same"]):
+        # 2. Find Common Records / JOIN Operations across Datasets
+        if any(kw in q_lower for kw in ["join", "inner join", "left join", "combine", "link", "common", "matching", "overlap", "same"]):
             tbl1, tbl2 = table_names[0], table_names[1]
-            cols1 = [c for c in schemas[tbl1] if c.lower() not in ["recordid", "s.no"]]
-            cols2 = [c for c in schemas[tbl2] if c.lower() not in ["recordid", "s.no"]]
+            cols1 = [c for c in schemas[tbl1] if c.lower() not in ["recordid", "s.no", "sr", "index"]]
+            cols2 = [c for c in schemas[tbl2] if c.lower() not in ["recordid", "s.no", "sr", "index"]]
             
             common_cols = [c for c in cols1 if c in cols2]
             if not common_cols:
-                common_cols = [c for c in cols1 if any(c.lower() in c2.lower() for c2 in cols2)]
+                for c1 in cols1:
+                    for c2 in cols2:
+                        if c1.lower() == c2.lower() or c1.lower().replace("_", "") == c2.lower().replace("_", ""):
+                            common_cols.append((c1, c2))
+                            break
 
+            join_clause = ""
+            join_col_desc = ""
             if common_cols:
-                join_col = common_cols[0]
-                sql = f"""
-                SELECT t1.{sanitize_identifier(join_col)} AS [JoinKey], t1.*, t2.*
-                FROM {sanitize_identifier(tbl1)} t1
-                INNER JOIN {sanitize_identifier(tbl2)} t2
-                    ON t1.{sanitize_identifier(join_col)} = t2.{sanitize_identifier(join_col)};
-                """
-                df_res = run_query(sql)
-                return {
-                    "success": True,
-                    "type": "common_records",
-                    "sql": sql,
-                    "df": df_res,
-                    "explanation": f"Found {len(df_res)} matching records based on common field '{join_col}'."
-                }
+                if isinstance(common_cols[0], tuple):
+                    c1, c2 = common_cols[0]
+                    join_clause = f"t1.{sanitize_identifier(c1)} = t2.{sanitize_identifier(c2)}"
+                    join_col_desc = f"t1.{c1} = t2.{c2}"
+                else:
+                    c1 = common_cols[0]
+                    join_clause = f"t1.{sanitize_identifier(c1)} = t2.{sanitize_identifier(c1)}"
+                    join_col_desc = f"'{c1}'"
+            else:
+                # Fallback: Join on Record ID or row order preview
+                join_clause = "t1.[Sr] = t2.[Sr]" if ("Sr" in schemas[tbl1] and "Sr" in schemas[tbl2]) else "1=1"
+                join_col_desc = "row position index"
+
+            join_type = "LEFT JOIN" if "left" in q_lower else "INNER JOIN"
+
+            sql = f"""
+            SELECT TOP 500 t1.*, t2.*
+            FROM {sanitize_identifier(tbl1)} t1
+            {join_type} {sanitize_identifier(tbl2)} t2
+                ON {join_clause};
+            """
+            df_res = run_query(sql)
+            return {
+                "success": True,
+                "type": "multi_dataset_join",
+                "sql": sql,
+                "df": df_res,
+                "explanation": f"Executed {join_type} query between '{file_names[0]}' and '{file_names[1]}' matching on {join_col_desc}. Returned {len(df_res)} combined records."
+            }
 
         # 3. Merge / Union Datasets across Shared Columns
         tbl1, tbl2 = table_names[0], table_names[1]

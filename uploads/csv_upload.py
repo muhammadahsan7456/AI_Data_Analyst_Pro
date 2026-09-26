@@ -1,26 +1,8 @@
 import os
 import sys
-import pandas as pd
 
 # Ensure workspace root is in sys.path for direct script execution
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-try:
-    from database.connection import get_db_cursor
-    from database.queries import insert_dataset
-    from uploads.data_loader import (
-        clean_table_name,
-        create_table,
-        insert_dataframe
-    )
-except ModuleNotFoundError:
-    from connection import get_db_cursor
-    from queries import insert_dataset
-    from data_loader import (
-        clean_table_name,
-        create_table,
-        insert_dataframe
-    )
 
 from uploads.multi_loader import process_file_upload, SUPPORTED_EXTENSIONS
 

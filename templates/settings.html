@@ -8,7 +8,7 @@
 <div class="table-card" style="max-width: 650px;">
     <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 20px;">⚙ Application & Workspace Preferences</h2>
 
-    <form method="POST" action="{{ url_for('auth.settings') }}">
+    <form method="POST" action="{{ url_for('auth.settings') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="margin-bottom: 20px;">
             <label style="font-weight: 700; display: block; margin-bottom: 8px;">Interface Theme Mode</label>
             <select name="theme" style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px;">

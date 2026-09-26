@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- Apply saved theme before first paint - prevents a flash/flip to the wrong theme -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem("theme") || localStorage.getItem("app-theme") || localStorage.getItem("website_theme");
+                if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+            } catch (e) {}
+        })();
+    </script>
     <title>{% block title %}Super Admin Console{% endblock %} - AI Data Analyst Pro</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,6 +36,7 @@
             --bg-main: #070a12;
             --admin-sidebar-bg: #0b0f19;
             --admin-card-bg: rgba(15, 23, 42, 0.85);
+            --admin-bg-dark: #0b0f19;
             --admin-border: rgba(255, 255, 255, 0.12);
             --text-primary: #ffffff;
             --text-secondary: #cbd5e1;
@@ -36,6 +52,7 @@
             --bg-main: #f1f5f9;
             --admin-sidebar-bg: #ffffff;
             --admin-card-bg: #ffffff;
+            --admin-bg-dark: #f1f5f9;
             --admin-border: rgba(0, 0, 0, 0.12);
             --text-primary: #0f172a;
             --text-secondary: #1e293b;
@@ -47,6 +64,11 @@
             --accent-red: #dc2626;
         }
 
+        html {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
         body {
             background-color: var(--bg-main);
             color: var(--text-primary);
@@ -54,6 +76,59 @@
             display: flex;
             min-height: 100vh;
             margin: 0;
+            overflow-x: hidden;
+        }
+
+        img, video, canvas, svg, iframe {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Top-of-page navigation progress bar (see static/js/page-progress.js) */
+        #page-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-purple));
+            z-index: 999999;
+            opacity: 0;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            transition: width 2.2s cubic-bezier(0.1, 0.7, 0.3, 1), opacity 0.2s ease;
+        }
+        #page-progress-bar.page-progress-active {
+            width: 80%;
+            opacity: 1;
+        }
+
+        #page-progress-spinner {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--admin-card-bg);
+            border: 1px solid var(--admin-border);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+        }
+        #page-progress-spinner.page-progress-spinner-active { display: flex; }
+        .page-progress-spinner-ring {
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(239, 68, 68, 0.2);
+            border-top-color: var(--accent-red);
+            border-radius: 50%;
+            animation: page-progress-spin 0.7s infinite linear;
+        }
+        @keyframes page-progress-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* Super Admin Sidebar */
@@ -237,10 +312,55 @@
         .badge-active { background: rgba(16, 185, 129, 0.15); color: #34d399; }
         .badge-suspended { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 
+        /* Super Admin Master Responsive Rules */
+        .admin-mobile-toggle-btn { display: none; }
+
         @media (max-width: 992px) {
-            .admin-sidebar { width: 80px; padding: 20px 10px; }
-            .admin-brand span, .admin-nav-item span { display: none; }
-            .admin-main-wrapper { margin-left: 80px; }
+            .admin-mobile-toggle-btn { display: flex !important; }
+            .admin-sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                width: 270px !important;
+                z-index: 99999 !important;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 0 35px rgba(0, 0, 0, 0.85);
+            }
+            .admin-sidebar.mobile-open {
+                transform: translateX(0) !important;
+            }
+            .admin-brand span, .admin-nav-item span { display: inline-block !important; }
+            .admin-main-wrapper {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .admin-top-bar {
+                padding: 16px !important;
+            }
+            .admin-content-area {
+                padding: 16px !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .admin-top-bar {
+                flex-direction: row;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 12px 16px !important;
+            }
+            .admin-page-title {
+                font-size: 18px !important;
+            }
+            .admin-content-area {
+                padding: 12px !important;
+            }
+            .table-card, .table-container {
+                padding: 12px !important;
+            }
         }
     </style>
 </head>
@@ -270,9 +390,23 @@
                     </a>
                 </li>
                 <li class="admin-nav-item {% if request.endpoint == 'admin.manage_payments' %}active{% endif %}">
-                    <a href="{{ url_for('admin.manage_payments') }}">
-                        <i class="fa-solid fa-credit-card"></i>
-                        <span>Payments & Billing</span>
+                    <a href="{{ url_for('admin.manage_payments') }}" style="display: flex; align-items: center; justify-content: space-between;">
+                        <span><i class="fa-solid fa-credit-card"></i> <span>Payments & Billing</span></span>
+                        {% if pending_payments_count and pending_payments_count > 0 %}
+                        <span style="background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 10px; line-height: 1.4;">{{ pending_payments_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="admin-nav-item {% if request.endpoint == 'admin.subscribers' %}active{% endif %}">
+                    <a href="{{ url_for('admin.subscribers') }}">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                        <span>Newsletter Subscribers</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item {% if request.endpoint == 'admin.contact_messages' %}active{% endif %}">
+                    <a href="{{ url_for('admin.contact_messages') }}">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Contact Messages</span>
                     </a>
                 </li>
                 <li class="admin-nav-item {% if request.endpoint == 'admin.audit_logs' %}active{% endif %}">
@@ -292,11 +426,11 @@
 
         <div>
             <hr style="border-color: var(--admin-border); margin-bottom: 16px;">
-            <a href="/" style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
+            <a href="{{ url_for('frontend.dashboard') }}" style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
                 <i class="fa-solid fa-arrow-left"></i>
-                <span>Back to Main Site</span>
+                <span>Analyst Portal / Dashboard</span>
             </a>
-            <a href="{{ url_for('auth.logout') }}" style="display: flex; align-items: center; gap: 10px; color: var(--accent-red); text-decoration: none; font-size: 13px; font-weight: 700;">
+            <a href="{{ url_for('admin.admin_logout') }}" style="display: flex; align-items: center; gap: 10px; color: var(--accent-red); text-decoration: none; font-size: 13px; font-weight: 700;">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Logout Super Admin</span>
             </a>
@@ -307,9 +441,14 @@
     <div class="admin-main-wrapper">
         <!-- Top Header Bar -->
         <header class="admin-top-bar">
-            <h1 class="admin-page-title">
-                {% block header_title %}Super Admin Console{% endblock %}
-            </h1>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="admin-mobile-toggle-btn" onclick="toggleAdminSidebar()" title="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <h1 class="admin-page-title">
+                    {% block header_title %}Super Admin Console{% endblock %}
+                </h1>
+            </div>
 
             <div class="admin-top-actions">
                 <button class="btn-theme-toggle" onclick="toggleWebsiteTheme()" title="Toggle Theme" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--admin-border); background: none; color: var(--text-primary); cursor: pointer;">
@@ -344,16 +483,24 @@
     </div>
 
     <script>
-        function toggleWebsiteTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('website_theme', newTheme);
+        function toggleAdminSidebar() {
+            const sidebar = document.querySelector('.admin-sidebar');
+            if (sidebar) sidebar.classList.toggle('mobile-open');
         }
-        (function() {
-            const savedTheme = localStorage.getItem('website_theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
+
+        document.addEventListener('click', (e) => {
+            const sidebar = document.querySelector('.admin-sidebar');
+            const toggleBtn = document.querySelector('.admin-mobile-toggle-btn');
+            if (sidebar && sidebar.classList.contains('mobile-open')) {
+                if (!sidebar.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
+                    sidebar.classList.remove('mobile-open');
+                }
+            }
+        });
+
     </script>
+    <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
 </body>
 </html>

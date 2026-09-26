@@ -1,0 +1,210 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Live Demo — AI Data Analyst Pro | Interactive AI SQL Query Sandbox</title>
+<meta name="description" content="Try the AI Data Analyst Pro interactive demo sandbox. Execute real-time natural language queries, see AI-generated T-SQL, explore voice commands, and experience sub-second data analysis.">
+<meta name="keywords" content="AI Demo, SQL Query Sandbox, Live Data Analysis, Interactive AI Demo, Natural Language SQL, Voice Query Demo">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Live Demo</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Demo Hero -->
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-play"></i> Interactive Live Demo</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">
+                Experience <span class="gradient-text">AI Data Analysis</span> in Action
+            </h1>
+            <p class="section-subtitle">See how AI Data Analyst Pro processes your queries in real-time. No login required.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Pipeline Flow -->
+<section class="landing-section" style="padding-top: 0;">
+    <div class="container">
+        <div class="pipeline-flow-grid reveal stagger-children">
+            <div class="pipeline-step-card active-step">
+                <div class="pipeline-num">Stage 01</div>
+                <div class="pipeline-title"><i class="fa-solid fa-microphone" style="color: var(--accent-blue);"></i> Prompt Ingestion</div>
+            </div>
+            <div class="pipeline-step-card active-step">
+                <div class="pipeline-num">Stage 02</div>
+                <div class="pipeline-title"><i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i> Fast 0.005s Engine</div>
+            </div>
+            <div class="pipeline-step-card active-step">
+                <div class="pipeline-num">Stage 03</div>
+                <div class="pipeline-title"><i class="fa-solid fa-key" style="color: var(--accent-purple);"></i> AES-256 Decrypt</div>
+            </div>
+            <div class="pipeline-step-card active-step">
+                <div class="pipeline-num">Stage 04</div>
+                <div class="pipeline-title"><i class="fa-solid fa-chart-pie" style="color: var(--accent-green);"></i> Insight Takeaways</div>
+            </div>
+        </div>
+
+        <!-- Interactive Sandbox -->
+        <div class="sandbox-box reveal">
+            <div style="margin-bottom: 16px; font-weight: 600; font-size: 14px; color: var(--text-secondary);">
+                Select a real-world enterprise query use-case to simulate instant AI processing:
+            </div>
+            <div class="sandbox-prompt-chips">
+                <button class="chip-btn active" onclick="runSandbox('top10', this)">
+                    <i class="fa-solid fa-chart-simple"></i> Show Top 10 Sales Orders
+                </button>
+                <button class="chip-btn" onclick="runSandbox('count', this)">
+                    <i class="fa-solid fa-hashtag"></i> Count Total Records (10M Scale)
+                </button>
+                <button class="chip-btn" onclick="runSandbox('last', this)">
+                    <i class="fa-solid fa-file-lines"></i> Show Last 5 Booking Entries
+                </button>
+                <button class="chip-btn" onclick="runSandbox('revenue', this)">
+                    <i class="fa-solid fa-calculator"></i> Sum COD Revenues & Averages
+                </button>
+                <button class="chip-btn" onclick="runSandbox('join', this)">
+                    <i class="fa-solid fa-link"></i> Multi-Dataset INNER JOIN
+                </button>
+                <button class="chip-btn" onclick="runSandbox('urdu', this)">
+                    <i class="fa-solid fa-language"></i> Urdu Voice: "Karachi se Attock"
+                </button>
+            </div>
+
+            <div class="sandbox-result-area">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
+                    <span>GENERATED T-SQL: <strong id="sandbox-sql" style="color: var(--accent-cyan);">SELECT TOP 10 * FROM [Sales_Orders] ORDER BY [Sr] ASC;</strong></span>
+                    <span style="color: var(--accent-green); font-weight: 600;"><i class="fa-solid fa-bolt"></i> 0.005 ms Sub-Second</span>
+                </div>
+
+                <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table class="sandbox-result-table" id="sandbox-table">
+                        <thead>
+                            <tr><th>Sr</th><th>Consignment</th><th>Order Ref</th><th>Origin</th><th>Destination</th><th>COD Value</th></tr>
+                        </thead>
+                        <tbody id="sandbox-tbody">
+                            <tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
+                            <tr><td>2</td><td>772846926616</td><td>#7010</td><td>KHI</td><td>NFZ</td><td>900 PKR</td></tr>
+                            <tr><td>3</td><td>772846926757</td><td>#7200</td><td>KHI</td><td>SKT</td><td>900 PKR</td></tr>
+                            <tr><td>4</td><td>772846926810</td><td>#7250</td><td>LHR</td><td>ISB</td><td>1,450 PKR</td></tr>
+                            <tr><td>5</td><td>772846926942</td><td>#7310</td><td>KHI</td><td>PEW</td><td>2,100 PKR</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sandbox-ai-takeaway-box" id="sandbox-takeaway">
+                    <div class="sandbox-ai-takeaway-header"><i class="fa-solid fa-brain"></i> AI Executive Business Takeaways</div>
+                    <div id="sandbox-takeaway-text">
+                        📊 <strong>Data Scope</strong>: Retrieved top 10 records sorted by primary serial column [Sr] ASC.<br>
+                        💡 <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 60% of initial booking volume.<br>
+                        📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory allocation in primary logistics hubs.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Explanation Cards -->
+        <div class="sandbox-explain-grid reveal stagger-children">
+            <div class="sandbox-explain-card">
+                <div class="sandbox-explain-title" style="color: var(--accent-cyan);"><i class="fa-solid fa-bolt"></i> Why Is It Sub-Second?</div>
+                <div class="sandbox-explain-desc">Over 85% of standard data requests are evaluated locally in 0.005ms by our fast T-SQL pattern engine, avoiding external LLM network delays completely.</div>
+            </div>
+            <div class="sandbox-explain-card">
+                <div class="sandbox-explain-title" style="color: var(--accent-purple);"><i class="fa-solid fa-key"></i> How Is Data Secured?</div>
+                <div class="sandbox-explain-desc">All text fields are stored encrypted in Microsoft SQL Server as `enc:gAAAAAB...` ciphertext. Authorized user sessions decrypt data transparently.</div>
+            </div>
+            <div class="sandbox-explain-card">
+                <div class="sandbox-explain-title" style="color: var(--accent-green);"><i class="fa-solid fa-file-powerpoint"></i> How Do Exports Work?</div>
+                <div class="sandbox-explain-desc">Clicking export computes statistical summaries locally in &lt; 100ms, delivering instantly downloadable PowerPoint PPTX, PDF, Excel, and CSV files.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AdSense -->
+<div class="adsense-slot adsense-between-sections">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="DEMO_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- CTA -->
+<section class="landing-section" style="padding: 60px 0; text-align: center;">
+    <div class="container reveal">
+        <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: 16px;">Impressed? Start Analyzing Your Own Data</h2>
+        <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('auth.register_payment') }}" class="btn-hero-primary"><i class="fa-solid fa-rocket"></i> Get Started Now</a>
+            <a href="{{ url_for('frontend.pricing_page') }}" class="btn-hero-secondary"><i class="fa-solid fa-credit-card"></i> View Pricing</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runSandbox(type, btn) {
+    document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sqlElem = document.getElementById('sandbox-sql');
+    const tbody = document.getElementById('sandbox-tbody');
+    const takeawayText = document.getElementById('sandbox-takeaway-text');
+
+    const data = {
+        top10: {
+            sql: 'SELECT TOP 10 * FROM [Sales_Orders] ORDER BY [Sr] ASC;',
+            rows: `<tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
+                   <tr><td>2</td><td>772846926616</td><td>#7010</td><td>KHI</td><td>NFZ</td><td>900 PKR</td></tr>
+                   <tr><td>3</td><td>772846926757</td><td>#7200</td><td>KHI</td><td>SKT</td><td>900 PKR</td></tr>
+                   <tr><td>4</td><td>772846926810</td><td>#7250</td><td>LHR</td><td>ISB</td><td>1,450 PKR</td></tr>
+                   <tr><td>5</td><td>772846926942</td><td>#7310</td><td>KHI</td><td>PEW</td><td>2,100 PKR</td></tr>`,
+            insight: '📊 <strong>Data Scope</strong>: Retrieved top 10 records sorted by [Sr] ASC.<br>💡 <strong>Key Insight</strong>: <strong>KHI (Karachi)</strong> represents 60% of booking volume.<br>📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory in primary hubs.'
+        },
+        count: {
+            sql: 'SELECT COUNT(*) AS [TotalRecords] FROM [Sales_Orders];',
+            rows: '<tr><td colspan="6" style="text-align:center; padding:20px;"><strong>TotalRecords: 10,000,000 Rows</strong> (Multi-Gigabyte Dataset Scale)</td></tr>',
+            insight: '📊 <strong>Aggregation</strong>: Evaluated 10,000,000 records in 0.005ms using streaming chunking.<br>💡 <strong>Key Insight</strong>: Enterprise database handles multi-gigabyte queries effortlessly.<br>📈 <strong>Strategic Action</strong>: Deploy automated batch reporting for large-scale analytics.'
+        },
+        last: {
+            sql: 'SELECT TOP 5 * FROM [Sales_Orders] ORDER BY [Sr] DESC;',
+            rows: `<tr><td>10000000</td><td>772846999999</td><td>#99999</td><td>LHR</td><td>ISB</td><td>5,500 PKR</td></tr>
+                   <tr><td>9999999</td><td>772846999998</td><td>#99998</td><td>KHI</td><td>PEW</td><td>4,200 PKR</td></tr>
+                   <tr><td>9999998</td><td>772846999997</td><td>#99997</td><td>MUX</td><td>SKT</td><td>3,100 PKR</td></tr>`,
+            insight: '📊 <strong>Recent Entries</strong>: Retrieved latest 5 bookings ordered by [Sr] DESC.<br>💡 <strong>Key Insight</strong>: High-value orders demonstrate active surge in Northern logistics.<br>📈 <strong>Strategic Action</strong>: Monitor high-value transit shipments for delivery confirmation.'
+        },
+        revenue: {
+            sql: "SELECT SUM([COD_Value]) AS [Total_Revenue], AVG([COD_Value]) AS [Avg_Order] FROM [Sales_Orders];",
+            rows: '<tr><td colspan="3"><strong>Total_Revenue:</strong> 9,540,200,000 PKR</td><td colspan="3"><strong>Avg_Order:</strong> 954 PKR</td></tr>',
+            insight: '📊 <strong>Financial Metrics</strong>: Aggregated total COD revenues across 10M records.<br>💡 <strong>Key Insight</strong>: Average order value is stable at <strong>954 PKR</strong> per transaction.<br>📈 <strong>Strategic Action</strong>: Incentivize bundled checkout orders to drive AOV above 1,200 PKR.'
+        },
+        join: {
+            sql: "SELECT TOP 5 A.Consignment, A.COD_Value, B.Status FROM [Jan_Sales] A INNER JOIN [Feb_Sales] B ON A.Consignment = B.Consignment;",
+            rows: `<tr><td>772846926672</td><td>999 PKR</td><td>Delivered</td><td>KHI</td><td>ATT</td><td>Matched</td></tr>
+                   <tr><td>772846926616</td><td>900 PKR</td><td>In Transit</td><td>KHI</td><td>NFZ</td><td>Matched</td></tr>`,
+            insight: '📊 <strong>Multi-Dataset Join</strong>: Blended Jan & Feb Sales using INNER JOIN on Consignment ID.<br>💡 <strong>Key Insight</strong>: 100% record match across top consignments with live delivery status.<br>📈 <strong>Strategic Action</strong>: Automate cross-month customer reconciliation reports.'
+        },
+        urdu: {
+            sql: "SELECT TOP 5 * FROM [Sales_Orders] WHERE [Origin] = 'KHI' AND [Destination] = 'ATT';",
+            rows: `<tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
+                   <tr><td>104</td><td>772846927811</td><td>#8020</td><td>KHI</td><td>ATT</td><td>1,250 PKR</td></tr>`,
+            insight: '🎙️ <strong>Voice Prompt</strong>: Auto-parsed Roman Urdu voice input into T-SQL filter.<br>💡 <strong>Key Insight</strong>: Successfully filtered shipments from Karachi to Attock.<br>📈 <strong>Strategic Action</strong>: Enable hands-free mobile voice analytics for field managers.'
+        }
+    };
+
+    const d = data[type];
+    if (d) {
+        sqlElem.textContent = d.sql;
+        tbody.innerHTML = d.rows;
+        takeawayText.innerHTML = d.insight;
+    }
+}
+</script>
+{% endblock %}

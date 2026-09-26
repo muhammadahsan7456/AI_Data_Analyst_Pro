@@ -9,10 +9,19 @@ services:
       - DB_SERVER=db
       - DB_NAME=AI_Data_Analyst_Pro
       - DB_USER=sa
-      - DB_PASSWORD=REDACTED-PASSWORD
+      - DB_PASSWORD=${DB_PASSWORD}
       - DB_DRIVER=ODBC Driver 17 for SQL Server
       - DB_TRUSTED_CONNECTION=no
+      - SECRET_KEY=${SECRET_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - DATASET_ENCRYPTION_KEY=${DATASET_ENCRYPTION_KEY}
+    volumes:
+      - upload_data:/app/static/uploads
     depends_on:
       - db
     restart: always
@@ -22,8 +31,16 @@ services:
     container_name: sql_server_db
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=REDACTED-PASSWORD
+      - SA_PASSWORD=${DB_PASSWORD}
       - MSSQL_PID=Developer
-    ports:
-      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
     restart: always
+    # No "ports:" mapping to the host - the web service reaches this over the
+    # internal Docker network by service name ("db"), so the raw SQL Server port
+    # never needs to be reachable from outside the host. Add one back only if an
+    # external DB client genuinely needs to connect directly.
+
+volumes:
+  sqlserver_data:
+  upload_data:

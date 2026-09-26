@@ -1,32 +1,158 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 
-{% block title %}Contact & Support | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Contact & Feedback{% endblock %}
-{% block header_subtitle %}Get in touch with engineering support or submit feature feedback.{% endblock %}
+{% block seo_meta %}
+<title>Contact — AI Data Analyst Pro | Enterprise Support & Sales</title>
+<meta name="description" content="Contact AI Data Analyst Pro for enterprise sales, technical support, or partnership inquiries. Available via WhatsApp, email, and phone.">
+<link rel="canonical" href="{{ request.url }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>Contact</li></ol></div></div>
+{% endblock %}
 
 {% block content %}
-<div class="table-card" style="max-width: 600px;">
-    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">📩 Contact Engineering Support</h2>
-
-    <form method="POST" action="#" onsubmit="event.preventDefault(); showToast('Thank you! Your message has been sent.', 'success');">
-        <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Your Name</label>
-            <input type="text" value="Muhammad Ahsan" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+<section class="landing-section" style="padding-top: 40px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-envelope"></i> Get in Touch</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Contact <span class="gradient-text">Our Team</span></h1>
+            <p class="section-subtitle">Have questions about AI Data Analyst Pro? We're here to help with sales, support, and partnership inquiries.</p>
         </div>
 
-        <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Email Address</label>
-            <input type="email" value="ahsan@example.com" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
-        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; max-width: 1000px; margin: 0 auto;">
+            <!-- Contact Cards -->
+            <div class="reveal-left">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 16px; transition: all 0.3s ease;" data-tilt>
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, #25d366, #128c7e); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0;">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-family: var(--font-heading); font-weight: 700; font-size: 16px; margin-bottom: 4px;">WhatsApp</h3>
+                            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">Fastest response — typically under 15 minutes.</p>
+                            <a href="https://wa.me/923053107456" target="_blank" style="color: var(--accent-green); font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; gap: 4px;">+92 305 310 7456 <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i></a>
+                        </div>
+                    </div>
 
-        <div style="margin-bottom: 20px;">
-            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Message / Feedback</label>
-            <textarea rows="4" required style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);"></textarea>
-        </div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 16px; transition: all 0.3s ease;" data-tilt>
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, #3b82f6, #2563eb); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0;">
+                            <i class="fa-solid fa-envelope"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-family: var(--font-heading); font-weight: 700; font-size: 16px; margin-bottom: 4px;">Email</h3>
+                            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">Enterprise inquiries and partnership proposals.</p>
+                            <a href="mailto:support@aidataanalyst.pro" style="color: var(--accent-blue); font-weight: 700; font-size: 14px;">support@aidataanalyst.pro</a>
+                        </div>
+                    </div>
 
-        <button type="submit" class="btn btn-primary">
-            <i class="fa-solid fa-paper-plane"></i> Send Message
-        </button>
-    </form>
-</div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 16px; transition: all 0.3s ease;" data-tilt>
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, #8b5cf6, #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0;">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-family: var(--font-heading); font-weight: 700; font-size: 16px; margin-bottom: 4px;">Location</h3>
+                            <p style="color: var(--text-secondary); font-size: 13px;">Pakistan — Serving Globally</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="reveal-right">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-xl); padding: 32px; backdrop-filter: blur(10px);">
+                    <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin-bottom: 20px;"><i class="fa-solid fa-paper-plane" style="color: var(--accent-blue); margin-right: 8px;"></i> Send us a Message</h3>
+                    <form id="contact-form" onsubmit="handleContact(event)">
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 6px;">Full Name</label>
+                            <input type="text" id="contact-name" required placeholder="Your Name" style="width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: rgba(255,255,255,0.04); color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-glass)'">
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 6px;">Email Address</label>
+                            <input type="email" id="contact-email" required placeholder="you@company.com" style="width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: rgba(255,255,255,0.04); color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-glass)'">
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 6px;">Subject</label>
+                            <select id="contact-subject" style="width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-card); color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box;">
+                                <option value="Sales Inquiry">Sales Inquiry</option>
+                                <option value="Technical Support">Technical Support</option>
+                                <option value="Partnership">Partnership Proposal</option>
+                                <option value="Bug Report">Bug Report</option>
+                                <option value="Feature Request">Feature Request</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 6px;">Message</label>
+                            <textarea id="contact-message" required rows="5" placeholder="Tell us how we can help..." style="width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: rgba(255,255,255,0.04); color: var(--text-primary); font-size: 14px; outline: none; resize: vertical; transition: border-color 0.3s; box-sizing: border-box; font-family: var(--font-body);" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-glass)'"></textarea>
+                        </div>
+                        <button type="submit" id="contact-submit-btn" class="btn-hero-primary" style="width: 100%; justify-content: center; border: none; cursor: pointer;">
+                            <i class="fa-solid fa-paper-plane"></i> Send Message
+                        </button>
+                    </form>
+                    <div id="contact-success" style="display: none; margin-top: 14px; font-size: 13px; color: var(--accent-green); font-weight: 600;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleContact(e) {
+    e.preventDefault();
+    const btn = document.getElementById('contact-submit-btn');
+    const msg = document.getElementById('contact-success');
+    const originalBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+    const payload = {
+        name: document.getElementById('contact-name').value.trim(),
+        email: document.getElementById('contact-email').value.trim(),
+        subject: document.getElementById('contact-subject').value,
+        message: document.getElementById('contact-message').value.trim()
+    };
+
+    fetch('/contact-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            btn.disabled = false;
+            if (ok && data.success) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Message Sent!';
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                if (msg) {
+                    msg.style.color = 'var(--accent-green)';
+                    msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || "Thank you! We'll respond within 24 hours.");
+                    msg.style.display = 'block';
+                }
+                document.getElementById('contact-form').reset();
+                setTimeout(() => {
+                    btn.innerHTML = originalBtnHtml;
+                    btn.style.background = '';
+                }, 4000);
+            } else {
+                btn.innerHTML = originalBtnHtml;
+                if (msg) {
+                    msg.style.color = '#f87171';
+                    msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + (data.message || 'Something went wrong. Please try again.');
+                    msg.style.display = 'block';
+                }
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+            if (msg) {
+                msg.style.color = '#f87171';
+                msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error - please try again.';
+                msg.style.display = 'block';
+            }
+        });
+}
+</script>
 {% endblock %}

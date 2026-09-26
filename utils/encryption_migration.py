@@ -6,7 +6,7 @@ import pandas as pd
 # Ensure workspace root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from utils.encryption import encrypt_dataframe, _get_cipher
+from utils.encryption import encrypt_dataframe
 
 
 def migrate_and_encrypt_existing_tables():
@@ -14,9 +14,7 @@ def migrate_and_encrypt_existing_tables():
     Scans all existing dataset tables in SQL Server/SQLite, detects unencrypted string columns,
     and retroactively encrypts all existing rows with AES-256 Fernet Encryption at rest.
     """
-    from database.connection import get_connection, get_db_cursor, sanitize_identifier
-
-    cipher = _get_cipher()
+    from database.connection import get_connection, sanitize_identifier
     conn = get_connection()
     if not conn:
         print("[ENCRYPTION MIGRATION] Database connection failed.")

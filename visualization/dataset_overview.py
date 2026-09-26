@@ -1,5 +1,3 @@
-import pandas as pd
-
 
 def show_dataset_overview(df):
     """

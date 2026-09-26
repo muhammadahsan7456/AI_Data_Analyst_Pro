@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Executive AI Business Summary - AI Data Analyst Pro{% endblock %}
+
+{% block extra_css %}
+<!-- This page's markup uses Bootstrap's grid/card/list-group classes (.row, .col-md-*,
+     .card, .list-group-item, .table-dark, spacing utilities) - loaded here only, before
+     style.css, so .btn/.badge still resolve to this app's own theme-aware definitions. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: white;">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <span class="badge bg-warning text-dark text-uppercase mb-2 px-3 py-2 fw-bold" style="letter-spacing: 1px;">Executive Briefing</span>
+                <h2 class="h3 fw-bold mb-1"><i class="fa-solid fa-user-tie me-2 text-warning"></i>Executive AI Summary & Strategic Briefing</h2>
+                <p class="text-white-50 mb-0">Dataset: <strong>{{ dataset[3] }}</strong> | Table: <code>{{ dataset[2] }}</code></p>
+            </div>
+            <div>
+                <a href="{{ url_for('frontend.data_health', dataset_id=dataset[0]) }}" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fa-solid fa-heart-pulse me-1"></i> Data Health
+                </a>
+                <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0]) }}" class="btn btn-warning btn-sm fw-bold">
+                    <i class="fa-solid fa-table me-1"></i> Explore Dataset
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Overview Banner -->
+    <div class="alert border-0 shadow-sm p-4 mb-4" style="background: #1e293b; color: white;">
+        <h5 class="fw-bold text-warning mb-2"><i class="fa-solid fa-bullseye me-2"></i>Executive Summary Overview</h5>
+        <p class="fs-5 mb-0 text-white-80">{{ exec_data.executive_summary.overview }}</p>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Key Findings -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm" style="background: #1e293b; color: white;">
+                <div class="card-header bg-transparent border-secondary py-3">
+                    <h5 class="fw-bold mb-0 text-success"><i class="fa-solid fa-chart-line me-2"></i>Key KPI Business Findings</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush bg-transparent">
+                        {% for finding in exec_data.executive_summary.key_findings %}
+                        <li class="list-group-item bg-transparent text-white border-secondary py-3">
+                            <i class="fa-solid fa-circle-check text-success me-2"></i> {{ finding | safe }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Major Performance Trends -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm" style="background: #1e293b; color: white;">
+                <div class="card-header bg-transparent border-secondary py-3">
+                    <h5 class="fw-bold mb-0 text-info"><i class="fa-solid fa-arrow-trend-up me-2"></i>Major Performance Trends</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush bg-transparent">
+                        {% for trend in exec_data.executive_summary.major_trends %}
+                        <li class="list-group-item bg-transparent text-white border-secondary py-3">
+                            <i class="fa-solid fa-chart-simple text-info me-2"></i> {{ trend | safe }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risks & Recommended Actions -->
+    <div class="row g-4 mb-4">
+        <!-- Detected Business Risks -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm" style="background: #1e293b; color: white;">
+                <div class="card-header bg-transparent border-secondary py-3">
+                    <h5 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-shield-cat me-2"></i>Detected Business & Statistical Risks</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush bg-transparent">
+                        {% for risk in exec_data.executive_summary.important_risks %}
+                        <li class="list-group-item bg-transparent text-white border-secondary py-3">
+                            <i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> {{ risk }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommended Strategic Actions -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm" style="background: #1e293b; color: white;">
+                <div class="card-header bg-transparent border-secondary py-3">
+                    <h5 class="fw-bold mb-0 text-warning"><i class="fa-solid fa-lightbulb me-2"></i>Recommended Executive Actions</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush bg-transparent">
+                        {% for action in exec_data.executive_summary.recommended_actions %}
+                        <li class="list-group-item bg-transparent text-white border-secondary py-3">
+                            <i class="fa-solid fa-circle-right text-warning me-2"></i> {{ action }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistical Anomalies Section -->
+    {% if exec_data.anomalies %}
+    <div class="card border-0 shadow-sm mb-4" style="background: #1e293b; color: white;">
+        <div class="card-header bg-transparent border-secondary py-3">
+            <h5 class="fw-bold mb-0 text-warning"><i class="fa-solid fa-bolt me-2"></i>Statistical Outliers & Anomalies</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0 align-middle">
+                    <thead>
+                        <tr class="text-white-50 text-uppercase small" style="background: #0f172a;">
+                            <th>Column</th>
+                            <th>Anomaly Type</th>
+                            <th>Severity</th>
+                            <th>Impact Count</th>
+                            <th>Max Value</th>
+                            <th>Detailed Explanation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for anomaly in exec_data.anomalies %}
+                        <tr>
+                            <td><code>{{ anomaly.column }}</code></td>
+                            <td class="fw-bold text-warning">{{ anomaly.type }}</td>
+                            <td>
+                                {% if anomaly.severity == 'High' %}
+                                <span class="badge bg-danger">High</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Medium</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-secondary">{{ anomaly.count }}</span></td>
+                            <td><strong class="text-info">{{ "{:,.2f}".format(anomaly.max_anomaly_value) }}</strong></td>
+                            <td class="small text-white-50">{{ anomaly.description }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

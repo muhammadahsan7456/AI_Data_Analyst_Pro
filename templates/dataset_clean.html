@@ -8,7 +8,7 @@
 <div class="table-card" style="max-width: 800px; margin-bottom: 32px;">
     <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">🧹 Data Cleaning Configuration</h3>
     
-    <form method="POST" action="{{ url_for('frontend.clean_dataset_view', dataset_id=dataset[0]) }}">
+    <form method="POST" action="{{ url_for('frontend.clean_dataset_view', dataset_id=dataset[0]) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="margin-bottom: 20px;">
             <label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
                 <input type="checkbox" name="remove_duplicates" checked style="width: 18px; height: 18px;">

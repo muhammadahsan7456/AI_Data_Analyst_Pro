@@ -5,7 +5,6 @@ type validity, outliers, and generates categorized issues (Critical, Warning, Su
 """
 
 import pandas as pd
-import numpy as np
 from database.connection import run_query, sanitize_identifier
 
 
@@ -40,7 +39,12 @@ def analyze_dataset_quality(table_name: str) -> dict:
         }
     """
     safe_tbl = sanitize_identifier(table_name)
-    df = run_query(f"SELECT * FROM {safe_tbl};")
+    # An unbounded SELECT * against a dataset with hundreds of thousands of rows pulls the
+    # whole table into a pandas DataFrame before any analysis even starts, which can take
+    # minutes (or exhaust memory) for the app's larger uploads. Capping at 100k rows keeps
+    # the health score statistically meaningful while keeping this page fast for every
+    # dataset size actually seen in practice.
+    df = run_query(f"SELECT TOP 100000 * FROM {safe_tbl};")
 
     if df is None or df.empty:
         return {

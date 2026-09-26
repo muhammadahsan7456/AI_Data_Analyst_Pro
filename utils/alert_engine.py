@@ -11,38 +11,41 @@ from database.queries import (
 )
 from auth.email_service import email_service
 from ai.data_quality import analyze_dataset_quality
+from utils.logger import log_event
 
 
 def evaluate_alert_rules_batch() -> list:
     """
     Evaluate all active user alert rules across uploaded dataset tables.
     Returns list of triggered alert event summaries.
+    Each rule is evaluated in its own try/except so a failure on one user's rule
+    (bad table, missing column, transient DB error, etc.) is logged and skipped
+    without stopping evaluation of every other user's alert rules.
     """
     triggered_events = []
 
     try:
-        rules = []
+        with get_db_cursor() as cursor:
+            cursor.execute(get_active_alert_rules())
+            rules = cursor.fetchall()
+    except Exception as err:
+        log_event("Alert Logs", f"Could not load active alert rules: {err}", level="ERROR")
+        return triggered_events
+
+    if not rules:
+        return triggered_events
+
+    for rule in rules:
+        alert_id = rule[0]
+        user_id = rule[1]
+        ds_name = rule[3]
+        tbl_name = rule[4]
+        metric_name = rule[5].strip()
+        op = rule[6].strip()
+        threshold = float(rule[7])
+        recipient_email = rule[8]
+
         try:
-            with get_db_cursor() as cursor:
-                cursor.execute(get_active_alert_rules())
-                rules = cursor.fetchall()
-        except Exception:
-            return triggered_events
-
-        if not rules:
-            return triggered_events
-
-        for rule in rules:
-            alert_id = rule[0]
-            user_id = rule[1]
-            dataset_id = rule[2]
-            ds_name = rule[3]
-            tbl_name = rule[4]
-            metric_name = rule[5].strip()
-            op = rule[6].strip()
-            threshold = float(rule[7])
-            recipient_email = rule[8]
-
             safe_tbl = sanitize_identifier(tbl_name)
 
             # Compute metric value based on metric type
@@ -72,13 +75,10 @@ def evaluate_alert_rules_batch() -> list:
 
             else:
                 # Custom column numerical metric (e.g. Sales, Amount)
-                try:
-                    safe_col = sanitize_identifier(metric_name)
-                    avg_df = run_query(f"SELECT AVG(CAST({safe_col} AS FLOAT)) AS [Val] FROM {safe_tbl};")
-                    if not avg_df.empty and avg_df.iloc[0]["Val"] is not None:
-                        current_value = float(avg_df.iloc[0]["Val"])
-                except Exception:
-                    continue
+                safe_col = sanitize_identifier(metric_name)
+                avg_df = run_query(f"SELECT AVG(CAST({safe_col} AS FLOAT)) AS [Val] FROM {safe_tbl};")
+                if not avg_df.empty and avg_df.iloc[0]["Val"] is not None:
+                    current_value = float(avg_df.iloc[0]["Val"])
 
             # Evaluate condition operator (<, >, <=, >=, ==)
             is_breached = False
@@ -124,7 +124,13 @@ def evaluate_alert_rules_batch() -> list:
                     "value": current_value
                 })
 
-    except Exception:
-        pass
+        except Exception as rule_err:
+            log_event(
+                "Alert Logs",
+                f"Alert #{alert_id} (dataset '{ds_name}') failed to evaluate and was skipped: {rule_err}",
+                user_id=user_id,
+                level="ERROR"
+            )
+            continue
 
     return triggered_events

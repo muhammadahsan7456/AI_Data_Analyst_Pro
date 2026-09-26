@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('frontend.settings_enterprise') }}">
+    <form method="POST" action="{{ url_for('frontend.settings_enterprise') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <!-- Privacy & AI Guard Settings -->
         <div class="table-card" style="margin-bottom: 24px;">

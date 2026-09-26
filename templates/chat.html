@@ -6,13 +6,18 @@
 
 {% block content %}
 
+<!-- Plotly Interactive Visualization Engine CDN - loaded unconditionally on this page
+     (the only page that renders charts) so it's warm and ready before the first query,
+     rather than every other page in the app paying for it. -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
 <!-- Hidden speech text container for Voice Synthesis -->
 {% if tts_speech %}
 <div id="ai-speech-text" data-speech="{{ tts_speech }}" style="display: none;"></div>
 {% endif %}
 
 <div class="table-card glass-card">
-    <form method="POST" action="{{ url_for('frontend.chat') }}" id="chat-form">
+    <form method="POST" action="{{ url_for('frontend.chat') }}" id="chat-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <!-- Dataset Selector & Multi-Dataset Hub Bar -->
         {% if user_datasets %}
@@ -68,15 +73,24 @@
         <textarea name="question" id="question-input" rows="3" required placeholder="Speak or type (e.g. 'Show top 10 customers', 'Sort descending', 'Highest revenue', 'Generate chart')..." style="width: 100%; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 15px; outline: none; margin-bottom: 16px;">{% if question %}{{ question }}{% endif %}</textarea>
 
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Show top 10 customers'">Top 10 customers</span>
-                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Show correlation'">Correlation</span>
-                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Show duplicates'">Show duplicates</span>
-                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Clean missing values'">Clean missing</span>
-                <span class="badge badge-info" style="cursor: pointer;" onclick="document.getElementById('question-input').value='Generate chart'">Generate chart</span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-right: 4px;">⚡ Smart Dataset Suggestions:</span>
+                {% if dynamic_suggestions %}
+                    {% for label, prompt_text in dynamic_suggestions %}
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" onclick="submitSuggestedQuery('{{ prompt_text }}')" title="{{ prompt_text }}">
+                        {{ label }}
+                    </span>
+                    {% endfor %}
+                {% else %}
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Delivered orders vs return orders breakdown')">🚚 Delivered vs Return</span>
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Lahore return orders by area')">📍 Lahore Returns</span>
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Sub area neighborhood breakdown')">🏙️ Sub-Area Breakdown</span>
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show top 10 destination cities by order count')">📦 Top Destination Cities</span>
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show dataset distribution breakdown')">📊 Auto Chart</span>
+                {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary" {% if not user_datasets %}disabled{% endif %} onclick="showLoading('Executing Voice AI query locally...')">
+            <button type="submit" class="btn btn-primary" {% if not user_datasets %}disabled{% endif %} onclick="showLoading('Executing Voice AI query locally...'); setTimeout(function(){ hideLoading(); }, 12000);">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Assistant
             </button>
         </div>
@@ -85,6 +99,20 @@
 
 <div id="chat-results-container">
 {% if question %}
+<!-- Applied Filters Badges -->
+{% if applied_filters %}
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+    <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+        <i class="fa-solid fa-filter" style="color: var(--accent-blue);"></i> Applied Filters:
+    </span>
+    {% for flt in applied_filters %}
+    <span class="badge badge-info filter-chip" title="{{ flt }}">
+        <i class="fa-solid fa-circle-check"></i> <span class="filter-chip-text">{{ flt }}</span>
+    </span>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- Performance & Confidence Bar -->
 <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
     {% if execution_time_ms is defined and execution_time_ms is not none %}
@@ -173,45 +201,62 @@
 </div>
 {% endif %}
 
-{% if chart %}
-<!-- Script CDN for Plotly Interactive HTML5 Canvas Charts -->
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-
+{% if chart or chart_spec %}
 <!-- Enhanced Generated Chart Section with User-Controlled Controls -->
 <div class="table-card glass-card" style="border-top: 4px solid var(--accent-purple); background: var(--bg-surface); padding: 24px; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); margin-top: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
         <h3 style="font-size: 18px; font-weight: 800; color: var(--accent-purple); display: flex; align-items: center; gap: 10px; margin: 0;">
             <i class="fa-solid fa-chart-column" style="font-size: 20px;"></i> Executive AI Interactive Analytics & Chart Visualization
         </h3>
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <!-- User-Controlled Chart Selection Dropdown (Interactive Hover Tooltips) -->
-            <div style="display: flex; gap: 8px; align-items: center; background: var(--bg-primary); padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <label style="font-weight: 700; font-size: 12px; color: var(--accent-blue); margin: 0;">📊 Interactive Chart Mode:</label>
-                <select id="chart-selector-control" onchange="toggleChartDisplayMode(this.value)" style="padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 12px; font-weight: 700;">
-                    <option value="auto">Auto Interactive</option>
-                    <option value="bar">Bar Chart</option>
-                    <option value="horizontal_bar">Horizontal Bar</option>
-                    <option value="line">Line Chart</option>
-                    <option value="area">Area Chart</option>
-                    <option value="pie">Pie Chart</option>
-                    <option value="donut">Donut Chart</option>
-                    <option value="scatter">Scatter Plot</option>
-                    <option value="heatmap">Heatmap</option>
-                    <option value="static">High-Res PNG View</option>
-                </select>
-            </div>
-
             <span class="badge badge-success" style="font-size: 11px; padding: 6px 12px; background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Hover Data Active
             </span>
-            <a href="{{ url_for('frontend.static', filename=chart) }}" download="AI_Chart_Analysis.png" class="btn btn-secondary btn-sm" style="font-size: 12px; font-weight: 700; padding: 6px 14px;">
+            <a href="{{ url_for('frontend.download_chart') }}" class="btn btn-secondary btn-sm" style="font-size: 12px; font-weight: 700; padding: 6px 14px;">
                 <i class="fa-solid fa-download"></i> Download HD Chart
             </a>
         </div>
     </div>
 
+    <!-- Visual Tableau-Grade Clickable Chart Type Switcher Bar -->
+    <div class="chart-type-switcher-bar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 14px; background: var(--bg-primary); border-radius: 12px; border: 1px solid var(--border-color); align-items: center;">
+        <span style="font-size: 12px; font-weight: 800; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-sliders"></i> Switch Chart Format:
+        </span>
+        <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--accent-blue); background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+            🍕 Pie Chart (Gol)
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="donut" onclick="selectVisualChartMode('donut', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            🍩 Donut Ring
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="bar" onclick="selectVisualChartMode('bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            📊 Vertical Bar
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="horizontal_bar" onclick="selectVisualChartMode('horizontal_bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            📈 Horizontal Bar
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="line" onclick="selectVisualChartMode('line', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            📉 Line Chart (Trend)
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="area" onclick="selectVisualChartMode('area', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            🌊 Area Chart
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="scatter" onclick="selectVisualChartMode('scatter', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            🎯 Scatter Plot
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="heatmap" onclick="selectVisualChartMode('heatmap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            🔥 Heatmap
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="treemap" onclick="selectVisualChartMode('treemap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            🧱 Treemap
+        </button>
+        <button type="button" class="chart-mode-btn" data-mode="funnel" onclick="selectVisualChartMode('funnel', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            🔻 Funnel Flow
+        </button>
+    </div>
+
     <!-- 1. Interactive Plotly Canvas Container (Real Hover Tooltips, Zoom, Pan, Values) -->
-    <div style="background: #0b0f19; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
+    <div style="background: var(--bg-primary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: inset 0 2px 10px rgba(0,0,0,0.15);">
         <div id="interactive-plotly-chart" style="width: 100%; height: 460px; min-height: 400px; display: block;"></div>
         <!-- Fallback Static PNG Image (Hidden by default when interactive canvas renders) -->
         <img id="static-chart-image" src="{{ url_for('frontend.static', filename=chart) }}" alt="Executive AI Chart Analysis" style="max-width: 100%; height: auto; border-radius: var(--radius-md); display: none; box-shadow: 0 8px 25px rgba(0,0,0,0.4);">
@@ -277,6 +322,21 @@
 </div>
 
 <script>
+function submitSuggestedQuery(text) {
+    const input = document.getElementById("question-input");
+    if (!input) return;
+    input.value = text;
+    if (window.executeVoiceQueryAJAX) {
+        window.executeVoiceQueryAJAX(text);
+    } else {
+        const form = input.closest("form");
+        if (form) {
+            showLoading("Executing query: '" + text + "'...");
+            form.submit();
+        }
+    }
+}
+
 function setMultiPrompt(text) {
     document.getElementById("multi-query-input").value = text;
 }
@@ -299,6 +359,7 @@ function runMultiDatasetAnalysis() {
 
     resBox.style.display = "block";
     resBox.innerHTML = "<div class='badge badge-info'>Running cross dataset query...</div>";
+    if (window.showLoading) window.showLoading("Running cross-dataset AI analysis...");
 
     fetch("/api/multi-dataset/analyze", {
         method: "POST",
@@ -307,6 +368,7 @@ function runMultiDatasetAnalysis() {
     })
     .then(r => r.json())
     .then(data => {
+        if (window.hideLoading) window.hideLoading();
         if (data.success) {
             resBox.innerHTML = `
                 <div style="margin-bottom: 12px; color: var(--accent-green); font-weight: bold;">✅ ${data.explanation}</div>
@@ -317,78 +379,193 @@ function runMultiDatasetAnalysis() {
         }
     })
     .catch(err => {
+        if (window.hideLoading) window.hideLoading();
         resBox.innerHTML = `<div style="color: var(--accent-red);">❌ Server Error: ${err}</div>`;
     });
 }
+</script>
 
+<script id="chart-spec-json" type="application/json">
+{{ (chart_spec or {})|tojson|safe }}
+</script>
+
+<script>
 // ==========================================
 // INTERACTIVE PLOTLY HOVER CHART RENDERER
 // ==========================================
-let currentChartSpec = {{ chart_spec|tojson if chart_spec else '{}' }};
+window.currentChartSpec = window.currentChartSpec || {};
+try {
+    const rawSpec = document.getElementById("chart-spec-json");
+    if (rawSpec && rawSpec.textContent.trim()) {
+        window.currentChartSpec = JSON.parse(rawSpec.textContent);
+    }
+} catch (e) {
+    window.currentChartSpec = window.currentChartSpec || {};
+}
+let currentChartSpec = window.currentChartSpec;
 
 function renderInteractivePlotlyChart(spec, targetMode) {
     if (!spec || !spec.labels || spec.labels.length === 0) return;
 
+    if (typeof Plotly === "undefined") {
+        if (!window._loadingPlotlyScript) {
+            window._loadingPlotlyScript = true;
+            const script = document.createElement("script");
+            script.src = "https://cdn.plot.ly/plotly-2.27.0.min.js";
+            script.onload = function() {
+                window._loadingPlotlyScript = false;
+                renderInteractivePlotlyChart(spec, targetMode);
+            };
+            document.head.appendChild(script);
+        } else {
+            setTimeout(function() { renderInteractivePlotlyChart(spec, targetMode); }, 150);
+        }
+        return;
+    }
+
     const container = document.getElementById("interactive-plotly-chart");
+    const staticImg = document.getElementById("static-chart-image");
     if (!container) return;
 
     const mode = targetMode || spec.chart_type || "bar";
+
+    if (mode === "static") {
+        container.style.display = "none";
+        if (staticImg) staticImg.style.display = "block";
+        return;
+    } else {
+        container.style.display = "block";
+        if (staticImg) staticImg.style.display = "none";
+    }
+
+    // The chart canvas background is theme-aware (var(--bg-primary) in the HTML wrapper),
+    // but Plotly renders to a <canvas>/SVG that can't read CSS variables itself - its own
+    // paper/plot background and every text/gridline color has to be handed real hex values
+    // that match whichever theme is active right now, or axis labels and titles chosen for
+    // a dark canvas (light gray/white) would go unreadable the moment the canvas turns
+    // white in light mode.
+    const isDarkTheme = (document.documentElement.getAttribute("data-theme") || "dark") === "dark";
+    const chartTheme = isDarkTheme ? {
+        paper: "#0b0f19", plot: "#0b0f19", titleFont: "#f8fafc",
+        axisTitle: "#94a3b8", axisTick: "#cbd5e1", grid: "#1e293b", zeroline: "#334155",
+        legend: "#cbd5e1", barText: "#38bdf8", barLine: "rgba(255,255,255,0.2)",
+        sliceLine: "#0b0f19", scatterText: "#ffffff"
+    } : {
+        paper: "#f8fafc", plot: "#f8fafc", titleFont: "#0f172a",
+        axisTitle: "#334155", axisTick: "#1e293b", grid: "#e2e8f0", zeroline: "#cbd5e1",
+        legend: "#1e293b", barText: "#1d4ed8", barLine: "rgba(15,23,42,0.15)",
+        sliceLine: "#f8fafc", scatterText: "#0f172a"
+    };
+
     const labels = spec.labels;
     const values = spec.values;
-    const colors = ["#38bdf8", "#a855f7", "#34d399", "#fbbf24", "#f43f5e", "#818cf8", "#2dd4bf", "#4ade80", "#e879f9", "#38bdf8"];
+    // A rich, distinct palette so charts stay visually engaging even with many categories.
+    // Indexed with modulo everywhere it's used (colorAt()) so it cycles cleanly instead of
+    // running out and leaving later bars/slices with no color (which Plotly renders black).
+    const colors = [
+        "#38bdf8", "#a855f7", "#34d399", "#fbbf24", "#f43f5e",
+        "#818cf8", "#2dd4bf", "#4ade80", "#e879f9", "#fb923c",
+        "#60a5fa", "#c084fc", "#22d3ee", "#facc15", "#f87171",
+        "#a3e635", "#f472b6", "#2dd4bf", "#93c5fd", "#fdba74"
+    ];
+    function colorAt(i) { return colors[i % colors.length]; }
+    function colorsFor(n) { return Array.from({ length: n }, (_, i) => colorAt(i)); }
+
+    // Turn raw column names like "Order_Status" / "cod_value" into readable labels
+    // ("Order Status" / "Cod Value") for titles and axis titles, without touching the data.
+    function humanizeLabel(raw) {
+        if (!raw) return "";
+        return String(raw)
+            .replace(/_/g, " ")
+            .split(" ")
+            .filter(Boolean)
+            .map(w => w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(" ");
+    }
+
+    // Percentage-type metrics (column name contains "percent"/"pct"/"rate"/"%") get a
+    // literal "%" appended after the number instead of a bare number, so e.g. a
+    // return-rate chart reads "12.5%" not "12.5". The "%" must sit OUTSIDE the {}
+    // format spec - these values (e.g. 12.5) are already 0-100 scaled, so d3-format's
+    // own "%" type (which multiplies by 100) would be wrong here.
+    const yColRaw = (spec.y_col || "");
+    const isPercentMetric = /percent|pct|%|\brate\b/i.test(yColRaw);
+    const valueTickFormat = isPercentMetric ? "%{y:,.1f}%" : "%{y:,.1f}";
+    const valueTickFormatX = isPercentMetric ? "%{x:,.1f}%" : "%{x:,.1f}";
+    const hoverNumFormat = isPercentMetric ? ",.1f" : ",.2f";
+    const hoverSuffix = isPercentMetric ? "%" : "";
+
+    const humanTitle = spec.title ? humanizeLabel(spec.y_col) + " by " + humanizeLabel(spec.x_col) : "Interactive Data Analytics";
+    const humanXCol = humanizeLabel(mode === "horizontal_bar" ? spec.y_col : spec.x_col);
+    const humanYCol = humanizeLabel(mode === "horizontal_bar" ? spec.x_col : spec.y_col);
 
     let plotlyData = [];
 
     const layout = {
         title: {
-            text: spec.title || "Interactive Data Analytics",
-            font: { color: "#f8fafc", size: 16, family: "Segoe UI, sans-serif" }
+            text: (spec.x_col && spec.y_col) ? humanTitle : (spec.title || "Interactive Data Analytics"),
+            font: { color: chartTheme.titleFont, size: 16, family: "Segoe UI, sans-serif" }
         },
-        paper_bgcolor: "#0b0f19",
-        plot_bgcolor: "#0b0f19",
-        margin: { l: 60, r: 30, t: 50, b: 60 },
+        paper_bgcolor: chartTheme.paper,
+        plot_bgcolor: chartTheme.plot,
+        margin: mode === "horizontal_bar" ? { l: 120, r: 40, t: 50, b: 50 } : { l: 60, r: 30, t: 50, b: (labels && labels.length > 10 ? 90 : 60) },
         hoverlabel: {
             bgcolor: "#1e293b",
             bordercolor: "#38bdf8",
             font: { color: "#ffffff", size: 13, family: "Segoe UI" }
         },
         xaxis: {
-            title: { text: spec.x_col || "", font: { color: "#94a3b8", size: 12 } },
-            tickfont: { color: "#cbd5e1", size: 11 },
-            gridcolor: "#1e293b",
-            zerolinecolor: "#334155"
+            title: { text: humanXCol, font: { color: chartTheme.axisTitle, size: 12 } },
+            tickfont: { color: chartTheme.axisTick, size: 11 },
+            tickangle: (mode !== "horizontal_bar" && labels && labels.length > 10) ? -45 : 0,
+            gridcolor: chartTheme.grid,
+            zerolinecolor: chartTheme.zeroline
         },
         yaxis: {
-            title: { text: spec.y_col || "", font: { color: "#94a3b8", size: 12 } },
-            tickfont: { color: "#cbd5e1", size: 11 },
-            gridcolor: "#1e293b",
-            zerolinecolor: "#334155"
+            title: { text: humanYCol, font: { color: chartTheme.axisTitle, size: 12 } },
+            tickfont: { color: chartTheme.axisTick, size: 11 },
+            autorange: mode === "horizontal_bar" ? "reversed" : true,
+            gridcolor: chartTheme.grid,
+            zerolinecolor: chartTheme.zeroline
         },
-        legend: { font: { color: "#cbd5e1" } },
+        legend: { font: { color: chartTheme.legend } },
         autosize: true
     };
+    if (mode === "horizontal_bar" && labels && labels.length > 15) {
+        layout.height = Math.max(480, labels.length * 24);
+    }
 
     if (mode === "pie" || mode === "donut") {
+        // Pull the single largest slice out slightly - a common "explode" touch that
+        // draws the eye to the standout category instead of a flat, static wheel.
+        const maxVal = Math.max(...values);
+        const pull = values.map(v => v === maxVal ? 0.06 : 0);
         plotlyData = [{
             labels: labels,
             values: values,
             type: "pie",
             hole: mode === "donut" ? 0.45 : 0,
-            marker: { colors: colors },
-            textinfo: "label+percent",
-            hoverinfo: "label+value+percent",
-            textfont: { color: "#ffffff" }
+            pull: pull,
+            marker: { colors: colorsFor(labels.length), line: { color: chartTheme.sliceLine, width: 2 } },
+            textinfo: "label+value+percent",
+            hovertemplate: "<b>%{label}</b><br>Value: <b>%{value:,.2f}</b><br>Percentage: <b>%{percent}</b><extra></extra>",
+            textfont: { color: "#ffffff", size: 12 }
         }];
     } else if (mode === "line" || mode === "area") {
         plotlyData = [{
             x: labels,
             y: values,
             type: "scatter",
-            mode: "lines+markers",
+            mode: labels && labels.length <= 35 ? "lines+markers+text" : "lines+markers",
+            text: values,
+            textposition: "top center",
+            texttemplate: valueTickFormat,
+            textfont: { color: chartTheme.barText, size: 10 },
             fill: mode === "area" ? "tozeroy" : "none",
             fillcolor: mode === "area" ? "rgba(56, 189, 248, 0.2)" : undefined,
             line: { color: "#38bdf8", width: 3, shape: "spline" },
-            marker: { color: "#a855f7", size: 8 }
+            marker: { color: "#a855f7", size: 8 },
+            hovertemplate: "<b>%{x}</b><br>" + (humanYCol || "Value") + ": <b>%{y:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>"
         }];
     } else if (mode === "horizontal_bar") {
         plotlyData = [{
@@ -396,23 +573,34 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             x: values,
             type: "bar",
             orientation: "h",
+            text: values,
+            textposition: "outside",
+            texttemplate: valueTickFormatX,
+            textfont: { color: chartTheme.barText, size: 10 },
             marker: {
-                color: colors.slice(0, values.length),
-                line: { color: "rgba(255,255,255,0.2)", width: 1 }
-            }
+                color: colorsFor(values.length),
+                line: { color: chartTheme.barLine, width: 1 },
+                cornerradius: 6
+            },
+            hovertemplate: "<b>%{y}</b><br>" + (humanXCol || "Value") + ": <b>%{x:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>"
         }];
     } else if (mode === "scatter") {
         plotlyData = [{
             x: labels,
             y: values,
             type: "scatter",
-            mode: "markers",
+            mode: "markers+text",
+            text: values,
+            textposition: "top center",
+            texttemplate: valueTickFormat,
+            textfont: { color: chartTheme.scatterText, size: 10 },
             marker: {
                 color: values,
                 colorscale: "Viridis",
                 size: 12,
                 showscale: true
-            }
+            },
+            hovertemplate: "<b>Category:</b> %{x}<br><b>" + (humanYCol || "Metric") + ":</b> %{y:" + hoverNumFormat + "}" + hoverSuffix + "<extra></extra>"
         }];
     } else if (mode === "heatmap" && spec.matrix && spec.matrix.length > 0) {
         plotlyData = [{
@@ -420,25 +608,128 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             x: spec.matrix_cols,
             y: spec.matrix_cols,
             type: "heatmap",
-            colorscale: "Viridis"
+            colorscale: "Viridis",
+            hovertemplate: "<b>Col 1:</b> %{x}<br><b>Col 2:</b> %{y}<br><b>Correlation:</b> %{z:.2f}<extra></extra>"
+        }];
+    } else if (mode === "heatmap") {
+        // No real correlation matrix (needs 2+ numeric columns) - most category/value
+        // results only have one metric, so build a single-row color-intensity strip
+        // instead of just refusing to render anything for this mode.
+        plotlyData = [{
+            z: [values],
+            x: labels,
+            y: [humanYCol || "Value"],
+            type: "heatmap",
+            colorscale: "Viridis",
+            hovertemplate: "<b>%{x}</b><br>" + (humanYCol || "Value") + ": <b>%{z:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>",
+            showscale: true
+        }];
+        layout.height = 260;
+    } else if (mode === "treemap") {
+        plotlyData = [{
+            type: "treemap",
+            labels: labels,
+            parents: labels.map(() => ""),
+            values: values,
+            textinfo: "label+value+percent entry",
+            marker: { colors: colorsFor(labels.length), line: { color: chartTheme.sliceLine, width: 1 } },
+            hovertemplate: "<b>%{label}</b><br>Value / Count: <b>%{value:,.2f}</b><extra></extra>"
+        }];
+    } else if (mode === "funnel") {
+        plotlyData = [{
+            type: "funnel",
+            y: labels,
+            x: values,
+            textinfo: "value+percent initial",
+            marker: { colors: colorsFor(labels.length) },
+            hovertemplate: "<b>%{y}</b><br>Stage Count: <b>%{x:,.2f}</b><extra></extra>"
         }];
     } else {
-        // Default Bar Chart
+        // Default Bar Chart - format each bar individually rather than one shared
+        // number format. A single-row aggregate summary (e.g. Matching_Orders /
+        // Total_Orders / Percentage all as separate bars) mixes counts and percentages
+        // with no single y_col to key a global format off of, so each bar's own label
+        // decides whether it displays as "70.0%" or a plain "7".
+        const perBarText = labels.map((lbl, i) => {
+            const v = Number(values[i]) || 0;
+            const rounded = v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            return /percent|pct|%|\brate\b/i.test(String(lbl)) ? (rounded + "%") : rounded;
+        });
         plotlyData = [{
             x: labels,
             y: values,
             type: "bar",
+            text: perBarText,
+            textposition: "outside",
+            textfont: { color: chartTheme.barText, size: 10 },
             marker: {
-                color: colors.slice(0, values.length),
-                line: { color: "rgba(255,255,255,0.2)", width: 1 }
-            }
+                color: colorsFor(values.length),
+                line: { color: chartTheme.barLine, width: 1 },
+                cornerradius: 6
+            },
+            hovertext: perBarText,
+            hovertemplate: "<b>%{x}</b><br>Value: <b>%{hovertext}</b><extra></extra>"
         }];
     }
 
     const config = { responsive: true, displayModeBar: true, displaylogo: false };
     if (typeof Plotly !== "undefined") {
-        Plotly.newPlot("interactive-plotly-chart", plotlyData, layout, config);
+        // Plotly's own layout.transition only tweens data changes within the SAME trace
+        // type (e.g. a bar's height moving) - it can't animate between fundamentally
+        // different geometries like bar -> pie -> scatter, so it silently did nothing
+        // when switching chart formats. A plain CSS opacity fade works for every switch
+        // regardless of type, so it's used here instead for a real, visible transition.
+        container.style.transition = "opacity 0.2s ease";
+        container.style.opacity = "0.2";
+        setTimeout(function () {
+            Plotly.react("interactive-plotly-chart", plotlyData, layout, config);
+            container.style.opacity = "1";
+        }, 160);
     }
+}
+
+function isChartModeCompatible(mode, comp) {
+    if (mode === "auto" || mode === "static") return true;
+    return comp.includes(mode) ||
+        (mode === "donut" && comp.includes("pie")) ||
+        (mode === "horizontal_bar" && comp.includes("bar"));
+}
+
+function updateCompatibleChartDropdown(spec) {
+    const selector = document.getElementById("chart-selector-control");
+    if (!spec || !selector) return;
+    const comp = spec.compatible_types || ["auto", "bar", "line", "pie"];
+
+    // Scoped to the <select> only: it also lists modes like "table"/"histogram"/
+    // "boxplot" that have no dedicated renderer here, so those genuinely need gating.
+    // The pill buttons below all now have a real renderer for any labels+values result
+    // (Heatmap falls back to a single-row intensity strip, Scatter never needed a
+    // correlation matrix to begin with), so every pill stays clickable.
+    Array.from(selector.options).forEach(opt => {
+        opt.disabled = !isChartModeCompatible(opt.value, comp);
+    });
+    if (spec.chart_type && comp.includes(spec.chart_type)) {
+        selector.value = spec.chart_type;
+    }
+}
+
+function selectVisualChartMode(mode, btn) {
+    if (btn && btn.disabled) return;
+    document.querySelectorAll(".chart-mode-btn").forEach(b => {
+        if (!b.disabled) {
+            b.style.background = "var(--bg-surface)";
+            b.style.color = "var(--text-secondary)";
+            b.style.borderColor = "var(--border-color)";
+        }
+        b.classList.remove("active");
+    });
+    if (btn) {
+        btn.style.background = "linear-gradient(135deg, #2563eb, #7c3aed)";
+        btn.style.color = "#ffffff";
+        btn.style.borderColor = "var(--accent-blue)";
+        btn.classList.add("active");
+    }
+    toggleChartDisplayMode(mode);
 }
 
 function toggleChartDisplayMode(mode) {
@@ -452,17 +743,46 @@ function toggleChartDisplayMode(mode) {
         if (staticImg) staticImg.style.display = "none";
         if (plotlyContainer) {
             plotlyContainer.style.display = "block";
-            renderInteractivePlotlyChart(currentChartSpec, mode);
+            const liveSpec = (window.currentChartSpec && window.currentChartSpec.labels && window.currentChartSpec.labels.length > 0) ? window.currentChartSpec : currentChartSpec;
+            renderInteractivePlotlyChart(liveSpec, mode);
         }
     }
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    const chatForm = document.getElementById("chat-form");
+    if (chatForm) {
+        chatForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const input = document.getElementById("question-input");
+            const question = input ? input.value.trim() : "";
+            if (question && window.executeVoiceQueryAJAX) {
+                window.executeVoiceQueryAJAX(question);
+            } else if (question) {
+                if (window.showLoading) window.showLoading("Executing query: '" + question + "'...");
+                chatForm.submit();
+            }
+        });
+    }
+
     if (currentChartSpec && currentChartSpec.labels && currentChartSpec.labels.length > 0) {
+        updateCompatibleChartDropdown(currentChartSpec);
         const staticImg = document.getElementById("static-chart-image");
         if (staticImg) staticImg.style.display = "none";
-        renderInteractivePlotlyChart(currentChartSpec, currentChartSpec.chart_type || "bar");
+        renderInteractivePlotlyChart(currentChartSpec, currentChartSpec.chart_type || "pie");
     }
+
+    // The chart's colors are baked in at render time (Plotly can't read CSS variables),
+    // so switching theme has to explicitly redraw the currently-displayed chart with the
+    // new palette - otherwise it's stuck showing whichever theme was active when it was
+    // first drawn until the next query.
+    window.addEventListener("websiteThemeChanged", function () {
+        const activeBtn = document.querySelector(".chart-mode-btn.active");
+        const activeMode = activeBtn ? activeBtn.dataset.mode : (currentChartSpec.chart_type || "pie");
+        if (currentChartSpec && currentChartSpec.labels && currentChartSpec.labels.length > 0) {
+            renderInteractivePlotlyChart(currentChartSpec, activeMode);
+        }
+    });
 });
 </script>
 {% endblock %}

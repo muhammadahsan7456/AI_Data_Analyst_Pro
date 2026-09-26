@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- Apply saved theme before first paint - prevents a flash/flip to the wrong theme -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem("theme") || localStorage.getItem("app-theme") || localStorage.getItem("website_theme");
+                if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+            } catch (e) {}
+        })();
+    </script>
+    <meta name="robots" content="index, follow">
+    {% block seo_meta %}
+    <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
+    <meta name="description" content="Transform enterprise datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. PKR 25,000/month all-inclusive enterprise plan with AES-256 encryption.">
+    <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics">
+    <link rel="canonical" href="{{ request.url }}">
+    {% endblock %}
+
+    <!-- Open Graph -->
+    {% block og_meta %}
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
+    <meta property="og:description" content="Sub-second AI data analysis, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
+    <meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
+    <meta property="og:site_name" content="AI Data Analyst Pro">
+    {% endblock %}
+
+    <!-- Twitter Card -->
+    {% block twitter_meta %}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI Data Analyst Pro — Enterprise AI Analytics">
+    <meta name="twitter:description" content="Transform datasets into instant insights with AI. Sub-second SQL, voice querying, and automated exports.">
+    <meta name="twitter:image" content="{{ request.url_root }}static/images/og-preview.png">
+    {% endblock %}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- Landing Page CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20260918_v2">
+
+    {% block extra_css %}{% endblock %}
+
+    <!-- Google AdSense (Replace ca-pub-XXXXXXXXXXXXXXXX with your Publisher ID) -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+
+    <!-- Schema.org JSON-LD -->
+    {% block schema_json %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "AI Data Analyst Pro",
+      "operatingSystem": "All (Web Based)",
+      "applicationCategory": "BusinessApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "25000.00",
+        "priceCurrency": "PKR"
+      },
+      "description": "Enterprise AI Data Analysis Platform processing 10M+ records with sub-second AI query responses, automated exports, and AES-256 encryption."
+    }
+    </script>
+    {% endblock %}
+</head>
+<body class="landing-body">
+
+    <!-- Animated Background Canvas -->
+    <canvas id="hero-3d-canvas" class="hero-bg-canvas"></canvas>
+
+    <!-- Glassmorphic Navbar -->
+    <header class="site-header" id="site-header">
+        <div class="container">
+            <nav class="nav-inner">
+                <a href="{{ url_for('frontend.home') }}" class="brand-logo" id="brand-logo">
+                    <div class="brand-icon-box">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <span>AI Analyst Pro</span>
+                </a>
+
+                <ul class="nav-links" id="nav-menu">
+                    <li><a href="{{ url_for('frontend.home') }}" class="nav-link-item {% if request.endpoint == 'frontend.home' %}active{% endif %}">Home</a></li>
+                    <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.features_page' %}active{% endif %}">Features</a></li>
+                    <li><a href="{{ url_for('frontend.demo_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.demo_page' %}active{% endif %}">Live Demo</a></li>
+                    <li><a href="{{ url_for('frontend.pricing_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.pricing_page' %}active{% endif %}">Pricing</a></li>
+                    <li><a href="{{ url_for('frontend.testimonials_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.testimonials_page' %}active{% endif %}">Reviews</a></li>
+                    <li><a href="{{ url_for('frontend.docs') }}" class="nav-link-item {% if request.endpoint == 'frontend.docs' %}active{% endif %}">Docs</a></li>
+                    <li><a href="{{ url_for('frontend.faq_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.faq_page' %}active{% endif %}">FAQ</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <button class="btn-theme-toggle" onclick="toggleWebsiteTheme()" title="Toggle Theme" id="btn-theme-toggle">
+                        <i class="fa-solid fa-moon" id="theme-toggle-icon"></i>
+                    </button>
+
+                    {% if is_logged_in %}
+                    <a href="{{ url_for('frontend.dashboard') }}" class="btn-nav-register" id="nav-dash-btn">
+                        <i class="fa-solid fa-gauge"></i> Dashboard
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn-nav-login" id="nav-login-btn">Sign In</a>
+                    <a href="{{ url_for('auth.register_payment') }}" class="btn-nav-register" id="nav-register-btn">Register Free</a>
+                    {% endif %}
+
+                    <button class="mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle Navigation">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Breadcrumb Navigation -->
+    {% block breadcrumb %}{% endblock %}
+
+    <!-- Main Content -->
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-banner-container">
+                {% for category, message in messages %}
+                <div class="flash-banner flash-banner-{{ 'error' if category in ['error', 'danger'] else category }}">
+                    <span>{% if category in ['error', 'danger'] %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
+                    <span>{{ message|safe }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- AdSense: Before Footer Banner -->
+    <div class="adsense-slot adsense-footer-banner">
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="FOOTER_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- Premium Footer -->
+    <!-- Premium Luxury Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand-col">
+                    <a href="{{ url_for('frontend.home') }}" class="footer-brand">
+                        <div class="brand-icon-box"><i class="fa-solid fa-brain"></i></div>
+                        <span>AI Analyst Pro</span>
+                    </a>
+                    <p class="footer-desc">Enterprise-grade AI data analysis platform with sub-second T-SQL intelligence, bilingual voice querying, and automated executive reports.</p>
+                    <div class="footer-enterprise-badge">
+                        <span class="pulse-dot"></span> Production-Ready v2.5 Enterprise
+                    </div>
+                    <div class="footer-social">
+                        <a href="https://www.linkedin.com" target="_blank" rel="noopener" class="footer-social-link" aria-label="LinkedIn" title="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                        <a href="https://github.com" target="_blank" rel="noopener" class="footer-social-link" aria-label="GitHub" title="GitHub"><i class="fa-brands fa-github"></i></a>
+                        <a href="https://wa.me/923053107456" target="_blank" rel="noopener" class="footer-social-link" aria-label="WhatsApp" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-links-col">
+                    <h4>Platform</h4>
+                    <ul>
+                        <li><a href="{{ url_for('frontend.features_page') }}"><i class="fa-solid fa-angle-right"></i> Features</a></li>
+                        <li><a href="{{ url_for('frontend.demo_page') }}"><i class="fa-solid fa-angle-right"></i> Live Demo</a></li>
+                        <li><a href="{{ url_for('frontend.pricing_page') }}"><i class="fa-solid fa-angle-right"></i> Pricing</a></li>
+                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> Security</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links-col">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="{{ url_for('frontend.docs') }}"><i class="fa-solid fa-angle-right"></i> Documentation</a></li>
+                        <li><a href="{{ url_for('frontend.help_center') }}"><i class="fa-solid fa-angle-right"></i> Help Center</a></li>
+                        <li><a href="{{ url_for('frontend.faq_page') }}"><i class="fa-solid fa-angle-right"></i> FAQ</a></li>
+                        <li><a href="{{ url_for('frontend.about') }}"><i class="fa-solid fa-angle-right"></i> About Us</a></li>
+                        <li><a href="{{ url_for('frontend.contact') }}"><i class="fa-solid fa-angle-right"></i> Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links-col">
+                    <h4>Legal & Trust</h4>
+                    <ul>
+                        <li><a href="{{ url_for('frontend.privacy') }}"><i class="fa-solid fa-angle-right"></i> Privacy Policy</a></li>
+                        <li><a href="{{ url_for('frontend.terms') }}"><i class="fa-solid fa-angle-right"></i> Terms of Service</a></li>
+                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> AES-256 Protocol</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-newsletter-col">
+                    <h4>Stay Updated</h4>
+                    <p>Get enterprise updates, new AI analytical features, and quarterly briefings.</p>
+                    <form class="footer-newsletter-form" onsubmit="handleSubscribe(event)">
+                        <input type="email" id="newsletter-email-input" placeholder="corporate@company.com" required autocomplete="email">
+                        <button type="submit" id="newsletter-submit-btn" title="Subscribe"><i class="fa-solid fa-paper-plane"></i></button>
+                    </form>
+                    <div id="newsletter-success-msg" class="newsletter-success" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2026 AI Data Analyst Pro. All rights reserved. Enterprise AI Intelligence Platform.</p>
+                <div class="footer-bottom-links">
+                    <a href="{{ url_for('frontend.privacy') }}">Privacy</a>
+                    <span class="footer-dot">•</span>
+                    <a href="{{ url_for('frontend.terms') }}">Terms</a>
+                    <span class="footer-dot">•</span>
+                    <a href="{{ url_for('frontend.security_overview') }}">Security</a>
+                    <span class="footer-dot">•</span>
+                    <a href="{{ url_for('frontend.contact') }}">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- CSRF token auto-attach for AJAX requests -->
+    <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
+    <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Vanilla Tilt -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <!-- Shared Animation Engine -->
+    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        function toggleMobileNav() {
+            document.getElementById('nav-menu').classList.toggle('mobile-open');
+        }
+        function handleSubscribe(e) {
+            e.preventDefault();
+            const btn = document.getElementById('newsletter-submit-btn');
+            const msg = document.getElementById('newsletter-success-msg');
+            const input = document.getElementById('newsletter-email-input');
+            if (!input || !input.value) return;
+            if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; btn.disabled = true; }
+            fetch("/subscribe-newsletter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: input.value.trim() }) })
+            .then(r => r.json()).then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    if (msg) { msg.style.color = ''; msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Subscribed! Check your inbox.'); msg.style.display = 'block'; }
+                    if (input) input.value = '';
+                    setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; btn.style.background = ''; }, 4000);
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                    if (msg) { msg.style.color = '#f87171'; msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + (data.message || 'Subscription failed. Please try again.'); msg.style.display = 'block'; }
+                }
+            }).catch(() => {
+                if (btn) { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; btn.disabled = false; }
+                if (msg) { msg.style.color = '#f87171'; msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error. Please try again.'; msg.style.display = 'block'; }
+            });
+        }
+        // Sticky header scroll effect
+        window.addEventListener('scroll', () => {
+            const h = document.getElementById('site-header');
+            if (h) h.classList.toggle('scrolled', window.scrollY > 60);
+        });
+    </script>
+</body>
+</html>

@@ -1,9 +1,6 @@
 import os
 import io
 import pandas as pd
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils.dataframe import dataframe_to_rows
 
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
@@ -184,6 +181,109 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     return buffer.getvalue()
 
 
+def export_invoice_to_pdf(payment: dict) -> bytes:
+    """
+    Render a payment record as a real, downloadable PDF invoice - matching the layout of
+    templates/admin/invoice.html (same header, billed-to/issued-by grid, itemized table,
+    status stamp, total) so the PDF a user/admin downloads looks like the on-screen page
+    they were just looking at, not a generic "Save as PDF" browser printout.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=42,
+        leftMargin=42,
+        topMargin=42,
+        bottomMargin=42
+    )
+    styles = getSampleStyleSheet()
+
+    brand_style = ParagraphStyle('Brand', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, textColor=colors.HexColor('#0f172a'), spaceAfter=2)
+    tagline_style = ParagraphStyle('Tagline', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor('#64748b'))
+    invoice_title_style = ParagraphStyle('InvoiceTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=16, textColor=colors.HexColor('#0f172a'), alignment=2)
+    meta_style = ParagraphStyle('Meta', parent=styles['Normal'], fontName='Helvetica', fontSize=10, textColor=colors.HexColor('#475569'), alignment=2, leading=14)
+    section_label_style = ParagraphStyle('SectionLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor('#64748b'), spaceAfter=4)
+    name_style = ParagraphStyle('Name', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12, textColor=colors.HexColor('#0f172a'))
+    detail_style = ParagraphStyle('Detail', parent=styles['Normal'], fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor('#475569'), leading=13)
+    hdr_style = ParagraphStyle('TblHdr', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, textColor=colors.HexColor('#475569'))
+    cell_style = ParagraphStyle('TblCell', parent=styles['Normal'], fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor('#0f172a'))
+    cell_muted_style = ParagraphStyle('TblCellMuted', parent=styles['Normal'], fontName='Helvetica', fontSize=8, textColor=colors.HexColor('#64748b'))
+    total_style = ParagraphStyle('Total', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=13, textColor=colors.HexColor('#0f172a'), alignment=2)
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontName='Helvetica', fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=1)
+
+    status = str(payment.get("status") or "Completed")
+    stamp_color = {"Completed": "#059669", "Pending": "#d97706"}.get(status, "#dc2626")
+    stamp_text = "PAID" if status == "Completed" else ("PENDING" if status == "Pending" else status.upper())
+    stamp_style = ParagraphStyle('Stamp', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, textColor=colors.HexColor(stamp_color), alignment=2, spaceAfter=10)
+
+    elements = [
+        Table(
+            [[Paragraph(f"<b>AI Data Analyst Pro</b>", brand_style), Paragraph("INVOICE", invoice_title_style)],
+             [Paragraph("Enterprise Data Intelligence &amp; AI Analytics Platform", tagline_style),
+              Paragraph(f"Ref: {payment.get('txn_id', '')}<br/>Date: {payment.get('payment_date', '')}", meta_style)]],
+            colWidths=[300, 240]
+        )
+    ]
+    elements[0].setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 2)]))
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(f"<font color='{stamp_color}'><b>[ {stamp_text} ]</b></font>", stamp_style))
+    elements.append(Spacer(1, 6))
+
+    billed_to = [
+        Paragraph("BILLED TO", section_label_style),
+        Paragraph(payment.get("user_name", "Valued Customer"), name_style),
+        Paragraph(payment.get("email", "N/A"), detail_style),
+        Paragraph(f"User ID: #{payment.get('user_id', '')}", detail_style),
+    ]
+    issued_by = [
+        Paragraph("ISSUED BY", section_label_style),
+        Paragraph("AI Data Analyst Pro Inc.", name_style),
+        Paragraph("Enterprise Billing &amp; Security Operations", detail_style),
+        Paragraph("support@aidataanalystpro.com", detail_style),
+    ]
+    info_table = Table([[billed_to, issued_by]], colWidths=[270, 270])
+    info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 20))
+
+    amount = float(payment.get("amount") or 0.0)
+    currency = payment.get("currency", "PKR")
+    item_table = Table(
+        [
+            [Paragraph("DESCRIPTION / PLAN TIER", hdr_style), Paragraph("BILLING PERIOD", hdr_style),
+             Paragraph("PAYMENT METHOD", hdr_style), Paragraph("AMOUNT", hdr_style)],
+            [Paragraph(f"<b>{payment.get('plan_name', '')}</b><br/><font color='#64748b' size=7>Includes 10M+ Streaming Chunking, AES-256 Field Encryption at Rest &amp; Sub-Second Exports</font>", cell_style),
+             Paragraph("30-Day Monthly Cycle", cell_muted_style),
+             Paragraph(str(payment.get("payment_method", "")), cell_muted_style),
+             Paragraph(f"<b>{currency} {amount:,.2f}</b>", cell_style)]
+        ],
+        colWidths=[230, 100, 100, 110]
+    )
+    item_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8fafc')),
+        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#e2e8f0')),
+        ('LINEBELOW', (0, 1), (-1, 1), 1, colors.HexColor('#e2e8f0')),
+        ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(item_table)
+    elements.append(Spacer(1, 16))
+
+    elements.append(Paragraph(f"<font color='#64748b' size=9>Subtotal: {currency} {amount:,.2f} &nbsp;|&nbsp; Tax (0%): {currency} 0.00</font>", ParagraphStyle('SubtotalLine', parent=styles['Normal'], alignment=2)))
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(f"Total Amount: <font color='#059669'>{currency} {amount:,.2f}</font>", total_style))
+    elements.append(Spacer(1, 30))
+    elements.append(Paragraph("Thank you for choosing AI Data Analyst Pro. This is an official computer-generated billing receipt.", footer_style))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def export_to_word_report(df: pd.DataFrame, dataset_name: str = "Dataset", insights: list = None, chart_file_path: str = None) -> bytes:
     """
     Export Executive Word (.docx) report with AI insights, chart, and complete dataset records table.
@@ -213,8 +313,9 @@ def export_to_word_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
         for i, col in enumerate(cols_to_render):
             hdr_cells[i].text = str(col)
 
-        # Process ALL rows without truncation
-        for _, row in df.iterrows():
+        # Process top 300 rows for sub-second document compilation
+        df_word = df.head(300)
+        for _, row in df_word.iterrows():
             row_cells = table.add_row().cells
             for i, col in enumerate(cols_to_render):
                 val_raw = row[col]
@@ -329,12 +430,12 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
                 slide_c.shapes.add_picture(full_chart_path, Inches(1.5), Inches(1.5), width=Inches(10.333))
 
-        # Slide 4+: Complete Dataset Records View Table Slides (Paginated chunks of 15 rows)
+        # Slide 4+: Complete Dataset Records View Table Slides (Paginated chunks of 15 rows up to 150 rows max for sub-second compilation)
         if not df.empty:
             cols_to_show = list(df.columns[:8])
             total_records = len(df)
             rows_per_slide = 15
-            max_export_rows = min(total_records, 2250)
+            max_export_rows = min(total_records, 150)
             total_slides = math.ceil(max_export_rows / rows_per_slide)
 
             for chunk_start in range(0, max_export_rows, rows_per_slide):

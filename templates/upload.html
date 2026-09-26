@@ -2,17 +2,17 @@
 
 {% block title %}Enterprise File Upload | AI Data Analyst Pro{% endblock %}
 {% block header_title %}Multi-Format Enterprise Data Uploader{% endblock %}
-{% block header_subtitle %}Upload single or multiple files (CSV, Excel, JSON, XML, TXT, TSV, Parquet, Feather) up to 500 MB with instant SQL table generation.{% endblock %}
+{% block header_subtitle %}Upload single or multiple files (CSV, Excel, JSON, XML, TXT, TSV, Parquet, Feather) up to {{ max_upload_mb or 500 }} MB with instant SQL table generation.{% endblock %}
 
 {% block content %}
 <div class="table-card" style="max-width: 850px; margin: 0 auto 32px auto;">
-    <form action="{{ url_for('frontend.upload') }}" method="POST" enctype="multipart/form-data" id="upload-form">
+    <form action="{{ url_for('frontend.upload') }}" method="POST" enctype="multipart/form-data" id="upload-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div id="drop-zone" class="glass-card" style="border: 2px dashed var(--accent-blue); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center; background-color: var(--bg-primary); cursor: pointer; transition: all 0.3s ease;">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size: 52px; color: var(--accent-blue); margin-bottom: 16px;"></i>
             <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Drag & Drop files here or click to browse</h3>
             <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
-                Supported formats: <strong>CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather</strong> (Up to <strong>500 MB</strong> per file)
+                Supported formats: <strong>CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather</strong> (Up to <strong>{{ max_upload_mb or 500 }} MB</strong> per file)
             </p>
             
             <input type="file" name="dataset" id="file-input" accept=".csv, .xlsx, .xls, .json, .xml, .txt, .tsv, .parquet, .feather" multiple style="display: none;">
@@ -60,19 +60,49 @@
         <div><strong>SQL Table Name:</strong> <code style="background: var(--bg-primary); padding: 4px 8px; border-radius: 4px;">{{ data.table_name }}</code></div>
         <div><strong>Original File:</strong> {{ data.file_name }}</div>
         <div><strong>File Type:</strong> <span class="badge badge-info">{{ data.file_type }}</span></div>
-        <div><strong>Rows Created:</strong> {{ "{:,}".format(data.rows) }}</div>
+        <div><strong>Rows Inserted:</strong> {{ "{:,}".format(data.rows) }}</div>
         <div><strong>Columns Detected:</strong> {{ data.columns }}</div>
     </div>
+    {% if data.failed_rows %}
+    <div style="margin-bottom: 24px; padding: 10px 14px; border-radius: 6px; background: rgba(251,191,36,0.12); border-left: 3px solid var(--accent-yellow, #fbbf24); font-size: 14px;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Parsed {{ "{:,}".format(data.parsed_rows) }} row(s) from the file, but {{ "{:,}".format(data.failed_rows) }} could not be inserted into the database and were skipped.
+    </div>
+    {% endif %}
 
-    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Dataset Sample Preview (Top 10 Rows)</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px dashed var(--border-color); flex-wrap: wrap; gap: 12px; width: 100%;">
+        <h3 style="font-size: 16px; font-weight: 700; margin: 0;"><i class="fa-solid fa-table"></i> Dataset Sample Preview</h3>
+        
+        <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-surface); padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-left: auto;">
+            <label style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0; white-space: nowrap;">Show</label>
+            <select onchange="updateUploadCardPageSize(this, '{{ data.dataset_id if data and data.dataset_id else 0 }}')" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; outline: none;">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+            </select>
+            <label style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0; white-space: nowrap;">entries</label>
+        </div>
+    </div>
+
     <div class="table-container">
         {{ data.preview|safe }}
     </div>
 
-    <div style="margin-top: 24px; display: flex; gap: 12px;">
+    <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+        {% if data.dataset_id %}
+        <a href="{{ url_for('frontend.view_dataset', dataset_id=data.dataset_id) }}" class="btn btn-info">
+            <i class="fa-solid fa-table-list"></i> Open Full Dataset Explorer
+        </a>
+        <a href="{{ url_for('frontend.chat') }}?dataset_id={{ data.dataset_id }}" class="btn btn-primary">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Questions
+        </a>
+        {% else %}
         <a href="{{ url_for('frontend.chat') }}" class="btn btn-primary">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Questions
         </a>
+        {% endif %}
         <a href="{{ url_for('frontend.dashboard') }}" class="btn btn-secondary">
             ⬅ Back to Dashboard
         </a>
@@ -91,11 +121,36 @@
 {% endif %}
 
 <script>
+function updateUploadCardPageSize(selectElem, datasetId) {
+    const chosen = selectElem.value;
+    if (chosen === "all" && datasetId) {
+        window.location.href = `/dataset/${datasetId}?per_page=all`;
+        return;
+    }
+    const card = selectElem.closest(".table-card");
+    if (!card) return;
+    const rows = card.querySelectorAll("tbody tr");
+    const limit = chosen === "all" ? rows.length : parseInt(chosen, 10);
+
+    rows.forEach((row, idx) => {
+        if (idx < limit) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
     const previewList = document.getElementById("file-list-preview");
     const form = document.getElementById("upload-form");
+
+    // Initialize initial 10-row client filter on loaded preview cards
+    document.querySelectorAll(".table-card select").forEach(selectElem => {
+        updateUploadCardPageSize(selectElem);
+    });
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, preventDefaults, false);
@@ -178,53 +233,35 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.append("dataset", files[i]);
         }
         const tagsInput = form.querySelector('[name="tags"]');
-        if (tagsInput) {
+        if (tagsInput && tagsInput.value) {
             formData.append("tags", tagsInput.value);
         }
 
         const xhr = new XMLHttpRequest();
-        const startTime = new Date().getTime();
-
-        let processingTimer = null;
-        let processingSecs = 0;
+        let startTime = Date.now();
 
         xhr.upload.addEventListener("progress", function (e) {
             if (e.lengthComputable) {
                 const percent = Math.round((e.loaded / e.total) * 100);
-                const loadedMB = (e.loaded / (1024 * 1024)).toFixed(2);
-                const totalMB = (e.total / (1024 * 1024)).toFixed(2);
-                const elapsedTime = (new Date().getTime() - startTime) / 1000;
-                const speedKB = elapsedTime > 0 ? ((e.loaded / 1024) / elapsedTime).toFixed(0) : 0;
-
                 progressBar.style.width = percent + "%";
                 progressPercentage.textContent = percent + "%";
-                
-                if (percent < 100) {
-                    progressStatus.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Uploading ${loadedMB} / ${totalMB} MB to Server...`;
-                } else {
-                    if (!processingTimer) {
-                        processingTimer = setInterval(function () {
-                            processingSecs++;
-                            if (processingSecs <= 1) {
-                                progressStatus.innerHTML = `⚡ <i class="fa-solid fa-file-csv fa-spin"></i> Step 1/3: Parsing ${totalMB} MB Data...`;
-                            } else if (processingSecs <= 3) {
-                                progressStatus.innerHTML = `🔐 <i class="fa-solid fa-shield-halved fa-spin"></i> Step 2/3: Optimizing Memory & Headers...`;
-                            } else {
-                                progressStatus.innerHTML = `🚀 <i class="fa-solid fa-database fa-spin"></i> Step 3/3: Bulk Ingesting Rows into DB...`;
-                            }
-                        }, 1000);
-                    }
+
+                const elapsedTime = (Date.now() - startTime) / 1000;
+                if (elapsedTime > 0) {
+                    const speedKB = Math.round((e.loaded / 1024) / elapsedTime);
+                    progressSpeed.textContent = `Speed: ${speedKB > 1024 ? (speedKB/1024).toFixed(1) + ' MB/s' : speedKB + ' KB/s'}`;
                 }
-                progressSpeed.textContent = `Speed: ${speedKB} KB/s`;
+                const loadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
+                const totalMB = (e.total / (1024 * 1024)).toFixed(1);
                 progressDetails.textContent = `${loadedMB} / ${totalMB} MB`;
+
+                if (percent === 100) {
+                    progressStatus.textContent = "Processing Datasets & Building SQL Indexes...";
+                }
             }
         });
 
         function resetSubmitBtn() {
-            if (processingTimer) {
-                clearInterval(processingTimer);
-                processingTimer = null;
-            }
             progressContainer.style.display = "none";
             if (typeof window.hideLoading === "function") {
                 window.hideLoading();
@@ -287,6 +324,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let html = "";
         results.forEach(data => {
+            const dsId = data.dataset_id || "";
             html += `
                 <div class="table-card" style="border-left: 4px solid var(--accent-green); margin-top: 24px;">
                     <h2 style="color: var(--accent-green); font-size: 20px; font-weight: 700; margin-bottom: 16px;">
@@ -300,13 +338,29 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div><strong>Columns Detected:</strong> ${data.columns}</div>
                     </div>
 
-                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-table"></i> Dataset Sample Preview (Top 10 Rows)</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px dashed var(--border-color); flex-wrap: wrap; gap: 12px; width: 100%;">
+                        <h3 style="font-size: 16px; font-weight: 700; margin: 0;"><i class="fa-solid fa-table"></i> Dataset Sample Preview</h3>
+                        
+                        <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-surface); padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-left: auto;">
+                            <label style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0; white-space: nowrap;">Show</label>
+                            <select onchange="updateUploadCardPageSize(this, '${dsId}')" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; outline: none;">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">All</option>
+                            </select>
+                            <label style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0; white-space: nowrap;">entries</label>
+                        </div>
+                    </div>
+
                     <div class="table-container">
                         ${data.preview}
                     </div>
 
                     <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
-                        <a href="/chat" class="btn btn-primary">
+                        ${dsId ? `<a href="/dataset/${dsId}" class="btn btn-info"><i class="fa-solid fa-table-list"></i> Open Full Dataset Explorer</a>` : ''}
+                        <a href="${dsId ? '/chat?dataset_id=' + dsId : '/chat'}" class="btn btn-primary">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Questions
                         </a>
                         <a href="/dashboard" class="btn btn-secondary">
@@ -318,6 +372,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         container.innerHTML = html;
         container.scrollIntoView({ behavior: 'smooth' });
+
+        // Apply 10-row limit on newly rendered preview cards
+        container.querySelectorAll(".table-card select").forEach(selectElem => {
+            updateUploadCardPageSize(selectElem);
+        });
     }
 
     function renderUploadError(errors) {

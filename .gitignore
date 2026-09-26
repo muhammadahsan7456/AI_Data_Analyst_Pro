@@ -17,6 +17,10 @@ static/charts/*.png
 static/charts/*.svg
 static/uploads/*
 !static/uploads/.gitkeep
+
+# User-uploaded profile pictures - real user data, not application assets
+static/images/profiles/*
+!static/images/profiles/.gitkeep
 exports/*.csv
 exports/*.xlsx
 exports/*.pdf

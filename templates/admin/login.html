@@ -3,7 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Apply saved theme before first paint - prevents a flash/flip to the wrong theme -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem("theme") || localStorage.getItem("app-theme") || localStorage.getItem("website_theme");
+                if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+            } catch (e) {}
+        })();
+    </script>
     <title>Super Admin Security Gateway - AI Data Analyst Pro</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -249,8 +263,8 @@
 </head>
 <body>
 
-    <button class="admin-theme-btn" onclick="toggleTheme()" title="Toggle Theme">
-        <i class="fa-solid fa-moon" id="theme-icon"></i>
+    <button class="admin-theme-btn" onclick="toggleWebsiteTheme()" title="Toggle Theme">
+        <i class="fa-solid fa-moon" id="theme-toggle-icon"></i>
     </button>
 
     <div class="glow-orb-1"></div>
@@ -277,12 +291,12 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('admin.admin_login', next=request.args.get('next', '')) }}">
+        <form method="POST" action="{{ url_for('admin.admin_login', next=request.args.get('next', '')) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="admin-form-group">
                 <label class="admin-label">Super Admin Email Address</label>
                 <div class="admin-input-wrapper">
                     <i class="fa-solid fa-envelope admin-input-icon"></i>
-                    <input type="email" name="email" class="admin-input" placeholder="admin@aidataanalystpro.com" required value="admin@aidataanalystpro.com">
+                    <input type="email" name="email" class="admin-input" placeholder="you@company.com" required>
                 </div>
             </div>
 
@@ -304,19 +318,8 @@
         </div>
     </div>
 
-    <script>
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme') || 'dark';
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('admin_theme', next);
-            document.getElementById('theme-icon').className = next === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-        }
-        (function() {
-            const saved = localStorage.getItem('admin_theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', saved);
-            document.getElementById('theme-icon').className = saved === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-        })();
-    </script>
+    <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
 </body>
 </html>

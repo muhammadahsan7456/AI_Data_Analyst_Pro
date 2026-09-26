@@ -112,28 +112,26 @@ def get_correlation_matrix(df: pd.DataFrame) -> dict:
 
 def generate_data_quality_report(df: pd.DataFrame) -> dict:
     """
-    Compute overall data quality summary and detailed statistics.
+    Compute overall data quality summary and detailed statistics using data_health_engine.
     """
-    total_cells = df.size
-    total_missing = int(df.isnull().sum().sum())
-    total_duplicates = int(df.duplicated().sum())
+    from ai.data_health_engine import compute_dataset_health_score
+    health_info = compute_dataset_health_score(df)
 
-    health_score = 100.0
-    if total_cells > 0:
-        missing_penalty = (total_missing / total_cells) * 40
-        health_score -= missing_penalty
-    if len(df) > 0:
-        dup_penalty = (total_duplicates / len(df)) * 20
-        health_score -= dup_penalty
+    total_missing = health_info.get("null_cells", int(df.isnull().sum().sum()))
+    total_duplicates = health_info.get("duplicate_rows", int(df.duplicated().sum()))
+    health_score = health_info.get("score", 100.0)
 
     return {
-        "health_score": max(0.0, round(health_score, 1)),
+        "health_score": health_score,
+        "health_rating": health_info.get("rating", "Good"),
         "total_rows": len(df),
         "total_cols": len(df.columns),
         "total_missing": total_missing,
         "total_duplicates": total_duplicates,
         "column_profiles": get_column_profiling(df),
-        "outliers": detect_outliers_iqr(df)
+        "outliers": detect_outliers_iqr(df),
+        "breakdown": health_info.get("breakdown", {}),
+        "alerts": health_info.get("alerts", [])
     }
 
 

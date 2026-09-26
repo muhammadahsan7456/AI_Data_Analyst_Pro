@@ -22,12 +22,31 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
     }
 
     .kpi-card:hover {
         transform: translateY(-4px);
         border-color: var(--accent-blue);
-        box-shadow: 0 14px 30px rgba(59, 130, 246, 0.15);
+        box-shadow: 0 14px 30px rgba(59, 130, 246, 0.25);
+    }
+    .kpi-card:hover .kpi-label {
+        color: var(--accent-blue);
+    }
+    .kpi-action-link {
+        margin-top: 14px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent-blue);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .kpi-card-header {
@@ -46,6 +65,7 @@
         letter-spacing: 0.6px;
         line-height: 1.35;
         flex: 1;
+        transition: color 0.2s ease;
     }
 
     .kpi-icon-wrapper {
@@ -78,20 +98,19 @@
 
     .kpi-sub {
         font-size: 12px;
-        color: var(--text-secondary);
+        color: var(--text-muted);
         margin-top: 6px;
     }
 </style>
 
 <!-- Announcement Alert Bar -->
-{% if announcement.enabled %}
-<div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 14px; padding: 16px 20px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-    <div>
-        <div style="font-weight: 700; color: var(--accent-blue); font-size: 14px; margin-bottom: 4px;">
-            <i class="fa-solid fa-bullhorn"></i> {{ announcement.title }}
-        </div>
-        <div style="font-size: 13px; color: var(--text-secondary);">
-            {{ announcement.message }}
+{% if system_announcement %}
+<div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 14px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fa-solid fa-bullhorn" style="color: var(--accent-blue); font-size: 20px;"></i>
+        <div>
+            <strong style="color: var(--accent-blue); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Active System Announcement</strong>
+            <span style="font-size: 14px; color: var(--text-primary);">{{ system_announcement }}</span>
         </div>
     </div>
     <a href="{{ url_for('admin.settings') }}" style="font-size: 12px; font-weight: 600; color: var(--accent-blue); text-decoration: none; white-space: nowrap;">
@@ -100,61 +119,174 @@
 </div>
 {% endif %}
 
-<!-- 4 Executive KPI Cards -->
+<!-- 4 Executive KPI Cards (Clickable) -->
 <div class="admin-kpi-grid">
-    <!-- KPI 1 -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <div class="kpi-label">Total Registered Users</div>
-            <div class="kpi-icon-wrapper icon-blue">
-                <i class="fa-solid fa-users"></i>
+    <!-- KPI 1: Registered Users -->
+    <a href="{{ url_for('admin.manage_users') }}" class="kpi-card" title="Click to view and manage all registered users">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-label">Total Registered Users</div>
+                <div class="kpi-icon-wrapper icon-blue">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <div class="kpi-value">{{ kpis.TotalUsers or 0 }}</div>
+            <div class="kpi-sub">
+                <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.ActiveUsers or 0 }} Active</span> • 
+                <span style="color: var(--accent-red); font-weight: 600;">{{ kpis.SuspendedUsers or 0 }} Suspended</span>
             </div>
         </div>
-        <div class="kpi-value">{{ kpis.TotalUsers or 0 }}</div>
-        <div class="kpi-sub">
-            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.ActiveUsers or 0 }} Active</span> • 
-            <span style="color: var(--accent-red); font-weight: 600;">{{ kpis.SuspendedUsers or 0 }} Suspended</span>
+        <div class="kpi-action-link">
+            <span>Manage Users</span>
+            <i class="fa-solid fa-arrow-right"></i>
         </div>
+    </a>
+
+    <!-- KPI 2: Total Revenue -->
+    <a href="{{ url_for('admin.manage_payments') }}" class="kpi-card" title="Click to view all revenue & payment transactions">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-label">Total Revenue Collected</div>
+                <div class="kpi-icon-wrapper icon-green">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+            </div>
+            <div class="kpi-value">PKR {{ "{:,.2f}".format(kpis.TotalRevenue or 0.0) }}</div>
+            <div class="kpi-sub">
+                <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments or 0 }} Successful Transactions</span>
+            </div>
+        </div>
+        <div class="kpi-action-link">
+            <span style="color: var(--accent-green);">View Revenue Logs</span>
+            <i class="fa-solid fa-arrow-right" style="color: var(--accent-green);"></i>
+        </div>
+    </a>
+
+    <!-- KPI 3: Pending Approval Queue -->
+    <a href="{{ url_for('admin.manage_payments', status='pending') }}" class="kpi-card" title="Click to review pending payment approvals">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-label">Pending Approval Queue</div>
+                <div class="kpi-icon-wrapper icon-amber">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+            <div class="kpi-value {% if (kpis.PendingPayments or 0) > 0 %}pending-highlight{% endif %}">
+                {{ kpis.PendingPayments or 0 }}
+            </div>
+            <div class="kpi-sub">Requires Super Admin Verification</div>
+        </div>
+        <div class="kpi-action-link">
+            <span style="color: var(--accent-amber);">Review Pending Queue</span>
+            <i class="fa-solid fa-arrow-right" style="color: var(--accent-amber);"></i>
+        </div>
+    </a>
+
+    <!-- KPI 4: Enterprise Datasets Scale -->
+    <a href="{{ url_for('admin.audit_logs') }}" class="kpi-card" title="Click to view dataset audit logs">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-label">Enterprise Datasets Scale</div>
+                <div class="kpi-icon-wrapper icon-purple">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+            </div>
+            <div class="kpi-value">{{ kpis.TotalDatasets or 0 }}</div>
+            <div class="kpi-sub">AES-256 Encrypted at Rest</div>
+        </div>
+        <div class="kpi-action-link">
+            <span style="color: var(--accent-purple);">View Audit Logs</span>
+            <i class="fa-solid fa-arrow-right" style="color: var(--accent-purple);"></i>
+        </div>
+    </a>
+</div>
+
+<!-- Subscription Renewal Alerts: users approaching or past their monthly billing cycle end -->
+{% if expiring_users %}
+<div class="admin-card-box" style="margin-bottom: 32px; border: 1px solid rgba(245, 158, 11, 0.35);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; margin: 0;">
+            <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-amber);"></i> Subscription Renewals Needed
+            <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">({{ kpis.ExpiringSoonUsers or 0 }} expiring soon &middot; {{ kpis.ExpiredUsers or 0 }} expired)</span>
+        </h3>
+        <a href="{{ url_for('admin.manage_users', status='expired') }}" style="font-size: 13px; font-weight: 600; color: var(--accent-amber); text-decoration: none;">
+            View in Users Panel <i class="fa-solid fa-chevron-right"></i>
+        </a>
     </div>
 
-    <!-- KPI 2 -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <div class="kpi-label">Total Revenue Collected</div>
-            <div class="kpi-icon-wrapper icon-green">
-                <i class="fa-solid fa-dollar-sign"></i>
-            </div>
-        </div>
-        <div class="kpi-value">${{ "%.2f"|format(kpis.TotalRevenue or 0.0) }}</div>
-        <div class="kpi-sub">
-            <span style="color: var(--accent-green); font-weight: 600;">{{ kpis.CompletedPayments or 0 }} Successful Transactions</span>
-        </div>
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Billing Cycle Ends</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eu in expiring_users %}
+                <tr>
+                    <td style="font-weight: 600; color: var(--text-primary);">{{ eu.full_name }}</td>
+                    <td style="color: var(--text-secondary);">{{ eu.email }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">
+                        {{ eu.end_date }}
+                        {% if eu.days_left is not none %}
+                            {% if eu.days_left >= 0 %}<br><span style="color: var(--accent-amber);">{{ eu.days_left }} day(s) left</span>
+                            {% else %}<br><span style="color: var(--accent-red);">{{ -eu.days_left }} day(s) overdue</span>{% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if eu.status == 'expired' %}
+                        <span class="badge-status badge-suspended">Expired</span>
+                        {% else %}
+                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">Expiring Soon</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.extend_user_subscription', user_id=eu.user_id) }}" onsubmit="return confirm('Confirm payment received from this user and extend their plan by +30 days?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                <i class="fa-solid fa-check"></i> Extend +30 Days
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
+{% endif %}
 
-    <!-- KPI 3 -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <div class="kpi-label">Pending Approval Queue</div>
-            <div class="kpi-icon-wrapper icon-amber">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-            </div>
-        </div>
-        <div class="kpi-value {% if (kpis.PendingPayments or 0) > 0 %}pending-highlight{% endif %}">
-            {{ kpis.PendingPayments or 0 }}
-        </div>
-        <div class="kpi-sub">Requires Super Admin Verification</div>
+<!-- Revenue & Signups Trend -->
+<div class="admin-card-box" style="margin-bottom: 20px;">
+    <form method="GET" action="{{ url_for('admin.dashboard') }}" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <i class="fa-solid fa-calendar-days" style="color: var(--accent-blue);"></i> Chart Date Range:
+        </span>
+        <input type="date" name="trend_start" value="{{ trend_start }}" max="{{ trend_end }}" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px;">
+        <span style="color: var(--text-muted); font-size: 13px;">to</span>
+        <input type="date" name="trend_end" value="{{ trend_end }}" max="{{ trend_end }}" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px;">
+        <button type="submit" class="btn btn-sm" style="background: var(--accent-blue); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; cursor: pointer;">
+            <i class="fa-solid fa-magnifying-glass"></i> Apply
+        </button>
+        <a href="{{ url_for('admin.dashboard') }}" style="font-size: 12px; color: var(--text-muted); text-decoration: none;">Reset to Last 6 Months</a>
+    </form>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; margin-bottom: 32px;">
+    <div class="admin-card-box">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 16px 0;">
+            <i class="fa-solid fa-chart-line" style="color: var(--accent-green);"></i> Revenue Trend
+        </h3>
+        <canvas id="revenueTrendChart" height="220"></canvas>
     </div>
-
-    <!-- KPI 4 -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <div class="kpi-label">Enterprise Datasets Scale</div>
-            <div class="kpi-icon-wrapper icon-purple">
-                <i class="fa-solid fa-database"></i>
-            </div>
-        </div>
-        <div class="kpi-value">{{ kpis.TotalDatasets or 0 }}</div>
-        <div class="kpi-sub">AES-256 Encrypted at Rest</div>
+    <div class="admin-card-box">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 16px 0;">
+            <i class="fa-solid fa-user-plus" style="color: var(--accent-blue);"></i> New Signups Trend
+        </h3>
+        <canvas id="signupsTrendChart" height="220"></canvas>
     </div>
 </div>
 
@@ -232,12 +364,12 @@
                     {% for p in recent_payments %}
                     <tr>
                         <td style="font-weight: 600; color: var(--text-primary);">{{ p.user_name }}</td>
-                        <td style="font-weight: 700; color: var(--accent-green);">${{ "%.2f"|format(p.amount or 0.0) }}</td>
+                        <td style="font-weight: 700; color: var(--accent-green);">PKR {{ "{:,.2f}".format(p.amount or 0.0) }}</td>
                         <td>
                             {% if p.status == 'Completed' %}
                             <span class="badge-status badge-active">Completed</span>
-                            {% elif p.status == 'Pending' %}
-                            <span class="badge-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Pending</span>
+                            {% elif p.status in ['Pending', 'Pending_Review'] %}
+                            <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">Pending Review</span>
                             {% else %}
                             <span class="badge-status badge-suspended">{{ p.status }}</span>
                             {% endif %}
@@ -291,4 +423,67 @@
         </table>
     </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<script>
+(function () {
+    const revenueTrend = {{ revenue_trend|tojson|safe }};
+    const signupsTrend = {{ signups_trend|tojson|safe }};
+
+    function monthLabel(ym) {
+        // "2026-09" -> "Sep 2026"
+        const [y, m] = ym.split("-");
+        const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        return names[parseInt(m, 10) - 1] + " " + y;
+    }
+
+    const chartDefaults = {
+        plugins: { legend: { labels: { color: "#94a3b8" } } },
+        scales: {
+            x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.06)" } },
+            y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.06)" }, beginAtZero: true }
+        }
+    };
+
+    const revCanvas = document.getElementById("revenueTrendChart");
+    if (revCanvas && revenueTrend.length > 0) {
+        new Chart(revCanvas, {
+            type: "line",
+            data: {
+                labels: revenueTrend.map(r => monthLabel(r.month)),
+                datasets: [{
+                    label: "Revenue (PKR)",
+                    data: revenueTrend.map(r => r.revenue),
+                    borderColor: "#34d399",
+                    backgroundColor: "rgba(52, 211, 153, 0.15)",
+                    fill: true,
+                    tension: 0.35
+                }]
+            },
+            options: chartDefaults
+        });
+    } else if (revCanvas) {
+        revCanvas.parentElement.insertAdjacentHTML("beforeend", '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">No completed payments yet in the last 6 months.</p>');
+    }
+
+    const signupCanvas = document.getElementById("signupsTrendChart");
+    if (signupCanvas && signupsTrend.length > 0) {
+        new Chart(signupCanvas, {
+            type: "bar",
+            data: {
+                labels: signupsTrend.map(r => monthLabel(r.month)),
+                datasets: [{
+                    label: "New Users",
+                    data: signupsTrend.map(r => r.signups),
+                    backgroundColor: "#38bdf8",
+                    borderRadius: 6
+                }]
+            },
+            options: chartDefaults
+        });
+    } else if (signupCanvas) {
+        signupCanvas.parentElement.insertAdjacentHTML("beforeend", '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">No new signups in the last 6 months.</p>');
+    }
+})();
+</script>
 {% endblock %}

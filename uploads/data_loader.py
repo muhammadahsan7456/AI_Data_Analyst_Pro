@@ -2,7 +2,6 @@ import os
 import sys
 import re
 import gc
-import math
 import pandas as pd
 from pandas.api.types import (
     is_integer_dtype,
@@ -338,13 +337,18 @@ def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def insert_dataframe(table_name: str, dataframe: pd.DataFrame):
+def insert_dataframe(table_name: str, dataframe: pd.DataFrame) -> dict:
     """
     Insert DataFrame into SQL Server / SQLite safely using parameterized batching,
     adaptive sub-batching fallback, and garbage collection.
+    Returns {"total": parsed_row_count, "inserted": rows_actually_committed, "failed": count}
+    so callers report the real database outcome instead of assuming every parsed row
+    made it into the table.
     """
     df = clean_dataframe(dataframe)
-    
+    total_rows = len(df)
+    inserted_count = 0
+
     conn = get_connection()
     cursor = conn.cursor()
     if hasattr(cursor, "fast_executemany"):
@@ -356,18 +360,24 @@ def insert_dataframe(table_name: str, dataframe: pd.DataFrame):
 
     query = f"INSERT INTO {safe_table} ({columns}) VALUES ({placeholders})"
 
-    # High-Performance Vectorized list conversion (0.6s for 500k rows!)
     df_clean = df.astype(object).where(pd.notnull(df), None)
-    rows_data = df_clean.values.tolist()
 
+    # Convert to Python-list batches one batch at a time (not the whole dataframe up
+    # front) so peak memory during a normal successful upload never has to hold both
+    # the DataFrame and a full duplicate Python-list copy of every row at once.
     batch_size = 5000
     try:
-        for i in range(0, len(rows_data), batch_size):
-            batch = rows_data[i:i + batch_size]
+        for i in range(0, total_rows, batch_size):
+            batch = df_clean.iloc[i:i + batch_size].values.tolist()
             cursor.executemany(query, batch)
         conn.commit()
-    except Exception as outer_err:
+        inserted_count = total_rows
+    except Exception:
         conn.rollback()
+        inserted_count = 0
+        # Fallback path only: materialize the full row list once here, since correctness
+        # (accurate per-row retry/counting) matters more than memory on this rare path.
+        rows_data = df_clean.values.tolist()
         # Fast Sub-batch Fallback (1,000 rows executemany batches) to prevent slow single-row execution
         sub_batch_size = 1000
         for i in range(0, len(rows_data), sub_batch_size):
@@ -375,11 +385,14 @@ def insert_dataframe(table_name: str, dataframe: pd.DataFrame):
             try:
                 cursor.executemany(query, sub_batch)
                 conn.commit()
+                inserted_count += len(sub_batch)
             except Exception:
+                conn.rollback()
                 # If a sub-batch fails, execute only that tiny sub-batch row by row
                 for tuple_row in sub_batch:
                     try:
                         cursor.execute(query, tuple_row)
+                        inserted_count += 1
                     except Exception:
                         pass
                 conn.commit()
@@ -389,5 +402,53 @@ def insert_dataframe(table_name: str, dataframe: pd.DataFrame):
             conn.close()
         except Exception:
             pass
-        del rows_data
+        del df_clean
         gc.collect()
+
+    return {"total": total_rows, "inserted": inserted_count, "failed": max(0, total_rows - inserted_count)}
+
+
+def create_high_performance_indexes(table_name: str, dataframe: pd.DataFrame):
+    """
+    Automatically creates non-clustered indexes on detected high-frequency search/filter columns.
+    Significantly accelerates sub-millisecond WHERE, GROUP BY, and ORDER BY queries on 500,000+ rows.
+    """
+    safe_table = sanitize_identifier(table_name)
+    conn = get_connection()
+    try:
+        if type(conn).__name__ == "SQLiteConnectionAdapter":
+            cursor = conn.cursor()
+            for col in dataframe.columns:
+                c_low = col.lower()
+                if any(kw in c_low for kw in ["city", "country", "email", "date", "subscribed", "customer_id"]):
+                    safe_c = sanitize_identifier(col)
+                    idx_name = sanitize_identifier(f"IX_{table_name}_{col}")
+                    try:
+                        cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {safe_table}({safe_c});")
+                    except Exception:
+                        pass
+            conn.commit()
+        else:
+            with get_db_cursor(commit=True) as cursor:
+                for col in dataframe.columns:
+                    c_low = col.lower()
+                    if any(kw in c_low for kw in ["city", "country", "email", "date", "subscribed", "customer_id"]):
+                        safe_c = sanitize_identifier(col)
+                        idx_name = f"IX_{table_name}_{col}"[:120]
+                        idx_sql = f"""
+                        IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = '{idx_name}' AND object_id = OBJECT_ID('{table_name}'))
+                        BEGIN
+                            CREATE NONCLUSTERED INDEX [{idx_name}] ON {safe_table} ({safe_c});
+                        END
+                        """
+                        try:
+                            cursor.execute(idx_sql)
+                        except Exception:
+                            pass
+    except Exception as err:
+        print(f"Indexing notice for table [{table_name}]:", err)
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
