@@ -213,6 +213,27 @@ def add_performance_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Content-Security-Policy - scoped to the exact external origins this app actually
+    # loads from (cdnjs for Font Awesome, Google Fonts, the Plotly chart CDN). 'unsafe-inline'
+    # is kept for script/style because this app has inline <script>/style="..." attributes
+    # throughout every template - removing it would require adding a nonce to every single
+    # one, which is a much larger, riskier change than this audit's scope. This is still a
+    # real improvement over no CSP at all (blocks loading executable content from anywhere
+    # else, restricts framing/forms/base-uri). The Google AdSense placeholder in
+    # landing_base.html isn't in script-src yet since it uses a fake publisher ID and isn't
+    # actually active - widen this if/when that's turned on with a real ID.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.plot.ly; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'self'"
+    )
     # microphone=(self) allows this site's own pages to use the mic for the Voice AI
     # feature - a blanket microphone=() (my earlier default) blocks it at the browser
     # level entirely, before the user's own permission choice is even consulted.
