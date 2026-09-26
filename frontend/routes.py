@@ -1791,6 +1791,19 @@ Disallow: /upload
 Disallow: /chat
 Disallow: /settings
 Disallow: /api/
+Disallow: /admin
+Disallow: /auth/
+Disallow: /receipts
+Disallow: /secure/
+Disallow: /subscription/
+Disallow: /waiting-approval
+Disallow: /data-health/
+Disallow: /executive-summary/
+Disallow: /report-builder/
+Disallow: /dataset/
+Disallow: /predictions
+Disallow: /query/
+Disallow: /download-chart
 
 Sitemap: {base_url}/sitemap.xml
 """
