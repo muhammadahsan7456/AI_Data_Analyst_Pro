@@ -145,7 +145,7 @@ def get_connection_string():
     Construct SQL Server connection string dynamically from environment variables
     with fallback defaults for local development.
     """
-    server = os.getenv("DB_SERVER", "REDACTED-HOSTNAME")
+    server = os.getenv("DB_SERVER", "localhost")
     database = os.getenv("DB_NAME", "AI_Data_Analyst_Pro")
     driver = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
     trusted = os.getenv("DB_TRUSTED_CONNECTION", "yes")
@@ -185,17 +185,11 @@ def get_connection():
             conn_str = get_connection_string()
             return pyodbc.connect(conn_str, timeout=3)
         except Exception as primary_err:
+            # No hardcoded secondary server to retry against - a specific developer
+            # machine's hostname doesn't mean anything on anyone else's setup, and
+            # silently trying another server on failure contradicts this function's
+            # own documented behavior (raise a real error, don't fail over quietly).
             last_err = primary_err
-            try:
-                fallback_str = (
-                    "DRIVER={SQL Server};"
-                    "SERVER=REDACTED-HOSTNAME;"
-                    "DATABASE=AI_Data_Analyst_Pro;"
-                    "Trusted_Connection=yes;"
-                )
-                return pyodbc.connect(fallback_str, timeout=3)
-            except Exception as secondary_err:
-                last_err = secondary_err
 
     if not allow_fallback:
         print(f"[DATABASE ERROR] Could not connect to SQL Server ({type(last_err).__name__ if last_err else 'pyodbc unavailable'}).")
