@@ -32,3 +32,8 @@ database/*.db
 database/*.db-journal
 scratch/
 
+# Automated DB backups (utils/db_backup.py) - real production data, never source control
+db_backups/
+backups/
+*.bak
+

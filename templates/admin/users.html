@@ -144,7 +144,7 @@
                     <td>
                         <div style="display: flex; align-items: center; gap: 12px;">
                             {% if u.profile_image %}
-                            <img src="{{ u.profile_image }}" alt="Avatar" class="user-avatar-circle" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <img src="{{ url_for('frontend.static', filename=u.profile_image) }}" alt="Avatar" class="user-avatar-circle" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div class="user-avatar-initials" style="display: none;">{{ u.initials }}</div>
                             {% else %}
                             <div class="user-avatar-initials">{{ u.initials }}</div>
