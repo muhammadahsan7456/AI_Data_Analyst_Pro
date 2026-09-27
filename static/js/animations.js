@@ -70,8 +70,19 @@
     const pointCloud = new THREE.Points(geometry, pMaterial);
     scene.add(pointCloud);
 
-    // Connection lines
+    // Connection lines.
+    // The buffer is allocated once at its worst-case size (every particle pair linked)
+    // and refilled in place each frame. The previous version built a plain JS array and
+    // then allocated a new Float32Array AND a new THREE.BufferAttribute on every single
+    // frame, which is what made this loop the heaviest thing on the landing page.
     const lineGeometry = new THREE.BufferGeometry();
+    const LINK_DIST = 112;
+    const LINK_DIST_SQ = LINK_DIST * LINK_DIST;
+    const maxLinks = (particleCount * (particleCount - 1)) / 2;
+    const linePositions = new Float32Array(maxLinks * 6); // 2 endpoints x 3 coords
+    const linePosAttr = new THREE.BufferAttribute(linePositions, 3);
+    if (THREE.DynamicDrawUsage !== undefined) linePosAttr.setUsage(THREE.DynamicDrawUsage);
+    lineGeometry.setAttribute('position', linePosAttr);
     const lineMaterial = new THREE.LineBasicMaterial({
         color: 0xf59e0b,
         transparent: true,
@@ -173,8 +184,10 @@
         mouseY = (e.clientY - window.innerHeight / 2) * 0.04;
     });
 
+    let rafId = null;
+
     function animate() {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
         time += 0.01;
 
         const pos = pointCloud.geometry.attributes.position.array;
@@ -189,21 +202,27 @@
         }
         pointCloud.geometry.attributes.position.needsUpdate = true;
 
-        // Build connection lines
-        const linePositions = [];
+        // Build connection lines straight into the preallocated buffer. Comparing squared
+        // distances against LINK_DIST_SQ gives exactly the same set of links as the old
+        // Math.sqrt(...) < 112 test, minus ~6000 square roots per frame.
+        let li = 0;
         for (let i = 0; i < particleCount; i++) {
+            const ix = pos[i * 3], iy = pos[i * 3 + 1], iz = pos[i * 3 + 2];
             for (let j = i + 1; j < particleCount; j++) {
-                const dx = pos[i * 3] - pos[j * 3];
-                const dy = pos[i * 3 + 1] - pos[j * 3 + 1];
-                const dz = pos[i * 3 + 2] - pos[j * 3 + 2];
-                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                if (dist < 112) {
-                    linePositions.push(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
-                    linePositions.push(pos[j * 3], pos[j * 3 + 1], pos[j * 3 + 2]);
+                const jx = pos[j * 3], jy = pos[j * 3 + 1], jz = pos[j * 3 + 2];
+                const dx = ix - jx, dy = iy - jy, dz = iz - jz;
+                if (dx * dx + dy * dy + dz * dz < LINK_DIST_SQ) {
+                    linePositions[li++] = ix;
+                    linePositions[li++] = iy;
+                    linePositions[li++] = iz;
+                    linePositions[li++] = jx;
+                    linePositions[li++] = jy;
+                    linePositions[li++] = jz;
                 }
             }
         }
-        lineGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePositions), 3));
+        linePosAttr.needsUpdate = true;
+        lineGeometry.setDrawRange(0, li / 3); // draw only the vertices written this frame
 
         // Animate cubes
         cubeGroup.children.forEach(cube => {
@@ -221,6 +240,19 @@
     }
 
     animate();
+
+    // Stop rendering while the tab is in the background. Nothing is visible there, so this
+    // changes nothing on screen - it just stops burning CPU/battery on an unseen canvas.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        } else if (rafId === null) {
+            animate();
+        }
+    });
 
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
