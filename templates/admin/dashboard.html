@@ -266,9 +266,9 @@
         <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">
             <i class="fa-solid fa-calendar-days" style="color: var(--accent-blue);"></i> Chart Date Range:
         </span>
-        <input type="date" name="trend_start" value="{{ trend_start }}" max="{{ trend_end }}" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px;">
+        <input type="date" name="trend_start" aria-label="Trend range start date" value="{{ trend_start }}" max="{{ trend_end }}" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px;">
         <span style="color: var(--text-muted); font-size: 13px;">to</span>
-        <input type="date" name="trend_end" value="{{ trend_end }}" max="{{ trend_end }}" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px;">
+        <input type="date" name="trend_end" aria-label="Trend range end date" value="{{ trend_end }}" max="{{ trend_end }}" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 13px;">
         <button type="submit" class="btn btn-sm" style="background: var(--accent-blue); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; cursor: pointer;">
             <i class="fa-solid fa-magnifying-glass"></i> Apply
         </button>

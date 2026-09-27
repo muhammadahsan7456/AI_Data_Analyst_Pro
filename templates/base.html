@@ -21,9 +21,10 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
 
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
+         CDN copy was a render-blocking ~1s request on every page. -->
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/fonts.css') }}?v=20260927">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -137,7 +138,7 @@
                 <div style="padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color);">
                     <a href="{{ url_for('auth.profile') }}" style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 10px;">
                         {% if current_user[10] %}
-                        <img src="{{ url_for('frontend.static', filename=current_user[10]) }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        <img src="{{ url_for('frontend.static', filename=current_user[10]) }}" alt="Profile picture" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                         {% else %}
                         <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
                             {{ (current_user[4][0] if current_user[4] else 'U')|upper }}

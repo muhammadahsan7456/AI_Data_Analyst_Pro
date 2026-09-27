@@ -167,14 +167,14 @@
             <input type="date" name="date_from" value="{{ date_from or '' }}" title="Uploaded From" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
             <input type="date" name="date_to" value="{{ date_to or '' }}" title="Uploaded To" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
 
-            <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+            <select name="sort" aria-label="Sort datasets by" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
                 <option value="UploadDate" {% if sort_by == 'UploadDate' %}selected{% endif %}>Sort by Date</option>
                 <option value="DatasetName" {% if sort_by == 'DatasetName' %}selected{% endif %}>Sort by Name</option>
                 <option value="TotalRows" {% if sort_by == 'TotalRows' %}selected{% endif %}>Sort by Rows</option>
                 <option value="StorageSizeKB" {% if sort_by == 'StorageSizeKB' %}selected{% endif %}>Sort by Size</option>
             </select>
 
-            <select name="order" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
+            <select name="order" aria-label="Sort direction" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
                 <option value="DESC" {% if order == 'DESC' %}selected{% endif %}>Descending</option>
                 <option value="ASC" {% if order == 'ASC' %}selected{% endif %}>Ascending</option>
             </select>

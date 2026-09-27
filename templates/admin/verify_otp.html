@@ -17,9 +17,10 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
+         CDN copy was a render-blocking ~1s request on every page. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <style>

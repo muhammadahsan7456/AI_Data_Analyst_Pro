@@ -45,9 +45,10 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
 
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
+         CDN copy was a render-blocking ~1s request on every page. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
 
     <!-- Font Awesome (preconnect first: the stylesheet itself then pulls ~280KB of icon
          webfonts from the same origin, so paying the TLS handshake up front saves ~400ms) -->

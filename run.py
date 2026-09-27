@@ -237,7 +237,10 @@ def add_performance_headers(response):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         f"script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.plot.ly {ADSENSE_SCRIPT}; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+        # fonts.googleapis.com is deliberately absent: the font stylesheet is now served
+        # from static/css/fonts.css, so nothing loads styles from Google any more. The
+        # .woff2 files it references still come from fonts.gstatic.com, hence font-src.
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; "
