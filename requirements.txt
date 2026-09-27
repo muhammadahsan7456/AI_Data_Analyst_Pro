@@ -26,7 +26,11 @@ openai>=1.0.0
 requests>=2.31.0
 
 # Security, AES-256 Field Encryption & Password Hashing
-cryptography>=41.0.0
+# Floor is 50.0.0, not 41: versions 44.0.0 through 49.x carry GHSA-g6cj-pr64-35w5,
+# a Bleichenbacher oracle in PKCS#7 EnvelopedData decryption, fixed in 50.0.0. This
+# app only uses cryptography.fernet, so it never reaches the affected code path, but
+# there is no reason to let a deploy resolve to a flagged version.
+cryptography>=50.0.0
 bcrypt>=4.0.0
 
 # Automated Business Report Generation (PDF, Word, PowerPoint, Excel)
