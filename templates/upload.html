@@ -275,7 +275,60 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        // Large uploads are ingested on the server in the background: the POST comes back
+        // straight away with a job id and we poll it for real row counts, instead of
+        // holding the request open (a million-row file used to hang it for ~83 seconds
+        // behind a progress bar that had already shown 100%).
+        function pollIngestJob(jobId) {
+            progressStatus.textContent = "Upload received, processing on the server...";
+            progressBar.style.width = "0%";
+            progressPercentage.textContent = "0%";
+            progressSpeed.textContent = "";
+
+            const poll = setInterval(function () {
+                fetch("/api/upload-status/" + encodeURIComponent(jobId), {
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (j) {
+                    if (typeof j.percent === "number") {
+                        progressBar.style.width = j.percent + "%";
+                        progressPercentage.textContent = j.percent + "%";
+                    }
+                    if (j.stage) progressStatus.textContent = j.stage;
+                    if (j.rows_done) {
+                        progressDetails.textContent = j.rows_total
+                            ? j.rows_done.toLocaleString() + " / ~" + j.rows_total.toLocaleString() + " rows"
+                            : j.rows_done.toLocaleString() + " rows";
+                    }
+                    if (j.status === "done") {
+                        clearInterval(poll);
+                        resetSubmitBtn();
+                        if (window.showAppToast) window.showAppToast("🚀 Dataset Ingested & Tables Created Successfully!", "success");
+                        renderUploadResults(j.results && j.results.length ? j.results : [j.data]);
+                    } else if (j.status === "error" || j.success === false) {
+                        clearInterval(poll);
+                        resetSubmitBtn();
+                        renderUploadError(j.error || "Background processing failed.");
+                    }
+                })
+                .catch(function (err) {
+                    clearInterval(poll);
+                    resetSubmitBtn();
+                    renderUploadError("Lost contact with the server while processing: " + err.message);
+                });
+            }, 1000);
+        }
+
         xhr.addEventListener("load", function () {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                let asyncResp = null;
+                try { asyncResp = JSON.parse(xhr.responseText); } catch (e) { asyncResp = null; }
+                if (asyncResp && asyncResp.async && asyncResp.job_id) {
+                    pollIngestJob(asyncResp.job_id);
+                    return;
+                }
+            }
             resetSubmitBtn();
             if (xhr.status >= 200 && xhr.status < 400) {
                 try {

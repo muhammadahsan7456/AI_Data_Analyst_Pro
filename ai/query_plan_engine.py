@@ -19,6 +19,7 @@ import sys
 import re
 import pandas as pd
 from ai.schema_intelligence import get_dataset_schema_intelligence
+from ai.value_matcher import extract_multi_value_filters
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -165,134 +166,34 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     if not select_cols and not computed_fields:
         select_cols = column_list[:8]
 
-    # 3. COUNTRY, CITY & VALUE FILTERS (e.g. Korea, India, Karachi, Lahore, London, gmail, yahoo)
-    country_col = next((c for c in column_list if "country" in c.lower()), None)
-    matched_country = False
-    if country_col:
-        known_countries = ["korea", "india", "congo", "pakistan", "china", "usa", "united states", "japan", "germany", "brazil", "eritrea", "chile", "france", "uk", "united kingdom", "canada", "australia", "mexico", "spain", "italy"]
-        for c_val in known_countries:
-            if re.search(r"\b" + re.escape(c_val) + r"\b", q_lower):
-                val_formatted = "Korea" if c_val == "korea" else c_val.title()
-                filters.append({
-                    "column": country_col,
-                    "sql_safe_column": f"[{country_col}]",
-                    "operator": "=",
-                    "value": val_formatted,
-                    "sql_clause": f"[{country_col}] = ?",
-                    "params": [val_formatted]
-                })
-                matched_country = True
-                break
+    # 3. VALUE FILTERS - field-agnostic, learned from the dataset itself.
+    #
+    # This replaces three hardcoded vocabularies that used to live here: a list of 20
+    # country names (which `break`s after the first hit), a dict of 8 Pakistani cities,
+    # and an if/elif chain of status keywords. Each of them could only ever contribute
+    # ONE value, and none of them knew about any other column - products, categories,
+    # channels, sales reps and every other field were simply invisible to the planner.
+    #
+    # ai/value_matcher.py reads each low-cardinality column's real distinct values out of
+    # the dataset and matches every one the question mentions, emitting `[col] IN (...)`.
+    # It is the same code path for every column, so a question naming two products, three
+    # statuses or four cities all behave identically without anyone maintaining a list.
+    value_filters = extract_multi_value_filters(question, table_name, schema_intel)
+    filters.extend(value_filters)
 
-    city_cols = [c for c in column_list if any(kw in c.lower() for kw in ["city", "origin", "destination", "address", "location"])]
-    known_cities = {
-        "karachi": "KHI",
-        "lahore": "LHE",
-        "islamabad": "ISB",
-        "multan": "MUX",
-        "peshawar": "PEW",
-        "rawalpindi": "RWP",
-        "quetta": "UET",
-        "faisalabad": "FSD"
-    }
+    # A comparison across several values of one field ("A vs B", "compare X and Y") should
+    # come back grouped by that field so each value's numbers are visible separately
+    # instead of merged into one total. Deliberately generic: it keys off whichever column
+    # the multiple values belong to, not off any particular field name.
+    if any(kw in q_lower for kw in ["compare", "comparison", "vs", "versus", "muqabla", "difference"]):
+        multi = next((f for f in value_filters if len(f.get("values", [])) >= 2), None)
+        if multi:
+            group_by = [multi["column"]]
+            computed_fields = [cf for cf in computed_fields if cf.get("name") != "Record_Count"]
+            computed_fields.append({"name": "Record_Count", "expression": "COUNT(*)"})
+            order_by = [{"column": "Record_Count", "sql_safe_column": "[Record_Count]", "direction": "DESC"}]
+            select_cols = [multi["column"]]
 
-    matched_cities = []
-    for c_val, code in known_cities.items():
-        if re.search(r"\b" + re.escape(c_val) + r"\b", q_lower) or re.search(r"\b" + re.escape(code.lower()) + r"\b", q_lower):
-            matched_cities.append((c_val, code))
-
-    if matched_cities and city_cols:
-        # Pick the SINGLE BEST primary city column to avoid ORing origin and destination
-        primary_city_col = None
-        if "origin" in q_lower:
-            primary_city_col = next((c for c in city_cols if "origin" in c.lower()), None)
-        if not primary_city_col:
-            primary_city_col = next((c for c in city_cols if any(k in c.lower() for k in ["destination_city", "dest_city", "destination", "customer_city", "shipping_city", "consignee_city", "city"])), city_cols[0])
-
-        clauses = []
-        clause_params = []
-        for c_val, code in matched_cities:
-            clauses.append(f"[{primary_city_col}] = ?")
-            clause_params.append(c_val.title())
-            clauses.append(f"[{primary_city_col}] = ?")
-            clause_params.append(code)
-            clauses.append(f"[{primary_city_col}] LIKE ?")
-            clause_params.append(f"%{c_val.title()}%")
-            clauses.append(f"[{primary_city_col}] LIKE ?")
-            clause_params.append(f"%({code})%")
-
-        filters.append({
-            "column": primary_city_col,
-            "sql_safe_column": f"[{primary_city_col}]",
-            "operator": "LOCATION_MATCH",
-            "value": matched_cities[0][0].title(),
-            "sql_clause": f"({' OR '.join(clauses)})",
-            "params": clause_params
-        })
-        if len(matched_cities) >= 2 and any(kw in q_lower for kw in ["compare", "vs", "versus"]):
-            dest_col = next((c for c in city_cols if "destination" in c.lower()), city_cols[0])
-            group_by = [dest_col]
-            computed_fields = [{"name": "Order_Count", "expression": "COUNT(*)"}]
-            order_by = [{"column": "Order_Count", "sql_safe_column": "[Order_Count]", "direction": "DESC"}]
-
-    # 3.5 STATUS FILTERS (e.g. delivered, return, returned, pending, cancelled)
-    status_cols = [c for c in column_list if any(kw in c.lower() for kw in ["status", "delivery", "state"])]
-    if status_cols:
-        status_clauses = []
-        if any(kw in q_lower for kw in ["delivered", "deliver"]):
-            for s_col in status_cols:
-                status_clauses.append(f"[{s_col}] LIKE '%Delivered%'")
-                status_clauses.append(f"[{s_col}] = 'DELIVERED'")
-        elif any(kw in q_lower for kw in ["return", "returned", "returns", "rto"]):
-            for s_col in status_cols:
-                status_clauses.append(f"[{s_col}] LIKE '%Return%'")
-                status_clauses.append(f"[{s_col}] LIKE '%RTO%'")
-        elif any(kw in q_lower for kw in ["pending"]):
-            for s_col in status_cols:
-                status_clauses.append(f"[{s_col}] LIKE '%Pending%'")
-        elif any(kw in q_lower for kw in ["cancel", "cancelled", "canceled"]):
-            for s_col in status_cols:
-                status_clauses.append(f"[{s_col}] LIKE '%Cancel%'")
-
-        if status_clauses:
-            filters.append({
-                "column": status_cols[0],
-                "sql_safe_column": f"[{status_cols[0]}]",
-                "operator": "STATUS_MATCH",
-                "value": "Status Filter",
-                "sql_clause": f"({' OR '.join(status_clauses)})"
-            })
-
-    email_col = next((c for c in column_list if "email" in c.lower()), None)
-    if email_col:
-        domains = ["gmail", "yahoo", "hotmail", "outlook", "icloud", "protonmail"]
-        for dom in domains:
-            if dom in q_lower:
-                filters.append({
-                    "column": email_col,
-                    "sql_safe_column": f"[{email_col}]",
-                    "operator": "LIKE",
-                    "value": dom,
-                    "sql_clause": f"[{email_col}] LIKE ?",
-                    "params": [f"%{dom}%"]
-                })
-                break
-
-    if not matched_country and not filters:
-        for col, meta in cols_meta.items():
-            sample_vals = meta.get("sample_values", [])
-            for val in sample_vals:
-                val_lower = str(val).lower().strip()
-                if len(val_lower) >= 3 and val_lower in q_lower and val_lower not in ["min", "max", "avg", "sum", "top", "this", "that"]:
-                    filters.append({
-                        "column": col,
-                        "sql_safe_column": f"[{col}]",
-                        "operator": "=",
-                        "value": val,
-                        "sql_clause": f"[{col}] = ?",
-                        "params": [val]
-                    })
-                    break
 
     # 4. DATE RANGE / COMPARISON / MONTH+YEAR / BARE YEAR FILTERS
     # Previously this only ever detected a bare 4-digit year and did YEAR(col) = year,

@@ -69,6 +69,13 @@ from ai.smart_assistant import (
 )
 
 from uploads.multi_loader import process_file_upload
+from uploads.upload_jobs import (
+    ASYNC_THRESHOLD_BYTES,
+    create_job,
+    get_job,
+    spool_to_disk,
+    start_ingest_job,
+)
 from uploads.data_loader import auto_repair_dataframe_headers, clean_table_name
 from ai.smart_selector import detect_best_dataset_for_query
 from ai.multi_dataset import execute_multi_dataset_analysis
@@ -463,6 +470,43 @@ def upload():
         results = []
         errors = []
 
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json
+
+        # Hand anything large to a worker thread rather than holding the request open for
+        # it. A million-row file spent ~83s in this loop with the browser showing a
+        # finished upload bar and no idea what was happening. Only for AJAX submits -
+        # a plain form POST has nowhere to put a job id, so it keeps the old behaviour.
+        if is_ajax:
+            sizes = []
+            for f in files:
+                if not f or not getattr(f, "filename", None):
+                    continue
+                try:
+                    f.seek(0, os.SEEK_END)
+                    sizes.append((f, f.tell()))
+                    f.seek(0)
+                except Exception:
+                    sizes.append((f, 0))
+            if sizes and any(sz >= ASYNC_THRESHOLD_BYTES for _, sz in sizes):
+                spooled = [(spool_to_disk(f, f.filename), f.filename) for f, _ in sizes]
+                total_bytes = sum(sz for _, sz in sizes)
+                job_id = create_job(user_id, spooled[0][1], total_bytes)
+                names = ", ".join(n for _, n in spooled)
+
+                def _after_success(res_list, errs):
+                    system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
+                    log_upload_event(f"Uploaded dataset(s) '{names}' (background)",
+                                     user_id=user_id)
+
+                start_ingest_job(job_id, spooled, user_id, tags,
+                                 on_success=_after_success)
+                return jsonify({
+                    "success": True,
+                    "async": True,
+                    "job_id": job_id,
+                    "message": "Upload received, processing in the background...",
+                })
+
         for uploaded_file in files:
             if uploaded_file and getattr(uploaded_file, "filename", None):
                 success, res = process_file_upload(uploaded_file, user_id=user_id, tags=tags)
@@ -509,6 +553,37 @@ def api_upload_file():
     if not uploaded_file or not getattr(uploaded_file, "filename", None):
         return jsonify({"success": False, "error": "No file uploaded."}), 400
 
+    # Large files are ingested on a worker thread so the browser is not left on a hanging
+    # POST. A million-row file took ~83s of request time with no feedback at all; it now
+    # returns a job id straight away and the page polls /api/upload-status for real
+    # row counts. Small files keep the original synchronous response shape untouched.
+    try:
+        uploaded_file.seek(0, os.SEEK_END)
+        incoming_size = uploaded_file.tell()
+        uploaded_file.seek(0)
+    except Exception:
+        incoming_size = 0
+
+    if incoming_size >= ASYNC_THRESHOLD_BYTES:
+        filename = uploaded_file.filename
+        temp_path = spool_to_disk(uploaded_file, filename)
+        job_id = create_job(user_id, filename, incoming_size)
+
+        def _after_success(results, errors):
+            # Same bookkeeping the synchronous branch does, minus the session write:
+            # this runs on a worker thread with no request context.
+            system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
+            log_upload_event(f"AJAX Uploaded (background): {filename}", user_id=user_id)
+
+        start_ingest_job(job_id, [(temp_path, filename)], user_id, tags,
+                         on_success=_after_success)
+        return jsonify({
+            "success": True,
+            "async": True,
+            "job_id": job_id,
+            "message": "Upload received, processing in the background...",
+        })
+
     success, res = process_file_upload(uploaded_file, user_id=user_id, tags=tags)
     if success:
         system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
@@ -523,6 +598,46 @@ def api_upload_file():
 
     return jsonify({"success": False, "error": res}), 400
 
+
+@frontend.route("/api/upload-status/<job_id>", methods=["GET"])
+@login_required
+def api_upload_status(job_id):
+    """
+    Progress for a background ingestion job.
+
+    Scoped to the session's own user: get_job() returns None for a job belonging to
+    anyone else, so guessing a job id reveals nothing about another user's upload.
+    """
+    user_id = session.get("user_id")
+    job = get_job(job_id, user_id=user_id)
+    if not job:
+        return jsonify({"success": False, "error": "Unknown job."}), 404
+
+    payload = {
+        "success": True,
+        "status": job["status"],
+        "stage": job["stage"],
+        "percent": job["percent"],
+        "rows_done": job["rows_done"],
+        "rows_total": job["rows_total"],
+        "filename": job["filename"],
+    }
+    if job["status"] == "done":
+        results = job.get("results") or ([job["result"]] if job.get("result") else [])
+        payload["data"] = job["result"]
+        payload["results"] = results
+        payload["errors"] = job.get("errors") or []
+        res = job["result"] or {}
+        payload["ai_card"] = build_dataset_upload_card(
+            session.get("user_name", "User"),
+            res.get("file_name") or job["filename"],
+            res.get("rows", 0),
+            res.get("columns", 0),
+        )
+    elif job["status"] == "error":
+        payload["success"] = False
+        payload["error"] = job["error"]
+    return jsonify(payload)
 
 
 # ==========================================

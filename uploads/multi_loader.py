@@ -43,7 +43,41 @@ STREAMING_SAMPLE_ROWS = 20000
 STREAMING_CHUNK_SIZE = 50000
 
 
-def process_large_delimited_file_streaming(uploaded_file, sep: str, table_name: str) -> Optional[Dict[str, Any]]:
+def _estimate_row_count(uploaded_file, size_bytes: int) -> Optional[int]:
+    """
+    Estimate total rows from the average length of the first few thousand lines.
+
+    Used only to drive the progress percentage. Counting the real total would mean
+    reading the whole file twice, which is exactly the cost we are trying to avoid; an
+    estimate within a few percent is fine for a progress bar, and the bar is capped at
+    99% until the job genuinely finishes so an under-estimate can never show a
+    completed bar on an unfinished job.
+    """
+    try:
+        pos = uploaded_file.tell()
+    except Exception:
+        pos = 0
+    try:
+        uploaded_file.seek(0)
+        sample = uploaded_file.read(1024 * 1024)
+        if isinstance(sample, str):
+            sample = sample.encode("utf-8", errors="ignore")
+        lines = sample.count(b"\n")
+        if lines < 2:
+            return None
+        avg_line = len(sample) / lines
+        return max(1, int(size_bytes / avg_line) - 1)  # minus the header
+    except Exception:
+        return None
+    finally:
+        try:
+            uploaded_file.seek(pos)
+        except Exception:
+            pass
+
+
+def process_large_delimited_file_streaming(uploaded_file, sep: str, table_name: str,
+                                           progress_cb=None, estimated_total=None) -> Optional[Dict[str, Any]]:
     """
     Stream-parse and stream-insert a large CSV/TSV file in bounded chunks instead of loading
     the entire file into one DataFrame, so peak memory stays roughly constant regardless of
@@ -105,6 +139,14 @@ def process_large_delimited_file_streaming(uploaded_file, sep: str, table_name: 
         total_inserted += result["inserted"]
         total_failed += result["failed"]
         del chunk
+        if progress_cb:
+            # Real counts, not a synthetic animation: this is exactly how many rows are
+            # committed so far. rows_total is passed by the caller when it knows it.
+            try:
+                progress_cb(total_inserted, estimated_total,
+                            f"Inserting rows... {total_inserted:,} done")
+            except Exception:
+                pass
 
     return {
         "parsed_rows": total_parsed,
@@ -302,7 +344,8 @@ def parse_uploaded_file(uploaded_file, ext: str, format_label: str) -> pd.DataFr
         raise ValueError(f"Failed to parse {format_label} file '{getattr(uploaded_file, 'filename', 'data')}': {str(e)}")
 
 
-def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tuple[bool, Any]:
+def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None,
+                        progress_cb=None) -> Tuple[bool, Any]:
     """
     Complete end-to-end multi-format file ingestion pipeline:
     1. Pre-upload validation
@@ -330,7 +373,13 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tu
             # Large delimited file: parse and insert in bounded chunks instead of loading
             # the whole file into one DataFrame (keeps peak memory roughly constant).
             sep = "\t" if format_label == "TSV" else ","
-            stream_result = process_large_delimited_file_streaming(uploaded_file, sep, table_name)
+            if progress_cb:
+                progress_cb(0, None, "Parsing file...")
+            stream_result = process_large_delimited_file_streaming(
+                uploaded_file, sep, table_name,
+                progress_cb=progress_cb,
+                estimated_total=_estimate_row_count(uploaded_file, size_bytes),
+            )
             if not stream_result:
                 return False, f"File '{filename}' contains no rows or data records."
 
@@ -364,6 +413,8 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tu
 
             # Batch Insert Data - report the ACTUAL rows committed to the database,
             # not just the rows parsed from the file, since insertion can partially fail.
+            if progress_cb:
+                progress_cb(0, parsed_rows, f"Inserting {parsed_rows:,} rows...")
             insert_result = insert_dataframe(table_name, df)
             total_rows = insert_result["inserted"]
             failed_rows = insert_result["failed"]
@@ -378,7 +429,18 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tu
             )
 
         # Create non-clustered high performance indexes on search columns
+        if progress_cb:
+            progress_cb(total_rows, total_rows, "Building indexes...")
         create_high_performance_indexes(table_name, df)
+
+        # The Ask AI value matcher caches each column's distinct values to recognise
+        # filter terms in a question. Re-ingesting into an existing table would otherwise
+        # leave it matching against the previous contents for up to an hour.
+        try:
+            from ai.value_matcher import invalidate_column_vocabulary
+            invalidate_column_vocabulary(table_name)
+        except Exception:
+            pass
 
         # Record dataset metadata
         with get_db_cursor(commit=True) as cursor:
@@ -417,6 +479,9 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None) -> Tu
             pass
 
         log_event("UPLOAD_LOG", f"Successfully ingested {format_label} file '{filename}' into table [{table_name}] (parsed {parsed_rows}, inserted {total_rows}, {failed_rows} failed, {total_cols} cols)", user_id=user_id)
+
+        if progress_cb:
+            progress_cb(total_rows, total_rows, "Finalising...")
 
         preview_html = df.head(500).to_html(
             classes="table table-bordered table-striped custom-table upload-preview-table",

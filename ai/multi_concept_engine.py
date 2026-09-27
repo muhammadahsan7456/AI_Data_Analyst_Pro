@@ -12,46 +12,95 @@ from database.connection import run_query, sanitize_identifier
 from utils.helpers import expand_city_names_in_df
 
 
+# Words that signal a fragment is asking for something in its own right, rather than
+# being another value belonging to the previous clause. Deliberately about INTENT
+# (metrics, aggregations, interrogatives) and not about any particular field or domain.
+_INTENT_SIGNALS = {
+    # aggregations / metrics
+    "count", "total", "sum", "average", "avg", "mean", "median", "min", "max",
+    "revenue", "sales", "amount", "value", "profit", "cost", "price", "quantity",
+    "percentage", "percent", "share", "ratio", "rate", "growth", "trend",
+    # shapes of answer
+    "breakdown", "distribution", "split", "summary", "list", "show", "display",
+    "compare", "comparison", "top", "bottom", "highest", "lowest", "best", "worst",
+    "rank", "ranking", "chart", "graph", "table", "per", "by", "over time",
+    # interrogatives
+    "how", "what", "which", "who", "when", "where", "why",
+    # Roman Urdu equivalents this app's users type constantly
+    "kitne", "kitni", "kitna", "batao", "dikhao", "btao", "nikalo", "banao",
+    "zyada", "kam", "sabse", "hisab", "tafseel",
+}
+
+MAX_SUB_QUESTIONS = 6
+
+
+def _has_own_intent(fragment: str) -> bool:
+    """True if this fragment asks for something itself, rather than just naming a value."""
+    words = set(re.findall(r"[a-z]+", fragment.lower()))
+    return bool(words & _INTENT_SIGNALS)
+
+
 def split_multi_concept_question(question: str) -> list:
     """
-    Splits a multi-part prompt into individual sub-question prompts.
-    Examples:
-      - "Delivered orders batao aur return orders bhi batao and city breakdown dikhao"
-      -> ["Delivered orders batao", "return orders bhi batao", "city breakdown dikhao"]
+    Split a prompt into genuinely distinct sub-questions.
+
+    The important distinction, and the reason this is not a plain split on "and":
+
+      "Karachi and Lahore sales"          -> ONE question about two values
+      "total revenue and average order"   -> TWO questions
+
+    The first must NOT be split. Splitting it produced the old behaviour where half the
+    question quietly disappeared; multiple values of one field are now handled properly
+    downstream by ai/value_matcher.py, which turns them into a single `col IN (...)`
+    filter. So a fragment that carries no intent of its own is merged back into the
+    clause before it, and only fragments that actually ask for something stand alone.
+
+    This is field-agnostic by construction: it looks for words describing what is being
+    asked (counts, totals, breakdowns, comparisons, interrogatives), never for the names
+    of particular cities, statuses, products or any other data value.
     """
     if not question:
         return []
 
     q = question.strip()
-    q_low = q.lower()
 
-    known_city_kws = ["karachi", "khi", "lahore", "lhe", "islamabad", "isb", "rawalpindi", "rwp", "multan", "mux", "peshawar", "pew", "faisalabad", "fsd", "sialkot", "skt", "quetta", "uet", "hyderabad", "hdd"]
-    city_matches = [c for c in known_city_kws if c in q_low]
-    city_prefix = city_matches[0].title() + " " if city_matches else ""
+    # Sentence boundaries are the strongest signal of separate questions, so honour them
+    # before looking at conjunctions.
+    segments = [s.strip() for s in re.split(r"[?;]+|(?<=[a-z0-9])\.\s+", q) if s and s.strip()]
+    if not segments:
+        segments = [q]
 
-    # Explicit dual intent detection for Delivered + Returned Orders / Audits Count
-    has_delivered = any(kw in q_low for kw in ["delivery", "delivered", "deliver"])
-    has_returned = any(kw in q_low for kw in ["return", "returned", "rto", "audits"])
+    delimiters = (r"\b(?:aur|and|sath mein|saath mein|also|as well as|plus|along with|"
+                  r"tatha|nez)\b|(?<=[a-zA-Z0-9])\s*,\s*(?=[a-zA-Z0-9])")
 
-    if has_delivered and has_returned:
-        sub_questions = [
-            f"{city_prefix}delivered orders count",
-            f"{city_prefix}return orders count"
-        ]
-        if any(kw in q_low for kw in ["city", "cities", "shehar", "destination", "breakdown"]):
-            sub_questions.append(f"{city_prefix}destination breakdown")
-        return sub_questions
+    parts = []
+    for seg in segments:
+        for frag in re.split(delimiters, seg, flags=re.IGNORECASE):
+            frag = frag.strip(" ,.;")
+            if frag:
+                parts.append(frag)
 
-    # Split by conjunctions: " aur ", " and ", " sath mein ", " also ", " as well as ", ", "
-    delimiters = r"\b(?:aur|and|sath mein|saath mein|also|as well as|plus)\b|(?<=[a-zA-Z0-9])\s*,\s*(?=[a-zA-Z0-9])"
-    parts = re.split(delimiters, q, flags=re.IGNORECASE)
+    if len(parts) <= 1:
+        return [q]
 
-    sub_questions = [p.strip() for p in parts if len(p.strip()) >= 3]
+    # Merge intent-less fragments back into the clause they belong to, so a list of
+    # values stays one question.
+    merged = []
+    for frag in parts:
+        if merged and not _has_own_intent(frag):
+            merged[-1] = f"{merged[-1]} and {frag}"
+        elif merged and not _has_own_intent(merged[-1]):
+            # previous fragment was only a value; this one carries the intent for both
+            merged[-1] = f"{merged[-1]} and {frag}"
+        else:
+            merged.append(frag)
+
+    sub_questions = [s for s in (m.strip() for m in merged) if len(s) >= 3]
 
     if len(sub_questions) <= 1:
         return [q]
 
-    return sub_questions[:3]  # Max 3 concepts for optimal performance
+    return sub_questions[:MAX_SUB_QUESTIONS]
 
 
 def execute_multi_concept_analysis(question: str, table_name: str, columns_list: list, user_id: int = None) -> dict:
