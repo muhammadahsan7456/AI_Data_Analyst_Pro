@@ -254,18 +254,33 @@ def add_performance_headers(response):
     if app.config.get("SESSION_COOKIE_SECURE"):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
+    # Don't advertise the exact WSGI server; it tells an attacker which CVEs to try first.
+    response.headers["Server"] = "AI Data Analyst Pro"
+
     # Gzip-compress text-based responses (HTML/CSS/JS/JSON) when the client supports it -
     # meaningfully cuts transfer size/time for pages with large dataset preview tables.
     compressible = ("text/html", "text/css", "application/javascript", "text/javascript", "application/json")
     content_type = (response.content_type or "").split(";")[0].strip()
-    if (
+    wants_gzip = (
         "gzip" in request.headers.get("Accept-Encoding", "")
         and content_type in compressible
         and "Content-Encoding" not in response.headers
-        and not response.direct_passthrough
         and response.content_length is not None
         and response.content_length > 500
-    ):
+    )
+    # Static files (CSS/JS) come back from send_from_directory as a file wrapper with
+    # direct_passthrough set, which used to skip this block entirely - so every page was
+    # shipping style.css/landing.css uncompressed (~60KB each) while the HTML around them
+    # was gzipped. Buffering them is safe: the size cap below keeps it to small text assets,
+    # and large binary downloads (exports, screenshots) aren't in `compressible` anyway.
+    MAX_PASSTHROUGH_GZIP = 2 * 1024 * 1024
+    if wants_gzip and response.direct_passthrough:
+        if response.content_length <= MAX_PASSTHROUGH_GZIP:
+            response.direct_passthrough = False
+        else:
+            wants_gzip = False
+
+    if wants_gzip:
         compressed = gzip.compress(response.get_data(), compresslevel=6)
         response.set_data(compressed)
         response.headers["Content-Encoding"] = "gzip"

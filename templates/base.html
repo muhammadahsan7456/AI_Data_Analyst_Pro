@@ -220,7 +220,12 @@
                     {% for category, message in messages %}
                         <div class="toast toast-{{ category }}" style="margin-bottom: 20px;">
                             <span>{% if category == 'error' %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
-                            <span>{{ message|safe }}</span>
+                            {# No |safe here: flash messages interpolate user-supplied values
+                               (email addresses, dataset names, DB error text), and rendering
+                               them raw let an attacker inject live HTML. The few messages that
+                               intentionally contain markup are built with Markup() at the
+                               flash() call site, which Jinja renders without escaping anyway. #}
+                            <span>{{ message }}</span>
                         </div>
                     {% endfor %}
                 {% endif %}

@@ -63,8 +63,17 @@ def format_ai_explanation(text: str) -> str:
     with icons, metric pills, callout boxes, and bold highlights.
     """
     import re
+    from markupsafe import escape
     if not text or not isinstance(text, str):
         return ""
+
+    # Escape before any of the Markdown-to-HTML conversion below. The output of this
+    # function is rendered with |safe, and `text` is model output that echoes the user's
+    # own question and their uploaded cell values - so a value like
+    # "<img src=x onerror=...>" would otherwise come back as live markup. Escaping here
+    # costs nothing: every construct this function recognises (**bold**, bullets, | tables |,
+    # # headers, emoji) uses characters that escape() leaves alone.
+    text = str(escape(text))
 
     # Split double line breaks into paragraphs
     sections = [s.strip() for s in text.split("\n\n") if s.strip()]

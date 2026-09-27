@@ -144,7 +144,10 @@
                 {% for category, message in messages %}
                 <div class="flash-banner flash-banner-{{ 'error' if category in ['error', 'danger'] else category }}">
                     <span>{% if category in ['error', 'danger'] %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
-                    <span>{{ message|safe }}</span>
+                    {# No |safe here - see the matching note in base.html. Flash text carries
+                       user-supplied values and must be escaped; intentional markup arrives
+                       as a Markup() object, which Jinja renders unescaped on its own. #}
+                    <span>{{ message }}</span>
                 </div>
                 {% endfor %}
             </div>

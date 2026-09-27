@@ -4,7 +4,7 @@ import uuid
 import secrets
 import threading
 from datetime import datetime
-from markupsafe import escape
+from markupsafe import escape, Markup
 from PIL import Image
 from werkzeug.utils import secure_filename
 from flask import (
@@ -412,7 +412,7 @@ def signup():
             threading.Thread(target=email_service.send_verification_email, args=(email, full_name, otp_code), daemon=True).start()
             log_audit_event("SIGNUP_OTP_EMAIL", f"6-Digit Email OTP generated for {email}: {otp_code}", user_id=new_user_id)
 
-            flash(f"🔐 Account details updated! A 6-digit verification code has been sent to your email address (<strong>{email}</strong>). Please check your Gmail inbox.", "info")
+            flash(Markup(f"🔐 Account details updated! A 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
             return redirect(url_for("auth.verify_otp"))
 
@@ -563,7 +563,7 @@ def resend_otp():
 
     threading.Thread(target=email_service.send_verification_email, args=(email, full_name, new_otp), daemon=True).start()
     log_audit_event("RESEND_OTP_EMAIL", f"New Email OTP sent to {email}: {new_otp}", user_id=user_id)
-    flash(f"📧 A new 6-digit verification code has been sent to your email address (<strong>{email}</strong>). Please check your Gmail inbox.", "info")
+    flash(Markup(f"📧 A new 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
     return redirect(url_for("auth.verify_otp"))
 
@@ -647,9 +647,9 @@ def resend_verification():
         email_service.send_verification_email(email, full_name, verification_link)
 
         if email_service._is_configured():
-            flash(f"Verification link resent to <strong>{email}</strong>!", "info")
+            flash(Markup(f"Verification link resent to <strong>{escape(email)}</strong>!"), "info")
         else:
-            flash(f"Verification link generated for <strong>{email}</strong>! <a href='{verification_link}' class='btn btn-success btn-sm' style='margin-left: 12px; font-weight: bold;'>✉️ Click Here to Verify Email Now</a>", "warning")
+            flash(Markup(f"Verification link generated for <strong>{escape(email)}</strong>! <a href='{escape(verification_link)}' class='btn btn-success btn-sm' style='margin-left: 12px; font-weight: bold;'>✉️ Click Here to Verify Email Now</a>"), "warning")
 
     return redirect(url_for("auth.login"))
 
