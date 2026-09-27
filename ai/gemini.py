@@ -51,6 +51,16 @@ if api_key:
 
 UNRELATED_MESSAGE = "I’m designed to analyze your uploaded dataset. Please ask a question related to the available data, such as customer records, companies, locations, dates, counts, trends, or other dataset fields."
 
+# Sentinel prefix used the same way as UNRELATED_MESSAGE: fast_pattern_sql_generator()
+# returns it in place of real SQL when the query plan flagged something in the question
+# that isn't actually in this dataset (a value like "Sialkot" not present in any column,
+# or a metric like "shipping_cost" that matches no real column). Without this, the plan's
+# best-effort SQL still runs - typically an unfiltered COUNT(*) or a SUM of the wrong
+# column - and the user gets a confident, wrong-looking-plausible number instead of being
+# told the data isn't there. execute_sql_with_retry() checks for this prefix before
+# treating the string as SQL.
+DATA_NOT_FOUND_PREFIX = "__ASKAI_DATA_NOT_FOUND__:"
+
 # Priority list of ultra-fast working OpenRouter models (Sub-second to 2s response times)
 FAST_MODELS = [
     "deepseek/deepseek-chat",
@@ -489,6 +499,14 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     if parse_question_to_query_plan:
         try:
             plan = parse_question_to_query_plan(question, table_name)
+            if plan and plan.get("unresolved"):
+                # Something the question named (a value like "Sialkot", or a metric like
+                # "shipping_cost") doesn't exist in this dataset. Say so plainly rather
+                # than falling through to an unfiltered COUNT(*) or a SUM of some other
+                # column - the intent=="count"-with-no-filters branch right below this is
+                # exactly the path a dropped, unmatched filter used to take silently.
+                notice = " ".join(plan["unresolved"])
+                return f"{DATA_NOT_FOUND_PREFIX}{notice}", ()
             if plan and (plan.get("limit") or plan.get("filters") or plan.get("computed_fields") or plan.get("order_by") or plan.get("intent")):
                 if plan.get("intent") == "count" and not plan.get("filters"):
                     return f"SELECT COUNT(*) AS [Total_Records] FROM {safe_tbl};", ()
@@ -893,7 +911,23 @@ def execute_sql_with_retry(question: str, table_name: str, columns_list: list, m
             "retries": 0,
             "error": UNRELATED_MESSAGE
         }
-    
+
+    if isinstance(sql, str) and sql.startswith(DATA_NOT_FOUND_PREFIX):
+        notice = sql[len(DATA_NOT_FOUND_PREFIX):]
+        return {
+            "success": False,
+            "is_out_of_domain": False,
+            "is_data_not_found": True,
+            "is_fast_pattern": False,
+            "sql": None,
+            "df": pd.DataFrame(),
+            "rows_returned": 0,
+            "execution_time_ms": round((time.time() - start_time) * 1000, 2),
+            "confidence": 0.0,
+            "retries": 0,
+            "error": notice
+        }
+
     if not sql:
         sql = f"SELECT TOP 50 * FROM [{table_name}];"
         params = ()

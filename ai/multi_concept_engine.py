@@ -63,6 +63,17 @@ def split_multi_concept_question(question: str) -> list:
         return []
 
     q = question.strip()
+    q_low = q.lower()
+
+    # "Compare A and B" / "A vs B" is always ONE question about several values, never
+    # several questions - but "compare" and a metric word like "revenue" can each look
+    # like their own intent-signal, so "compare Online and Wholesale channel revenue"
+    # was splitting into the two-fragments "compare Online" / "Wholesale channel revenue"
+    # and losing the comparison entirely. ai/query_plan_engine.py's own compare-handling
+    # already resolves a multi-value comparison as a single grouped query, so this is
+    # never something that needs to be split into standalone sub-questions.
+    if re.search(r"\b(?:compare|comparison|vs|versus|muqabla)\b", q_low):
+        return [q]
 
     # Sentence boundaries are the strongest signal of separate questions, so honour them
     # before looking at conjunctions.

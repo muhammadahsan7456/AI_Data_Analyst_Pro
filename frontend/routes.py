@@ -859,14 +859,23 @@ def chat():
         pass
 
     if not ai_result["success"]:
-        clean_user_err = format_user_friendly_error(ai_result['error'])
+        # A value or column the question named simply isn't in this dataset (e.g. a city
+        # not present, or a field like "shipping_cost" that doesn't exist) - the query
+        # planner already worked that out and phrased it plainly, so it is shown as-is
+        # rather than run through the SQL-error translator, which would wrap an already
+        # clear sentence in "Notice: ..." as if it were a database fault.
+        if ai_result.get("is_data_not_found"):
+            clean_user_err = ai_result["error"]
+        else:
+            clean_user_err = format_user_friendly_error(ai_result['error'])
         if is_ajax:
             return jsonify({
                 "success": False,
                 "is_out_of_domain": False,
+                "is_data_not_found": bool(ai_result.get("is_data_not_found")),
                 "sql": ai_result["sql"],
                 "error": clean_user_err,
-                "tts_speech": "Sorry, I could not execute that query on the dataset."
+                "tts_speech": clean_user_err if ai_result.get("is_data_not_found") else "Sorry, I could not execute that query on the dataset."
             })
         return render_template(
             "chat.html",
@@ -875,7 +884,7 @@ def chat():
             question=question,
             sql=ai_result["sql"],
             error=clean_user_err,
-            tts_speech="Sorry, I could not execute that query on the dataset."
+            tts_speech=clean_user_err if ai_result.get("is_data_not_found") else "Sorry, I could not execute that query on the dataset."
         )
 
     df = ai_result["df"]

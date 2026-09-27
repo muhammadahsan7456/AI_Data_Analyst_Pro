@@ -19,7 +19,15 @@ import sys
 import re
 import pandas as pd
 from ai.schema_intelligence import get_dataset_schema_intelligence
-from ai.value_matcher import extract_multi_value_filters
+from ai.value_matcher import extract_multi_value_filters, find_unresolved_proper_nouns
+from ai.metric_resolver import (
+    get_real_numeric_columns,
+    get_real_categorical_columns,
+    resolve_metric_column,
+    resolve_groupby_column,
+    extract_numeric_comparisons,
+    is_id_like_column,
+)
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -31,10 +39,20 @@ _MONTH_NAMES = {
 }
 
 
-def _extract_date_token(text_segment: str):
+def _extract_date_token(text_segment: str, end_of_month: bool = False):
     """
     Find a date-like substring in free text and normalize it to YYYY-MM-DD.
     Returns None if no parseable date is found, rather than guessing.
+
+    A bare "Month YYYY" with no day number (e.g. "March 2025") is a common way to name
+    one endpoint of a range - "between January 2025 and March 2025" - and used to match
+    nothing at all here, since every pattern below required an explicit day. That silently
+    dropped the whole range filter down to whatever the OTHER, unrelated bare-month-year
+    pattern further down this function picked up instead (just "January", ignoring "and
+    March 2025" completely). It resolves to the 1st of that month, unless `end_of_month`
+    is set - the closing side of a range names a month meaning "through the end of it",
+    not literally its first day, so a BETWEEN clause built from two 1st-of-month dates
+    would silently exclude nearly the entire final month.
     """
     if not text_segment:
         return None
@@ -53,6 +71,16 @@ def _extract_date_token(text_segment: str):
                 return parsed.strftime("%Y-%m-%d")
             except Exception:
                 continue
+
+    bare_month = re.search(r"\b(" + "|".join(_MONTH_NAMES.keys()) + r")\s+(20\d{2})\b", text_segment)
+    if bare_month:
+        try:
+            period = pd.Period(f"{bare_month.group(2)}-{_MONTH_NAMES[bare_month.group(1)]:02d}", freq="M")
+            target = period.end_time if end_of_month else period.start_time
+            return target.strftime("%Y-%m-%d")
+        except Exception:
+            pass
+
     return None
 
 
@@ -118,6 +146,21 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     cols_meta = schema_intel.get("columns", {})
     q_lower = question.lower().strip()
 
+    # The dataset's REAL numeric/categorical columns (from actual pandas dtype and value
+    # cardinality - ai/schema_intelligence.py), used everywhere below instead of matching
+    # column names against a fixed English keyword list. See ai/metric_resolver.py for why:
+    # a keyword list only ever covers the columns whose name happens to contain one of a
+    # handful of hardcoded words, so "Revenue", "SalesRep" or any other real column name
+    # outside that list used to be invisible to aggregation/grouping detection entirely.
+    numeric_cols_real = get_real_numeric_columns(schema_intel)
+    categorical_cols_real = get_real_categorical_columns(schema_intel)
+
+    # Collected here and returned in the plan so the caller (gemini.py) can tell the user
+    # plainly when something they asked about isn't in this dataset, instead of silently
+    # substituting a different column/dropping the constraint and returning a confident
+    # but wrong answer.
+    unresolved_notices = []
+
     concept_check = validate_concept_availability(question, schema_intel)
 
     filters = []
@@ -181,17 +224,42 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     value_filters = extract_multi_value_filters(question, table_name, schema_intel)
     filters.extend(value_filters)
 
+    # Proper-noun-like words that don't match anything in this dataset ("Sialkot" when
+    # the City column only has 6 other cities) used to be silently ignored - the filter
+    # was simply never added, so the query ran unfiltered and returned a confident count
+    # of the WHOLE table as if the word had never been typed. Recording them here lets the
+    # caller say plainly that the value wasn't found instead of guessing.
+    unresolved_notices.extend(
+        f"'{term}' was not found in this dataset." for term in
+        find_unresolved_proper_nouns(question, table_name, schema_intel)
+    )
+
     # A comparison across several values of one field ("A vs B", "compare X and Y") should
     # come back grouped by that field so each value's numbers are visible separately
     # instead of merged into one total. Deliberately generic: it keys off whichever column
     # the multiple values belong to, not off any particular field name.
-    if any(kw in q_lower for kw in ["compare", "comparison", "vs", "versus", "muqabla", "difference"]):
+    is_comparison_question = any(kw in q_lower for kw in
+                                 ["compare", "comparison", "vs", "versus", "muqabla", "difference"])
+    if is_comparison_question:
         multi = next((f for f in value_filters if len(f.get("values", [])) >= 2), None)
         if multi:
+            # Comparing several values of one field ("compare revenue between Karachi and
+            # Lahore") needs the ACTUAL metric named in the question, not just a row count -
+            # resolve it the same schema-driven way every other aggregation does, so this
+            # works for whichever numeric column the question names.
+            # The filter stays in place (WHERE City IN ('Karachi','Lahore')) - it restricts
+            # the comparison to just the named values; GROUP BY then breaks THOSE rows down
+            # per value instead of also including every other city in the dataset.
+            cmp_metric_col, _ = resolve_metric_column(q_lower, numeric_cols_real)
             group_by = [multi["column"]]
-            computed_fields = [cf for cf in computed_fields if cf.get("name") != "Record_Count"]
-            computed_fields.append({"name": "Record_Count", "expression": "COUNT(*)"})
-            order_by = [{"column": "Record_Count", "sql_safe_column": "[Record_Count]", "direction": "DESC"}]
+            computed_fields = [{"name": "Record_Count", "expression": "COUNT(*)"}]
+            if cmp_metric_col:
+                safe_expr = f"TRY_CAST(REPLACE(CAST([{cmp_metric_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+                sum_name = f"Total_{cmp_metric_col}"
+                computed_fields.append({"name": sum_name, "expression": f"SUM({safe_expr})"})
+                order_by = [{"column": sum_name, "sql_safe_column": f"[{sum_name}]", "direction": "DESC"}]
+            else:
+                order_by = [{"column": "Record_Count", "sql_safe_column": "[Record_Count]", "direction": "DESC"}]
             select_cols = [multi["column"]]
 
 
@@ -210,7 +278,7 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         )
         if range_match:
             d1 = _extract_date_token(range_match.group(1))
-            d2 = _extract_date_token(range_match.group(2))
+            d2 = _extract_date_token(range_match.group(2), end_of_month=True)
             if d1 and d2:
                 filters.append({
                     "column": date_col,
@@ -306,24 +374,91 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         order_by.append({"column": id_or_index_col, "sql_safe_column": f"[{id_or_index_col}]", "direction": "ASC"})
 
     intent = "retrieve_records"
-    
-    # 6. COUNT / SUMMARY AGGREGATE INTENT RESOLUTION
-    if any(kw in q_lower for kw in ["count", "total", "how many", "kitne", "kitni", "number of"]) and not any(kw in q_lower for kw in ["by", "group", "compare", "breakdown", "per"]):
-        intent = "count"
-        computed_fields = [{"name": "Total_Orders", "expression": "COUNT(*)"}]
-        select_cols = []
-        order_by = []
-    elif any(kw in q_lower for kw in ["missing value", "missing values", "null value", "null values", "empty cells", "missing data"]):
+
+    # 6. SCHEMA-DRIVEN AGGREGATION INTENT RESOLUTION
+    #
+    # This whole section used to decide "which numeric column does 'total X' mean" and
+    # "which categorical column does 'top N Y' mean" using two fixed English keyword
+    # lists - numeric candidates only if the COLUMN NAME contained one of a handful of
+    # words like "cod"/"amount"/"price", categorical candidates only if it contained one
+    # of "destination"/"status"/"city"/"country"/"company"/"category"/"type"/"state". A
+    # column named "Revenue" or "SalesRep" matches neither list, so "total revenue"
+    # silently summed whatever OTHER numeric column happened to be first in the table,
+    # and "top 3 sales reps by revenue" silently grouped by the "Revenue" column itself
+    # (the only column name literally present in the question) instead of by SalesRep.
+    # Both are confident, plausible-looking WRONG answers - worse than an error.
+    #
+    # ai/metric_resolver.py resolves both kinds of column against the dataset's REAL
+    # schema (numeric columns from actual pandas dtype, categorical columns from actual
+    # value cardinality), so this works for whichever columns a user's dataset has, not
+    # just the ones on a hardcoded list. The bare "count"/"total" catch-all that used to
+    # run FIRST and pre-empt every other check now runs LAST, only once every more
+    # specific aggregation/ranking pattern has had a chance to match.
+    metric_col, metric_exact = resolve_metric_column(q_lower, numeric_cols_real)
+
+    # Sub-city area breakdown ("Gulshan"/"Saddar"/"DHA" within Karachi) parses free-text
+    # address values rather than grouping by a column's existing distinct values, so it
+    # cannot go through the normal categorical-column resolver above - kept as its own
+    # narrow check, same as before.
+    group_col = None
+    address_col = next((c for c in column_list if any(kw in c.lower() for kw in
+                        ["address", "street", "consignee_address", "location"])), None)
+    if address_col and any(kw in q_lower for kw in
+                           ["area", "areas", "locality", "localities", "neighborhood", "neighborhoods",
+                            "sub-city", "gulshan", "saddar", "defence", "dha", "clifton", "johar", "korangi"]):
+        from ai.area_intelligence import build_sql_sub_area_case_statement
+        known_pk_cities = ["karachi", "lahore", "islamabad", "rawalpindi", "multan", "peshawar",
+                           "faisalabad", "quetta", "hyderabad", "sukkur", "sialkot", "gujranwala"]
+        target_city_name = next((c.title() for c in known_pk_cities if c in q_lower), None)
+        group_col = build_sql_sub_area_case_statement(address_col, target_city_name)
+
+    if not group_col:
+        group_col = resolve_groupby_column(q_lower, categorical_cols_real, exclude=metric_col)
+
+    # Numeric threshold filters ("quantity over 1000", "revenue at least 500") - generic,
+    # tied to whichever real numeric column the comparison phrase names. Previously there
+    # was no support for this at all: a clause like "with quantity over 1000" was simply
+    # dropped, silently widening the result set to everything that matched the OTHER
+    # filters instead of either applying the constraint or saying it couldn't be applied.
+    for cmp_col, cmp_op, cmp_val in extract_numeric_comparisons(q_lower, numeric_cols_real):
+        safe_cmp_expr = f"TRY_CAST(REPLACE(CAST([{cmp_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+        filters.append({
+            "column": cmp_col,
+            "sql_safe_column": f"[{cmp_col}]",
+            "operator": cmp_op,
+            "value": cmp_val,
+            "sql_clause": f"{safe_cmp_expr} {cmp_op} ?",
+            "params": [cmp_val],
+        })
+
+    wants_sum = bool(re.search(r"\b(?:total|sum(?:\s+of)?)\b", q_lower))
+    wants_avg = bool(re.search(r"\b(?:average|avg|mean)\b", q_lower))
+    wants_min = bool(re.search(r"\bminimum\b|\bmin\b", q_lower))
+    wants_max = bool(re.search(r"\bmaximum\b|\bmax\b", q_lower))
+    wants_distinct = "distinct" in q_lower
+    wants_count = bool(re.search(r"\b(?:count|how many|kitne|kitni|number of)\b", q_lower))
+    wants_percentage = any(kw in q_lower for kw in ["percentage", "percent", "%", "ratio", "fraction"])
+    wants_ranking = (bool(re.search(r"\b(?:top|highest|lowest|most|best|worst|rank(?:ing)?)\b", q_lower))
+                     or bool(re.search(r"\bgroup(?:ed)?\s+by\b|\bper\b|\bfor each\b|\bbreakdown\b", q_lower)))
+
+    # A clear aggregation-function word (total/sum/average/min/max) but no real column to
+    # apply it to is exactly the "what is the total shipping_cost" case: say so plainly
+    # instead of silently substituting a different numeric column and reporting a
+    # confident, unrelated number.
+    if (wants_sum or wants_avg or wants_min or wants_max) and not metric_col and numeric_cols_real and not wants_count:
+        m = re.search(r"\b(?:total|sum|average|avg|mean|minimum|min|maximum|max)\s+(?:of\s+)?([a-z][a-z0-9_]{2,30})", q_lower)
+        term = m.group(1) if m else question.strip()
+        unresolved_notices.append(f"No column matching '{term}' was found in this dataset.")
+
+    if any(kw in q_lower for kw in ["missing value", "missing values", "null value", "null values", "empty cells", "missing data"]):
         intent = "missing_values"
-        select_cols = []
+        select_cols, computed_fields, order_by, limit = [], [], [], None
         for col in column_list[:12]:
             if col.lower() not in ["recordid"]:
                 computed_fields.append({
                     "name": f"{col}_Nulls",
                     "expression": f"SUM(CASE WHEN [{col}] IS NULL THEN 1 ELSE 0 END)"
                 })
-        order_by = []
-        limit = None
     elif any(kw in q_lower for kw in ["duplicate customer id", "duplicate customer ids", "duplicate ids", "duplicate records", "duplicates", "duplicate entries", "duplicate values", "which columns contain duplicate"]):
         intent = "duplicate_records"
         business_cols = [c for c in column_list if c.lower() not in ["recordid", "index", "sr"]]
@@ -331,180 +466,114 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         target_id_col = next((c for c in business_cols if any(kw in c.lower() for kw in ["contact", "phone", "product", "cnic", "name", "email", "address"])), business_cols[0] if business_cols else "Consignee_Contact")
         select_cols = [target_id_col]
         group_by = [target_id_col]
-        computed_fields = [{
-            "name": "Duplicate_Count",
-            "expression": "COUNT(*)"
-        }]
+        computed_fields = [{"name": "Duplicate_Count", "expression": "COUNT(*)"}]
         order_by = [{"column": "Duplicate_Count", "sql_safe_column": "[Duplicate_Count]", "direction": "DESC"}]
         limit = 100
     elif "earliest" in q_lower and "latest" in q_lower and date_col:
         intent = "min_max_date"
-        computed_fields.append({
-            "name": "Earliest Subscription Date",
-            "expression": f"MIN([{date_col}])"
-        })
-        computed_fields.append({
-            "name": "Latest Subscription Date",
-            "expression": f"MAX([{date_col}])"
-        })
-        select_cols = []
-        order_by = []
-    elif any(kw in q_lower for kw in ["percentage", "percent", "%", "ratio", "fraction"]):
+        select_cols, computed_fields, order_by = [], [], []
+        computed_fields.append({"name": "Earliest Subscription Date", "expression": f"MIN([{date_col}])"})
+        computed_fields.append({"name": "Latest Subscription Date", "expression": f"MAX([{date_col}])"})
+    elif wants_percentage and any(kw in q_lower for kw in ["return", "deliver"]) and not group_col:
+        # This narrower status-specific percentage path is left as it was; it is not one
+        # of the aggregation-column bugs fixed this pass (it doesn't pick a numeric
+        # column at all, only a status literal), and rewriting it is out of scope here.
         intent = "percentage_calc"
+        select_cols, computed_fields, order_by = [], [], []
         filters = []  # Clear global filters so denominator COUNT(*) spans total dataset
         status_col = next((c for c in column_list if any(kw in c.lower() for kw in ["status", "delivery", "state"])), "Delivery_Status")
         if "return" in q_lower:
             computed_fields.append({"name": "Matching_Orders", "expression": f"COUNT(CASE WHEN [{status_col}] = 'Returned' OR [{status_col}] LIKE '%RETURN%' THEN 1 END)"})
             computed_fields.append({"name": "Total_Orders", "expression": "COUNT(*)"})
             computed_fields.append({"name": "Percentage", "expression": f"ROUND(CAST(COUNT(CASE WHEN [{status_col}] = 'Returned' OR [{status_col}] LIKE '%RETURN%' THEN 1 END) AS FLOAT) * 100.0 / NULLIF(COUNT(*), 0), 2)"})
-        elif "deliver" in q_lower:
+        else:
             computed_fields.append({"name": "Matching_Orders", "expression": f"COUNT(CASE WHEN [{status_col}] = 'Delivered' OR [{status_col}] LIKE '%DELIVER%' THEN 1 END)"})
             computed_fields.append({"name": "Total_Orders", "expression": "COUNT(*)"})
             computed_fields.append({"name": "Percentage", "expression": f"ROUND(CAST(COUNT(CASE WHEN [{status_col}] = 'Delivered' OR [{status_col}] LIKE '%DELIVER%' THEN 1 END) AS FLOAT) * 100.0 / NULLIF(COUNT(*), 0), 2)"})
-        else:
-            computed_fields.append({"name": "Matching_Orders", "expression": "COUNT(*)"})
-            computed_fields.append({"name": "Total_Orders", "expression": "COUNT(*)"})
-            computed_fields.append({"name": "Percentage", "expression": "100.0"})
-        select_cols = []
-        order_by = []
-    # Check for Grouped Multi-Metric Aggregations & Comparison Queries (e.g. top 10 destinations by total COD value, compare statuses)
-    categorical_cols = [c for c in column_list if any(kw in c.lower() for kw in ["destination", "origin", "status", "city", "country", "company", "category", "type", "state"])]
-    numeric_candidate_cols = [c for c in column_list if c.lower() not in ["recordid", "index", "sr"] and any(kw in c.lower() for kw in ["cod", "val", "amount", "price", "cost", "weight", "total", "pieces", "quantity"])]
-    
-    group_col = None
-    group_match = re.search(r"group\s*(?:them\s*)?by\s*([a-z_]+)", q_lower)
-    if group_match:
-        target_grp_word = group_match.group(1)
-        group_col = next((c for c in categorical_cols if target_grp_word in c.lower() or c.lower() in target_grp_word), None)
-
-    if not group_col:
-        address_col = next((c for c in column_list if any(kw in c.lower() for kw in ["address", "street", "consignee_address", "location"])), None)
-        if address_col and any(kw in q_lower for kw in ["area", "areas", "locality", "localities", "neighborhood", "neighborhoods", "sub-city", "gulshan", "saddar", "defence", "dha", "clifton", "johar", "korangi"]):
-            from ai.area_intelligence import build_sql_sub_area_case_statement
-            known_pk_cities = ["karachi", "lahore", "islamabad", "rawalpindi", "multan", "peshawar", "faisalabad", "quetta", "hyderabad", "sukkur", "sialkot", "gujranwala"]
-            target_city_name = next((c.title() for c in known_pk_cities if c in q_lower), None)
-            group_col = build_sql_sub_area_case_statement(address_col, target_city_name)
-        elif any(kw in q_lower for kw in ["city", "cities", "shehar", "shahar", "destination", "destinations"]):
-            group_col = next((c for c in column_list if any(kw in c.lower() for kw in ["destination", "city", "location"])), None)
-        elif any(kw in q_lower for kw in ["origin", "origins"]):
-            group_col = next((c for c in column_list if "origin" in c.lower()), None)
-        elif any(kw in q_lower for kw in ["status", "statuses", "condition"]):
-            group_col = next((c for c in column_list if any(kw in c.lower() for kw in ["status", "delivery"])), None)
-
-    metric_col = next((c for c in numeric_candidate_cols if (c.lower() in q_lower or c.lower().replace("_", " ") in q_lower or (("cod" in q_lower or "value" in q_lower or "amount" in q_lower) and "cod" in c.lower()))), None)
-    if not metric_col:
-        metric_col = numeric_candidate_cols[0] if numeric_candidate_cols else None
-
-    is_grouped_multi_metric = group_col and (
-        any(kw in q_lower for kw in ["top ", "top", "highest", "most", "count by", "by count", "group by", "group them by", "compare", "for each", "per ", "destinations", "statuses", "cities", "origins", "breakdown", "kaun kaun", "zyaada", "zyada", "area", "areas", "locality"]) or
-        ("by" in q_lower and ("total" in q_lower or "sum" in q_lower or "value" in q_lower or "cod" in q_lower or "amount" in q_lower or "city" in q_lower or "area" in q_lower))
-    )
-
-    if is_grouped_multi_metric:
+    elif wants_ranking and group_col:
+        # "top N <entity> by <metric>", "which <entity> has the highest <metric>",
+        # "<metric> by <entity>", "breakdown by <entity>" - group_col is what's being
+        # ranked/broken down, resolved above independently of which side of "by" it's on.
         intent = "aggregate_rank"
         select_cols = [group_col]
         group_by = [group_col]
         computed_fields = []
+        safe_metric_expr = (f"TRY_CAST(REPLACE(CAST([{metric_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+                            if metric_col else None)
 
-        status_col = next((c for c in column_list if any(kw in c.lower() for kw in ["status", "delivery"])), None)
-        if status_col and group_col != status_col and "return" in q_lower:
-            if not any("return" in f["sql_clause"].lower() for f in filters):
-                filters.append({
-                    "column": status_col,
-                    "sql_safe_column": f"[{status_col}]",
-                    "operator": "STATUS_RETURN",
-                    "value": "Returned",
-                    "sql_clause": f"([{status_col}] = 'Returned' OR [{status_col}] LIKE '%RETURN%')"
-                })
-        
-        safe_cast_expr = f"TRY_CAST(REPLACE(CAST([{metric_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)" if metric_col else None
+        if wants_avg and safe_metric_expr:
+            sort_field = f"Average_{metric_col}"
+            computed_fields.append({"name": sort_field, "expression": f"ROUND(AVG({safe_metric_expr}), 2)"})
+        elif safe_metric_expr and not wants_count:
+            # A real metric column was actually named ("... by revenue") - rank by its
+            # SUM by default. This is what "top N X by Y" means even when the question
+            # never spells out the word "total"/"sum".
+            sort_field = f"Total_{metric_col}"
+            computed_fields.append({"name": sort_field, "expression": f"SUM({safe_metric_expr})"})
+        else:
+            sort_field = "Record_Count"
+            computed_fields.append({"name": "Record_Count", "expression": "COUNT(*)"})
 
-        # 1. Order Count
-        if any(kw in q_lower for kw in ["count", "order count", "number of", "how many", "top", "compare", "returned-order count", "orders"]):
-            computed_fields.append({"name": "Order_Count", "expression": "COUNT(*)"})
-
-        # 2. Percentage of Total
-        if any(kw in q_lower for kw in ["percentage", "percent", "%", "share", "ratio", "fraction"]):
+        if wants_percentage:
             computed_fields.append({"name": "Percentage_Of_Total", "expression": f"ROUND(CAST(COUNT(*) AS FLOAT) * 100.0 / NULLIF((SELECT COUNT(*) FROM [{table_name}]), 0), 2)"})
 
-        # 3. Total Sum / COD Value
-        if safe_cast_expr and any(kw in q_lower for kw in ["total", "sum", "cod", "value", "amount", "revenue", "price", "cost"]):
-            val_name = f"Total_{metric_col}" if metric_col else "Total_Value"
-            computed_fields.append({"name": val_name, "expression": f"SUM({safe_cast_expr})"})
+        direction = "ASC" if any(kw in q_lower for kw in ["lowest", "bottom", "least", "worst", "smallest"]) else "DESC"
+        order_by = [{"column": sort_field, "sql_safe_column": f"[{sort_field}]", "direction": direction}]
 
-        # 4. Average per order
-        if safe_cast_expr and any(kw in q_lower for kw in ["average", "avg", "per order", "mean"]):
-            avg_name = f"Average_{metric_col}_Per_Order" if metric_col else "Average_Value"
-            computed_fields.append({"name": avg_name, "expression": f"ROUND(AVG({safe_cast_expr}), 2)"})
-
-        if not computed_fields:
-            computed_fields.append({"name": "Order_Count", "expression": "COUNT(*)"})
-
-        # Primary Sort Column
-        sort_field = computed_fields[0]["name"]
-        for f in computed_fields:
-            if "total" in f["name"].lower() or "sum" in f["name"].lower() or "value" in f["name"].lower():
-                if "total" in q_lower or "by total" in q_lower or "value" in q_lower:
-                    sort_field = f["name"]
-                    break
-
-        order_by = [{"column": sort_field, "sql_safe_column": f"[{sort_field}]", "direction": "DESC"}]
-
-        if not limit:
-            limit_m = re.search(r"\b(?:top|first)\s*(\d{1,3})\b", q_lower)
-            limit = int(limit_m.group(1)) if limit_m else (10 if "top" in q_lower else None)
-
-    elif any(kw in q_lower for kw in ["total cod", "cod value", "total amount", "total value", "total revenue", "total price", "total cost", "total sum", "sum of", "average", "avg", "mean", "minimum", "min", "maximum", "max", "distinct"]):
+        if limit is None:
+            limit = 10 if any(kw in q_lower for kw in ["top", "best", "worst"]) else None
+    elif metric_col and (wants_sum or wants_avg or wants_min or wants_max or wants_distinct):
+        # A real numeric column was named/implied and an aggregation function was asked
+        # for, with no grouping - a single-number answer ("total revenue for Laptop",
+        # "average quantity for Online channel").
         intent = "aggregate_stat"
-        num_col = metric_col if metric_col else column_list[0]
-        safe_cast_expr = f"TRY_CAST(REPLACE(CAST([{num_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
-
-        if "distinct" in q_lower:
-            dist_col = next((c for c in column_list if c.lower() in q_lower and c.lower() not in ["recordid", "index", "sr"]), num_col)
-            computed_fields.append({"name": f"Distinct_{dist_col}_Count", "expression": f"COUNT(DISTINCT [{dist_col}])"})
-        elif any(kw in q_lower for kw in ["average", "avg", "mean"]):
-            computed_fields.append({"name": f"Average_{num_col}", "expression": f"ROUND(AVG({safe_cast_expr}), 2)"})
-        elif any(kw in q_lower for kw in ["minimum", "min"]):
-            computed_fields.append({"name": f"Minimum_{num_col}", "expression": f"MIN({safe_cast_expr})"})
-        elif any(kw in q_lower for kw in ["maximum", "max"]):
-            computed_fields.append({"name": f"Maximum_{num_col}", "expression": f"MAX({safe_cast_expr})"})
+        select_cols, computed_fields, order_by = [], [], []
+        safe_metric_expr = f"TRY_CAST(REPLACE(CAST([{metric_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+        if wants_distinct:
+            computed_fields.append({"name": f"Distinct_{metric_col}_Count", "expression": f"COUNT(DISTINCT [{metric_col}])"})
+        elif wants_avg:
+            computed_fields.append({"name": f"Average_{metric_col}", "expression": f"ROUND(AVG({safe_metric_expr}), 2)"})
+        elif wants_min:
+            computed_fields.append({"name": f"Minimum_{metric_col}", "expression": f"MIN({safe_metric_expr})"})
+        elif wants_max:
+            computed_fields.append({"name": f"Maximum_{metric_col}", "expression": f"MAX({safe_metric_expr})"})
         else:
-            computed_fields.append({"name": f"Total_{num_col}", "expression": f"SUM({safe_cast_expr})"})
-
-        select_cols = []
-        order_by = []
-    else:
-        # Detect category grouping/ranking intent (e.g. "top 5 countries by customer count", "top 10 cities", "count by country")
-        category_match_col = group_col
-        if not category_match_col:
-            category_match_col = next((c for c in column_list if (c.lower() in q_lower or c.lower().replace("_", " ") in q_lower) and c.lower() not in ["recordid", "index"]), None)
-        if not category_match_col:
-            if "country" in q_lower or "countries" in q_lower:
-                category_match_col = next((c for c in column_list if "country" in c.lower()), None)
-            elif "city" in q_lower or "cities" in q_lower:
-                category_match_col = next((c for c in column_list if "city" in c.lower()), None)
-            elif "company" in q_lower or "companies" in q_lower:
-                category_match_col = next((c for c in column_list if "company" in c.lower()), None)
-
-        is_category_ranking = category_match_col and (
-            any(kw in q_lower for kw in ["top ", "top", "highest", "most", "count by", "by count", "by customer count", "group by", "per country", "per city", "per company", "countries", "cities", "companies"]) or
-            ("by" in q_lower and "count" in q_lower)
-        )
-
-        if is_category_ranking:
-            intent = "aggregate_rank"
-            select_cols = [category_match_col]
-            group_by = [category_match_col]
-            computed_fields = [{
-                "name": "Total Customers",
-                "expression": "COUNT(*)"
-            }]
-            order_by = [{"column": "Total Customers", "sql_safe_column": "[Total Customers]", "direction": "DESC"}]
-            if not limit:
-                limit_m = re.search(r"\b(?:top|first)\s*(\d{1,3})\b", q_lower)
-                limit = int(limit_m.group(1)) if limit_m else 5
-        elif any(kw in q_lower for kw in ["how many", "count", "total customers", "number of"]) and not filters:
+            computed_fields.append({"name": f"Total_{metric_col}", "expression": f"SUM({safe_metric_expr})"})
+    elif wants_distinct:
+        # "how many distinct products" - X is a category, not a number.
+        dist_col = next((c for c in column_list if c.lower() in q_lower and not is_id_like_column(c)), None)
+        if dist_col:
+            intent = "aggregate_stat"
+            select_cols, order_by = [], []
+            computed_fields = [{"name": f"Distinct_{dist_col}_Count", "expression": f"COUNT(DISTINCT [{dist_col}])"}]
+    elif wants_ranking and not group_col:
+        # A ranking/breakdown was clearly requested but no column to group by could be
+        # identified - be honest about that instead of silently grouping by an unrelated
+        # column (the old bug: grouping by "Revenue" itself because it was the only
+        # column name present in "top 3 sales reps by revenue").
+        unresolved_notices.append("Could not determine which column to group or rank by for this question.")
+        if wants_count:
             intent = "count"
+            select_cols, order_by = [], []
+            computed_fields = [{"name": "Total_Orders", "expression": "COUNT(*)"}]
+    elif wants_count:
+        intent = "count"
+        select_cols, order_by = [], []
+        computed_fields = [{"name": "Total_Orders", "expression": "COUNT(*)"}]
+    elif (intent == "retrieve_records" and metric_col and filters and not computed_fields
+          and not any(kw in q_lower for kw in ["show", "list", "display", "dikhao", "records", "rows"])):
+        # A bare "<filter values> <metric name>" phrasing with no explicit aggregation
+        # word - e.g. "Karachi and Lahore revenue", or "revenu for laptp" (typo, caught
+        # by metric_resolver's fuzzy match) - would otherwise dump every matching row's
+        # raw value one at a time (thousands of rows for a broad filter). Idiomatically
+        # this almost always means "how much <metric> did <filter> add up to", so it
+        # defaults to a sum, the same as "total <metric> for <filter>" already does. The
+        # "show/list/display/records" guard lets an explicit request for raw rows still
+        # get raw rows instead of being coerced into a total.
+        intent = "aggregate_stat"
+        safe_metric_expr = f"TRY_CAST(REPLACE(CAST([{metric_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+        computed_fields = [{"name": f"Total_{metric_col}", "expression": f"SUM({safe_metric_expr})"}]
+        select_cols, order_by = [], []
 
     return {
         "intent": intent,
@@ -516,5 +585,6 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         "group_by": group_by,
         "order_by": order_by,
         "limit": limit,
-        "concept_validation": concept_check
+        "concept_validation": concept_check,
+        "unresolved": unresolved_notices
     }
