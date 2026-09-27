@@ -313,8 +313,10 @@ def dashboard():
                     "days_left": days_left
                 })
 
-            # Recent Users (Top 5)
-            cursor.execute(get_all_users_admin())
+            # Recent Users (Top 5) - limited in SQL, not sliced in Python, so the
+            # per-row AuditLogs lookup inside that query runs 5 times, not once per
+            # user in the entire system.
+            cursor.execute(get_all_users_admin(limit=5))
             raw_u = cursor.fetchall() or []
             recent_users = []
             for u in raw_u[:5]:
@@ -326,8 +328,8 @@ def dashboard():
                     "created_at": format_12hr_datetime(u[13])
                 })
 
-            # Recent Payments (Top 5)
-            cursor.execute(get_all_payments_admin())
+            # Recent Payments (Top 5) - limited in SQL for the same reason.
+            cursor.execute(get_all_payments_admin(limit=5))
             raw_p = cursor.fetchall() or []
             recent_payments = []
             for p in raw_p[:5]:

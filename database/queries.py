@@ -671,9 +671,17 @@ def get_expiring_users_admin(limit=10):
     """
 
 
-def get_all_users_admin():
-    return """
-    SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
+def get_all_users_admin(limit=None):
+    """
+    limit: when a caller only needs the first N rows (e.g. the Super Admin dashboard's
+    "Recent Users" widget shows 5), pass it so the DATABASE returns just those rows.
+    The per-row correlated subquery below (last-known IP from AuditLogs) is evaluated
+    once per returned row, so fetching every user just to slice [:5] in Python made the
+    dashboard scan AuditLogs once per user in the whole system on every page load.
+    """
+    top_clause = f"TOP ({int(limit)}) " if limit else ""
+    return f"""
+    SELECT {top_clause}U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
            ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs WHERE UserID = U.UserID AND IPAddress IS NOT NULL ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress,
            ISNULL(U.SubscriptionStatus, 'active') AS SubscriptionStatus,
            U.SubscriptionEndDate
@@ -712,10 +720,16 @@ def delete_user_admin():
     """
 
 
-def get_all_payments_admin(order_by="DESC"):
+def get_all_payments_admin(order_by="DESC", limit=None):
+    """
+    limit: same rationale as get_all_users_admin - the dashboard's "Recent Payments"
+    widget only renders 5 rows, so it shouldn't pull the entire Payments table (which
+    grows with every renewal) across the wire just to discard all but the first five.
+    """
     sort_dir = "ASC" if str(order_by).upper() == "ASC" else "DESC"
+    top_clause = f"TOP ({int(limit)}) " if limit else ""
     return f"""
-    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate, P.ScreenshotPath,
+    SELECT {top_clause}P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate, P.ScreenshotPath,
            P.PaymentType, P.RejectionReason, P.ReviewedBy, P.ReviewedAt, U.PhoneNumber
     FROM Payments P
     LEFT JOIN Users U ON P.UserID = U.UserID

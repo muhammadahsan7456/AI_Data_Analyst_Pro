@@ -49,7 +49,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome -->
+    <!-- Font Awesome (preconnect first: the stylesheet itself then pulls ~280KB of icon
+         webfonts from the same origin, so paying the TLS handshake up front saves ~400ms) -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <!-- Landing Page CSS -->
@@ -57,8 +59,12 @@
 
     {% block extra_css %}{% endblock %}
 
-    <!-- Google AdSense (Replace ca-pub-XXXXXXXXXXXXXXXX with your Publisher ID) -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    <!-- Google AdSense - set ADSENSE_CLIENT_ID in .env to your real ca-pub-... publisher ID
+         to activate. Until then the loader is not emitted, so the page does not fire ad
+         requests against a placeholder ID that can never resolve. -->
+    {% if config.ADSENSE_CLIENT_ID %}
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ config.ADSENSE_CLIENT_ID }}" crossorigin="anonymous"></script>
+    {% endif %}
 
     <!-- Schema.org JSON-LD -->
     {% block schema_json %}
@@ -149,7 +155,7 @@
 
     <!-- AdSense: Before Footer Banner -->
     <div class="adsense-slot adsense-footer-banner">
-        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="FOOTER_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <ins class="adsbygoogle" style="display:block" data-ad-client="{{ config.ADSENSE_CLIENT_ID }}" data-ad-slot="FOOTER_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </div>
 
@@ -230,17 +236,21 @@
         </div>
     </footer>
 
+    <!-- All deferred: none of these need to run before the page paints, and as parser-blocking
+         tags they were costing ~5.6s of render-blocking time on mobile. defer keeps their
+         relative execution order, so three.js is still defined before animations.js reads it. -->
     <!-- CSRF token auto-attach for AJAX requests -->
-    <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
-    <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
-    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
+    <script defer src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
+    <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift).
+         Safe to defer: the inline script in <head> already sets data-theme before first paint. -->
+    <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
     <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Vanilla Tilt -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
     <!-- Shared Animation Engine -->
-    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/animations.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
 

@@ -58,6 +58,13 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # break login by preventing the browser from ever sending the session cookie back.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("FORCE_SECURE_COOKIES", "false").strip().lower() == "true"
 
+# Google AdSense publisher ID. The templates previously hardcoded the literal placeholder
+# "ca-pub-XXXXXXXXXXXXXXXX", which made every public page fire real ad requests against an
+# ID that can never resolve - they hang until they time out, on every visit. The ad slots
+# stay exactly where they are; the loader script is simply not emitted until a real ID is
+# configured here, at which point AdSense works with no further template changes.
+app.config["ADSENSE_CLIENT_ID"] = os.getenv("ADSENSE_CLIENT_ID", "").strip()
+
 # CSRF Protection (Flask-WTF) - validates a token on every state-changing POST/PUT/PATCH/DELETE
 # request app-wide, preventing malicious third-party sites from forging requests using a
 # logged-in user's (or admin's) browser session.
@@ -219,16 +226,22 @@ def add_performance_headers(response):
     # throughout every template - removing it would require adding a nonce to every single
     # one, which is a much larger, riskier change than this audit's scope. This is still a
     # real improvement over no CSP at all (blocks loading executable content from anywhere
-    # else, restricts framing/forms/base-uri). The Google AdSense placeholder in
-    # landing_base.html isn't in script-src yet since it uses a fake publisher ID and isn't
-    # actually active - widen this if/when that's turned on with a real ID.
+    # else, restricts framing/forms/base-uri). The Google AdSense origins are included
+    # because landing_base.html loads the AdSense tag on every public page; omitting them
+    # made the browser block it and log a CSP error on every page load. The publisher ID is
+    # still a placeholder, but the origins have to be allowed for the tag to work at all.
+    ADSENSE_SCRIPT = (
+        "https://pagead2.googlesyndication.com https://partner.googleadservices.com "
+        "https://tpc.googlesyndication.com https://adservice.google.com"
+    )
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.plot.ly; "
+        f"script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.plot.ly {ADSENSE_SCRIPT}; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; "
+        "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; "
         "object-src 'none'; "
         "base-uri 'self'; "
         "form-action 'self'; "

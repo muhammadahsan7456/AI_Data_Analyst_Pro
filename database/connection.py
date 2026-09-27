@@ -925,6 +925,15 @@ def init_db():
     BEGIN
         CREATE NONCLUSTERED INDEX IX_UserSessions_Token_Active ON UserSessions(SessionToken, IsActive);
     END;
+
+    -- The Super Admin users list resolves each user's last-known IP with a correlated
+    -- "TOP 1 ... ORDER BY CreatedAt DESC" subquery against AuditLogs, which is evaluated
+    -- once per user row. Without this index that's a full AuditLogs scan per user, and
+    -- AuditLogs grows with every action taken anywhere in the app.
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_AuditLogs_UserID_CreatedAt' AND object_id = OBJECT_ID('AuditLogs'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX IX_AuditLogs_UserID_CreatedAt ON AuditLogs(UserID, CreatedAt DESC) INCLUDE (IPAddress);
+    END;
     """
     try:
         with get_db_cursor(commit=True) as cursor:
