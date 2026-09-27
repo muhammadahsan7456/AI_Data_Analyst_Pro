@@ -226,10 +226,9 @@ def add_performance_headers(response):
     # throughout every template - removing it would require adding a nonce to every single
     # one, which is a much larger, riskier change than this audit's scope. This is still a
     # real improvement over no CSP at all (blocks loading executable content from anywhere
-    # else, restricts framing/forms/base-uri). The Google AdSense origins are included
-    # because landing_base.html loads the AdSense tag on every public page; omitting them
-    # made the browser block it and log a CSP error on every page load. The publisher ID is
-    # still a placeholder, but the origins have to be allowed for the tag to work at all.
+    # else, restricts framing/forms/base-uri). The Google AdSense origins are listed so the
+    # ad tag works once ADSENSE_CLIENT_ID is set; while that env var is empty no AdSense
+    # script is emitted at all, so nothing is actually loaded from these origins.
     ADSENSE_SCRIPT = (
         "https://pagead2.googlesyndication.com https://partner.googleadservices.com "
         "https://tpc.googlesyndication.com https://adservice.google.com"
