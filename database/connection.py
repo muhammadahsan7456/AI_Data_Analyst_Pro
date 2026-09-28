@@ -983,12 +983,24 @@ def sanitize_identifier(identifier: str) -> str:
 
 import warnings
 
-def run_query(query: str, params: tuple = None) -> pd.DataFrame:
+def run_query(query: str, params: tuple = None, timeout: int = None) -> pd.DataFrame:
     """
     Execute SELECT SQL Query safely and return Pandas DataFrame.
     Suppresses Pandas read_sql DBAPI UserWarning for optimal execution speed.
+
+    `timeout` (seconds) bounds THIS query's execution time on the server and raises if
+    exceeded, instead of the caller waiting indefinitely - optional and off by default
+    (None) so every existing caller keeps its current behavior; pass it for queries whose
+    cost depends on data the caller doesn't control (e.g. an ad-hoc scan of a column in a
+    dataset a user uploaded), where a slow outlier should fail fast with a clear error
+    rather than hang the request that triggered it.
     """
     conn = get_connection()
+    if timeout is not None and hasattr(conn, "timeout"):
+        try:
+            conn.timeout = timeout
+        except Exception:
+            pass
     df = pd.DataFrame()
     try:
         with warnings.catch_warnings():

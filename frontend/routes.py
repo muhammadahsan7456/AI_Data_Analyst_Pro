@@ -817,10 +817,47 @@ def chat():
         return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, dynamic_suggestions=dynamic_suggestions)
 
     from ai.multi_concept_engine import execute_multi_concept_analysis
-    ai_result = execute_multi_concept_analysis(question_for_ai, table_name, columns, user_id=user_id)
-    log_ai_event(f"Asked: '{question_for_ai}' on table [{table_name}]", user_id=user_id)
 
+    # Computed here (rather than after the AI call, as before) because the timeout
+    # handling below needs it too; request.* is read-only and side-effect-free, so moving
+    # it earlier changes nothing about what it returns.
     is_ajax = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.args.get("ajax") == "1"
+
+    # Hard ceiling on the whole Ask AI pipeline (schema/vocabulary lookups, SQL generation,
+    # execution, chart/explanation building). Without this, an unexpectedly slow step -
+    # anywhere in that chain, on any dataset - left the request open with no way for the
+    # UI to ever stop waiting; the spinner had no upper bound. Now it always gets an
+    # answer within ASK_AI_TIMEOUT_SECONDS: either the real one, or a clear timeout
+    # message. The worker thread itself isn't killed (Python can't do that safely), but
+    # the HTTP response returns immediately either way, which is what the user sees.
+    import concurrent.futures
+    ASK_AI_TIMEOUT_SECONDS = 25
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as _ai_executor:
+        _ai_future = _ai_executor.submit(
+            execute_multi_concept_analysis, question_for_ai, table_name, columns, user_id=user_id
+        )
+        try:
+            ai_result = _ai_future.result(timeout=ASK_AI_TIMEOUT_SECONDS)
+        except concurrent.futures.TimeoutError:
+            timeout_msg = (
+                "This question is taking too long to answer, likely because it needs to "
+                "scan a lot of data. Try a more specific question (add a filter or a "
+                "time range), or try again in a moment."
+            )
+            if is_ajax:
+                return jsonify({
+                    "success": False,
+                    "is_out_of_domain": False,
+                    "is_timeout": True,
+                    "error": timeout_msg,
+                    "tts_speech": timeout_msg,
+                })
+            return render_template(
+                "chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset,
+                question=question, error=timeout_msg, tts_speech=timeout_msg,
+            )
+
+    log_ai_event(f"Asked: '{question_for_ai}' on table [{table_name}]", user_id=user_id)
 
     if ai_result.get("is_out_of_domain"):
         if is_ajax:
