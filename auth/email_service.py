@@ -580,7 +580,7 @@ AI Data Analyst Pro Support Team
 </html>"""
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
-    def send_payment_status_email(self, to_email: str, user_name: str, txn_id: str, status: str, amount: float, plan_name: str = "Enterprise Plan (PKR 25,000/mo)") -> bool:
+    def send_payment_status_email(self, to_email: str, user_name: str, txn_id: str, status: str, amount: float, plan_name: str = "Pro Plan (PKR 1,499/mo)") -> bool:
         """
         Send an official transactional payment status email notification to customer.
         """
@@ -590,7 +590,7 @@ AI Data Analyst Pro Support Team
         
         subject = f"[{status_clean.upper()}] Payment Update — Transaction {txn_id}"
         
-        plain_text = f"Hello {user_name_clean},\nYour payment of ${amount:.2f} ({plan_name}) status has been updated to: {status_clean}.\nTransaction ID: {txn_id}\n\nAI Data Analyst Pro Team"
+        plain_text = f"Hello {user_name_clean},\nYour payment of PKR {amount:,.2f} ({plan_name}) status has been updated to: {status_clean}.\nTransaction ID: {txn_id}\n\nAI Data Analyst Pro Team"
 
         html_body = f"""<!DOCTYPE html>
 <html lang="en">
@@ -789,11 +789,11 @@ AI Data Analyst Pro Support Team
     def send_payment_received_email(self, to_email: str, user_name: str) -> bool:
         subject = "Payment Received - Under Review | AI Data Analyst Pro"
         name = user_name or "Valued Customer"
-        plain_text = f"Hello {name},\n\nWe received your payment proof (PKR 25,000). Our team is verifying it now - your dashboard will be activated as soon as it's approved.\n\nAI Data Analyst Pro Team"
+        plain_text = f"Hello {name},\n\nWe received your payment proof (PKR 1,499). Our team is verifying it now - your Pro dashboard (500 MB upload access) will be activated as soon as it's approved.\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
                 Hello <strong>{name}</strong>,<br><br>
-                Thank you! Your payment proof (<strong>PKR 25,000</strong>) has been received and is currently under review by our team.
+                Thank you! Your payment proof (<strong>PKR 1,499</strong>) has been received and is currently under review by our team.
             </p>
             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 6px;">
                 <tr><td style="padding: 14px 16px; font-size: 13px; color: #1e3a5f;">
@@ -865,11 +865,11 @@ AI Data Analyst Pro Support Team
         name = user_name or "Valued Customer"
         when = "today" if days_left <= 0 else f"in {days_left} day(s)"
         subject = f"Reminder: Your Subscription is Due {when}"
-        plain_text = f"Hello {name},\n\nYour monthly subscription of PKR 25,000 is due on {due_date}. Please pay and upload your screenshot to avoid suspension.\n\nAI Data Analyst Pro Team"
+        plain_text = f"Hello {name},\n\nYour monthly subscription of PKR 1,499 is due on {due_date}. Please pay and upload your screenshot to keep your 500 MB Pro access.\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
                 Hello <strong>{name}</strong>,<br><br>
-                Your monthly subscription of <strong>PKR 25,000</strong> is due on <strong>{due_date}</strong>. Please pay and upload your screenshot to avoid suspension of your dashboard access.
+                Your monthly subscription of <strong>PKR 1,499</strong> is due on <strong>{due_date}</strong>. Please pay and upload your screenshot to keep your 500 MB Pro upload access.
             </p>
         """
         html_body = self._wrap_branded_email("Reminder", "#f59e0b", "Subscription Renewal Reminder", body)
@@ -878,11 +878,11 @@ AI Data Analyst Pro Support Team
     def send_subscription_suspended_email(self, to_email: str, user_name: str) -> bool:
         name = user_name or "Valued Customer"
         subject = "Your Dashboard Has Been Suspended"
-        plain_text = f"Hello {name},\n\nYour subscription has expired and your dashboard has been suspended. Please pay PKR 25,000 and upload the screenshot to re-activate.\n\nAI Data Analyst Pro Team"
+        plain_text = f"Hello {name},\n\nYour Pro subscription has expired. Please pay PKR 1,499 and upload the screenshot to re-activate 500 MB uploads.\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
                 Hello <strong>{name}</strong>,<br><br>
-                Your subscription has expired and your dashboard has been suspended. Please pay <strong>PKR 25,000</strong> and upload the screenshot to re-activate your access.
+                Your Pro subscription has expired. Please pay <strong>PKR 1,499</strong> and upload the screenshot to re-activate your 500 MB Pro access.
             </p>
         """
         html_body = self._wrap_branded_email("Suspended", "#ef4444", "Your Dashboard Has Been Suspended", body)

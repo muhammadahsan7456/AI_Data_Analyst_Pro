@@ -6,13 +6,39 @@
 
 {% block content %}
 <div class="table-card" style="max-width: 850px; margin: 0 auto 32px auto;">
+    {% if is_pro %}
+    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 12px 18px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-crown" style="color: var(--accent-green); font-size: 18px;"></i>
+            <div>
+                <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;">Pro Subscription Active{% if sub_info and sub_info.end_date %} &mdash; renews/expires {{ sub_info.end_date }}{% endif %}</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">You can upload datasets up to <strong>500 MB</strong> with high-speed ingestion and streaming.</div>
+            </div>
+        </div>
+        <span class="badge badge-success" style="padding: 6px 12px; font-size: 12px;">500 MB Max</span>
+    </div>
+    {% else %}
+    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-gift" style="color: var(--accent-blue); font-size: 18px;"></i>
+            <div>
+                <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;">Free Plan Active (Up to 1 MB per file)</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Upload files under 1 MB for free. Need larger files? Upgrade to Pro for up to 500 MB.</div>
+            </div>
+        </div>
+        <a href="{{ url_for('frontend.pricing_page') }}?upgrade=1" class="btn btn-sm btn-primary" style="padding: 8px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-crown"></i> Upgrade to Pro — Rs. 1,499/mo
+        </a>
+    </div>
+    {% endif %}
+
     <form action="{{ url_for('frontend.upload') }}" method="POST" enctype="multipart/form-data" id="upload-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div id="drop-zone" class="glass-card" style="border: 2px dashed var(--accent-blue); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center; background-color: var(--bg-primary); cursor: pointer; transition: all 0.3s ease;">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size: 52px; color: var(--accent-blue); margin-bottom: 16px;"></i>
             <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Drag & Drop files here or click to browse</h3>
             <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
-                Supported formats: <strong>CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather</strong> (Up to <strong>{{ max_upload_mb or 500 }} MB</strong> per file)
+                Supported formats: <strong>CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather</strong> (Up to <strong>{{ max_upload_mb or 1 }} MB</strong> per file)
             </p>
             
             <input type="file" name="dataset" id="file-input" accept=".csv, .xlsx, .xls, .json, .xml, .txt, .tsv, .parquet, .feather" multiple style="display: none;">
@@ -182,9 +208,39 @@ document.addEventListener("DOMContentLoaded", function () {
         updateFilePreview(this.files);
     });
 
+    const isUserPro = {{ 'true' if is_pro else 'false' }};
+    const hasPendingPayment = {{ 'true' if sub_info and sub_info.has_pending_payment else 'false' }};
+
+    function checkFileLimits(files) {
+        if (!files || files.length === 0) return true;
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const sizeMB = f.size / (1024 * 1024);
+            if (f.size > 500 * 1024 * 1024) {
+                if (window.showAppToast) window.showAppToast(`⚠️ File "${f.name}" (${sizeMB.toFixed(1)} MB) exceeds system maximum limit of 500 MB.`, "error");
+                renderUploadError(`File "${f.name}" exceeds the maximum allowed system limit of 500 MB.`);
+                return false;
+            }
+            if (!isUserPro && f.size >= 1 * 1024 * 1024) {
+                if (hasPendingPayment) {
+                    openPendingApprovalModal(f.name, sizeMB.toFixed(2));
+                } else {
+                    openUpgradeModal(f.name, sizeMB.toFixed(2));
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+
     function updateFilePreview(files) {
         previewList.innerHTML = "";
         if (!files || files.length === 0) return;
+
+        if (!checkFileLimits(files)) {
+            fileInput.value = "";
+            return;
+        }
 
         let html = "<ul style='list-style: none; padding: 0;'>";
         for (let i = 0; i < files.length; i++) {
@@ -338,7 +394,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         renderUploadResults(resp.results);
                         return;
                     } else if (!resp.success && (resp.errors || resp.error)) {
-                        renderUploadError(resp.errors || resp.error);
+                        renderUploadError(resp.errors || resp.error, resp.pending_approval);
                         return;
                     }
                 } catch(err) {
@@ -349,7 +405,7 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 try {
                     const resp = JSON.parse(xhr.responseText);
-                    renderUploadError(resp.error || resp.errors || xhr.responseText);
+                    renderUploadError(resp.error || resp.errors || xhr.responseText, resp.pending_approval);
                 } catch(e) {
                     renderUploadError("Upload Failed: " + (xhr.responseText || "Server Error"));
                 }
@@ -432,21 +488,105 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function renderUploadError(errors) {
+    function renderUploadError(errors, isPendingApproval) {
         const container = document.getElementById("upload-results-container");
         if (!container) return;
 
         const errorText = Array.isArray(errors) ? errors.join("<br>") : (errors || "Upload failed. Please try again.");
+        const isUpgradeErr = !isPendingApproval && (errorText.toLowerCase().includes("1 mb") || errorText.toLowerCase().includes("upgrade"));
+
         container.innerHTML = `
-            <div class="table-card" style="border-left: 4px solid var(--accent-red); margin-top: 24px;">
-                <h3 style="color: var(--accent-red); font-size: 18px; font-weight: 700; margin-bottom: 8px;">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Upload Error Notice
+            <div class="table-card" style="border-left: 4px solid ${isPendingApproval ? 'var(--accent-blue)' : 'var(--accent-red)'}; margin-top: 24px;">
+                <h3 style="color: ${isPendingApproval ? 'var(--accent-blue)' : 'var(--accent-red)'}; font-size: 18px; font-weight: 700; margin-bottom: 8px;">
+                    <i class="fa-solid ${isPendingApproval ? 'fa-clock' : 'fa-triangle-exclamation'}"></i> ${isPendingApproval ? 'Payment Pending Approval' : 'Upload Notice'}
                 </h3>
-                <p style="color: var(--text-primary); font-size: 15px; line-height: 1.6;">${errorText}</p>
+                <p style="color: var(--text-primary); font-size: 15px; line-height: 1.6; margin-bottom: 16px;">${errorText}</p>
+                ${isUpgradeErr ? `
+                    <div style="margin-top: 14px;">
+                        <a href="{{ url_for('frontend.pricing_page') }}?upgrade=1" class="btn btn-primary" style="padding: 10px 22px; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-crown"></i> Upgrade to Pro Plan — Rs. 1,499/month
+                        </a>
+                    </div>
+                ` : ''}
             </div>
         `;
         container.scrollIntoView({ behavior: 'smooth' });
     }
 });
+
+// Pro Plan Upgrade Modal Trigger
+function openUpgradeModal(filename, sizeMB) {
+    let modal = document.getElementById("proUpgradeModal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "proUpgradeModal";
+        modal.style.cssText = "position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;";
+        modal.innerHTML = `
+            <div style="background: var(--bg-surface, #1e293b); border: 1px solid var(--border-color, #334155); border-radius: 12px; max-width: 520px; width: 100%; padding: 28px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--text-primary);">Free Plan Limit (1 MB) Exceeded</h3>
+                <p id="upgrade-modal-desc" style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+                    Your file exceeds the Free Plan limit of 1 MB. Upgrade to the Pro Plan for just Rs. 1,499 / month to upload datasets up to 500 MB.
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <a href="{{ url_for('frontend.pricing_page') }}?upgrade=1" class="btn btn-primary" style="padding: 12px 24px; font-weight: 700; text-decoration: none; border-radius: 8px;">
+                        <i class="fa-solid fa-bolt"></i> Upgrade to Pro — Rs. 1,499/mo
+                    </a>
+                    <button type="button" class="btn btn-secondary" onclick="closeUpgradeModal()" style="padding: 12px 20px; border-radius: 8px; cursor: pointer;">
+                        Choose Smaller File
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    const desc = document.getElementById("upgrade-modal-desc");
+    if (desc && filename && sizeMB) {
+        desc.innerHTML = `File <strong>${filename}</strong> is <strong>${sizeMB} MB</strong>. The <strong>Free Plan</strong> allows files up to <strong>1 MB</strong>.<br><br>Upgrade to the <strong>Pro Plan (Rs. 1,499 / month)</strong> to upload files up to <strong>500 MB</strong> with high-speed processing!`;
+    }
+    modal.style.display = "flex";
+}
+
+function closeUpgradeModal() {
+    const modal = document.getElementById("proUpgradeModal");
+    if (modal) modal.style.display = "none";
+}
+
+// Pending Payment Approval Modal (shown instead of the upgrade modal once proof is already submitted)
+function openPendingApprovalModal(filename, sizeMB) {
+    let modal = document.getElementById("pendingApprovalModal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "pendingApprovalModal";
+        modal.style.cssText = "position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;";
+        modal.innerHTML = `
+            <div style="background: var(--bg-surface, #1e293b); border: 1px solid var(--border-color, #334155); border-radius: 12px; max-width: 520px; width: 100%; padding: 28px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); color: #3b82f6; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--text-primary);">Payment Pending Super Admin Approval</h3>
+                <p id="pending-modal-desc" style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;"></p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" onclick="closePendingApprovalModal()" style="padding: 12px 20px; border-radius: 8px; cursor: pointer;">
+                        OK, Got It
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    const desc = document.getElementById("pending-modal-desc");
+    if (desc && filename && sizeMB) {
+        desc.innerHTML = `File <strong>${filename}</strong> is <strong>${sizeMB} MB</strong>, which needs the Pro Plan. You've already submitted your Rs. 1,499/month payment proof - it is currently under Super Admin review. You'll be able to upload files up to 500 MB as soon as it's approved, with no further action needed from you.`;
+    }
+    modal.style.display = "flex";
+}
+
+function closePendingApprovalModal() {
+    const modal = document.getElementById("pendingApprovalModal");
+    if (modal) modal.style.display = "none";
+}
 </script>
 {% endblock %}

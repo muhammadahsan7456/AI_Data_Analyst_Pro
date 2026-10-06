@@ -759,7 +759,7 @@ def manage_payments():
                 "payment_method": method or "Card",
                 "txn_id": txn_id or f"TXN_{p_id}9021",
                 "status": status or "Completed",
-                "plan_name": plan or "Enterprise Monthly Plan (PKR 25,000/mo)",
+                "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
                 "payment_date": format_12hr_datetime(p_date),
                 "raw_date": str(p_date)[:10],
                 "screenshot_path": screenshot_path,
@@ -849,7 +849,7 @@ def view_payment_invoice(payment_id):
             "payment_method": method or "Easypaisa",
             "txn_id": txn_id or f"TXN_{p_id}9021",
             "status": status or "Completed",
-            "plan_name": plan or "Enterprise Plan (PKR 25,000/mo)",
+            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
             "payment_date": format_12hr_datetime(p_date)
         }
         return render_template("admin/invoice.html", payment=payment_dict)
@@ -894,7 +894,7 @@ def download_payment_invoice(payment_id):
             "payment_method": method or "Easypaisa",
             "txn_id": txn_id or f"TXN_{p_id}9021",
             "status": status or "Completed",
-            "plan_name": plan or "Enterprise Plan (PKR 25,000/mo)",
+            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
             "payment_date": format_12hr_datetime(p_date)
         }
         pdf_bytes = export_invoice_to_pdf(payment_dict)
@@ -950,8 +950,8 @@ def update_payment_status(payment_id):
         p_amount = float(p_amount or 0.0)
 
         if new_status == "Completed":
-            if p_amount < 25000.0:
-                flash("Approval Blocked: Payment amount is below the required PKR 25,000 threshold. Submissions under PKR 25,000 cannot activate subscription access.", "error")
+            if p_amount < 1499.0:
+                flash("Approval Blocked: Payment amount is below the required PKR 1,499 threshold. Submissions under PKR 1,499 cannot activate subscription access.", "error")
                 return redirect(url_for("admin.manage_payments"))
 
             # A user renewing BEFORE their current period expires keeps their remaining
@@ -1105,8 +1105,8 @@ def update_payment_settings_route():
     previously hardcoded in the templates, so changing an account meant editing code.
     """
     admin_id = session.get("admin_user_id") or session.get("user_id")
-    plan_name = request.form.get("plan_name", "").strip() or "Enterprise Plan"
-    plan_price_label = request.form.get("plan_price_label", "").strip() or "PKR 25,000 / month"
+    plan_name = request.form.get("plan_name", "").strip() or "Pro Plan"
+    plan_price_label = request.form.get("plan_price_label", "").strip() or "PKR 1,499 / month"
     account_title = request.form.get("account_title", "").strip()
     bank_name = request.form.get("bank_name", "").strip()
     account_number = request.form.get("account_number", "").strip()

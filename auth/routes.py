@@ -150,7 +150,7 @@ def _get_payment_settings_dict():
         row = cursor.fetchone()
     if not row:
         return {
-            "plan_name": "Enterprise Plan", "plan_price_label": "PKR 25,000 / month",
+            "plan_name": "Pro Plan", "plan_price_label": "PKR 1,499 / month",
             "account_title": "", "bank_name": "", "account_number": "", "iban": "",
             "jazzcash_number": "", "easypaisa_number": "", "sadapay_number": "", "instructions": ""
         }
@@ -161,18 +161,38 @@ def _get_payment_settings_dict():
     }
 
 
-@auth_bp.route("/signup", methods=["GET"])
-def signup_alias():
-    """Old bookmarked/linked URL - the flow now starts at the payment step."""
-    return redirect(url_for("auth.register_payment"))
-
-
+# ==========================================
+# REGISTRATION & SIGNUP (DIRECT FREE ACCESS)
+# ==========================================
 @auth_bp.route("/register", methods=["GET", "POST"])
+def register():
+    """
+    Direct user registration on the Free Plan. Users can sign up without
+    any prior payment, explore their dashboard, ask questions, and upload
+    datasets up to 1 MB free of cost.
+    """
+    if session.get("user_id"):
+        return redirect(url_for("frontend.dashboard"))
+    return signup()
+
+
+@auth_bp.route("/signup", methods=["GET", "POST"])
+def signup_route():
+    return register()
+
+
+@auth_bp.route("/register/details", methods=["GET", "POST"])
+def register_details():
+    if session.get("user_id"):
+        return redirect(url_for("frontend.dashboard"))
+    return signup()
+
+
+@auth_bp.route("/register/payment", methods=["GET", "POST"])
 def register_payment():
     """
-    Step 1 of registration: payment proof must be uploaded and validated BEFORE the
-    account details form is even shown - "no payment = no access" starts right here,
-    not as an afterthought once the account already exists.
+    Optional upfront Pro Plan payment proof upload (PKR 1,499/mo) for users
+    who wish to start directly with the 500 MB upload tier.
     """
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))
@@ -193,8 +213,8 @@ def register_payment():
             errors.append("Please select the payment method you used.")
         try:
             amount = float(amount_str)
-            if amount < 25000.0:
-                errors.append("Amount must be at least PKR 25,000 (the monthly plan price).")
+            if amount < 1499.0:
+                errors.append("Amount must be at least PKR 1,499 (the monthly Pro plan price).")
         except ValueError:
             amount = 0.0
             errors.append("Please enter a valid payment amount.")
@@ -229,8 +249,6 @@ def register_payment():
         save_path = os.path.join(upload_dir, safe_name)
         screenshot.save(save_path)
 
-        # Held in session (not the DB yet - there's no UserID until the account details
-        # step below completes) so it can be attached to the Payments row at that point.
         session["reg_payment"] = {
             "transaction_id": txn_id,
             "payment_method": payment_method,
@@ -240,27 +258,9 @@ def register_payment():
         }
 
         flash("Payment proof received! Now please complete your account details.", "success")
-        return redirect(url_for("auth.register_details"))
+        return redirect(url_for("auth.register"))
 
     return render_template("register_payment.html", settings=settings, form_data={}, today_date=datetime.now().strftime("%Y-%m-%d"))
-
-
-# ==========================================
-# STEP 2: ACCOUNT DETAILS (ONLY AFTER PAYMENT PROOF)
-# ==========================================
-@auth_bp.route("/register/details", methods=["GET", "POST"])
-def register_details():
-    if session.get("user_id"):
-        return redirect(url_for("frontend.dashboard"))
-
-    # A pending unverified account (e.g. using "Change Email" mid-OTP-verification)
-    # already has its payment proof recorded - only a brand-new registration attempt
-    # needs to be sent back to submit one first.
-    if not session.get("reg_payment") and not session.get("pending_otp"):
-        flash("Please submit your payment proof first to start registration.", "warning")
-        return redirect(url_for("auth.register_payment"))
-
-    return signup()
 
 
 def signup():
@@ -364,16 +364,13 @@ def signup():
             if not new_user_id:
                 raise ValueError("Failed to retrieve User ID for registration.")
 
-            # Attach the payment proof from Step 1 to this new account and put the
-            # account in pending_approval - only a Super Admin approval flips this to
-            # active, no matter how far along signup/email-verification gets from here.
             reg_payment = session.get("reg_payment")
             if reg_payment and not is_updating_existing:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(
                         insert_payment_full(),
                         (new_user_id, reg_payment["amount"], reg_payment["payment_method"],
-                         reg_payment["transaction_id"], "Enterprise Plan (PKR 25,000/mo)", "New",
+                         reg_payment["transaction_id"], "Pro Plan (PKR 1,499/mo)", "New",
                          reg_payment["screenshot_path"])
                     )
                     cursor.execute(set_user_pending_approval(), (new_user_id,))
@@ -384,6 +381,10 @@ def signup():
                     _notify_admins_new_payment(full_name, email, reg_payment["amount"], reg_payment["transaction_id"])
                 except Exception as notify_err:
                     print("Registration payment notification error:", notify_err)
+            else:
+                # Default free tier account: full dashboard and analysis access with up to 1 MB uploads
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute("UPDATE Users SET SubscriptionStatus = 'free' WHERE UserID = ?", (new_user_id,))
 
             # Generate 6-Digit Verification OTP Code using secrets
             otp_code = f"{secrets.randbelow(900000) + 100000}"
@@ -1065,7 +1066,10 @@ def profile():
         cursor.execute(get_user_profile(), (user_id,))
         prof = cursor.fetchone()
 
-    return render_template("profile.html", user=user, profile=prof)
+    from utils.subscription import get_user_subscription_info
+    sub_info = get_user_subscription_info(user_id)
+
+    return render_template("profile.html", user=user, profile=prof, sub_info=sub_info)
 
 
 # ==========================================

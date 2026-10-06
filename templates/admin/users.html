@@ -191,12 +191,14 @@
                         <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b;"><i class="fa-solid fa-clock" style="font-size: 8px;"></i> Expired</span>
                         {% elif u.subscription_status == 'expiring_soon' %}
                         <span class="badge-status" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid #eab308;"><i class="fa-solid fa-hourglass-half" style="font-size: 8px;"></i> Expiring Soon</span>
+                        {% elif u.subscription_status in ('free', 'basic', 'trial') %}
+                        <span class="badge-status" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #94a3b8;"><i class="fa-solid fa-gift" style="font-size: 8px;"></i> Free Plan</span>
                         {% else %}
-                        <span class="badge-status badge-active"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Active</span>
+                        <span class="badge-status badge-active"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Pro Active</span>
                         {% endif %}
                     </td>
                     <td style="color: #38bdf8; font-size: 12px; font-weight: 700;">
-                        {{ u.subscription_end }}
+                        {{ u.subscription_end if u.subscription_status not in ('free', 'basic', 'trial') else 'N/A (Free Tier)' }}
                     </td>
                     <td style="color: var(--text-muted); font-size: 12px;">{{ u.created_at }}</td>
                     <td style="text-align: right;">

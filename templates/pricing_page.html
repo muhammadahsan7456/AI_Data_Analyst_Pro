@@ -1,8 +1,8 @@
 {% extends "landing_base.html" %}
 
 {% block seo_meta %}
-<title>Pricing — AI Data Analyst Pro | Enterprise Plan PKR 25,000/month</title>
-<meta name="description" content="AI Data Analyst Pro Enterprise Plan: PKR 25,000/month. Full access to 10M+ row analytics, AES-256 encryption, voice AI, multi-dataset joins, and sub-second PPTX/PDF exports.">
+<title>Pricing — AI Data Analyst Pro | Free Plan & Pro at PKR 1,499/month</title>
+<meta name="description" content="AI Data Analyst Pro Pricing: Start Free for datasets up to 1 MB, or upgrade to Pro at PKR 1,499/month for 500 MB datasets, 10M+ rows, Voice AI, and sub-second PPTX/PDF exports.">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
 
@@ -14,44 +14,75 @@
 <section class="landing-section" style="padding-top: 40px;">
     <div class="container">
         <div class="section-header reveal">
-            <div class="section-badge"><i class="fa-solid fa-credit-card"></i> Unlimited Access</div>
-            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Single <span class="gradient-text">Enterprise Plan</span></h1>
-            <p class="section-subtitle">One plan, all features included. No hidden fees, no usage limits.</p>
+            <div class="section-badge"><i class="fa-solid fa-credit-card"></i> Transparent Pricing</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Simple & Fair <span class="gradient-text">Pricing</span></h1>
+            <p class="section-subtitle">Start 100% free to test and explore your data. Upgrade to Pro whenever you need enterprise-scale processing.</p>
         </div>
 
-        <!-- Pricing Card -->
-        <div class="pricing-card reveal" data-tilt>
-            <div class="pricing-badge">⚡ All-Inclusive Enterprise Plan</div>
-            <h2 class="pricing-plan-title">Complete Platform Access</h2>
-            <div class="pricing-price">PKR 25,000 <span>/ month</span></div>
-            <p style="color: var(--text-secondary); font-size: 14px; max-width: 500px; margin: 0 auto 28px;">Full access to all 10M+ enterprise scale tools, AES-256 data encryption at rest, voice AI querying, and sub-second exports.</p>
+        <!-- 2-Tier Pricing Cards Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; max-width: 1080px; margin: 0 auto 50px; align-items: stretch;">
+            
+            <!-- FREE PLAN CARD -->
+            <div class="pricing-card reveal" style="border: 2px solid rgba(59, 130, 246, 0.35); text-align: left; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 32px;" data-tilt>
+                <div>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+                        🌱 Free Explorer
+                    </div>
+                    <h2 class="pricing-plan-title" style="font-size: 26px; margin-bottom: 8px;">Free Plan</h2>
+                    <div class="pricing-price" style="font-size: 42px; margin-bottom: 10px;">PKR 0 <span style="font-size: 16px;">/ forever</span></div>
+                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 24px;">Test and explore the full suite of AI analytics tools on smaller datasets with zero upfront cost or commitment.</p>
 
-            <div class="pricing-features-grid">
-                {% set features = [
-                    '10,000,000+ Rows Scale (Streaming Chunking)',
-                    'AES-256 Field Encryption at Rest in SQL Server',
-                    'Sub-Second Fast Exports (PPTX, PDF, Excel, CSV)',
-                    'Bilingual Voice AI & Natural Urdu Search',
-                    'Multi-Dataset Cross Analysis & Instant Joins',
-                    'Automated AI Charts & Executive Profiling',
-                    '1-Hour Inactivity Security Session Timeout',
-                    '24/7 Dedicated Priority Support & SLA'
-                ] %}
-                {% for feat in features %}
-                <div class="pricing-feature-item"><i class="fa-solid fa-circle-check"></i> {{ feat }}</div>
-                {% endfor %}
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> <strong>Up to 1 MB</strong> File Uploads</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Instant Free Registration (No Card Needed)</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> All 10 Visual Chart Types & Hover Tooltips</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Ask AI Natural Language & Urdu Querying</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Automated Column Profiling & Statistics</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Fast Exports (Excel, CSV, PDF)</div>
+                    </div>
+                </div>
+
+                <div>
+                    {% if is_logged_in %}
+                    <a href="{{ url_for('frontend.upload') }}" class="btn-hero-secondary" style="width: 100%; justify-content: center; box-sizing: border-box;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Dataset (&le; 1 MB)
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('auth.register') }}" class="btn-hero-secondary" style="width: 100%; justify-content: center; box-sizing: border-box;">
+                        <i class="fa-solid fa-user-plus"></i> Get Started Free
+                    </a>
+                    {% endif %}
+                </div>
             </div>
 
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
-                <button type="button" id="main-pay-btn" onclick="openPaymentModal(); return false;" class="btn-hero-primary" style="flex: 1; max-width: 400px; justify-content: center; cursor: pointer; border: none;">
-                    <i class="fa-solid fa-credit-card"></i> Pay via Easypaisa / Nayapay — PKR 25,000/mo
-                </button>
-                {% if is_logged_in %}
-                <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-secondary" style="justify-content: center;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-                {% else %}
-                <a href="{{ url_for('auth.register_payment') }}" class="btn-hero-secondary" style="justify-content: center;"><i class="fa-solid fa-user-plus"></i> Create Account</a>
-                {% endif %}
+            <!-- PRO PLAN CARD -->
+            <div class="pricing-card reveal" style="border: 2px solid rgba(245, 158, 11, 0.6); text-align: left; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 32px; background: linear-gradient(180deg, rgba(245, 158, 11, 0.04) 0%, var(--bg-card) 100%); box-shadow: 0 0 35px rgba(245, 158, 11, 0.15);" data-tilt>
+                <div>
+                    <div class="pricing-badge" style="margin-bottom: 16px;">
+                        ⚡ RECOMMENDED FOR BUSINESS
+                    </div>
+                    <h2 class="pricing-plan-title" style="font-size: 26px; margin-bottom: 8px;">Pro Plan</h2>
+                    <div class="pricing-price" style="font-size: 42px; margin-bottom: 10px;">PKR 1,499 <span style="font-size: 16px;">/ month</span></div>
+                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 24px;">Heavy-duty enterprise capacity for massive business datasets up to 500 MB with 10M+ records and voice agent.</p>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> <strong>Up to 500 MB</strong> Max Upload Limit</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> <strong>10,000,000+ Rows</strong> Streaming Processing</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Real-Time Bilingual Voice AI Query Agent</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Multi-Dataset Cross Analysis & Instant Joins</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Sub-Second Fast PPTX / PDF Presentation Exports</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> AES-256 Field-Level Encryption at Rest</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Priority Support & Instant Activation</div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" id="main-pay-btn" onclick="openPaymentModal(); return false;" class="btn-hero-primary" style="width: 100%; justify-content: center; cursor: pointer; border: none; box-sizing: border-box;">
+                        <i class="fa-solid fa-bolt"></i> Upgrade to Pro — PKR 1,499/mo
+                    </button>
+                </div>
             </div>
+
         </div>
     </div>
 </section>
@@ -84,7 +115,7 @@
                 <div class="roi-big-number" id="roi-time-saved">54 Hours Saved</div>
                 <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">Equivalent to <strong style="color: var(--accent-blue);" id="roi-money-saved">PKR 380,000 / Month</strong> in analyst productivity!</div>
                 <a href="#" onclick="openPaymentModal(); return false;" class="btn-hero-primary" style="width: 100%; justify-content: center; padding: 14px;">
-                    <i class="fa-solid fa-bolt"></i> Start Saving — PKR 25,000/mo
+                    <i class="fa-solid fa-bolt"></i> Start Saving — PKR 1,499/mo
                 </a>
             </div>
         </div>
@@ -97,8 +128,8 @@
         <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
         <div style="text-align: center; margin-bottom: 20px;">
             <span class="payment-modal-badge">⚡ INSTANT LOCAL PAYMENT ACCESS</span>
-            <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 10px 0 6px;">Enterprise Plan — PKR 25,000 / month</h2>
-            <p style="font-size: 13px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Transfer via <strong>Easypaisa</strong> or <strong>Nayapay</strong>. Send payment screenshot on WhatsApp with your email for instant activation!</p>
+            <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 10px 0 6px;">Pro Plan — PKR 1,499 / month</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Transfer via <strong>Easypaisa</strong>, <strong>Nayapay</strong>, or <strong>SadaPay</strong>. Send payment screenshot on WhatsApp with your email for instant activation!</p>
         </div>
         <div class="payment-methods-grid">
             <div class="method-card">
@@ -117,12 +148,12 @@
             </div>
         </div>
         <div class="verification-steps-box">
-            <div class="v-step-item"><span class="v-step-num">1</span><div><strong>Transfer Amount</strong>: Send PKR 25,000 to Easypaisa/Nayapay <code>03053107456</code>.</div></div>
+            <div class="v-step-item"><span class="v-step-num">1</span><div><strong>Transfer Amount</strong>: Send PKR 1,499 to Easypaisa/Nayapay/SadaPay <code>03053107456</code>.</div></div>
             <div class="v-step-item"><span class="v-step-num">2</span><div><strong>Take Screenshot</strong>: Save your payment confirmation receipt.</div></div>
-            <div class="v-step-item"><span class="v-step-num">3</span><div><strong>Send Proof</strong>: Send screenshot & registered email to WhatsApp <code>03053107456</code> or use form below.</div></div>
+            <div class="v-step-item"><span class="v-step-num">3</span><div><strong>Send Proof</strong>: Send screenshot & registered email to WhatsApp <code>03053107456</code> or use the form below.</div></div>
         </div>
         <div style="margin: 20px 0 16px; text-align: center;">
-            <a href="https://wa.me/923053107456?text=Hello%20Muhammad%20Ahsan,%20I%20have%20completed%20the%20payment%20for%20AI%20Data%20Analyst%20Pro.%20My%20registered%20email%20is:%20" target="_blank" class="btn-whatsapp-direct">
+            <a href="https://wa.me/923053107456?text=Hello%20Muhammad%20Ahsan,%20I%20have%20completed%20the%20payment%20for%20AI%20Data%20Analyst%20Pro%20(PKR%201499).%20My%20registered%20email%20is:%20" target="_blank" class="btn-whatsapp-direct">
                 <i class="fa-brands fa-whatsapp" style="font-size: 20px;"></i> Send Proof on WhatsApp (03053107456)
             </a>
         </div>
@@ -130,7 +161,7 @@
         <form id="payment-proof-form" onsubmit="handlePaymentProof(event)" style="margin-top: 16px;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Email Address</label><input type="email" id="proof-email" required placeholder="you@email.com" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
-                <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method</label><select id="proof-method" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"><option value="Easypaisa">Easypaisa</option><option value="Nayapay">Nayapay</option></select></div>
+                <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method</label><select id="proof-method" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"><option value="Easypaisa">Easypaisa</option><option value="Nayapay">Nayapay</option><option value="SadaPay">SadaPay</option></select></div>
             </div>
             <div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:700;color:var(--accent-blue);display:flex;align-items:center;gap:6px;margin-bottom:4px;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payment Screenshot (Required)</label><input type="file" id="proof-screenshot" accept="image/*" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px dashed rgba(59,130,246,0.5);font-size:12px;box-sizing:border-box;cursor:pointer;color:var(--text-secondary);"></div>
             <div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px;">Transaction ID (Optional)</label><input type="text" id="proof-txnid" placeholder="TRX-XXXXXXX" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>

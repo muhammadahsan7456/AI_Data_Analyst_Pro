@@ -274,13 +274,20 @@
             <div class="sub-expiry-modal-icon">
                 <i class="fa-solid {% if subscription_info.status == 'expired' %}fa-lock{% else %}fa-triangle-exclamation{% endif %}"></i>
             </div>
-            <h3>{% if subscription_info.status == 'expired' %}Your Plan Has Expired{% else %}Your Plan Is Ending Soon{% endif %}</h3>
+            <h3>
+                {% if subscription_info.status == 'pending_approval' %}Payment Under Review
+                {% elif subscription_info.status == 'rejected' %}Payment Verification Issue
+                {% elif subscription_info.status in ('expired', 'suspended') %}Your Pro Plan Has Expired
+                {% else %}Your Pro Plan Is Ending Soon{% endif %}
+            </h3>
             <p>{{ subscription_info.banner_message }}</p>
             <div class="sub-expiry-modal-actions">
+                {% if subscription_info.status != 'pending_approval' %}
                 <a href="{{ url_for('frontend.renew_subscription') }}" class="sub-expiry-btn-primary">
-                    <i class="fa-solid fa-credit-card"></i> Pay Now (PKR 25,000)
+                    <i class="fa-solid fa-credit-card"></i> {% if subscription_info.status == 'rejected' %}Resubmit Payment{% else %}Pay Now{% endif %} (PKR 1,499)
                 </a>
-                <button type="button" class="sub-expiry-btn-secondary" onclick="dismissSubExpiryModal()">Remind Me Later</button>
+                {% endif %}
+                <button type="button" class="sub-expiry-btn-secondary" onclick="dismissSubExpiryModal()">{% if subscription_info.status == 'pending_approval' %}OK, Got It{% else %}Remind Me Later{% endif %}</button>
             </div>
         </div>
     </div>

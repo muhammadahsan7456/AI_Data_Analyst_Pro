@@ -6,27 +6,31 @@ from database.connection import get_db_cursor
 def get_user_access_status(user_id):
     """
     Returns (allowed, status, role) for the given user. status is one of 'active',
-    'pending_approval', 'suspended', 'rejected', or 'unknown' (row not found / DB error).
+    'free', 'pending_approval', 'suspended', 'expired', 'rejected', or 'unknown' (row
+    not found / DB error).
     Also re-syncs session["user_role"] with the live DB value on every call, so a role
     change (promotion or demotion) made by an admin takes effect on the target user's
     very next request instead of only after they log out and back in.
 
-    Dashboard access is allowed ONLY when status is 'active' (or its transient
-    'expiring_soon' substate) AND today <= SubscriptionEndDate - the scheduler is what
-    actually flips a past-due 'active' row to 'suspended', so by the time a request
-    lands here the DB status is already authoritative; this function does not need to
-    re-check the date itself.
+    Every subscription state (free / pending_approval / active / expired / suspended /
+    rejected) gets full site access - there is a free tier now, so a lapsed or
+    not-yet-approved Pro payment must never lock a user out of login/dashboard/Ask AI.
+    The only thing those states gate is the upload file-size ceiling, which is enforced
+    separately in frontend.upload / frontend.api_upload_file via
+    utils.subscription.get_user_subscription_info(). The only reason to block access
+    here is IsActive = 0, which is an explicit Super Admin account ban/disable, not a
+    subscription state.
     """
     if not user_id:
         return False, "unknown", None
     try:
         with get_db_cursor() as cursor:
-            cursor.execute("SELECT IsActive, ISNULL(SubscriptionStatus, 'active'), Role FROM Users WHERE UserID = ?", (user_id,))
+            cursor.execute("SELECT IsActive, ISNULL(SubscriptionStatus, 'free'), Role FROM Users WHERE UserID = ?", (user_id,))
             row = cursor.fetchone()
             if row is None:
                 return False, "unknown", None
 
-            is_act, sub_stat, role = row[0], row[1], row[2]
+            is_act, sub_stat, role = row[0], (row[1] or "free").lower(), row[2]
             if session.get("user_id") == user_id and session.get("user_role") != role:
                 session["user_role"] = role
 
@@ -34,12 +38,6 @@ def get_user_access_status(user_id):
                 return True, "active", role
             if not is_act:
                 return False, "suspended", role
-            if sub_stat in ("suspended", "expired"):
-                return False, "suspended", role
-            if sub_stat == "pending_approval":
-                return False, "pending_approval", role
-            if sub_stat == "rejected":
-                return False, "rejected", role
             return True, sub_stat, role
     except Exception:
         pass
@@ -57,9 +55,10 @@ def is_user_active_in_db(user_id):
 def login_required(f):
     """
     Decorator to protect routes from unauthorized access. Redirects unauthenticated
-    users to login, pending-approval users to the waiting screen, and
-    suspended/rejected users to the renewal screen - never destroys their session,
-    since all three of those are logged-in states the user should stay logged into.
+    users to login. A logged-in user is only ever blocked here if their account was
+    explicitly disabled/banned by a Super Admin (IsActive = 0) or no longer exists -
+    every subscription state (free/pending/active/expired/suspended/rejected) gets
+    through, since the free tier means there is no all-or-nothing access gate anymore.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -70,12 +69,11 @@ def login_required(f):
 
         allowed, status, _ = get_user_access_status(user_id)
         if not allowed:
-            # Let the gate pages and logout themselves render without redirect-looping.
-            if request.endpoint in ("frontend.waiting_approval", "frontend.renew_subscription", "auth.logout"):
+            if request.endpoint == "auth.logout":
                 return f(*args, **kwargs)
-            if status == "pending_approval":
-                return redirect(url_for("frontend.waiting_approval"))
-            return redirect(url_for("frontend.renew_subscription"))
+            session.clear()
+            flash("Your account has been suspended by the administrator. Please contact support.", "error")
+            return redirect(url_for("auth.login"))
 
         return f(*args, **kwargs)
 
@@ -96,11 +94,11 @@ def role_required(*allowed_roles):
 
             allowed, status, _ = get_user_access_status(user_id)
             if not allowed:
-                if request.endpoint in ("frontend.waiting_approval", "frontend.renew_subscription", "auth.logout"):
+                if request.endpoint == "auth.logout":
                     return f(*args, **kwargs)
-                if status == "pending_approval":
-                    return redirect(url_for("frontend.waiting_approval"))
-                return redirect(url_for("frontend.renew_subscription"))
+                session.clear()
+                flash("Your account has been suspended by the administrator. Please contact support.", "error")
+                return redirect(url_for("auth.login"))
 
             return f(*args, **kwargs)
 

@@ -2,6 +2,14 @@ import os
 import sys
 import time
 
+# Guarantee UTF-8 stream output across Windows console and process runners
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
 # Auto-detect & add local .venv site-packages if executed via global python interpreter
 venv_site_packages = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".venv", "Lib", "site-packages")
 if os.path.exists(venv_site_packages) and venv_site_packages not in sys.path:
@@ -47,8 +55,12 @@ if not _secret_key:
 app.secret_key = _secret_key
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
-# Set 500 MB Maximum Upload Size Limit
-app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
+# Hard request-body ceiling. Set a few MB above the 500 MB file-size limit the upload
+# views enforce (frontend.upload / frontend.api_upload_file) - multipart form-data adds
+# boundary/header overhead and other fields (csrf_token, tags) on top of the raw file
+# bytes, so a legitimate exactly-500MB file must not get rejected here before the app's
+# own, more precise file-size check ever runs.
+app.config["MAX_CONTENT_LENGTH"] = 508 * 1024 * 1024
 
 # Hardened Session Cookie Policy
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -92,10 +104,45 @@ def handle_csrf_error(e):
         return redirect(ref)
     return redirect(url_for("frontend.home"))
 
+
+@app.errorhandler(413)
+def handle_request_too_large(e):
+    """
+    MAX_CONTENT_LENGTH (500 MB, set above) rejects an oversized request at the
+    WSGI/Werkzeug layer before it ever reaches the upload view, so the app-level
+    "exceeds 500 MB" check in frontend.upload / frontend.api_upload_file never runs
+    for a file well over the cap - without this handler the user would see Werkzeug's
+    bare "413 Request Entity Too Large" page instead of the same clear message.
+    """
+    msg = "This file exceeds the maximum supported file size of 500 MB. Please upload a smaller file."
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        from flask import jsonify
+        return jsonify({"success": False, "error": msg}), 413
+    flash(msg, "error")
+    from urllib.parse import urlparse
+    ref = request.referrer
+    if ref and urlparse(ref).netloc == urlparse(request.host_url).netloc:
+        return redirect(ref)
+    return redirect(url_for("frontend.upload"))
+
+
 # Register Blueprints
 app.register_blueprint(frontend)
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(admin_bp)
+
+# Top-level convenience routes to prevent 404 on direct /login, /register, /signup navigation
+@app.route("/login")
+def top_login():
+    return redirect(url_for("auth.login", **request.args))
+
+@app.route("/register")
+def top_register():
+    return redirect(url_for("auth.register", **request.args))
+
+@app.route("/signup")
+def top_signup():
+    return redirect(url_for("auth.register", **request.args))
 
 
 import gzip

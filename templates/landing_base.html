@@ -16,7 +16,7 @@
     <meta name="robots" content="index, follow">
     {% block seo_meta %}
     <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-    <meta name="description" content="Transform enterprise datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. PKR 25,000/month all-inclusive enterprise plan with AES-256 encryption.">
+    <meta name="description" content="Transform datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
     <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics">
     <link rel="canonical" href="{{ request.url }}">
     {% endblock %}
@@ -78,7 +78,7 @@
       "applicationCategory": "BusinessApplication",
       "offers": {
         "@type": "Offer",
-        "price": "25000.00",
+        "price": "1499.00",
         "priceCurrency": "PKR"
       },
       "description": "Enterprise AI Data Analysis Platform processing 10M+ records with sub-second AI query responses, automated exports, and AES-256 encryption."
@@ -123,7 +123,7 @@
                     </a>
                     {% else %}
                     <a href="{{ url_for('auth.login') }}" class="btn-nav-login" id="nav-login-btn">Sign In</a>
-                    <a href="{{ url_for('auth.register_payment') }}" class="btn-nav-register" id="nav-register-btn">Register Free</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn-nav-register" id="nav-register-btn">Register Free</a>
                     {% endif %}
 
                     <button class="mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle Navigation">

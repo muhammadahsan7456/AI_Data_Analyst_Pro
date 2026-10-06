@@ -197,7 +197,8 @@ def home():
 @frontend.route("/pricing")
 def pricing_page():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("pricing_page.html", is_logged_in=is_logged_in, open_payment_modal=True)
+    open_payment_modal = request.args.get("upgrade") == "1" or request.args.get("open") == "1" or request.args.get("pay") == "1"
+    return render_template("pricing_page.html", is_logged_in=is_logged_in, open_payment_modal=open_payment_modal)
 
 
 @frontend.route("/submit-payment-proof", methods=["POST"])
@@ -265,6 +266,14 @@ def submit_payment_proof():
 
             user_id, user_name = row[0], row[1] or user_name
 
+            from database.queries import check_user_has_pending_payment
+            cursor.execute(check_user_has_pending_payment(), (user_id,))
+            if cursor.fetchone()[0] > 0:
+                return jsonify({
+                    "success": False,
+                    "message": "You already have a payment proof pending Super Admin review. Please wait for it to be approved or rejected before submitting another one."
+                }), 400
+
             if not txn_id:
                 txn_id = f"PAY_{int(time.time())}"
 
@@ -272,13 +281,18 @@ def submit_payment_proof():
 
             cursor.execute("""
                 INSERT INTO Payments (UserID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, ScreenshotPath, PaymentDate)
-                VALUES (?, 25000.00, 'PKR', ?, ?, 'Pending', 'Enterprise Plan (PKR 25,000/mo)', ?, GETDATE())
+                VALUES (?, 1499.00, 'PKR', ?, ?, 'Pending', 'Pro Plan (PKR 1,499/mo)', ?, GETDATE())
             """, (user_id, method_display, txn_id, screenshot_path))
 
         try:
             log_audit_event("PAYMENT_PROOF_SUBMITTED", f"Submitted {method} payment proof & screenshot for {email} (Txn: {txn_id})", user_id=user_id)
-        except Exception:
-            pass
+            from auth.email_service import EmailService
+            es = EmailService()
+            es.send_payment_received_email(email, user_name)
+            from auth.routes import _notify_admins_new_payment
+            _notify_admins_new_payment(user_name, email, 1499.0, txn_id)
+        except Exception as notify_err:
+            print("Payment proof notification notice:", notify_err)
 
         return jsonify({
             "success": True,
@@ -416,7 +430,7 @@ def dashboard():
             cursor.execute("SELECT TOP 1 Status, PaymentDate FROM Payments WHERE UserID = ? ORDER BY PaymentDate DESC", (user_id,))
             p_row = cursor.fetchone()
             if p_row and p_row[0] in ['Pending', 'Pending_Review']:
-                pending_payment_notice = "⏳ Payment Proof Verification Pending: Your payment receipt proof (PKR 25,000) has been received and is currently under Super Admin review. Account access will be extended automatically upon verification!"
+                pending_payment_notice = "⏳ Payment Proof Verification Pending: Your payment receipt proof (PKR 1,499) has been received and is currently under Super Admin review. Account access will be extended automatically upon verification!"
 
         # Renewal notice only displays if subscription requires renewal AND no pending payment is under review
         if not pending_payment_notice and sub_meta.get("show_banner"):
@@ -463,6 +477,11 @@ def dashboard():
 @role_required("Admin", "Manager", "Analyst")
 def upload():
     user_id = session.get("user_id")
+    from utils.subscription import get_user_subscription_info
+    sub_info = get_user_subscription_info(user_id)
+    is_pro = sub_info.get("is_pro", False)
+    max_upload_mb = 500 if is_pro else 1
+
     if request.method == "POST":
         # Handle multiple file upload form submissions
         files = request.files.getlist("dataset") or [request.files.get("dataset")]
@@ -472,10 +491,44 @@ def upload():
 
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json
 
-        # Hand anything large to a worker thread rather than holding the request open for
-        # it. A million-row file spent ~83s in this loop with the browser showing a
-        # finished upload bar and no idea what was happening. Only for AJAX submits -
-        # a plain form POST has nowhere to put a job id, so it keeps the old behaviour.
+        # Validate incoming file sizes against user plan limits
+        for f in files:
+            if not f or not getattr(f, "filename", None):
+                continue
+            try:
+                f.seek(0, os.SEEK_END)
+                sz = f.tell()
+                f.seek(0)
+            except Exception:
+                sz = 0
+
+            if sz > 500 * 1024 * 1024:
+                err_msg = f"File '{f.filename}' ({round(sz/(1024*1024), 2)} MB) exceeds the absolute maximum system limit of 500 MB."
+                if is_ajax:
+                    return jsonify({"success": False, "error": err_msg}), 400
+                flash(err_msg, "error")
+                return render_template("upload.html", success=False, error=err_msg, sub_info=sub_info, is_pro=is_pro, max_upload_mb=max_upload_mb)
+
+            if not is_pro and sz >= 1 * 1024 * 1024:
+                if sub_info.get("has_pending_payment"):
+                    err_msg = f"File '{f.filename}' ({round(sz/(1024*1024), 2)} MB) needs the Pro Plan. Your payment proof is already submitted and pending Super Admin approval — you'll be able to upload this once it's approved."
+                    if is_ajax:
+                        return jsonify({"success": False, "pending_approval": True, "error": err_msg}), 400
+                    flash(err_msg, "info")
+                    return render_template("upload.html", success=False, error=err_msg, sub_info=sub_info, is_pro=is_pro, max_upload_mb=max_upload_mb)
+
+                err_msg = f"File '{f.filename}' ({round(sz/(1024*1024), 2)} MB) exceeds the Free Plan limit of 1 MB. Upgrade to the Pro Plan (Rs. 1,499/month) to upload datasets up to 500 MB."
+                if is_ajax:
+                    return jsonify({
+                        "success": False,
+                        "upgrade_required": True,
+                        "error": err_msg,
+                        "upgrade_url": url_for("frontend.pricing_page") + "?upgrade=1"
+                    }), 400
+                flash(err_msg, "warning")
+                return render_template("upload.html", success=False, error=err_msg, sub_info=sub_info, is_pro=is_pro, max_upload_mb=max_upload_mb)
+
+        # Hand anything large to a worker thread rather than holding the request open for it
         if is_ajax:
             sizes = []
             for f in files:
@@ -532,11 +585,11 @@ def upload():
 
         if results:
             flash(f"Successfully uploaded {len(results)} dataset file(s)!", "success")
-            return render_template("upload.html", success=True, data=results[0], results=results)
+            return render_template("upload.html", success=True, data=results[0], results=results, sub_info=sub_info, is_pro=is_pro, max_upload_mb=max_upload_mb)
         
-        return render_template("upload.html", success=False, error="; ".join(errors) if errors else "No file selected.")
+        return render_template("upload.html", success=False, error="; ".join(errors) if errors else "No file selected.", sub_info=sub_info, is_pro=is_pro, max_upload_mb=max_upload_mb)
 
-    return render_template("upload.html")
+    return render_template("upload.html", sub_info=sub_info, is_pro=is_pro, max_upload_mb=max_upload_mb)
 
 
 @frontend.route("/api/upload-file", methods=["POST"])
@@ -547,16 +600,16 @@ def api_upload_file():
     AJAX endpoint for multi-file upload progress bars, percentage, and upload speed tracking.
     """
     user_id = session.get("user_id")
+    from utils.subscription import get_user_subscription_info
+    sub_info = get_user_subscription_info(user_id)
+    is_pro = sub_info.get("is_pro", False)
+
     uploaded_file = request.files.get("file") or request.files.get("dataset")
     tags = request.form.get("tags", "").strip()
 
     if not uploaded_file or not getattr(uploaded_file, "filename", None):
         return jsonify({"success": False, "error": "No file uploaded."}), 400
 
-    # Large files are ingested on a worker thread so the browser is not left on a hanging
-    # POST. A million-row file took ~83s of request time with no feedback at all; it now
-    # returns a job id straight away and the page polls /api/upload-status for real
-    # row counts. Small files keep the original synchronous response shape untouched.
     try:
         uploaded_file.seek(0, os.SEEK_END)
         incoming_size = uploaded_file.tell()
@@ -564,14 +617,34 @@ def api_upload_file():
     except Exception:
         incoming_size = 0
 
+    # Hard cap check (500 MB)
+    if incoming_size > 500 * 1024 * 1024:
+        return jsonify({
+            "success": False,
+            "error": f"File '{uploaded_file.filename}' ({round(incoming_size/(1024*1024), 2)} MB) exceeds the absolute maximum system limit of 500 MB."
+        }), 400
+
+    # Free plan limit check (1 MB)
+    if not is_pro and incoming_size >= 1 * 1024 * 1024:
+        if sub_info.get("has_pending_payment"):
+            return jsonify({
+                "success": False,
+                "pending_approval": True,
+                "error": f"File '{uploaded_file.filename}' ({round(incoming_size/(1024*1024), 2)} MB) needs the Pro Plan. Your payment proof is already submitted and pending Super Admin approval — you'll be able to upload this once it's approved."
+            }), 400
+        return jsonify({
+            "success": False,
+            "upgrade_required": True,
+            "error": f"File '{uploaded_file.filename}' ({round(incoming_size/(1024*1024), 2)} MB) exceeds the Free Plan limit of 1 MB. Upgrade to the Pro Plan (Rs. 1,499/month) to upload datasets up to 500 MB.",
+            "upgrade_url": url_for("frontend.pricing_page") + "?upgrade=1"
+        }), 400
+
     if incoming_size >= ASYNC_THRESHOLD_BYTES:
         filename = uploaded_file.filename
         temp_path = spool_to_disk(uploaded_file, filename)
         job_id = create_job(user_id, filename, incoming_size)
 
         def _after_success(results, errors):
-            # Same bookkeeping the synchronous branch does, minus the session write:
-            # this runs on a worker thread with no request context.
             system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
             log_upload_event(f"AJAX Uploaded (background): {filename}", user_id=user_id)
 
@@ -689,9 +762,8 @@ def chat():
         cursor.execute(get_all_datasets(user_id=user_id))
         raw_user_datasets = cursor.fetchall()
 
-    from database.connection import run_query
-    tbl_df = run_query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
-    existing_tables = set(tbl_df['TABLE_NAME'].str.lower().tolist()) if (tbl_df is not None and not tbl_df.empty) else set()
+    from database.connection import get_existing_base_tables
+    existing_tables = get_existing_base_tables()
 
     user_datasets = []
     if raw_user_datasets:
@@ -772,30 +844,8 @@ def chat():
     last_query = session.get("last_query", "")
     last_sql = session.get("last_sql", "")
     last_city = session.get("last_city", "")
-    last_status = session.get("last_status", "")
-
     q_low = question.lower()
-
-    # Detect current city and status in active question
-    known_pk_cities = ["karachi", "lahore", "islamabad", "rawalpindi", "multan", "peshawar", "faisalabad", "quetta", "hyderabad", "sukkur", "sialkot", "gujranwala"]
-    current_city = next((c.title() for c in known_pk_cities if c in q_low), None)
-    current_status = "return" if any(kw in q_low for kw in ["return", "returned", "rto", "audits"]) else ("delivered" if any(kw in q_low for kw in ["delivered", "delivery"]) else None)
-
-    if current_city:
-        session["last_city"] = current_city
-    if current_status:
-        session["last_status"] = current_status
-
-    active_city = current_city or session.get("last_city", "")
-    active_status = current_status or session.get("last_status", "")
-
-    # Check for relative follow-up context (e.g., "Inke areas bhi batao", "Area breakdown", "Sort descending")
-    is_area_followup = any(kw in q_low for kw in ["area", "areas", "locality", "localities", "neighborhood", "inke", "unke", "is ke", "un ke", "in ke", "kaun se", "kaun kaun"])
-    
-    if is_area_followup and active_city and not current_city:
-        status_prefix = f" {active_status}" if active_status else ""
-        question_for_ai = f"{active_city}{status_prefix} area breakdown {question}"
-    elif last_sql and any(kw in q_low for kw in ["sort", "order", "descending", "ascending", "filter", "where"]):
+    if last_sql and any(kw in q_low for kw in ["sort", "order", "descending", "ascending"]):
         if "order by" not in last_sql.lower() and "sort" in q_low:
             if "desc" in q_low or "descending" in q_low:
                 question_for_ai = f"{last_query} sorted descending"
@@ -925,58 +975,6 @@ def chat():
         )
 
     df = ai_result["df"]
-
-    # ---------------------------------------------------------
-    # STRICT CITY & LOCATION POST-FILTERING SAFETY GUARD (100% ACCURACY)
-    # ---------------------------------------------------------
-    if df is not None and not df.empty:
-        known_cities_map = {
-            "lahore": ["lahore", "lhe"],
-            "islamabad": ["islamabad", "isb"],
-            "karachi": ["karachi", "khi"],
-            "multan": ["multan", "mux"],
-            "peshawar": ["peshawar", "pew"],
-            "rawalpindi": ["rawalpindi", "rwp"],
-            "quetta": ["quetta", "uet"],
-            "faisalabad": ["faisalabad", "fsd"],
-            "sialkot": ["sialkot", "skt"],
-            "hyderabad": ["hyderabad", "hdd"]
-        }
-
-        q_low_check = question.lower()
-        target_city_key = None
-        for c_key, c_aliases in known_cities_map.items():
-            if any(re.search(r"\b" + re.escape(alias) + r"\b", q_low_check) for alias in c_aliases):
-                if not any(kw in q_low_check for kw in ["all cities", "city breakdown", "every city", "compare", "vs", "versus"]):
-                    target_city_key = c_key
-                    break
-
-        if target_city_key:
-            city_col_candidates = ["destination_city", "dest_city", "destination", "customer_city", "shipping_city", "consignee_city", "city", "location"]
-            target_df_col = None
-            for col_name in df.columns:
-                if col_name.lower().strip() in city_col_candidates:
-                    target_df_col = col_name
-                    break
-            if not target_df_col:
-                for col_name in df.columns:
-                    if "city" in col_name.lower() or "destination" in col_name.lower():
-                        target_df_col = col_name
-                        break
-
-            if target_df_col:
-                allowed_tokens = known_cities_map[target_city_key]
-                def matches_target_city(val):
-                    if pd.isna(val):
-                        return False
-                    v_str = str(val).lower().strip()
-                    return any(t in v_str for t in allowed_tokens)
-
-                filtered_df = df[df[target_df_col].apply(matches_target_city)]
-                if not filtered_df.empty:
-                    df = filtered_df.copy()
-                    ai_result["df"] = df
-                    ai_result["rows_returned"] = len(df)
     if df.empty:
         if is_ajax:
             return jsonify({
@@ -1022,7 +1020,9 @@ def chat():
 
     try:
         explanation = generate_data_business_summary(selected_dataset[2], df, question)
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         explanation = f"Query executed successfully on dataset [{selected_dataset[2]}]. Displaying {len(df)} matching records."
 
     # Natural Spoken Speech formatting (Feature 2)
@@ -1032,16 +1032,6 @@ def chat():
     # produced on demand by frontend.download_chart() when the user actually clicks
     # "Download HD Chart", or by the export routes. The Plotly chart_spec is what renders
     # the interactive chart on the page itself.
-    chart_path = None
-    chart_spec = ai_result.get("chart_spec", {})
-    if not chart_spec or not chart_spec.get("labels"):
-        try:
-            from visualization.chart_generator import generate_interactive_chart_spec
-            chart_type = select_chart(df) or "bar"
-            chart_spec = generate_interactive_chart_spec(df, chart_type)
-        except Exception as chart_err:
-            print("Chart Error:", chart_err)
-
     # Auto-repair and infer clean human headers for any Unnamed/blank columns
     df = auto_repair_dataframe_headers(df)
 
@@ -1052,6 +1042,18 @@ def chat():
     # Clean technical RecordID column
     if "RecordID" in df.columns:
         df = df.drop(columns=["RecordID"])
+
+    # Generate 100% faithful interactive chart_spec from the cleaned, display-aligned df
+    # (Before appending the Total summary row, so Total does not distort the chart)
+    chart_path = None
+    try:
+        from visualization.chart_generator import generate_interactive_chart_spec
+        from visualization.chart_selector import select_chart
+        chart_type = select_chart(df) or "bar"
+        chart_spec = generate_interactive_chart_spec(df, chart_type)
+    except Exception as chart_err:
+        print("Chart Error:", chart_err)
+        chart_spec = ai_result.get("chart_spec", {})
 
     display_df = df.copy()
 
@@ -1078,7 +1080,7 @@ def chat():
         index=False
     )
 
-    query_plan = parse_question_to_query_plan(question_for_ai, table_name) if parse_question_to_query_plan else {}
+    query_plan = ai_result.get("query_plan") or (parse_question_to_query_plan(question_for_ai, table_name) if parse_question_to_query_plan else {})
     applied_filters = [f["sql_clause"] for f in query_plan.get("filters", [])] if query_plan else []
 
     if is_ajax:
@@ -1147,6 +1149,13 @@ def download_chart():
     if df is None or df.empty:
         flash("No data available to chart.", "error")
         return redirect(url_for("frontend.chat"))
+
+    from utils.dataframe_cleaner import auto_repair_dataframe_headers
+    from utils.helpers import expand_city_names_in_df
+    df = auto_repair_dataframe_headers(df)
+    df = expand_city_names_in_df(df)
+    if "RecordID" in df.columns:
+        df = df.drop(columns=["RecordID"])
 
     chart_type = select_chart(df) or "bar"
     chart_rel_path = generate_chart(df, chart_type)
@@ -2572,7 +2581,7 @@ def view_receipt(payment_id):
             "payment_method": method or "Easypaisa",
             "txn_id": txn_id or f"TXN_{p_id}9021",
             "status": status or "Completed",
-            "plan_name": plan or "Enterprise Plan (PKR 25,000/mo)",
+            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
             "payment_date": format_12hr_datetime(p_date)
         }
         return render_template(
@@ -2620,7 +2629,7 @@ def download_receipt_pdf(payment_id):
             "payment_method": method or "Easypaisa",
             "txn_id": txn_id or f"TXN_{p_id}9021",
             "status": status or "Completed",
-            "plan_name": plan or "Enterprise Plan (PKR 25,000/mo)",
+            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
             "payment_date": format_12hr_datetime(p_date)
         }
         pdf_bytes = export_invoice_to_pdf(payment_dict)
@@ -2646,15 +2655,15 @@ def renew_subscription():
         file = request.files.get("receipt_file")
         bank_method = request.form.get("bank_method", "Bank Transfer").strip()
         txn_id = request.form.get("transaction_note", "").strip()
-        payment_amount_str = request.form.get("payment_amount", "25000").strip()
+        payment_amount_str = request.form.get("payment_amount", "1499").strip()
 
         try:
             payment_amount = float(payment_amount_str)
         except ValueError:
             payment_amount = 0.0
 
-        if payment_amount < 25000.0:
-            flash("Submission Rejected: Minimum subscription fee is PKR 25,000. Payment submissions under PKR 25,000 cannot be accepted.", "error")
+        if payment_amount < 1499.0:
+            flash("Submission Rejected: Minimum subscription fee is PKR 1,499. Payment submissions under PKR 1,499 cannot be accepted.", "error")
             return redirect(url_for("frontend.renew_subscription"))
 
         if not txn_id:
@@ -2700,7 +2709,7 @@ def renew_subscription():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(
                     insert_payment_full(),
-                    (user_id, payment_amount, bank_method, txn_id, "Enterprise Plan (PKR 25,000/mo)", "Renewal", rel_path)
+                    (user_id, payment_amount, bank_method, txn_id, "Pro Plan (PKR 1,499/mo)", "Renewal", rel_path)
                 )
 
             flash(f"Payment screenshot of PKR {payment_amount:,.2f} via '{bank_method}' submitted successfully! Super Admin has been notified for review.", "success")

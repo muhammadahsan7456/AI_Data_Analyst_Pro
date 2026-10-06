@@ -13,9 +13,9 @@
         <div class="auth-brand-badge">
             <i class="fa-solid fa-money-check-dollar"></i>
         </div>
-        <h1 class="auth-title">Step 1 of 2 — Complete Your Payment</h1>
+        <h1 class="auth-title">Complete Pro Upgrade Payment</h1>
         <p class="auth-subtitle">
-            No payment = no access. Pay first, then create your account — this only takes a minute.
+            Upgrade to Pro Plan (PKR 1,499 / month) to upload datasets up to 500 MB (10M+ rows).
         </p>
 
         <!-- Plan & Price -->
@@ -77,7 +77,7 @@
                     <label for="amount" class="auth-label">Amount Paid (PKR)</label>
                     <div class="auth-input-wrapper">
                         <i class="fa-solid fa-money-bill input-icon"></i>
-                        <input type="number" name="amount" id="amount" required min="25000" step="1" class="auth-input" placeholder="25000" value="{{ form_data.amount or '25000' }}">
+                        <input type="number" name="amount" id="amount" required min="1499" step="1" class="auth-input" placeholder="1499" value="{{ form_data.amount or '1499' }}">
                     </div>
                 </div>
                 <div class="auth-form-group" style="margin-bottom: 0;">

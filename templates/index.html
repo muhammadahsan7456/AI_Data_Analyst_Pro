@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-<meta name="description" content="Transform enterprise datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. PKR 25,000/month all-inclusive enterprise plan with AES-256 encryption at rest.">
+<meta name="description" content="Transform datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
 <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics, Voice AI Querying">
 <link rel="canonical" href="{{ request.url_root }}">
 {% endblock %}
@@ -24,7 +24,7 @@
   "name": "AI Data Analyst Pro",
   "operatingSystem": "All (Web Based)",
   "applicationCategory": "BusinessApplication",
-  "offers": { "@type": "Offer", "price": "25000.00", "priceCurrency": "PKR" },
+  "offers": { "@type": "Offer", "price": "1499.00", "priceCurrency": "PKR" },
   "description": "Enterprise AI Data Analysis Platform processing 10M+ records with sub-second AI query responses, automated exports, and AES-256 encryption.",
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "512" }
 }
@@ -64,8 +64,8 @@
                 <i class="fa-solid fa-rocket"></i> Launch Dashboard
             </a>
             {% else %}
-            <a href="{{ url_for('auth.register_payment') }}" class="btn-hero-primary" id="hero-cta-reg">
-                <i class="fa-solid fa-rocket"></i> Get Started — PKR 25,000/mo
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" id="hero-cta-reg">
+                <i class="fa-solid fa-rocket"></i> Get Started Free (No Card Needed)
             </a>
             {% endif %}
             <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" id="hero-cta-demo">
@@ -206,7 +206,7 @@
                     <i class="fa-solid fa-gauge"></i> Open Dashboard
                 </a>
                 {% else %}
-                <a href="{{ url_for('auth.register_payment') }}" style="background: #fff; color: #0f172a; font-weight: 700; padding: 14px 32px; border-radius: var(--radius-md); font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
+                <a href="{{ url_for('auth.register') }}" style="background: #fff; color: #0f172a; font-weight: 700; padding: 14px 32px; border-radius: var(--radius-md); font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
                     <i class="fa-solid fa-rocket"></i> Start Free Trial
                 </a>
                 <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" style="border-color: rgba(255,255,255,0.3); color: #fff;">

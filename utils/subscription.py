@@ -44,33 +44,72 @@ def get_user_subscription_info(user_id: int) -> dict:
 
         u_id, is_active, sub_status, sub_end, created_at, role = row
 
-        # Super Admin accounts never expire
+        # Normalize sub_status
+        sub_status = (sub_status or "free").strip().lower()
+
+        # Super Admin accounts have unlimited lifetime Pro access
         if role in ["Super Admin", "SuperAdmin", "Admin"]:
             return {
                 "status": "active",
                 "days_left": 999,
                 "end_date": "Unlimited Lifetime Access",
                 "is_active": True,
+                "is_pro": True,
+                "max_upload_mb": 500,
+                "plan_name": "Enterprise SuperAdmin",
                 "banner_type": "",
                 "banner_message": "",
-                "show_banner": False
+                "show_banner": False,
+                "has_pending_payment": False
             }
 
-        # These two states are only ever entered/exited by an explicit Super Admin
-        # decision (payment approval/rejection) - they have no SubscriptionEndDate yet,
-        # so the date-math below must never run for them. Doing so would compute a
-        # bogus "active" status from a fabricated 30-day fallback end date and then
-        # WRITE it back to the DB (see the sync below), silently granting access to a
-        # user who was never approved.
+        # Check if user has uploaded a pending payment receipt proof
+        has_pending = False
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT TOP 1 PaymentID FROM Payments WHERE UserID = ? AND Status IN ('Pending', 'Pending_Review')", (user_id,))
+                if cursor.fetchone():
+                    has_pending = True
+        except Exception:
+            pass
+
+        # Free tier user (free forever, max 1 MB uploads, full platform access)
+        if sub_status in ("free", "basic", "trial"):
+            banner_type = ""
+            banner_message = ""
+            show_banner = False
+            if has_pending:
+                banner_type = "info"
+                banner_message = "⏳ PAYMENT PROOF UNDER REVIEW: Your Pro Plan upgrade payment proof (PKR 1,499) is currently under Super Admin review. 500 MB access will be unlocked upon approval!"
+                show_banner = True
+
+            return {
+                "status": "free",
+                "days_left": 999,
+                "end_date": "Free Forever",
+                "is_active": True,
+                "is_pro": False,
+                "max_upload_mb": 1,
+                "plan_name": "Free Plan",
+                "banner_type": banner_type,
+                "banner_message": banner_message,
+                "show_banner": show_banner,
+                "has_pending_payment": has_pending
+            }
+
         if sub_status in ("pending_approval", "rejected"):
             return {
                 "status": sub_status,
                 "days_left": 0,
                 "end_date": "N/A",
                 "is_active": False,
-                "banner_type": "",
-                "banner_message": "",
-                "show_banner": False
+                "is_pro": False,
+                "max_upload_mb": 1,
+                "plan_name": "Free Plan",
+                "banner_type": "warning",
+                "banner_message": "Payment verification rejected or pending. Please contact support or resubmit proof.",
+                "show_banner": True,
+                "has_pending_payment": has_pending
             }
 
         now = datetime.datetime.now()
@@ -111,38 +150,33 @@ def get_user_subscription_info(user_id: int) -> dict:
         banner_message = ""
         show_banner = False
 
-        # Check if user has uploaded a pending payment receipt proof
-        has_pending = False
-        try:
-            with get_db_cursor() as cursor:
-                cursor.execute("SELECT TOP 1 PaymentID FROM Payments WHERE UserID = ? AND Status IN ('Pending', 'Pending_Review')", (user_id,))
-                if cursor.fetchone():
-                    has_pending = True
-        except Exception:
-            pass
-
         if has_pending and calc_status != "active":
             banner_type = "info"
-            banner_message = "⏳ PAYMENT PROOF UNDER REVIEW: Your payment receipt proof (PKR 25,000) has been uploaded and is currently under Super Admin review. Account access will be activated immediately upon approval!"
+            banner_message = "⏳ PAYMENT PROOF UNDER REVIEW: Your payment receipt proof (PKR 1,499) has been uploaded and is currently under Super Admin review. Account access will be activated immediately upon approval!"
             show_banner = True
         elif calc_status == "suspended":
             banner_type = "danger"
-            banner_message = "🛑 ACCOUNT SUSPENDED: Your account access has been suspended due to unpaid subscription renewal. Please upload your payment receipt below for immediate reactivation."
+            banner_message = "🛑 ACCOUNT SUSPENDED: Your Pro access has been suspended due to unpaid subscription renewal (PKR 1,499). Please upload your payment receipt below for immediate reactivation."
             show_banner = True
         elif calc_status == "expired":
             banner_type = "danger"
-            banner_message = f"🚨 ANNOUNCEMENT: Your 30-day subscription plan expired on {end_date_str}! Please upload your payment receipt proof to renew your access."
+            banner_message = f"🚨 ANNOUNCEMENT: Your Pro 30-day subscription expired on {end_date_str}! Please upload your PKR 1,499 payment receipt to renew 500 MB access."
             show_banner = True
         elif calc_status == "expiring_soon":
             banner_type = "warning"
-            banner_message = f"⚠️ ANNOUNCEMENT: Your 30-day subscription plan ends in {days_left} day(s) on {end_date_str}! Please renew your plan bill to avoid service interruption."
+            banner_message = f"⚠️ ANNOUNCEMENT: Your Pro subscription plan ends in {days_left} day(s) on {end_date_str}! Please renew your PKR 1,499 plan to avoid service interruption."
             show_banner = True
+
+        is_pro_active = (calc_status == "active" and bool(is_active))
 
         return {
             "status": calc_status,
             "days_left": max(0, days_left),
             "end_date": end_date_str,
             "is_active": bool(is_active) and calc_status != "suspended",
+            "is_pro": is_pro_active,
+            "max_upload_mb": 500 if is_pro_active else 1,
+            "plan_name": "Pro Plan (PKR 1,499/mo)" if is_pro_active else "Free Plan",
             "banner_type": banner_type,
             "banner_message": banner_message,
             "show_banner": show_banner,
@@ -151,9 +185,12 @@ def get_user_subscription_info(user_id: int) -> dict:
     except Exception as err:
         print("Subscription Info Error:", err)
         return {
-            "status": "active",
-            "days_left": 30,
-            "end_date": "N/A",
+            "status": "free",
+            "days_left": 999,
+            "end_date": "Free Tier",
             "is_active": True,
+            "is_pro": False,
+            "max_upload_mb": 1,
+            "plan_name": "Free Plan",
             "show_banner": False
         }

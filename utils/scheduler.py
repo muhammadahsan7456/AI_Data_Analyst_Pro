@@ -138,7 +138,7 @@ def process_subscription_expiry_sweep():
                     cursor.execute(
                         create_ai_notification(),
                         (u_id, "subscription_reminder", "Subscription Renewal Reminder",
-                         f"Your monthly subscription of PKR 25,000 is due on {due_label}. Please pay and upload your screenshot to avoid suspension.", None)
+                         f"Your monthly subscription of PKR 1,499 is due on {due_label}. Please pay and upload your screenshot to keep your 500 MB Pro access.", None)
                     )
                     # Recorded even if the email above failed, since the notification
                     # itself succeeded - a transient SMTP hiccup shouldn't cause the
@@ -165,7 +165,7 @@ def process_subscription_expiry_sweep():
                 cursor.execute(
                     create_ai_notification(),
                     (u_id, "subscription_suspended", "Dashboard Suspended",
-                     "Your subscription has expired and your dashboard has been suspended. Please pay PKR 25,000 and upload the screenshot to re-activate.", None)
+                     "Your Pro subscription has expired. Please pay PKR 1,499 and upload the screenshot to re-activate 500 MB upload access.", None)
                 )
             print(f"[SCHEDULER ENGINE] Auto-suspended user #{u_id} ({email}) - subscription expired.")
         except Exception as err:

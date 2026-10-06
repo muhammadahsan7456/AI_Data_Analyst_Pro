@@ -29,6 +29,34 @@
             <div><i class="fa-solid fa-location-dot" style="width: 20px;"></i> {{ user[8] if user and user[8] else 'City' }}, {{ user[7] if user and user[7] else 'Country' }}</div>
             <div><i class="fa-solid fa-calendar-day" style="width: 20px;"></i> Joined: {{ user[16]|string if user and user[16] else 'Recent' }}</div>
         </div>
+
+        {% if sub_info %}
+        <div style="border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 16px; text-align: left;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Plan &amp; Billing</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 14px; font-weight: 700;">{{ sub_info.plan_name }}</span>
+                {% if sub_info.is_pro %}
+                <span class="badge badge-success" style="font-size: 11px; padding: 3px 8px;">Active</span>
+                {% elif sub_info.status in ('expired', 'suspended') %}
+                <span class="badge badge-warning" style="font-size: 11px; padding: 3px 8px;">Expired</span>
+                {% else %}
+                <span class="badge badge-info" style="font-size: 11px; padding: 3px 8px;">Free</span>
+                {% endif %}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+                Upload limit: <strong>{{ sub_info.max_upload_mb }} MB</strong> per file
+                {% if sub_info.is_pro %} &middot; Renews/expires: <strong>{{ sub_info.end_date }}</strong>{% endif %}
+            </div>
+            {% if sub_info.has_pending_payment %}
+            <div style="font-size: 12px; color: var(--accent-blue); margin-bottom: 10px;"><i class="fa-solid fa-clock"></i> Payment proof submitted, pending Super Admin approval.</div>
+            {% endif %}
+            {% if not sub_info.is_pro %}
+            <a href="{{ url_for('frontend.pricing_page') }}?upgrade=1" class="btn btn-sm btn-primary" style="font-size: 12px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-crown"></i> {{ 'Renew Pro Plan' if sub_info.status in ('expired', 'suspended') else 'Upgrade to Pro' }}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Right Content Card -->

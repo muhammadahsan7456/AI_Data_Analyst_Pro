@@ -360,14 +360,14 @@ def init_sqlite_db(conn):
         '''CREATE TABLE IF NOT EXISTS Payments (
             PaymentID INTEGER PRIMARY KEY AUTOINCREMENT,
             UserID INTEGER NOT NULL,
-            Amount REAL NOT NULL DEFAULT 25000.00,
+            Amount REAL NOT NULL DEFAULT 1499.00,
             Currency TEXT DEFAULT 'PKR',
             PaymentMethod TEXT DEFAULT 'Easypaisa',
             TransactionID TEXT NULL,
             Status TEXT NOT NULL DEFAULT 'Pending',
-            PlanName TEXT DEFAULT 'Enterprise Plan (PKR 25,000/mo)',
+            PlanName TEXT DEFAULT 'Pro Plan (PKR 1,499/mo)',
             ScreenshotPath TEXT NULL,
-            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''',
         '''CREATE TABLE IF NOT EXISTS NewsletterSubscribers (
             SubscriberID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -652,12 +652,12 @@ def init_db():
         CREATE TABLE Payments (
             PaymentID INT IDENTITY(1,1) PRIMARY KEY,
             UserID INT NOT NULL,
-            Amount DECIMAL(10,2) NOT NULL DEFAULT 25000.00,
+            Amount DECIMAL(10,2) NOT NULL DEFAULT 1499.00,
             Currency NVARCHAR(10) DEFAULT 'PKR',
             PaymentMethod NVARCHAR(50) DEFAULT 'Easypaisa',
             TransactionID NVARCHAR(100) NULL,
             Status NVARCHAR(50) NOT NULL DEFAULT 'Completed',
-            PlanName NVARCHAR(100) DEFAULT 'Enterprise Plan (PKR 25,000/mo)',
+            PlanName NVARCHAR(100) DEFAULT 'Pro Plan (PKR 1,499/mo)',
             PaymentDate DATETIME2 NOT NULL DEFAULT GETDATE(),
             SubscriptionEndDate DATETIME2 NULL,
             CONSTRAINT FK_Payments_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
@@ -844,8 +844,8 @@ def init_db():
     BEGIN
         CREATE TABLE PaymentSettings (
             SettingID INT IDENTITY(1,1) PRIMARY KEY,
-            PlanName NVARCHAR(200) NOT NULL DEFAULT 'Enterprise Plan',
-            PlanPriceLabel NVARCHAR(100) NOT NULL DEFAULT 'PKR 25,000 / month',
+            PlanName NVARCHAR(200) NOT NULL DEFAULT 'Pro Plan',
+            PlanPriceLabel NVARCHAR(100) NOT NULL DEFAULT 'PKR 1,499 / month',
             AccountTitle NVARCHAR(200) NOT NULL DEFAULT '',
             BankName NVARCHAR(200) NULL,
             AccountNumber NVARCHAR(100) NULL,
@@ -880,10 +880,14 @@ def init_db():
     BEGIN
         INSERT INTO PaymentSettings (PlanName, PlanPriceLabel, AccountTitle, BankName, AccountNumber, IBAN, JazzCashNumber, EasypaisaNumber, Instructions)
         VALUES (
-            'Enterprise Plan', 'PKR 25,000 / month', 'AI Data Analyst Pro',
+            'Pro Plan', 'PKR 1,499 / month', 'AI Data Analyst Pro',
             'Meezan Bank', '03053107456', NULL, '03053107456', '03053107456',
             'Pay the amount to the account below, take a screenshot of the payment, and upload it in the form.'
         );
+    END
+    ELSE
+    BEGIN
+        UPDATE PaymentSettings SET PlanPriceLabel = 'PKR 1,499 / month' WHERE PlanPriceLabel LIKE '%1,199%' OR PlanPriceLabel LIKE '%25,000%' OR PlanPriceLabel LIKE '%25000%';
     END;
 
     -- Initialize NULL subscription dates & statuses
@@ -1070,12 +1074,53 @@ def get_latest_table(user_id=None) -> str:
         conn.close()
 
 
+def get_existing_base_tables(use_cache: bool = True) -> set:
+    """
+    Returns a set of lowercased base table names with memory caching.
+    Prevents expensive INFORMATION_SCHEMA scans (which take 1.1s+ per request).
+    """
+    cache_key = "db_existing_base_tables"
+    try:
+        from utils.cache import system_cache
+        if use_cache and system_cache:
+            cached = system_cache.get(cache_key)
+            if cached is not None:
+                return cached
+    except Exception:
+        pass
+
+    try:
+        tbl_df = run_query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
+        tables = set(tbl_df['TABLE_NAME'].str.lower().tolist()) if (tbl_df is not None and not tbl_df.empty) else set()
+    except Exception:
+        tables = set()
+
+    try:
+        from utils.cache import system_cache
+        if system_cache and tables:
+            system_cache.set(cache_key, tables, ttl=180)
+    except Exception:
+        pass
+
+    return tables
+
+
 def get_table_columns(table_name: str) -> list:
     """
-    Return list of column names for a given table.
+    Return list of column names for a given table with high-speed in-memory caching.
     """
     if not is_safe_identifier(table_name):
         return []
+
+    cache_key = f"tbl_cols_{str(table_name).strip().lower()}"
+    try:
+        from utils.cache import system_cache
+        if system_cache:
+            cached = system_cache.get(cache_key)
+            if cached is not None:
+                return cached
+    except Exception:
+        pass
 
     conn = get_connection()
     try:
@@ -1083,7 +1128,7 @@ def get_table_columns(table_name: str) -> list:
             with get_db_cursor() as cursor:
                 cursor.execute(f"PRAGMA table_info({sanitize_identifier(table_name)})")
                 cols = cursor.fetchall()
-                return [c[1] for c in cols] if cols else []
+                col_list = [c[1] for c in cols] if cols else []
         else:
             try:
                 from database.queries import get_columns
@@ -1092,7 +1137,16 @@ def get_table_columns(table_name: str) -> list:
             with get_db_cursor() as cursor:
                 cursor.execute(get_columns(), (table_name,))
                 columns = cursor.fetchall()
-                return [col[0] for col in columns]
+                col_list = [col[0] for col in columns]
+
+        try:
+            from utils.cache import system_cache
+            if system_cache and col_list:
+                system_cache.set(cache_key, col_list, ttl=300)
+        except Exception:
+            pass
+
+        return col_list
     except Exception as e:
         print(f"Error fetching columns for [{table_name}]:", e)
         return []
