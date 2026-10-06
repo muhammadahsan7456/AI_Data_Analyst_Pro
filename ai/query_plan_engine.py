@@ -20,6 +20,7 @@ import re
 import pandas as pd
 from ai.schema_intelligence import get_dataset_schema_intelligence
 from ai.value_matcher import extract_multi_value_filters, find_unresolved_proper_nouns
+from utils.cache import system_cache
 from ai.metric_resolver import (
     get_real_numeric_columns,
     get_real_categorical_columns,
@@ -141,6 +142,15 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     """
     Constructs a structured T-SQL Query Plan for Microsoft SQL Server.
     """
+    if not question:
+        return {}
+
+    cache_key = f"qplan_{table_name}_{hash(question.strip().lower())}"
+    if system_cache:
+        cached_plan = system_cache.get(cache_key)
+        if cached_plan is not None:
+            return cached_plan
+
     schema_intel = get_dataset_schema_intelligence(table_name)
     column_list = schema_intel.get("column_list", [])
     cols_meta = schema_intel.get("columns", {})
@@ -401,19 +411,61 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     # cannot go through the normal categorical-column resolver above - kept as its own
     # narrow check, same as before.
     group_col = None
+
+    # Step A: Check for explicit pattern like "... wise", "by ...", "... ke hisab se"
+    wise_target = None
+    wise_m = re.search(r"\b([a-z_]{3,30})[\s-]wise\b", q_lower)
+    by_m = re.search(r"\b(?:by|per|for\s+each)\s+([a-z_]{3,30})\b", q_lower)
+    hisab_m = re.search(r"\b([a-z_]{3,30})\s+(?:ke\s+)?(?:hisab|hissab)\b", q_lower)
+
+    if wise_m:
+        wise_target = wise_m.group(1).lower()
+    elif by_m:
+        wise_target = by_m.group(1).lower()
+    elif hisab_m:
+        wise_target = hisab_m.group(1).lower()
+
+    # Step B: If the target is area/locality or query mentions sub-areas and address column exists
     address_col = next((c for c in column_list if any(kw in c.lower() for kw in
                         ["address", "street", "consignee_address", "location"])), None)
-    if address_col and any(kw in q_lower for kw in
-                           ["area", "areas", "locality", "localities", "neighborhood", "neighborhoods",
-                            "sub-city", "gulshan", "saddar", "defence", "dha", "clifton", "johar", "korangi"]):
-        from ai.area_intelligence import build_sql_sub_area_case_statement
-        known_pk_cities = ["karachi", "lahore", "islamabad", "rawalpindi", "multan", "peshawar",
-                           "faisalabad", "quetta", "hyderabad", "sukkur", "sialkot", "gujranwala"]
-        target_city_name = next((c.title() for c in known_pk_cities if c in q_lower), None)
-        group_col = build_sql_sub_area_case_statement(address_col, target_city_name)
+    is_area_query = (wise_target and any(kw in wise_target for kw in ["area", "locality", "neighborhood", "subcity", "place"])) or \
+                    any(kw in q_lower for kw in ["area", "areas", "locality", "localities", "neighborhood", "neighborhoods",
+                         "sub-city", "gulshan", "saddar", "defence", "dha", "clifton", "johar", "korangi", "jahan jahan"])
 
+    if is_area_query:
+        if address_col:
+            from ai.area_intelligence import build_sql_sub_area_case_statement
+            known_pk_cities = ["karachi", "lahore", "islamabad", "rawalpindi", "multan", "peshawar",
+                               "faisalabad", "quetta", "hyderabad", "sukkur", "sialkot", "gujranwala"]
+            target_city_name = next((c.title() for c in known_pk_cities if c in q_lower), None)
+            group_col = build_sql_sub_area_case_statement(address_col, target_city_name)
+        else:
+            # Table doesn't have an address column, check for City/Destination/Area column
+            area_direct_col = next((c for c in column_list if any(kw in c.lower() for kw in ["area", "city", "destination", "location", "region", "country"])), None)
+            if area_direct_col:
+                group_col = area_direct_col
+
+    # Step C: If wise_target was another column concept (e.g. "country", "department", "company", "status", "category", "product", "role")
+    if not group_col and wise_target:
+        for c in column_list:
+            c_low = c.lower()
+            if wise_target == c_low or wise_target in c_low or c_low in wise_target:
+                if c != metric_col and not is_id_like_column(c):
+                    group_col = c
+                    break
+
+    # Step D: Schema-driven categorical resolver
     if not group_col:
         group_col = resolve_groupby_column(q_lower, categorical_cols_real, exclude=metric_col)
+
+    # Step E: Direct column name mention fallback
+    if not group_col:
+        for c in column_list:
+            if c != metric_col and not is_id_like_column(c) and len(c) >= 3:
+                c_clean = c.lower().replace("_", " ")
+                if re.search(r"\b" + re.escape(c.lower()) + r"\b", q_lower) or re.search(r"\b" + re.escape(c_clean) + r"\b", q_lower):
+                    group_col = c
+                    break
 
     # Numeric threshold filters ("quantity over 1000", "revenue at least 500") - generic,
     # tied to whichever real numeric column the comparison phrase names. Previously there
@@ -438,8 +490,15 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     wants_distinct = "distinct" in q_lower
     wants_count = bool(re.search(r"\b(?:count|how many|kitne|kitni|number of)\b", q_lower))
     wants_percentage = any(kw in q_lower for kw in ["percentage", "percent", "%", "ratio", "fraction"])
-    wants_ranking = (bool(re.search(r"\b(?:top|highest|lowest|most|best|worst|rank(?:ing)?)\b", q_lower))
-                     or bool(re.search(r"\bgroup(?:ed)?\s+by\b|\bper\b|\bfor each\b|\bbreakdown\b", q_lower)))
+    wants_ranking = (
+        bool(re.search(r"\b(?:top|highest|lowest|most|best|worst|least|rank(?:ing)?)\b", q_lower))
+        or bool(re.search(r"\b(?:group(?:ed)?\s+by|per|for\s+each|breakdown|distribution|split|share|ratio)\b", q_lower))
+        or bool(re.search(r"\b\w+[\s-]wise\b|\bwise\b", q_lower))
+        or bool(re.search(r"\b(?:by)\s+[a-z_]+", q_lower))
+        or bool(re.search(r"\b(?:hisab\s+se|hissab\s+se|ke\s+mutabiq|tafseel)\b", q_lower))
+        or bool(re.search(r"\b(?:jahan\s+jahan\s+se|kidhar\s+kidhar\s+se|kahan\s+kahan\s+se|kon\s+kon\s+se|kaun\s+kaun\s+se|kis\s+kis\b)", q_lower))
+        or (group_col is not None and not any(kw in q_lower for kw in ["first", "pehle", "last", "aakhri"]))
+    )
 
     # A clear aggregation-function word (total/sum/average/min/max) but no real column to
     # apply it to is exactly the "what is the total shipping_cost" case: say so plainly
@@ -546,12 +605,30 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
             intent = "aggregate_stat"
             select_cols, order_by = [], []
             computed_fields = [{"name": f"Distinct_{dist_col}_Count", "expression": f"COUNT(DISTINCT [{dist_col}])"}]
+    elif any(kw in q_lower for kw in ["records", "rows", "entries", "data", "ross", "raws", "rose"]) and not any(kw in q_lower for kw in ["by", "per", "group", "breakdown"]):
+        intent = "retrieve_records"
+        select_cols = [c for c in column_list[:10] if c.lower() != "recordid"]
+        primary_pk = column_list[0] if column_list else "RecordID"
+        direction = "DESC" if any(kw in q_lower for kw in ["last", "bottom", "aakhri", "latest", "recent"]) else "ASC"
+        order_by = [{"column": primary_pk, "sql_safe_column": f"[{primary_pk}]", "direction": direction}]
+        if limit is None:
+            limit = 10
     elif wants_ranking and not group_col:
-        # A ranking/breakdown was clearly requested but no column to group by could be
-        # identified - be honest about that instead of silently grouping by an unrelated
-        # column (the old bug: grouping by "Revenue" itself because it was the only
-        # column name present in "top 3 sales reps by revenue").
-        unresolved_notices.append("Could not determine which column to group or rank by for this question.")
+        # User wants top/highest/lowest individual records sorted by the metric or primary key
+        intent = "retrieve_records"
+        direction = "ASC" if any(kw in q_lower for kw in ["lowest", "bottom", "least", "worst", "smallest", "oldest"]) else "DESC"
+        if metric_col:
+            safe_metric_expr = f"TRY_CAST(REPLACE(CAST([{metric_col}] AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+            order_by = [{"column": metric_col, "sql_safe_column": safe_metric_expr, "direction": direction}]
+            if metric_col not in select_cols:
+                select_cols.append(metric_col)
+        elif date_col and any(kw in q_lower for kw in ["recent", "latest", "newest", "oldest"]):
+            order_by = [{"column": date_col, "sql_safe_column": f"[{date_col}]", "direction": direction}]
+        elif id_or_index_col:
+            order_by = [{"column": id_or_index_col, "sql_safe_column": f"[{id_or_index_col}]", "direction": direction}]
+
+        if limit is None:
+            limit = 10
         if wants_count:
             intent = "count"
             select_cols, order_by = [], []
@@ -575,7 +652,7 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         computed_fields = [{"name": f"Total_{metric_col}", "expression": f"SUM({safe_metric_expr})"}]
         select_cols, order_by = [], []
 
-    return {
+    plan_res = {
         "intent": intent,
         "question": question,
         "table_name": table_name,
@@ -588,3 +665,8 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         "concept_validation": concept_check,
         "unresolved": unresolved_notices
     }
+
+    if system_cache:
+        system_cache.set(cache_key, plan_res, ttl=300)
+
+    return plan_res

@@ -111,6 +111,16 @@ def build_sql_sub_area_case_statement(address_column: str, city_filter: str = No
             city_key = "Hyderabad"
 
     if not city_key or city_key not in MAJOR_SUB_AREAS:
+        # Build comprehensive multi-city sub-area matcher across all major cities
+        seen_areas = set()
+        for ckey, areas in MAJOR_SUB_AREAS.items():
+            for area_name, keywords in areas:
+                if area_name not in seen_areas:
+                    seen_areas.add(area_name)
+                    sub_or_conditions = " OR ".join([f"[{address_column}] LIKE '%{kw}%'" for kw in keywords])
+                    case_clauses.append(f"WHEN ({sub_or_conditions}) THEN '{area_name}'")
+        if case_clauses:
+            return f"CASE {' '.join(case_clauses)} ELSE 'Other Neighborhoods / Main City' END"
         return f"[{address_column}]"
 
     areas_list = MAJOR_SUB_AREAS[city_key]

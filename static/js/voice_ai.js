@@ -49,13 +49,13 @@
                 questionInput.value = currentText;
             }
 
-            // Reset 5.0s silence auto-submit timer (gives user ample time to pause & speak long multi-part prompts)
+            // Ultra-responsive 1.8s silence auto-submit timer (fast & natural conversational rhythm)
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(function () {
                 if (isListening && currentText.length > 0) {
                     rec.stop();
                 }
-            }, 5000);
+            }, 1800);
         };
 
         rec.onerror = function (event) {
@@ -318,8 +318,10 @@
 
                 if (data.chart_spec && data.chart_spec.labels && data.chart_spec.labels.length > 0) {
                     setTimeout(() => {
+                        const targetChartType = (data.chart_spec && data.chart_spec.chart_type) ? data.chart_spec.chart_type : "bar";
                         if (window.updateCompatibleChartDropdown) window.updateCompatibleChartDropdown(data.chart_spec);
-                        if (window.renderInteractivePlotlyChart) window.renderInteractivePlotlyChart(data.chart_spec, data.chart_spec.chart_type || "pie");
+                        if (window.syncActiveChartButton) window.syncActiveChartButton(targetChartType);
+                        if (window.renderInteractivePlotlyChart) window.renderInteractivePlotlyChart(data.chart_spec, targetChartType);
                     }, 50);
                 }
 

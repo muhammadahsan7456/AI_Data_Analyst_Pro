@@ -65,9 +65,13 @@ STOPWORDS = {
     "on", "or", "per", "show", "some", "sum", "than", "that", "the", "them", "there",
     "this", "to", "top", "total", "value", "was", "week", "were", "what", "when",
     "where", "which", "who", "why", "with", "year", "yes",
-    # Roman Urdu connectives the app's users type constantly
+    # Roman Urdu connectives and data terms the app's users type constantly
     "aur", "bhi", "batao", "dikhao", "kitne", "kitni", "kya", "sab", "sara", "sare",
-    "mein", "ka", "ke", "ki", "ko", "hai", "hain", "wala", "wali",
+    "mein", "ka", "ke", "ki", "ko", "hai", "hain", "wala", "wali", "unka", "unke",
+    "inke", "iska", "uske", "mujhe", "mujha", "hum", "humein", "aaye", "gaye",
+    "raha", "rahe", "rahi", "la", "do", "den", "karo", "karein", "records", "record",
+    "orders", "order", "data", "rows", "row", "number", "count", "btao", "dekho",
+    "han", "haan", "acha", "sirf", "bas", "kaun", "kaha", "kahan", "kab", "kyun",
 }
 
 
@@ -164,6 +168,37 @@ def _is_matchable(value: str) -> bool:
     return True
 
 
+# City code lookup for Pakistani and regional logistics datasets
+_CITY_CODE_MAP = {
+    "KHI": ["Karachi", "Krachi"],
+    "LHE": ["Lahore", "Lahaur"],
+    "LHR": ["Lahore", "Lahaur"],
+    "ISB": ["Islamabad", "Islamabd"],
+    "RWP": ["Rawalpindi", "Pindi"],
+    "MUX": ["Multan"],
+    "PEW": ["Peshawar"],
+    "FSD": ["Faisalabad", "Faislabad"],
+    "UET": ["Quetta"],
+    "HDD": ["Hyderabad"],
+    "SKZ": ["Sukkur"],
+    "BWP": ["Bahawalpur"],
+    "BWL": ["Bahawalpur"],
+    "NWS": ["Nawabshah"],
+    "TLG": ["Talagang"],
+    "NOW": ["Nowshera"],
+    "KOT": ["Kotli"],
+    "DRG": ["Dera Ghazi Khan"],
+    "JHG": ["Jhang"],
+    "DNR": ["Dina"],
+    "GJR": ["Gujranwala"],
+    "SKT": ["Sialkot"],
+    "GUJ": ["Gujrat"],
+    "SWL": ["Sahiwal"],
+    "MIR": ["Mirpur"],
+    "ABT": ["Abbottabad"]
+}
+
+
 def _aliases_for(value: str) -> list:
     """
     Surface forms a user might type for a stored value.
@@ -186,6 +221,28 @@ def _aliases_for(value: str) -> list:
         if sep in v:
             out.extend(p.strip() for p in v.split(sep))
 
+    v_upper = v.upper()
+    if v_upper in _CITY_CODE_MAP:
+        out.extend(_CITY_CODE_MAP[v_upper])
+    else:
+        v_low = v.lower()
+        for code, names in _CITY_CODE_MAP.items():
+            if any(n.lower() == v_low for n in names):
+                out.append(code)
+
+    # Status value aliases & stemming
+    v_low = v.lower()
+    if "return" in v_low:
+        out.extend(["return", "returns", "returned", "rto", "returnd"])
+    elif "deliver" in v_low:
+        out.extend(["deliver", "delivers", "delivered", "delivery", "deliverd"])
+    elif "cancel" in v_low:
+        out.extend(["cancel", "cancels", "cancelled", "canceled"])
+    elif "refund" in v_low:
+        out.extend(["refund", "refunds", "refunded"])
+    elif "pend" in v_low:
+        out.extend(["pending", "pend"])
+
     seen, uniq = set(), []
     for a in out:
         if a and a.lower() not in seen:
@@ -197,56 +254,68 @@ def _aliases_for(value: str) -> list:
 def find_values_in_question(question: str, vocab: dict) -> dict:
     """
     Return {column: [every value of that column mentioned in the question]}.
-
-    Longer surface forms are tested first so that a value containing another one
-    ("New York" vs "York") claims its text before the shorter one can match inside it.
+    Disambiguates between columns sharing the same value (e.g. Origin vs Destination,
+    Delivery_Status vs Status_Description) by ranking column affinity and preventing
+    overlapping text spans from being claimed multiple times.
     """
     if not question or not vocab:
         return {}
 
     q_low = question.lower()
-    found = {}
 
+    # Step 1: Collect candidate matches across all columns
+    candidates = []
     for col, values in vocab.items():
-        # alias -> original stored value
+        col_l = col.lower()
         alias_map = {}
         for val in values:
             for alias in _aliases_for(val):
                 if _is_matchable(alias):
                     alias_map.setdefault(alias.lower(), (alias, val))
 
-        hits = []
-        # Track claimed character spans so "Islamabad" cannot also register a hit for a
-        # shorter value like "Islam" sitting inside it.
-        claimed = []
         for alias_low in sorted(alias_map, key=len, reverse=True):
             _, original = alias_map[alias_low]
             for m in re.finditer(r"(?<![\w])" + re.escape(alias_low) + r"(?![\w])", q_low):
                 span = (m.start(), m.end())
-                if any(span[0] < c[1] and c[0] < span[1] for c in claimed):
-                    continue
-                claimed.append(span)
-                if original not in hits:
-                    hits.append(original)
-                break
+                score = len(alias_low) * 10
+                # Column name explicitly mentioned in question
+                if col_l in q_low or col_l.replace("_", " ") in q_low:
+                    score += 50
+                # Destination is prioritized over Origin unless origin keywords are explicit
+                if col_l in ("destination", "destination_city", "dest_city", "city", "customer_city"):
+                    score += 20 if not any(kw in q_low for kw in ["origin", "from", "se rawana"]) else 0
+                elif col_l in ("origin", "origin_city"):
+                    score += 30 if any(kw in q_low for kw in ["origin", "from", "se rawana"]) else -10
+                # Primary status column prioritized over verbose description column
+                if col_l in ("delivery_status", "status", "order_status"):
+                    score += 25
+                elif col_l in ("status_description", "description", "remarks"):
+                    score += -15
 
-        # A non-technical user's typo ("laptp" for "Laptop") should still be recognised -
-        # only tried when the exact pass found nothing at all for this column, and only
-        # against single question words that overlap no already-claimed span, so it can
-        # never override a real exact match elsewhere in the sentence.
-        if not hits:
-            q_words = re.findall(r"[a-z0-9]+", q_low)
-            for w in q_words:
-                if len(w) < 4:
-                    continue
-                close = difflib.get_close_matches(w, list(alias_map.keys()), n=1, cutoff=0.8)
-                if close:
-                    _, original = alias_map[close[0]]
-                    if original not in hits:
-                        hits.append(original)
+                candidates.append({
+                    "span": span,
+                    "col": col,
+                    "val": original,
+                    "score": score,
+                    "len": len(alias_low)
+                })
 
-        if hits:
-            found[col] = hits
+    # Sort candidates by score descending, then length descending
+    candidates.sort(key=lambda x: (x["score"], x["len"]), reverse=True)
+
+    claimed_spans = []
+    found = {}
+    for cand in candidates:
+        span = cand["span"]
+        # If this span overlaps an already claimed higher-priority span, skip
+        if any(span[0] < c[1] and c[0] < span[1] for c in claimed_spans):
+            continue
+        claimed_spans.append(span)
+        col = cand["col"]
+        if col not in found:
+            found[col] = []
+        if cand["val"] not in found[col]:
+            found[col].append(cand["val"])
 
     return found
 
@@ -279,16 +348,28 @@ def extract_multi_value_filters(question: str, table_name: str, schema_intel: di
 
 
 # Sentence-starter / generic words that are capitalised only because they open the
-# sentence or are common English question words - never a data value, so they must not
+# sentence or are common English/Urdu question words - never a data value, so they must not
 # be flagged as "the user named a value we don't have".
 _PROPER_NOUN_STOPWORDS = {
     "how", "what", "which", "who", "when", "where", "why", "show", "give", "list",
     "display", "compare", "get", "find", "tell", "is", "are", "does", "do", "can",
     "i", "my", "the", "a", "an", "in", "for", "of", "and", "or", "with", "please",
-    "top", "first", "last", "total", "average", "count", "all",
-    # Month names are a date-range reference already handled by the query planner's own
-    # date parsing, not a value the user typed for some column - "March" in "revenue in
-    # March 2025" is not a missing city/product/etc.
+    "top", "first", "last", "total", "average", "count", "all", "more", "less",
+    # Roman Urdu question starters, pronouns and verbs
+    "mujhe", "mujha", "hum", "humein", "humko", "unka", "unke", "unki", "inka", "inke", "inki",
+    "iska", "iske", "uski", "uske", "mera", "meri", "mere", "aap", "tum", "yeh", "ye", "woh", "wo",
+    "aaye", "aayein", "gaye", "hua", "hue", "hui", "raha", "rahe", "rahi", "tha", "the", "thi",
+    "la", "lao", "do", "den", "karo", "karein", "karna", "batao", "bataen", "batayein", "batado",
+    "dikhao", "dikhayein", "btao", "dekho", "kitna", "kitne", "kitni", "kaun", "koun", "kaha",
+    "kahan", "kab", "kyun", "kyu", "kese", "kaise", "se", "me", "mein", "par", "pe", "ko",
+    "ka", "ki", "ke", "hai", "hain", "han", "haan", "acha", "achha", "sirf", "bas",
+    # Generic dataset analytical nouns
+    "record", "records", "data", "rows", "row", "number", "orders", "order", "items", "item",
+    "table", "details", "info", "breakdown", "summary", "stats", "statistics", "rate", "audit", "audits",
+    "delivery", "deliveries", "delivered", "return", "returns", "returned", "status",
+    "destination", "origin", "customer", "customers", "client", "clients", "city", "cities",
+    "country", "countries", "state", "states", "category", "categories", "product", "products",
+    # Month names
     "january", "february", "march", "april", "may", "june", "july", "august",
     "september", "october", "november", "december",
     "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
@@ -298,13 +379,7 @@ _PROPER_NOUN_STOPWORDS = {
 def find_unresolved_proper_nouns(question: str, table_name: str, schema_intel: dict = None) -> list:
     """
     Find capitalised, name-like words in the question that do not match any known value
-    in any categorical column of this dataset - the "Sialkot" problem: a city name that
-    isn't recognised should be reported as not found, not silently dropped so the query
-    runs unfiltered and returns a count of everything as if the word was never there.
-
-    This is necessarily heuristic (matching capitalisation, not semantics), so it only
-    flags words that look like proper nouns and are not common English/question-starter
-    words, not already a recognised value, and not the name of a real column.
+    in any categorical column of this dataset.
     """
     if not question:
         return []
@@ -315,6 +390,12 @@ def find_unresolved_proper_nouns(question: str, table_name: str, schema_intel: d
         for v in values:
             for alias in _aliases_for(v):
                 all_known_values.add(alias.lower())
+
+    # Preload city names and abbreviations
+    for code, names in _CITY_CODE_MAP.items():
+        all_known_values.add(code.lower())
+        for n in names:
+            all_known_values.add(n.lower())
 
     column_names = {c.lower() for c in (schema_intel or {}).get("column_list", [])}
 
@@ -327,30 +408,31 @@ def find_unresolved_proper_nouns(question: str, table_name: str, schema_intel: d
         if len(core) < 3 or not core[:1].isupper() or core.lower() in _PROPER_NOUN_STOPWORDS:
             i += 1
             continue
-        # A code-like token (letters + digits/underscore, e.g. "Rep_007") is checked whole
-        # first - stripping it down to letters-only would turn a real, matched value like
-        # "Rep_007" into the meaningless fragment "Rep" and flag it as unresolved.
         if raw.lower() in all_known_values or raw.lower() in column_names:
             i += 1
             continue
 
-        # Greedily absorb a run of consecutive capitalised words as one phrase, e.g. "New
-        # York" - checked as a whole before falling back to the single word.
+        # Greedily absorb a run of consecutive capitalised words as one phrase, e.g. "New York"
         j = i + 1
         phrase_words = [raw]
         while j < len(words):
             nxt_raw = re.sub(r"^[^\w]+|[^\w]+$", "", words[j])
             nxt_core = re.sub(r"[^A-Za-z]", "", nxt_raw)
             if len(nxt_core) >= 2 and nxt_core[:1].isupper() and nxt_core.lower() not in _PROPER_NOUN_STOPWORDS:
+                # If next word is individually already a known city or column, stop grouping
+                if nxt_raw.lower() in all_known_values or nxt_raw.lower() in column_names:
+                    break
                 phrase_words.append(nxt_raw)
                 j += 1
             else:
                 break
+
         phrase = " ".join(phrase_words)
         if (phrase.lower() not in all_known_values
                 and raw.lower() not in all_known_values
                 and phrase.lower() not in column_names
-                and raw.lower() not in column_names):
+                and raw.lower() not in column_names
+                and not any(pw.lower() in all_known_values or pw.lower() in column_names or pw.lower() in _PROPER_NOUN_STOPWORDS for pw in phrase_words)):
             unresolved.append(phrase)
         i = j if j > i + 1 else i + 1
 

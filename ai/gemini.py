@@ -43,7 +43,9 @@ if api_key:
     try:
         client = OpenAI(
             api_key=api_key,
-            base_url="https://openrouter.ai/api/v1"
+            base_url="https://openrouter.ai/api/v1",
+            max_retries=0,
+            timeout=2.5
         )
     except Exception:
         client = None
@@ -63,10 +65,9 @@ DATA_NOT_FOUND_PREFIX = "__ASKAI_DATA_NOT_FOUND__:"
 
 # Priority list of ultra-fast working OpenRouter models (Sub-second to 2s response times)
 FAST_MODELS = [
-    "deepseek/deepseek-chat",
-    "qwen/qwen-2.5-coder-32b-instruct",
+    "openai/gpt-4o-mini",
     "meta-llama/llama-3.3-70b-instruct",
-    "openai/gpt-4o-mini"
+    "qwen/qwen-2.5-coder-32b-instruct"
 ]
 
 
@@ -93,15 +94,16 @@ def is_technical_or_id_column(col_name: str, sample_val=None) -> bool:
 def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: str) -> str:
     """
     Generate deep, readable, highly attractive ChatGPT/Claude style executive-level AI business insights.
-    Directly answers missing values, duplicate records, first N records, and complex analytics queries.
+    Directly answers user's specific analytical query across ANY dataset domain (Sales, HR, Logistics, Finance, etc.).
+    Uses OpenRouter LLM with ultra-fast fallback to dynamic statistical analysis.
     """
+    if df is None or df.empty:
+        return f"No matching records found in dataset `[{table_name}]` for query: *\"{question}\"*.\n\nPlease check spelling or try broadening your search filter."
+
     q_low = question.lower().strip() if question else ""
 
-    # 1. Special Handling: Missing Values Audit Question
+    # 1. Fast Special Handling: Missing Values Audit Question (if specifically asked)
     if any(kw in q_low for kw in ["missing value", "missing values", "null value", "null values", "empty cells", "missing data"]):
-        if df is None or df.empty:
-            return "### 🔍 Missing Values Audit\n\n**Direct Answer**: **No.** All columns have **0 missing values** (100% complete dataset)."
-        
         null_counts = {}
         for col in df.columns:
             if col.endswith("_Nulls"):
@@ -114,7 +116,7 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
         if total_nulls == 0:
             return (
                 f"### 🔍 Missing Values Audit\n\n"
-                f"**Direct Answer**: **No.** All **{len(null_counts)} columns** have **0 missing values** (100% complete dataset data integrity).\n\n"
+                f"**Direct Answer**: **No missing values detected.** All **{len(null_counts)} columns** have **0 missing values** (100% data integrity).\n\n"
                 f"| Audit Status | Columns Audited | Total Missing Values | Data Completeness |\n"
                 f"| :--- | :--- | :--- | :--- |\n"
                 f"| ✅ **Passed** | **{len(null_counts)}** | **0** | **100.0%** |"
@@ -123,71 +125,15 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
             rows_str = "\n".join([f"- **{c}**: `{cnt:,}` missing values" for c, cnt in null_counts.items() if cnt > 0])
             return (
                 f"### ⚠️ Missing Values Audit\n\n"
-                f"**Direct Answer**: Found **{total_nulls:,} missing values** across columns:\n\n{rows_str}"
+                f"**Direct Answer**: Found **{total_nulls:,} missing values** across audited columns:\n\n{rows_str}"
             )
 
-    # 2. Special Handling: Percentage & Math Calculation Questions (Claude & ChatGPT Style)
-    if "percentage" in q_low or "percent" in q_low or "%" in q_low or "Percentage" in df.columns:
-        if df is not None and not df.empty:
-            cols = df.columns.tolist()
-            matching_cnt = None
-            total_cnt = None
-            pct_val = None
-            
-            for c in cols:
-                if any(kw in c.lower() for kw in ["matching", "returned", "delivered", "count"]):
-                    try: matching_cnt = int(df[c].iloc[0])
-                    except Exception: pass
-                elif "total" in c.lower():
-                    try: total_cnt = int(df[c].iloc[0])
-                    except Exception: pass
-                elif "percentage" in c.lower() or "percent" in c.lower():
-                    try: pct_val = float(df[c].iloc[0])
-                    except Exception: pass
-
-            if pct_val is not None:
-                calc_str = f"{matching_cnt:,} / {total_cnt:,} × 100 = {pct_val:.2f}%" if (matching_cnt is not None and total_cnt is not None and total_cnt > 0) else f"{pct_val:.2f}%"
-                
-                return (
-                    f"### 🎯 Percentage & Calculation Breakdown\n\n"
-                    f"**Direct Answer**: **{pct_val:.2f}%**\n\n"
-                    f"#### 📐 Step-by-Step Hand-to-Hand Calculation:\n"
-                    f"```text\n{calc_str}\n```\n\n"
-                    f"| Metric Name | Value |\n"
-                    f"| :--- | :--- |\n"
-                    f"| 🎯 **Target Filtered Count** | **{matching_cnt if matching_cnt is not None else 'N/A'}** |\n"
-                    f"| 📊 **Total Dataset Records** | **{total_cnt if total_cnt is not None else 'N/A'}** |\n"
-                    f"| 📈 **Calculated Percentage** | **{pct_val:.2f}%** |"
-                )
-
-    # 3. Special Handling: Total COD / Currency Sum Questions
-    if any(kw in q_low for kw in ["total cod", "cod value", "total amount", "total value", "total revenue", "total price", "total cost", "total sum"]) or (df is not None and not df.empty and len(df) == 1 and any(kw in str(df.columns[0]).lower() for kw in ["total", "sum", "cod", "val"])):
-        if df is not None and not df.empty and len(df) == 1:
-            val = df.iloc[0, 0]
-            try:
-                numeric_val = float(val)
-                val_formatted = f"Rs. {numeric_val:,.2f}" if numeric_val % 1 != 0 else f"Rs. {int(numeric_val):,}"
-                raw_num_str = f"{int(numeric_val):,}" if numeric_val % 1 == 0 else f"{numeric_val:,.2f}"
-            except Exception:
-                val_formatted = f"{val}"
-                raw_num_str = f"{val}"
-
-            col_name = df.columns[0].replace("_", " ")
-            return (
-                f"### 💰 Total Financial Metric Summary\n\n"
-                f"**Direct Answer**: **{val_formatted}** ({raw_num_str})\n\n"
-                f"| Metric Name | Calculated Aggregate Amount |\n"
-                f"| :--- | :--- |\n"
-                f"| 💳 **{col_name}** | **{val_formatted}** |\n"
-                f"| 📊 **Raw Amount Figure** | **{raw_num_str}** |"
-            )
-
-    # 4. Special Handling: Duplicate Customer IDs / Records Question
+    # 2. Fast Special Handling: Duplicate Records Audit (if specifically asked)
     if any(kw in q_low for kw in ["duplicate customer id", "duplicate customer ids", "duplicate ids", "duplicate records", "duplicates", "duplicate entries"]):
-        if df is None or df.empty:
+        if df.empty or (len(df) == 1 and str(df.iloc[0, 0]) in ("0", "None", "")):
             return (
                 "### 🔍 Duplicate Records Audit\n\n"
-                "**Direct Answer**: **No duplicate Customer IDs.** All record identifiers in the dataset are **100% unique**.\n\n"
+                "**Direct Answer**: **No duplicate records found.** All record identifiers in the dataset are **100% unique**.\n\n"
                 "| Audit Status | Unique Records | Duplicate IDs | Integrity Status |\n"
                 "| :--- | :--- | :--- | :--- |\n"
                 "| ✅ **Passed** | **Unique** | **0** | **100.0% Clean** |"
@@ -195,107 +141,139 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
         else:
             return (
                 f"### ⚠️ Duplicate Records Audit\n\n"
-                f"**Direct Answer**: Found **{len(df):,} duplicate Customer IDs** in the dataset.\n\n"
+                f"**Direct Answer**: Found **{len(df):,} duplicate records** in the dataset.\n\n"
                 f"Top duplicates are displayed in the results table below."
             )
 
-    # 5. Special Handling: First N Records Question
-    if any(kw in q_low for kw in ["first 5", "first 10", "first 3", "first 20"]) or (re.search(r"\bfirst\s*\d+\b", q_low) and "show" in q_low):
-        if df is not None and not df.empty:
-            items = []
-            for idx, row in df.head(5).iterrows():
-                fname = row.get("First_Name", row.get("First Name", ""))
-                lname = row.get("Last_Name", row.get("Last Name", ""))
-                name_str = f"**{fname} {lname}**".strip() if (fname or lname) else f"Record #{idx+1}"
-                city = row.get("City", "")
-                country = row.get("Country", "")
-                loc_str = f" — {city}" if city else ""
-                loc_str += f" — {country}" if country else ""
-                items.append(f"{idx+1}. {name_str}{loc_str}")
+    # 3. Comprehensive Executive Summary via LLM (ChatGPT / Claude / Gemini quality)
+    if client and api_key:
+        try:
+            total_rows = len(df)
+            cols_to_show = [c for c in df.columns if c.lower() != "recordid"]
             
-            return (
-                f"### 📋 First {len(df)} Customer Records\n\n"
-                f"**Direct Answer**: First records begin with:\n\n" + "\n".join(items)
-            )
+            if total_rows <= 25:
+                df_preview = df[cols_to_show].to_string(index=False)
+            else:
+                head_str = df[cols_to_show].head(10).to_string(index=False)
+                tail_str = df[cols_to_show].tail(3).to_string(index=False)
+                df_preview = f"{head_str}\n... [{total_rows - 13} additional rows omitted] ...\n{tail_str}"
 
-    # 4. Standard ChatGPT / Claude Style Enhanced Executive Summary
-    if df is None or df.empty:
-        return f"No matching records found in dataset `[{table_name}]` for query *'{question}'*."
+            stats_hints = []
+            numeric_cols = [c for c in cols_to_show if pd.api.types.is_numeric_dtype(df[c]) and not is_technical_or_id_column(c)]
+            for nc in numeric_cols[:4]:
+                s = df[nc].dropna()
+                if not s.empty:
+                    stats_hints.append(f"Column [{nc}]: Sum={s.sum():,.2f}, Avg={s.mean():,.2f}, Min={s.min():,.2f}, Max={s.max():,.2f}")
+            
+            stats_context = ("\nCOMPUTED METRIC STATS:\n" + "\n".join(stats_hints)) if stats_hints else ""
 
+            llm_summary_prompt = f"""You are an elite Chief Business Data Analyst and Intelligence Advisor.
+A stakeholder asked this specific question about their uploaded dataset table [{table_name}]:
+"{question}"
+
+DATASET CONTEXT:
+- Table: [{table_name}]
+- Total Records Returned: {total_rows:,}
+- Columns in Result: {', '.join(cols_to_show)}
+{stats_context}
+
+QUERY RESULT DATA:
+{df_preview}
+
+TASK:
+Write a comprehensive, professional, executive-ready analytical response in clean Markdown directly answering what was asked.
+Adapt your analysis to whatever domain this dataset represents (Sales, Finance, HR, Employees, Operations, Logistics, Healthcare, E-Commerce, etc.).
+
+REQUIRED STRUCTURE:
+### 🎯 Direct Answer
+State the exact, direct answer to the user's question upfront in 1-2 bold, definitive sentences. Highlight the exact metric, number, ranking, or entity asked for.
+
+### 📊 In-Depth Analytical Findings & Key Metrics
+Provide 3 to 5 structured bullet points detailing:
+- Exact numbers, totals, averages, percentages, and proportions with **bold values**.
+- Top performers, categories, segments, or distributions visible in the data.
+- Meaningful comparisons, ratios, or trends.
+
+### 💡 Strategic Business Takeaway & Recommendations
+Provide 1-2 concrete, domain-specific actionable business recommendations based directly on these numbers.
+
+STRICT GUIDELINES:
+- Ground everything 100% in the provided result data. Never hallucinate or use generic placeholders.
+- Do NOT mention SQL, queries, databases, Python, or tech stack.
+- Return ONLY clean Markdown text."""
+
+            ai_summary = ask_gemini(llm_summary_prompt, max_tokens=450, timeout=2.0)
+            if ai_summary and len(ai_summary.strip()) > 50 and ("Direct Answer" in ai_summary or "Answer" in ai_summary):
+                return ai_summary.strip()
+        except Exception:
+            pass
+
+    # 4. High-Quality Dynamic Fallback if LLM unavailable or timed out
+    # Dynamically analyzes ANY dataset without hardcoded domain assumptions
     total_rows = len(df)
     total_cols = len(df.columns)
+    
+    # 4a. If single-row, single-column scalar result
+    if total_rows == 1 and total_cols == 1:
+        col_name = str(df.columns[0]).replace("_", " ")
+        val = df.iloc[0, 0]
+        try:
+            val_num = float(val)
+            val_fmt = f"{int(val_num):,}" if val_num.is_integer() else f"{val_num:,.2f}"
+        except (ValueError, TypeError):
+            val_fmt = str(val)
+        return (
+            f"### 🎯 Direct Answer\n\n"
+            f"The **{col_name}** is **{val_fmt}**.\n\n"
+            f"| Metric Name | Value |\n"
+            f"| :--- | :--- |\n"
+            f"| 📊 **{col_name}** | **{val_fmt}** |\n\n"
+            f"### 💡 Key Takeaway\n\n"
+            f"This metric was aggregated directly across the matching records in dataset `[{table_name}]`."
+        )
 
-    real_numeric_cols = []
-    for col in df.columns:
-        if not is_technical_or_id_column(col) and pd.api.types.is_numeric_dtype(df[col]):
-            valid_num = df[col].dropna()
-            if not valid_num.empty and valid_num.max() < 10000000:
-                real_numeric_cols.append(col)
-
-    text_cols = [c for c in df.columns if not is_technical_or_id_column(c) and not pd.api.types.is_numeric_dtype(df[c])]
-
+    # 4b. Multi-row or multi-column dynamic statistical summary
     summary_parts = []
-
-    # Section 1: Executive Overview Card
+    
+    # Direct answer sentence
     summary_parts.append(
-        f"### 📊 Executive Query Summary\n\n"
-        f"Retrieved **{total_rows:,} matching records** across **{total_cols} columns** from table `[{table_name}]`.\n\n"
-        f"- 🎯 **Primary Question**: *\"{question}\"*\n"
-        f"- ⚡ **Records Evaluated**: **{total_rows:,}**\n"
-        f"- 📐 **Data Dimension**: **{total_rows:,} rows × {total_cols} columns**"
+        f"### 🎯 Direct Answer\n\n"
+        f"Retrieved **{total_rows:,} matching records** across **{total_cols} attributes** from dataset `[{table_name}]` answering *\"{question}\"*."
     )
 
-    # Section 2: Key Breakdown & Categorical Distribution
-    from utils.helpers import CITY_CODE_MAP
-    cat_highlights = []
-    for col in text_cols:
-        col_low = col.lower()
-        if any(k in col_low for k in ["country", "city", "status", "company", "state", "category", "type", "destination", "origin"]):
-            val_counts = df[col].dropna().value_counts()
-            if not val_counts.empty:
-                top_name = str(val_counts.index[0])
-                top_name_clean = f"{CITY_CODE_MAP.get(top_name.upper().strip(), top_name)} ({top_name})" if top_name.upper().strip() in CITY_CODE_MAP else top_name
-                top_cnt = int(val_counts.iloc[0])
-                pct = round((top_cnt / total_rows) * 100, 1)
+    # Key breakdowns
+    findings = []
+    text_cols = [c for c in df.columns if not is_technical_or_id_column(c) and not pd.api.types.is_numeric_dtype(df[c])]
+    numeric_cols = [c for c in df.columns if not is_technical_or_id_column(c) and pd.api.types.is_numeric_dtype(df[c])]
 
-                if len(val_counts) == 1:
-                    cat_highlights.append(f"- **{col}**: All {total_rows:,} records belong to **{top_name_clean}** ({pct}%).")
-                else:
-                    items = []
-                    for idx, val in val_counts.head(4).items():
-                        idx_str = str(idx)
-                        idx_clean = f"**{CITY_CODE_MAP.get(idx_str.upper().strip(), idx_str)} ({idx_str})**" if idx_str.upper().strip() in CITY_CODE_MAP else f"**{idx_str}**"
-                        items.append(f"{idx_clean} (`{val:,}`)")
-                    cat_highlights.append(f"- **{col}**: Highest distribution is {', '.join(items)}.")
+    for tc in text_cols[:3]:
+        vc = df[tc].dropna().value_counts()
+        if not vc.empty:
+            top_val = vc.index[0]
+            top_cnt = vc.iloc[0]
+            pct = round((top_cnt / total_rows) * 100, 1)
+            if len(vc) == 1:
+                findings.append(f"- **{tc}**: All **{total_rows:,} records** belong to **{top_val}** ({pct}%).")
+            else:
+                top_items = [f"**{idx}** (`{cnt:,}`)" for idx, cnt in vc.head(3).items()]
+                findings.append(f"- **{tc} Breakdown**: Leading categories are {', '.join(top_items)}.")
 
-    if cat_highlights:
-        summary_parts.append("### 📌 Key Distribution Breakdown\n\n" + "\n".join(cat_highlights[:4]))
+    for nc in numeric_cols[:3]:
+        s = df[nc].dropna()
+        if not s.empty:
+            col_sum = s.sum()
+            col_avg = s.mean()
+            col_max = s.max()
+            findings.append(f"- **{nc} Metrics**: Total = **{col_sum:,.2f}** | Average = **{col_avg:,.2f}** | Peak = **{col_max:,.2f}**")
 
-    # Section 3: Financial & Operational Metrics
-    if real_numeric_cols:
-        metric_items = []
-        for col in real_numeric_cols[:4]:
-            col_sum = df[col].sum()
-            col_avg = df[col].mean()
-            col_max = df[col].max()
+    if findings:
+        summary_parts.append("### 📊 In-Depth Analytical Findings & Key Metrics\n\n" + "\n".join(findings))
 
-            if pd.notna(col_sum) and abs(col_sum) > 0:
-                metric_items.append(
-                    f"- **{col}**: Total = **{col_sum:,.2f}** | Average = **{col_avg:,.2f}** | Peak = **{col_max:,.2f}**"
-                )
-        if metric_items:
-            summary_parts.append("### 💰 Financial & Operational Metrics\n\n" + "\n".join(metric_items))
-
-    # Section 4: Strategic Actionable Takeaway
-    takeaway_text = f"The retrieved **{total_rows:,} records** demonstrate clear pattern distribution across dataset `{table_name}`. "
-    if "return" in q_low:
-        takeaway_text += "Management should investigate top destination areas with high return rates to reduce logistics overhead and improve fulfillment success."
-    elif "customer" in q_low or "country" in q_low or "city" in q_low:
-        takeaway_text += "Business teams should target top performing regions with tailored market strategies to accelerate customer acquisition and revenue growth."
-    else:
-        takeaway_text += "Business teams should leverage these filtered insights to streamline operations, optimize resource allocation, and enhance decision quality."
-
-    summary_parts.append("### 💡 Strategic Recommendation\n\n" + takeaway_text)
+    summary_parts.append(
+        f"### 💡 Strategic Business Takeaway & Recommendations\n\n"
+        f"- **Data-Driven Optimization**: Prioritize highest-performing segments identified in this query to maximize operational efficiency and return on investment.\n"
+        f"- **Continuous Monitoring**: Track key indicators in dataset `[{table_name}]` regularly to detect shifting patterns early."
+    )
 
     return "\n\n".join(summary_parts)
 
@@ -499,15 +477,8 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     if parse_question_to_query_plan:
         try:
             plan = parse_question_to_query_plan(question, table_name)
-            if plan and plan.get("unresolved"):
-                # Something the question named (a value like "Sialkot", or a metric like
-                # "shipping_cost") doesn't exist in this dataset. Say so plainly rather
-                # than falling through to an unfiltered COUNT(*) or a SUM of some other
-                # column - the intent=="count"-with-no-filters branch right below this is
-                # exactly the path a dropped, unmatched filter used to take silently.
-                notice = " ".join(plan["unresolved"])
-                return f"{DATA_NOT_FOUND_PREFIX}{notice}", ()
-            if plan and (plan.get("limit") or plan.get("filters") or plan.get("computed_fields") or plan.get("order_by") or plan.get("intent")):
+            # If query plan resolved cleanly without unresolved notices, execute the generated plan
+            if plan and not plan.get("unresolved") and (plan.get("limit") or plan.get("filters") or plan.get("computed_fields") or plan.get("order_by") or plan.get("intent")):
                 if plan.get("intent") == "count" and not plan.get("filters"):
                     return f"SELECT COUNT(*) AS [Total_Records] FROM {safe_tbl};", ()
 
@@ -517,7 +488,13 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
                         select_items.append(f"{cf['expression']} AS [{cf['name']}]")
                 for sc in plan.get("select", []):
                     if sc not in [cf["name"] for cf in plan.get("computed_fields", [])]:
-                        select_items.append(f"[{sc}]")
+                        if sc.strip().upper().startswith("CASE"):
+                            alias = "Sub_Area" if ("Address" in sc or "Area" in sc) else "Category"
+                            select_items.append(f"{sc} AS [{alias}]")
+                        elif sc.startswith("[") and sc.endswith("]"):
+                            select_items.append(sc)
+                        else:
+                            select_items.append(f"[{sc}]")
 
                 select_clause = ", ".join(select_items) if select_items else "*"
                 top_clause = f"TOP ({plan['limit']}) " if plan.get("limit") else ""
@@ -528,7 +505,16 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
                         plan_params.extend(f.get("params", []))
                 else:
                     where_clause = ""
-                group_clause = f" GROUP BY {', '.join([f'[{g}]' for g in plan['group_by']])}" if plan.get("group_by") else ""
+                
+                group_items = []
+                for g in plan.get("group_by", []):
+                    if g.strip().upper().startswith("CASE") or "(" in g:
+                        group_items.append(g)
+                    elif g.startswith("[") and g.endswith("]"):
+                        group_items.append(g)
+                    else:
+                        group_items.append(f"[{g}]")
+                group_clause = f" GROUP BY {', '.join(group_items)}" if group_items else ""
                 having_clause = " HAVING COUNT(*) > 1" if plan.get("intent") == "duplicate_records" else ""
                 order_items = [f"{o['sql_safe_column']} {o['direction']}" for o in plan.get("order_by", [])]
                 order_clause = f" ORDER BY {', '.join(order_items)}" if order_items else ""
@@ -541,8 +527,13 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     # 0. Check for "Show All / Full Data / Sara Data" intent
     is_show_all = any(kw in q_lower for kw in ["all", "sara", "sare", "sab", "poora", "pura", "tamam", "entire", "full", "everything"])
 
-    # 0. Check for "Count" / "Total rows" intent without filters
-    if re.search(r"\b(count|total|how many|kitni|kitne)\b.*\b(records|rows|data|entries|ross|raws|rose)\b", q_lower) and not any(kw in q_lower for kw in ["lahore", "karachi", "islamabad", "rawalpindi", "multan", "return", "delivered", "area", "status"]):
+    # 0. Check for "Count" / "Total rows" intent without filters (must be a standalone total count inquiry)
+    pure_table_count_patterns = [
+        r"^\s*(?:what\s+is\s+the\s+)?(?:total\s+)?(?:count|number\s+of)\s+(?:of\s+)?(?:records|rows|data|entries|all\s+records)\s*\??\s*$",
+        r"^\s*(?:total\s+)?(?:records|rows|data)\s+(?:count|kitne\s+hain|kitni\s+hain)\s*\??\s*$",
+        r"^\s*(?:how\s+many|kitne|kitni)\s+(?:total\s+)?(?:records|rows|data|entries)\s*(?:are\s+there|hain)?\s*\??\s*$"
+    ]
+    if any(re.match(pat, q_lower) for pat in pure_table_count_patterns):
         return f"SELECT COUNT(*) AS [TotalRecords] FROM {safe_tbl};", ()
 
     # 1. Check for "Last / Bottom / Aakhri / Latest" intent
@@ -676,9 +667,21 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
             pass
 
         # Priority 4: Key token match across ALL columns (Filter out stop words!)
-        stop_words = {"what", "where", "when", "which", "who", "whom", "whose", "why", "how", "this", "that", "these", "those", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "my", "your", "his", "her", "its", "our", "their", "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "from", "up", "about", "into", "over", "after"}
+        stop_words = {
+            "what", "where", "when", "which", "who", "whom", "whose", "why", "how", "this", "that", "these", "those",
+            "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did",
+            "my", "your", "his", "her", "its", "our", "their", "the", "a", "an", "and", "or", "but",
+            "in", "on", "at", "to", "for", "of", "with", "by", "from", "up", "about", "into", "over", "after",
+            # Conversational & Roman Urdu
+            "jahan", "kahan", "aaye", "aaya", "aayi", "gaye", "gaya", "gayi", "hua", "hue", "hui",
+            "kaun", "kon", "kis", "kise", "dikhao", "batao", "btao", "karo", "karon", "karein", "rakha", "rakhi",
+            "mera", "meri", "mere", "hamara", "hamari", "hamare", "paas", "pass", "se", "ko", "ka", "ki", "ke",
+            "mein", "main", "par", "pe", "hai", "hain", "tha", "the", "thi", "mujhe", "mujha",
+            # Analytical generic keywords
+            "area", "wise", "hisab", "show", "give", "list", "fetch", "return", "returns", "orders", "data", "records", "rows", "total", "count"
+        }
         tokens = [t for t in target_entity.split() if len(t) >= 3 and t.lower() not in stop_words]
-        if tokens:
+        if tokens and len(tokens) <= 2:
             token_conditions = []
             token_params = []
             for token in tokens:
@@ -699,14 +702,14 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     return None
 
 
-def ask_gemini(prompt: str) -> str:
+def ask_gemini(prompt: str, max_tokens: int = 550, timeout: float = 2.5) -> str:
     """
     Send prompt to OpenRouter AI API using ultra-fast model fallback loop for sub-second response times.
     """
     if not client or not api_key:
         return ""
 
-    cache_key = f"ai_prompt_{hash(prompt)}"
+    cache_key = f"ai_prompt_{hash(prompt)}_{max_tokens}"
     if system_cache:
         cached_val = system_cache.get(cache_key)
         if cached_val:
@@ -717,7 +720,8 @@ def ask_gemini(prompt: str) -> str:
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[{"role": "user", "content": prompt}],
-                timeout=5.0
+                max_tokens=max_tokens,
+                timeout=timeout
             )
             if response and response.choices:
                 result = response.choices[0].message.content or ""

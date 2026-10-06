@@ -96,7 +96,7 @@
                 {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary" {% if not user_datasets %}disabled{% endif %} onclick="showLoading('Executing Voice AI query locally...'); setTimeout(function(){ hideLoading(); }, 12000);">
+            <button type="submit" class="btn btn-primary" {% if not user_datasets %}disabled{% endif %} id="btn-ask-ai">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Assistant
             </button>
         </div>
@@ -434,6 +434,9 @@ function renderInteractivePlotlyChart(spec, targetMode) {
     if (!container) return;
 
     const mode = targetMode || spec.chart_type || "bar";
+    if (typeof syncActiveChartButton === "function") {
+        syncActiveChartButton(mode);
+    }
 
     if (mode === "static") {
         container.style.display = "none";
@@ -501,7 +504,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
     const hoverNumFormat = isPercentMetric ? ",.1f" : ",.2f";
     const hoverSuffix = isPercentMetric ? "%" : "";
 
-    const humanTitle = spec.title ? humanizeLabel(spec.y_col) + " by " + humanizeLabel(spec.x_col) : "Interactive Data Analytics";
+    const humanTitle = spec.title || ((spec.x_col && spec.y_col) ? (humanizeLabel(spec.y_col) + " by " + humanizeLabel(spec.x_col)) : "Interactive Data Analytics");
     const humanXCol = humanizeLabel(mode === "horizontal_bar" ? spec.y_col : spec.x_col);
     const humanYCol = humanizeLabel(mode === "horizontal_bar" ? spec.x_col : spec.y_col);
 
@@ -509,7 +512,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
 
     const layout = {
         title: {
-            text: (spec.x_col && spec.y_col) ? humanTitle : (spec.title || "Interactive Data Analytics"),
+            text: humanTitle,
             font: { color: chartTheme.titleFont, size: 16, family: "Segoe UI, sans-serif" }
         },
         paper_bgcolor: chartTheme.paper,
@@ -541,6 +544,9 @@ function renderInteractivePlotlyChart(spec, targetMode) {
         layout.height = Math.max(480, labels.length * 24);
     }
 
+    const hasRichHover = Boolean(spec.hover_texts && spec.hover_texts.length);
+    const richHoverText = hasRichHover ? spec.hover_texts : undefined;
+
     if (mode === "pie" || mode === "donut") {
         // Pull the single largest slice out slightly - a common "explode" touch that
         // draws the eye to the standout category instead of a flat, static wheel.
@@ -554,7 +560,8 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             pull: pull,
             marker: { colors: colorsFor(labels.length), line: { color: chartTheme.sliceLine, width: 2 } },
             textinfo: "label+value+percent",
-            hovertemplate: "<b>%{label}</b><br>Value: <b>%{value:,.2f}</b><br>Percentage: <b>%{percent}</b><extra></extra>",
+            hovertext: richHoverText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{label}</b><br>Value: <b>%{value:,.2f}</b><br>Percentage: <b>%{percent}</b><extra></extra>",
             textfont: { color: "#ffffff", size: 12 }
         }];
     } else if (mode === "line" || mode === "area") {
@@ -571,7 +578,8 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             fillcolor: mode === "area" ? "rgba(56, 189, 248, 0.2)" : undefined,
             line: { color: "#38bdf8", width: 3, shape: "spline" },
             marker: { color: "#a855f7", size: 8 },
-            hovertemplate: "<b>%{x}</b><br>" + (humanYCol || "Value") + ": <b>%{y:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>"
+            hovertext: richHoverText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : ("<b>%{x}</b><br>" + (humanYCol || "Value") + ": <b>%{y:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>")
         }];
     } else if (mode === "horizontal_bar") {
         plotlyData = [{
@@ -588,7 +596,8 @@ function renderInteractivePlotlyChart(spec, targetMode) {
                 line: { color: chartTheme.barLine, width: 1 },
                 cornerradius: 6
             },
-            hovertemplate: "<b>%{y}</b><br>" + (humanXCol || "Value") + ": <b>%{x:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>"
+            hovertext: richHoverText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : ("<b>%{y}</b><br>" + (humanXCol || "Value") + ": <b>%{x:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>")
         }];
     } else if (mode === "scatter") {
         plotlyData = [{
@@ -606,7 +615,8 @@ function renderInteractivePlotlyChart(spec, targetMode) {
                 size: 12,
                 showscale: true
             },
-            hovertemplate: "<b>Category:</b> %{x}<br><b>" + (humanYCol || "Metric") + ":</b> %{y:" + hoverNumFormat + "}" + hoverSuffix + "<extra></extra>"
+            hovertext: richHoverText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : ("<b>Category:</b> %{x}<br><b>" + (humanYCol || "Metric") + ":</b> %{y:" + hoverNumFormat + "}" + hoverSuffix + "<extra></extra>")
         }];
     } else if (mode === "heatmap" && spec.matrix && spec.matrix.length > 0) {
         plotlyData = [{
@@ -618,9 +628,6 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             hovertemplate: "<b>Col 1:</b> %{x}<br><b>Col 2:</b> %{y}<br><b>Correlation:</b> %{z:.2f}<extra></extra>"
         }];
     } else if (mode === "heatmap") {
-        // No real correlation matrix (needs 2+ numeric columns) - most category/value
-        // results only have one metric, so build a single-row color-intensity strip
-        // instead of just refusing to render anything for this mode.
         plotlyData = [{
             z: [values],
             x: labels,
@@ -639,7 +646,8 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             values: values,
             textinfo: "label+value+percent entry",
             marker: { colors: colorsFor(labels.length), line: { color: chartTheme.sliceLine, width: 1 } },
-            hovertemplate: "<b>%{label}</b><br>Value / Count: <b>%{value:,.2f}</b><extra></extra>"
+            hovertext: richHoverText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{label}</b><br>Value / Count: <b>%{value:,.2f}</b><extra></extra>"
         }];
     } else if (mode === "funnel") {
         plotlyData = [{
@@ -648,14 +656,11 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             x: values,
             textinfo: "value+percent initial",
             marker: { colors: colorsFor(labels.length) },
-            hovertemplate: "<b>%{y}</b><br>Stage Count: <b>%{x:,.2f}</b><extra></extra>"
+            hovertext: richHoverText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{y}</b><br>Stage Count: <b>%{x:,.2f}</b><extra></extra>"
         }];
     } else {
-        // Default Bar Chart - format each bar individually rather than one shared
-        // number format. A single-row aggregate summary (e.g. Matching_Orders /
-        // Total_Orders / Percentage all as separate bars) mixes counts and percentages
-        // with no single y_col to key a global format off of, so each bar's own label
-        // decides whether it displays as "70.0%" or a plain "7".
+        // Default Bar Chart - format each bar individually
         const perBarText = labels.map((lbl, i) => {
             const v = Number(values[i]) || 0;
             const rounded = v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -673,8 +678,8 @@ function renderInteractivePlotlyChart(spec, targetMode) {
                 line: { color: chartTheme.barLine, width: 1 },
                 cornerradius: 6
             },
-            hovertext: perBarText,
-            hovertemplate: "<b>%{x}</b><br>Value: <b>%{hovertext}</b><extra></extra>"
+            hovertext: hasRichHover ? richHoverText : perBarText,
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{x}</b><br>Value: <b>%{hovertext}</b><extra></extra>"
         }];
     }
 
@@ -719,22 +724,27 @@ function updateCompatibleChartDropdown(spec) {
     }
 }
 
-function selectVisualChartMode(mode, btn) {
-    if (btn && btn.disabled) return;
+function syncActiveChartButton(mode) {
+    const targetMode = mode || "bar";
     document.querySelectorAll(".chart-mode-btn").forEach(b => {
-        if (!b.disabled) {
+        if (b.dataset.mode === targetMode) {
+            b.style.background = "linear-gradient(135deg, #2563eb, #7c3aed)";
+            b.style.color = "#ffffff";
+            b.style.borderColor = "var(--accent-blue)";
+            b.classList.add("active");
+        } else if (!b.disabled) {
             b.style.background = "var(--bg-surface)";
             b.style.color = "var(--text-secondary)";
             b.style.borderColor = "var(--border-color)";
+            b.classList.remove("active");
         }
-        b.classList.remove("active");
     });
-    if (btn) {
-        btn.style.background = "linear-gradient(135deg, #2563eb, #7c3aed)";
-        btn.style.color = "#ffffff";
-        btn.style.borderColor = "var(--accent-blue)";
-        btn.classList.add("active");
-    }
+}
+window.syncActiveChartButton = syncActiveChartButton;
+
+function selectVisualChartMode(mode, btn) {
+    if (btn && btn.disabled) return;
+    syncActiveChartButton(mode);
     toggleChartDisplayMode(mode);
 }
 
@@ -775,7 +785,9 @@ document.addEventListener("DOMContentLoaded", function() {
         updateCompatibleChartDropdown(currentChartSpec);
         const staticImg = document.getElementById("static-chart-image");
         if (staticImg) staticImg.style.display = "none";
-        renderInteractivePlotlyChart(currentChartSpec, currentChartSpec.chart_type || "pie");
+        const initialMode = currentChartSpec.chart_type || "bar";
+        syncActiveChartButton(initialMode);
+        renderInteractivePlotlyChart(currentChartSpec, initialMode);
     }
 
     // The chart's colors are baked in at render time (Plotly can't read CSS variables),

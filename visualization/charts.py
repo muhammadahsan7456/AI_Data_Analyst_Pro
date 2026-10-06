@@ -87,6 +87,27 @@ def get_clean_categorical_columns(df: pd.DataFrame) -> list:
     if not clean_cols:
         clean_cols = constant_cols if constant_cols else df.select_dtypes(exclude="number").columns.tolist()
 
+    person_kws = ["consignee", "customer", "client", "employee", "name", "user", "person", "buyer", "receiver", "vendor", "agent", "shipper"]
+    product_kws = ["product", "item", "title", "department", "category", "brand", "service"]
+    location_kws = ["destination", "city", "area", "neighborhood", "location", "province", "origin"]
+    classification_kws = ["status", "stage", "priority", "courier", "type"]
+    date_kws = ["date", "time", "month", "year", "day"]
+
+    def cat_sort_key(c):
+        c_l = str(c).lower().strip()
+        for idx, k in enumerate(person_kws):
+            if k in c_l: return (1, idx)
+        for idx, k in enumerate(product_kws):
+            if k in c_l: return (2, idx)
+        for idx, k in enumerate(location_kws):
+            if k in c_l: return (3, idx)
+        for idx, k in enumerate(classification_kws):
+            if k in c_l: return (4, idx)
+        for idx, k in enumerate(date_kws):
+            if k in c_l: return (6, idx)
+        return (5, 0)
+
+    clean_cols.sort(key=cat_sort_key)
     return clean_cols
 
 
@@ -137,7 +158,7 @@ def get_numeric_columns_clean(df: pd.DataFrame) -> list:
         c_clean = str(col).lower().strip()
         if not any(re.match(p, c_clean) for p in id_patterns):
             valid_vals = df[col].dropna()
-            if not valid_vals.empty and valid_vals.max() < 10000000 and valid_vals.nunique() < len(df):
+            if not valid_vals.empty:
                 numeric_cols.append(col)
     
     # Prioritize business financial/quantity metrics if present
@@ -203,7 +224,11 @@ def create_bar_chart(dataframe: pd.DataFrame):
         plt.tight_layout()
         return fig
 
-    data = sample_df.groupby(x_col)[y_col].sum().sort_values(ascending=False).head(100)
+    if sample_df[x_col].nunique() == len(sample_df) and len(sample_df) <= 50:
+        data = sample_df.set_index(x_col)[y_col].head(50)
+    else:
+        data = sample_df.groupby(x_col)[y_col].sum().sort_values(ascending=False).head(50)
+
     fig, ax = plt.subplots(figsize=(10, 5.5))
     colors = COLOR_PALETTE[:len(data)]
     bars = ax.bar(data.index.astype(str), data.values, color=colors, edgecolor="none", width=0.55, zorder=3, alpha=0.9)
@@ -285,7 +310,10 @@ def create_pie_chart(dataframe: pd.DataFrame):
 
     x, y = categorical[0], numeric[0]
     sample_df = downsample_dataframe(df[[x, y]].dropna(), max_rows=10000)
-    data = sample_df.groupby(x)[y].sum().sort_values(ascending=False).head(6)
+    if sample_df[x].nunique() == len(sample_df) and len(sample_df) <= 10:
+        data = sample_df.set_index(x)[y].head(8)
+    else:
+        data = sample_df.groupby(x)[y].sum().sort_values(ascending=False).head(8)
 
     fig, ax = plt.subplots(figsize=(7, 6.5))
     colors = COLOR_PALETTE[:len(data)]

@@ -131,7 +131,7 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
             from visualization.chart_selector import select_chart
             chart_type = select_chart(df_single) or "bar"
             single_res["chart_spec"] = generate_interactive_chart_spec(df_single, chart_type)
-            single_res["chart"] = generate_chart(df_single, chart_type=chart_type)
+            single_res["chart"] = None
         return single_res
 
     # Process multi-concept sub-questions
@@ -159,10 +159,9 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
 
     # Build Master Multi-Concept Synthesis
     synthesis_markdown = []
-    synthesis_markdown.append(f"📊 Executive Multi-Concept Query Synthesis ({len(concept_results)} Analytical Concepts)\n")
+    synthesis_markdown.append(f"### 📊 Executive Multi-Concept Query Synthesis ({len(concept_results)} Analytical Concepts)\n")
 
-    delivered_cnt = 0
-    return_cnt = 0
+    scalar_metrics = []
 
     for item in concept_results:
         cid = item["concept_id"]
@@ -174,60 +173,54 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
             if len(df_expanded) == 1 and len(df_expanded.columns) == 1:
                 col_name = df_expanded.columns[0]
                 val = df_expanded.iloc[0, 0]
-                if "delivered" in sub_q.lower():
-                    delivered_cnt = val
-                    synthesis_markdown.append(f"• **Delivered Orders Count**: **{val:,} orders** (Fulfillment Success Rate)")
-                elif "return" in sub_q.lower():
-                    return_cnt = val
-                    synthesis_markdown.append(f"• **Return Audits Count**: **{val:,} orders** (logistics returns)")
-                else:
-                    synthesis_markdown.append(f"• **{sub_q}**: `{col_name}` = **{val:,}**")
-            elif len(df_expanded.columns) == 2 and "Order_Count" in df_expanded.columns:
-                city_col = [c for c in df_expanded.columns if c != "Order_Count"][0]
+                try:
+                    num_val = float(val)
+                    scalar_metrics.append((sub_q, col_name, num_val))
+                    val_str = f"**{int(num_val):,}**" if num_val.is_integer() else f"**{num_val:,.2f}**"
+                except (ValueError, TypeError):
+                    val_str = f"**{val}**"
+                synthesis_markdown.append(f"• **{sub_q.capitalize()}**: `{col_name}` = {val_str}")
+            elif len(df_expanded.columns) >= 2 and len(df_expanded) <= 10:
+                cat_col = df_expanded.columns[0]
+                val_col = df_expanded.columns[-1]
                 top_items = []
                 for _, row in df_expanded.head(5).iterrows():
-                    top_items.append(f"**{row[city_col]}** (`{row['Order_Count']:,}`)")
-                synthesis_markdown.append(f"• **Top Destination Breakdown**: {', '.join(top_items)}")
+                    v = row[val_col]
+                    v_str = f"{v:,}" if isinstance(v, (int, float)) and not pd.isna(v) else str(v)
+                    top_items.append(f"**{row[cat_col]}** (`{v_str}`)")
+                synthesis_markdown.append(f"• **{sub_q.capitalize()}**: {', '.join(top_items)}")
             else:
-                synthesis_markdown.append(f"• **{sub_q}**: Evaluated **{len(df_expanded):,} records**.")
+                synthesis_markdown.append(f"• **{sub_q.capitalize()}**: Evaluated **{len(df_expanded):,} records**.")
         else:
-            synthesis_markdown.append(f"• **{sub_q}**: No matching records found.")
+            synthesis_markdown.append(f"• **{sub_q.capitalize()}**: No matching records found.")
 
-    if delivered_cnt > 0 and return_cnt > 0:
-        tot = delivered_cnt + return_cnt
-        d_pct = round((delivered_cnt / tot) * 100, 1)
-        r_pct = round((return_cnt / tot) * 100, 1)
-        ratio = round(delivered_cnt / return_cnt, 2)
-        synthesis_markdown.append(f"\n💡 Strategic Multi-Metric Insight\n")
-        synthesis_markdown.append(f"• **Delivery Success Rate**: **{d_pct}%** ({delivered_cnt:,} delivered out of {tot:,} total orders).")
-        synthesis_markdown.append(f"• **Return Audit Rate**: **{r_pct}%** ({return_cnt:,} returned out of {tot:,} total orders).")
-        synthesis_markdown.append(f"• **Delivery-to-Return Ratio**: **{ratio} Delivered per 1 Return**.")
+    # Generic comparative insight if multiple numeric scalars were returned
+    if len(scalar_metrics) >= 2:
+        tot_sum = sum(m[2] for m in scalar_metrics)
+        synthesis_markdown.append(f"\n#### 💡 Comparative Analytical Insights\n")
+        if tot_sum > 0:
+            for sq, cname, nval in scalar_metrics:
+                pct = round((nval / tot_sum) * 100, 1)
+                formatted_n = f"{int(nval):,}" if nval.is_integer() else f"{nval:,.2f}"
+                synthesis_markdown.append(f"• **{sq}**: {formatted_n} ({pct}% of total combined across evaluated categories).")
 
     full_explanation = "\n".join(synthesis_markdown)
 
     # Build Consolidated Multi-Metric Summary DataFrame for Query Results Table
-    if delivered_cnt > 0 or return_cnt > 0:
+    if scalar_metrics and len(scalar_metrics) == len(concept_results):
         summary_rows = []
-        tot = delivered_cnt + return_cnt
-        if delivered_cnt > 0:
-            d_pct = f"{round((delivered_cnt / tot) * 100, 1)}%" if tot > 0 else "100.0%"
+        tot_sum = sum(m[2] for m in scalar_metrics)
+        for sq, cname, nval in scalar_metrics:
+            pct_str = f"{round((nval / tot_sum) * 100, 1)}%" if tot_sum > 0 else "100.0%"
+            formatted_n = int(nval) if nval.is_integer() else round(nval, 2)
             summary_rows.append({
-                "Metric Name": "Delivered Orders",
-                "Status Category": "Delivered / Fulfillment Success",
-                "Total Count": delivered_cnt,
-                "Percentage Share": d_pct
-            })
-        if return_cnt > 0:
-            r_pct = f"{round((return_cnt / tot) * 100, 1)}%" if tot > 0 else "100.0%"
-            summary_rows.append({
-                "Metric Name": "Return Audits / Orders",
-                "Status Category": "Returned / RTO",
-                "Total Count": return_cnt,
-                "Percentage Share": r_pct
+                "Concept / Query": sq,
+                "Metric": cname,
+                "Value": formatted_n,
+                "Relative Share": pct_str
             })
         main_df = pd.DataFrame(summary_rows)
     elif len(combined_dfs) >= 2:
-        # Merge multi-concept dataframes if separate tables
         try:
             main_df = pd.concat(combined_dfs, axis=0, ignore_index=True)
         except Exception:
@@ -236,10 +229,9 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
         main_df = combined_dfs[0] if combined_dfs else pd.DataFrame()
 
     tts_parts = []
-    if delivered_cnt > 0:
-        tts_parts.append(f"Delivered orders count is {delivered_cnt:,}")
-    if return_cnt > 0:
-        tts_parts.append(f"Return audits count is {return_cnt:,}")
+    for sq, cname, nval in scalar_metrics:
+        formatted_n = f"{int(nval):,}" if nval.is_integer() else f"{nval:,.2f}"
+        tts_parts.append(f"{sq} is {formatted_n}")
     
     tts_speech = "Here is the summary: " + ", and ".join(tts_parts) if tts_parts else f"Multi-concept analysis complete for {len(concept_results)} parts."
 
@@ -248,7 +240,7 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
     from visualization.chart_selector import select_chart
     chart_type = select_chart(main_df) if (main_df is not None and not main_df.empty) else "bar"
     chart_spec = generate_interactive_chart_spec(main_df, chart_type) if (main_df is not None and not main_df.empty) else {}
-    chart_filename = generate_chart(main_df, chart_type=chart_type) if (main_df is not None and not main_df.empty) else None
+    chart_filename = None
 
     return {
         "success": True,

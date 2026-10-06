@@ -31,18 +31,20 @@ import difflib
 _METRIC_SYNONYMS = {
     "revenue": ["revenue", "sales", "turnover", "income"],
     "sales": ["sales", "revenue", "turnover"],
-    "amount": ["amount", "amt", "value", "cod"],
-    "value": ["value", "amount", "cod", "worth"],
+    "amount": ["amount", "amt", "value", "cod", "cod_value", "cash", "cash_received", "price", "total", "rupees", "pkr"],
+    "value": ["value", "amount", "cod", "cod_value", "worth", "price"],
+    "cod": ["cod", "cod_value", "cod_amount", "amount", "cash", "cash_received", "collection"],
     "price": ["price", "rate", "unitprice"],
     "cost": ["cost", "expense", "price"],
-    "quantity": ["quantity", "qty", "units", "pieces"],
+    "quantity": ["quantity", "qty", "units", "pieces", "items"],
+    "pieces": ["pieces", "piece", "pcs", "quantity", "qty", "items", "units"],
     "profit": ["profit", "margin", "earning"],
     "margin": ["margin", "profit"],
     "discount": ["discount", "rebate"],
     "salary": ["salary", "wage", "pay", "income"],
     "score": ["score", "rating", "grade"],
     "rating": ["rating", "score"],
-    "weight": ["weight", "mass"],
+    "weight": ["weight", "mass", "kg", "grams"],
     "duration": ["duration", "hours", "minutes"],
     "balance": ["balance", "due", "outstanding"],
     "tax": ["tax", "vat", "gst"],
@@ -75,8 +77,15 @@ def get_real_numeric_columns(schema_intel: dict) -> list:
 
 
 def get_real_categorical_columns(schema_intel: dict) -> list:
-    """The dataset's actual categorical columns (by real value cardinality)."""
-    return list((schema_intel.get("categorical_columns") or {}).keys())
+    """The dataset's actual categorical columns (by real value cardinality) plus non-ID text columns."""
+    cats = list((schema_intel.get("categorical_columns") or {}).keys())
+    # Also include text columns that are not identifiers, since columns like Destination,
+    # City, Company, Product, SalesRep, etc. are frequently grouped by.
+    text_cols = [c for c in (schema_intel.get("text_columns") or []) if not is_id_like_column(c)]
+    for c in text_cols:
+        if c not in cats:
+            cats.append(c)
+    return cats
 
 
 def _norm(s: str) -> str:

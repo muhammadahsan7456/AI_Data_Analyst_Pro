@@ -38,11 +38,35 @@ CRITICAL QUERY, SORTING & ROW LIMIT RULES (STRICTLY ENFORCED):
 5. ENTITY FILTERING REQUIREMENT: If the user asks for data regarding a specific country, region, category, product, person, or status (e.g. "Eritrea", "USA", "Baby Food", "Offline", "Eritrea Country ka data", "show data for Eritrea"), you MUST generate a WHERE clause filtering by that value!
    Example: `SELECT * FROM [{table_name}] WHERE [Country] LIKE '%Eritrea%';` or `WHERE [Country] = 'Eritrea';`
 
-6. Return ONLY the raw SQL query starting with SELECT and ending with a semicolon (;).
-7. Do NOT include markdown code block formatting (NO ```sql or ```).
-8. Do NOT include explanations, notes, or comments.
-9. Use Microsoft SQL Server T-SQL syntax ONLY (e.g. use TOP N instead of LIMIT). Always enclose column names in square brackets [ColumnName].
-10. Use ONLY SELECT statements. Absolutely NO INSERT, UPDATE, DELETE, DROP, ALTER, EXEC, or CREATE.
+6. COURIER / LOGISTICS & CITY ABBREVIATIONS:
+   If the dataset contains 3-letter city airport codes in Destination or Origin:
+   - Karachi: 'KHI'
+   - Lahore: 'LHR' or 'LHE'
+   - Islamabad: 'ISB'
+   - Rawalpindi: 'RWP'
+   - Multan: 'MUX'
+   - Peshawar: 'PEW'
+   - Faisalabad: 'FSD'
+   - Sialkot: 'SKT'
+   - Quetta: 'UET'
+   - Hyderabad: 'HDD'
+   - Sukkur: 'SKZ'
+   - Abbottabad: 'ABT'
+   When filtering by a city, match both its code and name, e.g. `([Destination] IN ('LHR', 'LHE') OR [Destination] LIKE '%Lahore%')`.
+
+7. RETURN & DELIVERY STATUS FILTERING:
+   - Return orders ("return", "returns", "rto", "kitne return aaye"): filter by status columns like `[Delivery_Status] = 'Returned' OR [Status_Description] LIKE '%RETURN%'`.
+   - Delivered orders ("delivered", "delivery"): filter by `[Delivery_Status] = 'Delivered' OR [Status_Description] LIKE '%DELIVER%'`.
+
+8. ROMAN URDU & CONVERSATIONAL PROMPTS:
+   - Understand Roman Urdu intent: "batao", "dikhao", "nikalo", "la kar do" = show/fetch; "kitne", "kitni" = COUNT(*); "sab se zyada" = ORDER BY metric DESC; "sab se kam" = ORDER BY metric ASC.
+   - For "top 10 destination cities by order count": `SELECT TOP 10 [Destination], COUNT(*) AS [Order_Count] FROM [{table_name}] GROUP BY [Destination] ORDER BY [Order_Count] DESC;`.
+
+9. Return ONLY the raw SQL query starting with SELECT and ending with a semicolon (;).
+10. Do NOT include markdown code block formatting (NO ```sql or ```).
+11. Do NOT include explanations, notes, or comments.
+12. Use Microsoft SQL Server T-SQL syntax ONLY (e.g. use TOP N instead of LIMIT). Always enclose column names in square brackets [ColumnName].
+13. Use ONLY SELECT statements. Absolutely NO INSERT, UPDATE, DELETE, DROP, ALTER, EXEC, or CREATE.
 
 USER QUESTION:
 {question}

@@ -36,9 +36,8 @@ def detect_best_dataset_for_query(question: str, user_id: int) -> Optional[Dict[
     if not datasets:
         return None
 
-    from database.connection import run_query
-    tbl_df = run_query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
-    existing_tables = set(tbl_df['TABLE_NAME'].str.lower().tolist()) if (tbl_df is not None and not tbl_df.empty) else set()
+    from database.connection import get_existing_base_tables
+    existing_tables = get_existing_base_tables()
 
     # Score each dataset based on column & filename relevance
     best_score = -1

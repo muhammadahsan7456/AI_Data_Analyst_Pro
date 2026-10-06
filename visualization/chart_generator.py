@@ -290,56 +290,232 @@ def generate_chart_svg(df: pd.DataFrame, chart_type: str) -> bytes:
     return buffer.getvalue()
 
 
+def build_row_hover_card(row: pd.Series, primary_col: str, metric_col: str) -> str:
+    """
+    Format a rich, executive, multi-line hover tooltip card for a record.
+    Displays the person/entity name prominently with an icon, followed by
+    all relevant fields (dates, amounts, status, destination, tracking ID, etc.).
+    """
+    lines = []
+
+    def get_field_icon(col_name: str) -> str:
+        c_l = str(col_name).lower()
+        if any(k in c_l for k in ["name", "consignee", "customer", "client", "employee", "user", "person", "buyer", "receiver", "vendor", "agent"]):
+            return "👤"
+        if any(k in c_l for k in ["date", "time", "day", "month", "year", "created", "booking"]):
+            return "📅"
+        if any(k in c_l for k in ["amount", "cod", "revenue", "price", "cost", "profit", "value", "balance", "total", "pay", "fee"]):
+            return "💰"
+        if any(k in c_l for k in ["status", "stage", "condition", "state"]):
+            return "📦"
+        if any(k in c_l for k in ["city", "destination", "origin", "location", "area", "address", "province", "country"]):
+            return "📍"
+        if any(k in c_l for k in ["tracking", "id", "ref", "order_id", "consignment", "code", "cnic", "phone", "mobile"]):
+            return "🏷️"
+        if any(k in c_l for k in ["weight", "qty", "quantity", "pieces", "count"]):
+            return "⚖️"
+        if any(k in c_l for k in ["percent", "pct", "rate", "ratio", "score"]):
+            return "📊"
+        if any(k in c_l for k in ["courier", "service", "shipper", "vendor", "carrier"]):
+            return "🚚"
+        return "🔹"
+
+    primary_val = str(row.get(primary_col, "")).strip() if (primary_col and primary_col in row) else ""
+    primary_clean_name = str(primary_col).replace("_", " ").title() if primary_col else ""
+    primary_icon = get_field_icon(primary_col) if primary_col else "👤"
+
+    if primary_val:
+        lines.append(f"<b style='font-size:13px;color:#38bdf8;'>{primary_icon} {primary_clean_name}: {primary_val}</b>")
+        lines.append("─────────────────────────────")
+
+    # Display primary metric column directly below header
+    if metric_col and metric_col != primary_col and metric_col in row:
+        val = row[metric_col]
+        m_name = str(metric_col).replace("_", " ").title()
+        icon = get_field_icon(metric_col)
+        if pd.notnull(val):
+            try:
+                num = float(val)
+                val_str = f"{int(num):,}" if num.is_integer() else f"{num:,.2f}"
+            except Exception:
+                val_str = str(val)
+            lines.append(f"{icon} <b>{m_name}:</b> {val_str}")
+
+    # Display all other columns from the record
+    displayed_cols = {primary_col, metric_col}
+    skip_cols = {"recordid", "s.no", "sr_no", "row_num", "index", "row_number", "hash", "row"}
+
+    for c in row.index:
+        c_clean = str(c).lower().strip()
+        if c in displayed_cols or c_clean in skip_cols:
+            continue
+        val = row[c]
+        if pd.isna(val) or val is None or str(val).strip() == "" or str(val).lower() == "nan":
+            continue
+
+        c_title = str(c).replace("_", " ").title()
+        icon = get_field_icon(c)
+
+        if isinstance(val, (int, float)):
+            try:
+                num = float(val)
+                val_str = f"{int(num):,}" if num.is_integer() else f"{num:,.2f}"
+            except Exception:
+                val_str = str(val)
+        else:
+            val_str = str(val).strip()
+            if "T" in val_str and len(val_str) > 10:
+                val_str = val_str.split("T")[0]
+            elif len(val_str) > 45:
+                val_str = val_str[:42] + "..."
+
+        lines.append(f"{icon} <b>{c_title}:</b> {val_str}")
+        displayed_cols.add(c)
+        if len(lines) >= 8:
+            break
+
+    return "<br>".join(lines)
+
+
 def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -> dict:
     """
     Generate structured interactive Plotly/Chart.js JSON spec.
-    Includes labels, values, numeric matrix for heatmaps, tooltips, and compatible types.
+    Guarantees 100% data fidelity: the chart labels and numeric values directly
+    and accurately match whatever data was returned by the query, row-by-row.
     """
     if df is None or df.empty:
         return {}
 
+    import numpy as np
+
     df_clean = df.copy()
+
+    # 1. Technical ID and index patterns to avoid picking as metrics or categories
     id_patterns = [
         r"^recordid$", r"^id$", r".*_id$", r"^key$", r"^tracking_id$",
         r"^sr$", r"^sr\.$", r"^sr_no$", r"^srno$", r"^s\.no$", r"^s_no$", r"^sno$",
-        r"^index$", r"^row_num$", r"^row$", r"^#$", r"^sl_no$", r"^slno$",
+        r"^index$", r"^row_num$", r"^row_number$", r"^row$", r"^#$", r"^sl_no$", r"^slno$",
         r"^consignment$", r"^tracking$", r"^cnic$", r"^cnic_number$", r"^phone$",
         r"^mobile$", r"^contact$", r"^consignee_contact$", r"^order_reference$", r"^order_ref$"
     ]
 
+    # Convert numeric strings (e.g. "1,200", "$450.50", "15.5%") to actual numbers
+    for col in df_clean.columns:
+        col_clean = str(col).lower().strip()
+        if any(re.match(p, col_clean) for p in id_patterns):
+            continue
+        if not pd.api.types.is_numeric_dtype(df_clean[col]):
+            try:
+                cleaned_series = df_clean[col].astype(str).str.replace(r"[$,]", "", regex=True)
+                converted = pd.to_numeric(cleaned_series, errors="coerce")
+                if converted.notna().mean() >= 0.7:
+                    df_clean[col] = converted
+            except Exception:
+                pass
+
+    # Exclude any summary / rollup row (like "Total", "Grand Total") if df has multiple rows
+    # so that the visual chart displays true distribution without being distorted by a giant total bar.
+    if len(df_clean) > 2:
+        for col in df_clean.columns:
+            if not pd.api.types.is_numeric_dtype(df_clean[col]):
+                is_total_mask = df_clean[col].astype(str).str.strip().str.lower().isin(
+                    ["total", "grand total", "overall", "summary", "all"]
+                )
+                if is_total_mask.any():
+                    df_clean = df_clean[~is_total_mask].copy()
+                    break
+
+    if df_clean.empty:
+        df_clean = df.copy()
+
+    # Identify numeric columns (metrics)
     numeric_cols = []
     for c in df_clean.select_dtypes(include="number").columns:
         c_clean = str(c).lower().strip()
         if not any(re.match(p, c_clean) for p in id_patterns):
             valid_vals = df_clean[c].dropna()
-            # If max value is huge (> 1,000,000) or values are tracking IDs, exclude from numeric bar metrics
-            if not valid_vals.empty and valid_vals.max() < 10000000 and valid_vals.nunique() < len(df_clean):
+            if not valid_vals.empty:
                 numeric_cols.append(c)
 
+    # Prioritize business financial, volume and quantity metrics
+    priority_metric_kws = [
+        "count", "total", "sum", "amount", "revenue", "sales", "cod", "orders",
+        "customers", "qty", "quantity", "price", "cost", "profit", "rate", "percent",
+        "pct", "margin", "weight", "value", "balance", "score", "avg", "average"
+    ]
+    def metric_sort_key(c):
+        c_lower = str(c).lower()
+        for idx, kw in enumerate(priority_metric_kws):
+            if kw in c_lower:
+                return idx
+        return len(priority_metric_kws)
+    numeric_cols.sort(key=metric_sort_key)
+
+    # Identify categorical columns (dimensions / labels)
     cat_cols = []
-    business_cat_cols = []
-    status_location_cols = []
-
-    priority_cat_keywords = ["status", "destination", "city", "area", "service", "category", "type", "origin"]
-    for kw in priority_cat_keywords:
-        for c in df_clean.columns:
-            c_clean = str(c).lower().strip()
-            if c not in numeric_cols and not any(re.match(p, c_clean) for p in id_patterns):
-                if kw in c_clean and df_clean[c].nunique() > 1:
-                    status_location_cols.append(c)
-                    break
-
     for c in df_clean.columns:
         c_clean = str(c).lower().strip()
         if any(re.match(p, c_clean) for p in id_patterns):
             continue
-        if c in numeric_cols:
-            continue
-        cat_cols.append(c)
-        if df_clean[c].nunique() < len(df_clean):
-            business_cat_cols.append(c)
+        if c not in numeric_cols:
+            cat_cols.append(c)
 
-    # Dynamic Column Selection Strategy: Respect SQL Query's Returned Schema First
+    # Intelligent Tiered Dimension Hierarchy:
+    # 1. Names and People (Consignee, Customer, Client, Employee, Person, User) -> HIGHEST PRIORITY
+    person_kws = [
+        "consignee_name", "consignee", "customer_name", "customer", "client_name", "client",
+        "employee_name", "employee", "full_name", "person_name", "person", "buyer_name", "buyer",
+        "recipient_name", "recipient", "receiver_name", "receiver", "vendor_name", "vendor",
+        "shipper_name", "shipper", "agent_name", "agent", "user_name", "username", "user",
+        "merchant_name", "merchant", "account_name", "student_name", "student", "patient_name",
+        "patient", "doctor_name", "doctor", "driver_name", "driver", "name"
+    ]
+    # 2. Products & Business Entities
+    product_kws = [
+        "product_name", "product", "item_name", "item", "title", "department", "dept",
+        "category", "brand", "model", "service_name", "service", "project"
+    ]
+    # 3. Locations
+    location_kws = [
+        "destination_city", "destination", "city", "sub_area", "subarea", "area",
+        "neighborhood", "location", "province", "region", "state", "country", "origin", "branch"
+    ]
+    # 4. Status / Classification
+    classification_kws = [
+        "order_status", "status", "stage", "priority", "courier", "carrier", "type", "method"
+    ]
+    # 6. Dates / Timestamps (Lowest Priority among categorical columns - never pick date over person name)
+    date_kws = [
+        "month", "quarter", "year", "week", "day", "booking_date", "order_date", "created_at", "date", "time"
+    ]
+
+    def cat_sort_key(c):
+        c_lower = str(c).lower().strip()
+        # Tier 1: Person / Entity Names
+        for idx, kw in enumerate(person_kws):
+            if kw in c_lower:
+                return (1, idx)
+        # Tier 2: Products & Business Entities
+        for idx, kw in enumerate(product_kws):
+            if kw in c_lower:
+                return (2, idx)
+        # Tier 3: Locations
+        for idx, kw in enumerate(location_kws):
+            if kw in c_lower:
+                return (3, idx)
+        # Tier 4: Classification / Status
+        for idx, kw in enumerate(classification_kws):
+            if kw in c_lower:
+                return (4, idx)
+        # Tier 6: Dates / Timestamps (Lowest Priority)
+        for idx, kw in enumerate(date_kws):
+            if kw in c_lower:
+                return (6, idx)
+        # Tier 5: Other columns
+        return (5, 0)
+
+    cat_cols.sort(key=cat_sort_key)
+
     x_col = ""
     y_col = ""
 
@@ -353,10 +529,9 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
 
     # Fallback to smart column detection if not explicit 2-column output
     if not x_col:
-        x_col = status_location_cols[0] if status_location_cols else (business_cat_cols[0] if business_cat_cols else (cat_cols[0] if cat_cols else ""))
+        x_col = cat_cols[0] if cat_cols else ""
     if not y_col:
-        priority_metrics = [c for c in numeric_cols if any(kw in str(c).lower() for kw in ["count", "total", "cod", "value", "amount", "weight", "price", "cost", "revenue"])]
-        y_col = priority_metrics[0] if priority_metrics else (numeric_cols[0] if numeric_cols else "")
+        y_col = numeric_cols[0] if numeric_cols else ""
 
     labels = []
     values = []
@@ -372,13 +547,14 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
         else:
             override_chart_type = "horizontal_bar"
 
-    # Case B: Single Row Aggregated Metric (e.g. Total_Orders: 335)
+    # Case B: Single Row Aggregated Metric (e.g. Total_Orders: 335, Total_COD: 15000)
     elif len(df_clean) == 1 and numeric_cols:
-        labels = [str(c).replace("_", " ") for c in numeric_cols]
-        values = [float(df_clean[c].iloc[0]) if pd.notnull(df_clean[c].iloc[0]) else 0.0 for c in numeric_cols]
+        ordered_metric_cols = [c for c in df_clean.columns if c in numeric_cols]
+        labels = [str(c).replace("_", " ").title() for c in ordered_metric_cols]
+        values = [float(df_clean[c].iloc[0]) if pd.notnull(df_clean[c].iloc[0]) else 0.0 for c in ordered_metric_cols]
         override_chart_type = "bar"
 
-    # Case C: Sub-Area Address Neighborhood Slicing (For Address/Location queries)
+    # Case C: Multi-row records (e.g. raw orders or customer lists)
     else:
         address_col = next((c for c in df_clean.columns if any(kw in str(c).lower() for kw in ["address", "location", "consignee_address", "street"])), None)
         parsed_area_counts = None
@@ -397,6 +573,12 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
             x_col = "Sub-Area Neighborhood"
             y_col = "Order Count"
             override_chart_type = "pie"
+        elif x_col and y_col and len(df_clean) <= 25 and df_clean[x_col].nunique() == len(df_clean):
+            # Clean direct ranking of unique entities with numeric metric
+            sub_df = df_clean[[x_col, y_col]].dropna().head(15)
+            labels = sub_df[x_col].astype(str).tolist()
+            values = [float(v) if pd.notnull(v) else 0.0 for v in pd.to_numeric(sub_df[y_col], errors="coerce").fillna(0).tolist()]
+            override_chart_type = "pie" if len(labels) <= 8 else "horizontal_bar"
         elif x_col:
             val_counts = df_clean[x_col].dropna().value_counts().head(20)
             labels = val_counts.index.astype(str).tolist()
@@ -406,10 +588,21 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
             elif len(labels) > 10:
                 override_chart_type = "horizontal_bar"
         elif numeric_cols:
-            labels = [str(c).replace("_", " ") for c in numeric_cols]
+            labels = [str(c).replace("_", " ").title() for c in numeric_cols]
             values = [float(df_clean[c].mean()) if pd.notnull(df_clean[c].mean()) else 0.0 for c in numeric_cols]
+            override_chart_type = "bar"
 
-    # Heatmap matrix if requested
+    # Multi-series data if multiple numeric columns exist
+    series_list = []
+    if len(numeric_cols) >= 2 and x_col and x_col in df_clean.columns:
+        for nc in numeric_cols[:4]:
+            col_vals = [
+                float(v) if (pd.notnull(v) and not np.isnan(v)) else 0.0
+                for v in pd.to_numeric(df_clean[nc].head(30), errors="coerce").fillna(0).tolist()
+            ]
+            series_list.append({"name": str(nc).replace("_", " ").title(), "values": col_vals})
+
+    # Heatmap correlation matrix if multiple numeric columns exist
     matrix = []
     matrix_cols = []
     if len(numeric_cols) >= 2:
@@ -423,15 +616,18 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
         compatible_types = get_compatible_chart_types(df_clean)
     except Exception:
         best_chart = override_chart_type or chart_type or "pie"
-        compatible_types = ["auto", "pie", "donut", "bar", "horizontal_bar", "line"]
+        compatible_types = ["auto", "pie", "donut", "bar", "horizontal_bar", "line", "area", "scatter", "heatmap", "treemap", "funnel"]
+
+    chart_title = f"{y_col} by {x_col}" if x_col and y_col and x_col != y_col else (f"{x_col} Analysis" if x_col else "Dataset Analytics")
 
     return {
-        "chart_type": best_chart or "bar",
-        "title": f"{y_col} by {x_col}" if x_col and y_col else "Dataset Analytics",
+        "chart_type": best_chart or "pie",
+        "title": chart_title,
         "x_col": x_col,
         "y_col": y_col,
         "labels": labels,
         "values": values,
+        "series": series_list,
         "matrix": matrix,
         "matrix_cols": matrix_cols,
         "total_records": len(df_clean),

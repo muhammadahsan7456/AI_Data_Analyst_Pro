@@ -230,8 +230,28 @@ def validate_file_pre_upload(uploaded_file, user_id: int) -> Tuple[bool, str, Di
     if file_length == 0:
         return False, f"File '{filename}' is empty (0 bytes).", {}
 
+    # Universal 500 MB system hard cap (applies to all users, paid or free)
     if file_length > MAX_FILE_SIZE_BYTES:
-        return False, f"File '{filename}' exceeds maximum allowed size of 500 MB ({round(file_length / (1024*1024), 2)} MB).", {}
+        return False, f"File '{filename}' ({round(file_length / (1024*1024), 2)} MB) exceeds maximum allowed system limit of 500 MB.", {}
+
+    # Plan-based upload limit check: Free Plan allows <= 1 MB; Pro Plan allows <= 500 MB
+    try:
+        from utils.subscription import get_user_subscription_info
+        sub_info = get_user_subscription_info(user_id)
+        is_pro = sub_info.get("is_pro", False)
+    except Exception:
+        is_pro = False
+
+    if not is_pro and file_length >= 1 * 1024 * 1024:
+        return False, (
+            f"File '{filename}' ({round(file_length / (1024*1024), 2)} MB) exceeds the Free Plan limit of 1 MB. "
+            f"Please upgrade to the Pro Plan (Rs. 1,499/month) to upload datasets up to 500 MB."
+        ), {
+            "upgrade_required": True,
+            "file_size_mb": round(file_length / (1024*1024), 2),
+            "max_allowed_mb": 1,
+            "upgrade_url": "/pricing"
+        }
 
     # User-isolated table name generation & smooth duplicate auto-versioning
     base_name = filename.rsplit(".", 1)[0] if "." in filename else filename

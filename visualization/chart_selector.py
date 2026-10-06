@@ -35,16 +35,15 @@ def select_chart(dataframe: pd.DataFrame) -> str:
         c_clean = str(c).lower().strip()
         if not any(re.match(p, c_clean) for p in id_patterns):
             valid_vals = df[c].dropna()
-            if not valid_vals.empty and valid_vals.max() < 10000000:
+            if not valid_vals.empty:
                 numeric_columns.append(c)
 
     categorical_columns = [c for c in df.columns if c not in numeric_columns and not any(re.match(p, str(c).lower().strip()) for p in id_patterns) and not pd.api.types.is_datetime64_any_dtype(df[c])]
     datetime_columns = df.select_dtypes(include="datetime").columns.tolist()
 
     # 1. Check for time-series / dates - only when there's an actual numeric value to plot
-    # over time. Previously this matched on the date column alone and returned "line" even
-    # for date-only/text-only results with nothing numeric to chart.
-    date_cols = [c for c in df.columns if any(kw in str(c).lower() for kw in ["date", "time", "month", "year", "day"])]
+    # over time.
+    date_cols = [c for c in df.columns if any(kw in str(c).lower() for kw in ["date", "time", "month", "year", "day", "week"])]
     if date_cols and numeric_columns and len(df) >= 3:
         return "line"
 
@@ -59,13 +58,15 @@ def select_chart(dataframe: pd.DataFrame) -> str:
     # 4. Categorical Breakdown / Share Analysis
     if len(categorical_columns) >= 1:
         cat_col = categorical_columns[0]
+        cat_col_lower = str(cat_col).lower()
         unique_cnt = df[cat_col].nunique()
         
-        # Share & Distribution (2 to 7 categories e.g. Delivered vs Return, Sub-Areas)
-        if 2 <= unique_cnt <= 7:
+        # Share & Distribution (Only for Status, Type, Flag, Gender, Binary distributions)
+        is_status_or_type = any(kw in cat_col_lower for kw in ["status", "type", "flag", "service", "gender", "condition"])
+        if is_status_or_type and 2 <= unique_cnt <= 6:
             return "pie"
-        # Rankings & Top-N (High cardinality > 7 e.g. Top Destination Cities)
-        elif unique_cnt > 7:
+        # Rankings & Top-N (High cardinality > 8 e.g. Top Destination Cities)
+        elif unique_cnt > 8:
             return "horizontal_bar"
         return "bar"
 

@@ -40,16 +40,29 @@ def classify_column_semantic_type(col_name: str, series: pd.Series) -> str:
         return "numeric"
 
     # String type classification
-    non_nulls = series.dropna().astype(str)
+    non_nulls = series.dropna().astype(str).str.strip()
     if non_nulls.empty:
         return "text"
+
+    # Numeric check for string-formatted numbers (e.g. '1,600', '1500.00', '$250', 'Rs 500')
+    if not any(kw in c_lower for kw in ["phone", "mobile", "contact", "cnic", "zip", "postal", "code", "year", "date", "time"]):
+        clean_num_series = non_nulls.str.replace(r"[^\d.-]", "", regex=True)
+        clean_num_series = clean_num_series[clean_num_series != ""]
+        valid_nums = pd.to_numeric(clean_num_series, errors="coerce").dropna()
+        if len(valid_nums) > 0 and (len(valid_nums) / len(non_nulls)) >= 0.7:
+            return "numeric"
 
     # Test date parsing
     if any(kw in c_lower for kw in ["date", "time", "dob", "created", "updated", "timestamp"]):
         return "date"
 
+    # Domain categorical keywords
+    cat_hints = ["city", "destination", "dest", "origin", "status", "category", "product", "country", "state", "channel", "brand", "type", "mode", "courier", "service", "class", "gender", "department"]
+    if any(hint in c_lower for hint in cat_hints):
+        return "categorical"
+
     distinct_cnt = non_nulls.nunique()
-    if distinct_cnt <= 100 or (len(non_nulls) > 0 and (distinct_cnt / len(non_nulls)) < 0.2):
+    if distinct_cnt <= 500 or (len(non_nulls) > 0 and (distinct_cnt / len(non_nulls)) < 0.5):
         return "categorical"
 
     return "text"
@@ -109,7 +122,9 @@ def get_dataset_schema_intelligence(table_name: str, use_cache: bool = True) -> 
                 categorical_map[col] = distinct_vals
         elif sem_type == "numeric":
             numeric_cols.append(col)
-            valid_num = pd.to_numeric(series, errors="coerce").dropna()
+            clean_s = series.dropna().astype(str).str.replace(r"[^\d.-]", "", regex=True)
+            clean_s = clean_s[clean_s != ""]
+            valid_num = pd.to_numeric(clean_s, errors="coerce").dropna()
             if not valid_num.empty:
                 min_val = float(valid_num.min())
                 max_val = float(valid_num.max())
