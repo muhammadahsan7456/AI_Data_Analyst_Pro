@@ -39,6 +39,7 @@
                 {% if settings.iban %}<div><strong style="color: var(--text-muted); font-size: 12px; display: block;">IBAN</strong>{{ settings.iban }}</div>{% endif %}
                 {% if settings.jazzcash_number %}<div><strong style="color: var(--text-muted); font-size: 12px; display: block;">JazzCash</strong>{{ settings.jazzcash_number }}</div>{% endif %}
                 {% if settings.easypaisa_number %}<div><strong style="color: var(--text-muted); font-size: 12px; display: block;">Easypaisa</strong>{{ settings.easypaisa_number }}</div>{% endif %}
+                {% if settings.easypaisa_number %}<div><strong style="color: var(--text-muted); font-size: 12px; display: block;">Nayapay</strong>{{ settings.easypaisa_number }}</div>{% endif %}
                 {% if settings.sadapay_number %}<div><strong style="color: var(--text-muted); font-size: 12px; display: block;">SadaPay</strong>{{ settings.sadapay_number }}</div>{% endif %}
             </div>
             {% if settings.instructions %}
@@ -59,6 +60,7 @@
                         <select name="payment_method" id="payment_method" required class="auth-input" style="appearance: auto;">
                             <option value="">Select method...</option>
                             <option value="Easypaisa" {% if form_data.payment_method == 'Easypaisa' %}selected{% endif %}>Easypaisa</option>
+                            <option value="Nayapay" {% if form_data.payment_method == 'Nayapay' %}selected{% endif %}>Nayapay</option>
                             <option value="SadaPay" {% if form_data.payment_method == 'SadaPay' %}selected{% endif %}>SadaPay</option>
                         </select>
                     </div>

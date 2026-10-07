@@ -1359,7 +1359,7 @@ main > .landing-section:first-child {
     letter-spacing: 1px;
 }
 
-.payment-methods-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.payment-methods-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px; }
 
 .method-card {
     border: 1px solid var(--border-glass);
@@ -1375,6 +1375,7 @@ main > .landing-section:first-child {
 .method-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; }
 .easypaisa-badge { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
 .nayapay-badge { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+.sadapay-badge { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
 
 .method-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
 

@@ -204,7 +204,7 @@ def pricing_page():
 @frontend.route("/submit-payment-proof", methods=["POST"])
 def submit_payment_proof():
     """
-    Handle user manual payment proof submission for Easypaisa / Nayapay with screenshot image upload.
+    Handle user manual payment proof submission for Easypaisa / Nayapay / SadaPay with screenshot image upload.
     Inserts a Pending payment record in database for SuperAdmin verification.
     """
     try:

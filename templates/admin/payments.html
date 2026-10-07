@@ -136,6 +136,8 @@
                         <span style="color: #34d399; font-weight: 700;"><i class="fa-solid fa-mobile-screen-button"></i> {{ p.payment_method }}</span>
                         {% elif 'Nayapay' in p.payment_method %}
                         <span style="color: #38bdf8; font-weight: 700;"><i class="fa-solid fa-wallet"></i> {{ p.payment_method }}</span>
+                        {% elif 'SadaPay' in p.payment_method or 'Sadapay' in p.payment_method %}
+                        <span style="color: #a855f7; font-weight: 700;"><i class="fa-solid fa-credit-card"></i> {{ p.payment_method }}</span>
                         {% elif 'Bank' in p.payment_method or 'Wire' in p.payment_method or 'Meezan' in p.payment_method or 'HBL' in p.payment_method %}
                         <i class="fa-solid fa-building-columns" style="color: var(--accent-green);"></i> {{ p.payment_method }}
                         {% elif 'PayPal' in p.payment_method %}

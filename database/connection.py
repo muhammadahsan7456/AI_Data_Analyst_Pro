@@ -878,16 +878,21 @@ def init_db():
 
     IF NOT EXISTS (SELECT * FROM PaymentSettings)
     BEGIN
-        INSERT INTO PaymentSettings (PlanName, PlanPriceLabel, AccountTitle, BankName, AccountNumber, IBAN, JazzCashNumber, EasypaisaNumber, Instructions)
+        INSERT INTO PaymentSettings (PlanName, PlanPriceLabel, AccountTitle, BankName, AccountNumber, IBAN, JazzCashNumber, EasypaisaNumber, SadaPayNumber, Instructions)
         VALUES (
             'Pro Plan', 'PKR 1,499 / month', 'AI Data Analyst Pro',
-            'Meezan Bank', '03053107456', NULL, '03053107456', '03053107456',
+            'Meezan Bank', '03053107456', NULL, '03053107456', '03053107456', '03053107456',
             'Pay the amount to the account below, take a screenshot of the payment, and upload it in the form.'
         );
     END
     ELSE
     BEGIN
         UPDATE PaymentSettings SET PlanPriceLabel = 'PKR 1,499 / month' WHERE PlanPriceLabel LIKE '%1,199%' OR PlanPriceLabel LIKE '%25,000%' OR PlanPriceLabel LIKE '%25000%';
+        -- Older rows created before the SadaPayNumber column existed (or admin never
+        -- filled it in) silently hide the SadaPay option on every template that gates on
+        -- settings.sadapay_number being truthy - back-fill it from the Easypaisa number
+        -- (same physical mobile wallet account) rather than leaving it NULL forever.
+        UPDATE PaymentSettings SET SadaPayNumber = EasypaisaNumber WHERE SadaPayNumber IS NULL OR SadaPayNumber = '';
     END;
 
     -- Initialize NULL subscription dates & statuses
