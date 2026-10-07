@@ -251,6 +251,218 @@ def detect_period_over_period_change(table_name: str, min_pct_change: float = 20
     }
 
 
+_WHY_QUESTION_RE = __import__("re").compile(
+    r"\bwhy\b|\bwhat\s+caused\b|\breason\s+for\b|\bwhat'?s?\s+driving\b|\broot\s+cause\b|\bwhat\s+led\s+to\b",
+    __import__("re").IGNORECASE,
+)
+
+
+def is_why_question(question: str) -> bool:
+    """Cheap keyword/pattern gate - matches investigate_why_question()'s callers against
+    this BEFORE doing any real work, same "don't slow down a normal question" principle
+    used for the conversational-follow-up detector."""
+    return bool(question) and bool(_WHY_QUESTION_RE.search(question))
+
+
+def investigate_why_question(question: str, table_name: str) -> dict:
+    """
+    Structured root-cause investigation for a "why did X change" style question.
+
+    Identifies the metric (named in the question if possible, else the dataset's primary
+    numeric column) and compares the most recent 7-day window of data to the one before
+    it - same period-over-period mechanics as detect_period_over_period_change(), but
+    instead of stopping at a single best-matching segment, ranks contributors across
+    EVERY real categorical column in the dataset (bounded to 6 columns), so a genuine
+    multi-factor answer is possible ("driven mainly by Karachi, with a secondary push from
+    the Electronics category") rather than only ever naming one dimension.
+
+    100% deterministic pandas aggregation - reuses the query-plan engine's own column-role
+    resolvers (ai.metric_resolver, ai.schema_intelligence) rather than a separate system,
+    and the ranking itself is pure groupby/sum arithmetic. The LLM (phrase_why_investigation)
+    only writes the final sentence describing a ranking this function already computed - it
+    is never asked to guess which segment is responsible.
+
+    Returns {"success": False, "error": "..."} when there's no usable date/metric column
+    pair or not enough historical span - callers should surface `error` to the user as a
+    plain explanation, not a crash.
+    """
+    from ai.prediction import detect_time_and_target_columns
+    from ai.schema_intelligence import get_dataset_schema_intelligence
+    from ai.metric_resolver import get_real_numeric_columns, get_real_categorical_columns, resolve_metric_column
+
+    try:
+        safe_tbl = sanitize_identifier(table_name)
+        df = run_query(f"SELECT TOP 200000 * FROM {safe_tbl};")
+    except Exception as e:
+        return {"success": False, "error": f"Could not read dataset: {e}"}
+
+    if df is None or df.empty:
+        return {"success": False, "error": "This dataset is empty."}
+
+    try:
+        schema_intel = get_dataset_schema_intelligence(table_name)
+    except Exception:
+        schema_intel = {}
+    numeric_cols = [c for c in get_real_numeric_columns(schema_intel) if c in df.columns] if schema_intel else []
+    cat_cols = [c for c in get_real_categorical_columns(schema_intel) if c in df.columns] if schema_intel else []
+    date_cols = [c for c in schema_intel.get("date_columns", []) if c in df.columns] if schema_intel else []
+
+    metric_col = None
+    if numeric_cols:
+        matched, _exact = resolve_metric_column(question.lower(), numeric_cols)
+        metric_col = matched
+    date_col = date_cols[0] if date_cols else None
+    if not metric_col or not date_col:
+        det_date, det_metric = detect_time_and_target_columns(df)
+        metric_col = metric_col or det_metric
+        date_col = date_col or det_date
+
+    if not date_col or not metric_col:
+        return {"success": False, "error": "This dataset doesn't have a clear date column and numeric metric to investigate a 'why' question with."}
+
+    work = df[[date_col, metric_col]].copy()
+    work[date_col] = pd.to_datetime(work[date_col], errors="coerce")
+    work[metric_col] = pd.to_numeric(work[metric_col], errors="coerce")
+    work = work.dropna(subset=[date_col, metric_col])
+    if work.empty:
+        return {"success": False, "error": "No valid date/metric values to investigate in this dataset."}
+
+    latest_date = work[date_col].max()
+    current_start = latest_date - pd.Timedelta(days=6)
+    previous_start = current_start - pd.Timedelta(days=7)
+    previous_end = current_start - pd.Timedelta(days=1)
+
+    if work[date_col].min() > previous_start:
+        return {"success": False, "error": "Not enough historical data (need at least 2 full weeks) to compare time periods for this investigation."}
+
+    current_mask = (work[date_col] >= current_start) & (work[date_col] <= latest_date)
+    previous_mask = (work[date_col] >= previous_start) & (work[date_col] <= previous_end)
+    current_total = float(work.loc[current_mask, metric_col].sum())
+    previous_total = float(work.loc[previous_mask, metric_col].sum())
+
+    if previous_total == 0:
+        return {"success": False, "error": "The previous period's total is zero, so a percentage change can't be computed."}
+
+    pct_change = round(((current_total - previous_total) / abs(previous_total)) * 100, 1)
+    overall_delta = current_total - previous_total
+
+    contributors = []
+    for seg_col in cat_cols[:6]:
+        try:
+            seg_df = df[[date_col, metric_col, seg_col]].copy()
+            seg_df[date_col] = pd.to_datetime(seg_df[date_col], errors="coerce")
+            seg_df[metric_col] = pd.to_numeric(seg_df[metric_col], errors="coerce")
+            seg_df = seg_df.dropna(subset=[date_col, metric_col, seg_col])
+            if seg_df.empty:
+                continue
+
+            cur_by_seg = seg_df.loc[(seg_df[date_col] >= current_start) & (seg_df[date_col] <= latest_date)].groupby(seg_col)[metric_col].sum()
+            prev_by_seg = seg_df.loc[(seg_df[date_col] >= previous_start) & (seg_df[date_col] <= previous_end)].groupby(seg_col)[metric_col].sum()
+            all_idx = cur_by_seg.index.union(prev_by_seg.index)
+            cur_r = cur_by_seg.reindex(all_idx, fill_value=0)
+            prev_r = prev_by_seg.reindex(all_idx, fill_value=0)
+            delta = cur_r - prev_r
+
+            if overall_delta == 0 or delta.empty:
+                continue
+            same_direction = delta[(delta * overall_delta) > 0]
+            for seg_val, seg_delta in same_direction.items():
+                contributors.append({
+                    "column": seg_col,
+                    "segment": seg_val,
+                    "contribution_pct": round((seg_delta / overall_delta) * 100, 1),
+                    "current_val": round(float(cur_r[seg_val]), 2),
+                    "previous_val": round(float(prev_r[seg_val]), 2),
+                })
+        except Exception:
+            continue
+
+    contributors.sort(key=lambda c: abs(c["contribution_pct"]), reverse=True)
+
+    return {
+        "success": True,
+        "metric_col": metric_col,
+        "date_col": date_col,
+        "current_period": f"{current_start.strftime('%b %d')}-{latest_date.strftime('%b %d, %Y')}",
+        "previous_period": f"{previous_start.strftime('%b %d')}-{previous_end.strftime('%b %d, %Y')}",
+        "current_total": round(current_total, 2),
+        "previous_total": round(previous_total, 2),
+        "pct_change": pct_change,
+        "direction": "increase" if pct_change > 0 else "decrease",
+        "top_contributors": contributors[:3],
+    }
+
+
+def phrase_why_investigation(finding: dict) -> str:
+    """
+    Turns an investigate_why_question() result into a short business-English paragraph:
+    the overall change, then the top 1-3 contributing segments ranked by impact. Same
+    LLM-first-with-deterministic-fallback and hard-timeout-via-daemon-thread pattern as
+    phrase_proactive_insight() - see that function's comments for why a plain
+    ask_gemini(..., timeout=2.0) call alone is not a safe enough bound on its own.
+    """
+    if not finding.get("success"):
+        return finding.get("error", "Could not complete this investigation.")
+
+    metric = finding["metric_col"]
+    pct = abs(finding["pct_change"])
+    direction = finding["direction"]
+    cur_period = finding["current_period"]
+    prev_period = finding["previous_period"]
+    contributors = finding.get("top_contributors", [])
+
+    contributor_lines = []
+    for c in contributors:
+        contributor_lines.append(
+            f"- **{c['column']}** '{c['segment']}': {abs(c['contribution_pct'])}% of the change "
+            f"({c['previous_val']:,.0f} → {c['current_val']:,.0f})"
+        )
+
+    fallback_text = (
+        f"### 🎯 Direct Answer\n\n"
+        f"**{metric}** {direction}d by **{pct}%** comparing {cur_period} to {prev_period} "
+        f"({finding['previous_total']:,.0f} → {finding['current_total']:,.0f}).\n\n"
+        + (
+            "### 📊 Top Contributing Factors\n\n" + "\n".join(contributor_lines)
+            if contributor_lines else
+            "No single segment clearly explains this change - it looks spread broadly across the dataset."
+        )
+    )
+
+    if not contributors:
+        return fallback_text
+
+    try:
+        from ai.gemini import ask_gemini
+        contrib_text = "; ".join(
+            f"{c['column']} '{c['segment']}' ({abs(c['contribution_pct'])}% of the change)" for c in contributors
+        )
+        prompt = (
+            f"Write a short business-English answer (max 60 words, no markdown headers, plain sentences) "
+            f"to a 'why' question about this data finding: {metric} {direction}d {pct}% comparing {cur_period} "
+            f"to {prev_period} ({finding['previous_total']:,.0f} -> {finding['current_total']:,.0f}). "
+            f"Rank and explain these contributing factors in order of impact: {contrib_text}."
+        )
+        import threading, queue as _queue
+        result_q = _queue.Queue(maxsize=1)
+
+        def _ask_worker():
+            try:
+                result_q.put(ask_gemini(prompt, 180, 2.0))
+            except Exception:
+                result_q.put((None, None))
+
+        threading.Thread(target=_ask_worker, daemon=True).start()
+        text, _model = result_q.get(timeout=4.0)
+        text = (text or "").strip().strip('"')
+        if text and 20 < len(text) < 600:
+            return text
+    except Exception:
+        pass
+
+    return fallback_text
+
+
 def phrase_proactive_insight(finding: dict) -> str:
     """
     Turns a detect_period_over_period_change() finding into a short, plain-business-

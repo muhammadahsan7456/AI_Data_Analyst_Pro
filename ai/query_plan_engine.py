@@ -167,9 +167,14 @@ def resolve_followup_question(question: str, user_id: int, table_name: str) -> t
     numeric_cols = get_real_numeric_columns(schema_intel) if schema_intel else []
     date_cols = schema_intel.get("date_columns", []) if schema_intel else []
 
-    # 2. Group-by follow-up: "break it down by city", "by month", "group by product".
+    # 2. Group-by follow-up: "break it down by city", "by month", "group by product", and
+    # also "now by month"/"and by year" - the leading filler word that the top-level shape
+    # gate (_FOLLOWUP_SHAPE_RE) already allows through was not itself tolerated here, so
+    # "now by month" fell all the way through every branch and was answered as its own
+    # (nonsensical) fresh question instead of being merged as a group-by follow-up.
     gb_match = re.search(
-        r"(?:break\s*it\s*down\s+by|breakdown\s+by|split\s+by|group\s+by|^by)\s+([a-z][a-z0-9_ ]{1,30})",
+        r"(?:break\s*it\s*down\s+by|breakdown\s+by|split\s+by|group\s+by|"
+        r"^(?:(?:now|and|also|what\s+about|how\s+about)\s+)?by)\s+([a-z][a-z0-9_ ]{1,30})",
         q_low,
     )
     if gb_match:

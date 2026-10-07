@@ -888,6 +888,101 @@ def chat():
     if not question:
         return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, dynamic_suggestions=dynamic_suggestions)
 
+    # Root-Cause "Why" Investigation (Phase 3.3): intercepts "why did X change" style
+    # questions BEFORE the normal SQL-generation pipeline runs, since the literal metric
+    # value isn't what's being asked for here - a structured period-over-period comparison
+    # with segment-contribution ranking is. Deterministic detection + deterministic
+    # aggregation (ai.insight_engine.investigate_why_question); the LLM is only used to
+    # phrase the already-computed ranking into a sentence (phrase_why_investigation), with
+    # a template fallback if that call fails or times out. If the investigation can't run
+    # (no date/metric pair, or not enough history), this falls through to the normal
+    # pipeline below rather than returning an error - a "why" question on a dataset that
+    # can't support this investigation is still answered as a regular question.
+    from ai.insight_engine import is_why_question, investigate_why_question, phrase_why_investigation
+
+    if is_why_question(question_for_ai):
+        why_finding = investigate_why_question(question_for_ai, table_name)
+        if why_finding.get("success"):
+            why_explanation = phrase_why_investigation(why_finding)
+            contributors = why_finding.get("top_contributors", [])
+
+            contrib_df = pd.DataFrame([
+                {
+                    "Segment": f"{c['column']}: {c['segment']}",
+                    "Previous Period": c["previous_val"],
+                    "Current Period": c["current_val"],
+                }
+                for c in contributors
+            ]) if contributors else pd.DataFrame()
+
+            why_chart_spec = {}
+            if not contrib_df.empty:
+                try:
+                    from visualization.chart_generator import generate_interactive_chart_spec
+                    why_chart_spec = generate_interactive_chart_spec(contrib_df, "bar")
+                except Exception as chart_err:
+                    print("Why-Investigation Chart Error:", chart_err)
+
+            why_result_html = contrib_df.to_html(
+                classes="table table-bordered table-striped custom-table", index=False
+            ) if not contrib_df.empty else ""
+
+            try:
+                from database.queries import insert_query_history
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(insert_query_history(), (
+                        user_id, selected_dataset[0], question, f"-- why-investigation: {why_finding['metric_col']}",
+                        "Success", len(contributors), 0.0, "why_investigation", None
+                    ))
+            except Exception:
+                pass
+
+            log_ai_event(f"Why-Investigation: '{question_for_ai}' on table [{table_name}]", user_id=user_id)
+            why_tts_speech = format_tts_response(question, contrib_df if not contrib_df.empty else pd.DataFrame(), why_explanation)
+
+            if is_ajax:
+                return jsonify({
+                    "success": True,
+                    "question": question,
+                    "selected_dataset_id": selected_dataset[0],
+                    "selected_dataset_name": selected_dataset[2],
+                    "is_out_of_domain": False,
+                    "is_why_investigation": True,
+                    "sql": None,
+                    "result_html": why_result_html,
+                    "explanation": format_ai_explanation(why_explanation),
+                    "tts_speech": why_tts_speech,
+                    "chart": None,
+                    "chart_spec": why_chart_spec,
+                    "execution_time_ms": 0.0,
+                    "confidence": "high",
+                    "retries": 0,
+                    "rows_returned": len(contributors),
+                    "ai_model_used": None,
+                    "is_followup": is_followup,
+                    "followup_type": followup_type,
+                    "resolved_question": question_for_ai,
+                })
+            return render_template(
+                "chat.html",
+                user_datasets=user_datasets,
+                selected_dataset=selected_dataset,
+                question=question,
+                sql=None,
+                is_why_investigation=True,
+                result=why_result_html,
+                explanation=why_explanation,
+                chart=None,
+                chart_spec=why_chart_spec,
+                execution_time_ms=0.0,
+                confidence="high",
+                retries=0,
+                rows_returned=len(contributors),
+                tts_speech=why_tts_speech,
+            )
+        # Investigation couldn't run on this dataset (no date/metric pair, not enough
+        # history, etc.) - fall through and answer as a normal question instead of erroring.
+
     from ai.multi_concept_engine import execute_multi_concept_analysis
 
     # Computed here (rather than after the AI call, as before) because the timeout
