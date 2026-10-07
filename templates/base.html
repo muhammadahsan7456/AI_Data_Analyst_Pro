@@ -53,7 +53,7 @@
                 </div>
 
                 <ul class="sidebar-menu">
-                    {% if is_logged_in and (g.user_role in ['SuperAdmin', 'Admin'] or not subscription_info or subscription_info.status in ['active', 'expiring_soon']) %}
+                    {% if is_logged_in %}
                     <li>
                         <a href="{{ url_for('frontend.dashboard') }}" class="sidebar-link {% if request.endpoint == 'frontend.dashboard' %}active{% endif %}">
                             <i class="fa-solid fa-chart-line"></i> Dashboard
@@ -101,13 +101,6 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% elif is_logged_in %}
-                    <li>
-                        <a href="{{ url_for('frontend.waiting_approval') if subscription_info.status == 'pending_approval' else url_for('frontend.renew_subscription') }}" class="sidebar-link active" style="color: #f59e0b; font-weight: 700;">
-                            <i class="fa-solid fa-hourglass-half"></i>
-                            {% if subscription_info.status == 'pending_approval' %}Pending Approval{% elif subscription_info.status == 'rejected' %}Payment Rejected{% else %}Account Suspended{% endif %}
-                        </a>
-                    </li>
                     {% endif %}
 
                     <li>
