@@ -80,7 +80,7 @@ from uploads.data_loader import auto_repair_dataframe_headers, clean_table_name
 from ai.smart_selector import detect_best_dataset_for_query
 from ai.multi_dataset import execute_multi_dataset_analysis
 from ai.voice import format_tts_response
-from ai.query_plan_engine import parse_question_to_query_plan
+from ai.query_plan_engine import parse_question_to_query_plan, resolve_followup_question, set_conversational_context
 from utils.logger import log_ai_event, log_upload_event
 from ai.gemini import (
     execute_sql_with_retry,
@@ -840,21 +840,14 @@ def chat():
         except Exception as quota_err:
             print("AI Query Quota Check Error:", quota_err)
 
-    # Conversation Context Memory & Session City/Status Persistence (Multi-Turn Context)
-    last_query = session.get("last_query", "")
-    last_sql = session.get("last_sql", "")
-    last_city = session.get("last_city", "")
-    q_low = question.lower()
-    if last_sql and any(kw in q_low for kw in ["sort", "order", "descending", "ascending"]):
-        if "order by" not in last_sql.lower() and "sort" in q_low:
-            if "desc" in q_low or "descending" in q_low:
-                question_for_ai = f"{last_query} sorted descending"
-            else:
-                question_for_ai = f"{last_query} sorted"
-        else:
-            question_for_ai = question
-    else:
-        question_for_ai = question
+    # Conversational follow-up detection & merge (Multi-Turn Context). Handles short,
+    # structurally-incomplete-looking questions ("now for Lahore", "break it down by
+    # month", "revenue instead", "sort descending") by merging them into the previous
+    # turn's resolved question and re-running the normal pipeline on the combined result -
+    # see ai.query_plan_engine.resolve_followup_question for the detection/merge logic and
+    # why this approach was chosen over hand-patching a SQL/query-plan object. A normal,
+    # fully-specified question is returned completely unchanged (same as before).
+    question_for_ai, is_followup, followup_type = resolve_followup_question(question, user_id, table_name)
 
     columns = get_table_columns(table_name)
     if not columns:
@@ -1007,6 +1000,13 @@ def chat():
     session["last_query"] = question
     session["last_sql"] = ai_result["sql"]
 
+    # Save resolved conversational context (the fully merged question, not just the raw
+    # fragment the user typed) so the NEXT follow-up builds on the complete accumulated
+    # intent - e.g. "total sales by city" -> "now for Lahore" stores "total sales by city
+    # for Lahore", so a third turn like "break it down by month" merges onto that, not just
+    # onto "now for Lahore" alone.
+    set_conversational_context(user_id, table_name, question_for_ai, ai_result["sql"])
+
     # Record User Query History (User Data Isolation)
     try:
         from database.queries import insert_query_history
@@ -1112,7 +1112,10 @@ def chat():
             "confidence": ai_result["confidence"],
             "retries": ai_result["retries"],
             "rows_returned": ai_result["rows_returned"],
-            "ai_model_used": ai_model_used
+            "ai_model_used": ai_model_used,
+            "is_followup": is_followup,
+            "followup_type": followup_type,
+            "resolved_question": question_for_ai
         })
 
     return render_template(

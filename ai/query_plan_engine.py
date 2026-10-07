@@ -19,7 +19,7 @@ import sys
 import re
 import pandas as pd
 from ai.schema_intelligence import get_dataset_schema_intelligence
-from ai.value_matcher import extract_multi_value_filters, find_unresolved_proper_nouns
+from ai.value_matcher import extract_multi_value_filters, find_unresolved_proper_nouns, get_column_vocabulary, find_values_in_question
 from utils.cache import system_cache
 from ai.metric_resolver import (
     get_real_numeric_columns,
@@ -85,22 +85,162 @@ def _extract_date_token(text_segment: str, end_of_month: bool = False):
     return None
 
 
-# Session memory for follow-up conversational context
+# Session memory for follow-up conversational context. Previously defined here but never
+# called from anywhere (set_conversational_context/get_conversational_context only stored
+# filters/select_cols and nothing read them back) - now wired up by resolve_followup_question
+# below and called from frontend.chat() after every successful answer.
 _conversational_history = {}
 
 
-def set_conversational_context(user_id: int, filters: list, select_cols: list):
-    """Saves preceding query filters for conversational follow-ups."""
+def set_conversational_context(user_id: int, table_name: str, question: str, sql: str):
+    """Saves the resolved question/table/SQL from a successful answer, for the next
+    request's follow-up detection. Keyed by user_id only (one active conversation thread
+    per user, matching how session["last_query"]/session["last_sql"] already worked)."""
     if user_id:
         _conversational_history[user_id] = {
-            "filters": filters,
-            "select_cols": select_cols
+            "table_name": table_name,
+            "question": question,
+            "sql": sql,
         }
 
 
 def get_conversational_context(user_id: int) -> dict:
-    """Retrieves preceding query context for follow-up questions."""
-    return _conversational_history.get(user_id, {})
+    """Retrieves the preceding resolved question/table/SQL for follow-up questions."""
+    return _conversational_history.get(user_id, {}) if user_id else {}
+
+
+_FOLLOWUP_SHAPE_RE = re.compile(
+    r"^(now|and|also|what about|how about)\b"
+    r"|^(by|for|in|during|per)\s+\S"
+    r"|^(break\s*it\s*down|breakdown|split|group)\s+by\b"
+    r"|^(sort|order)\b",
+    re.IGNORECASE,
+)
+_DATE_GRAIN_WORDS = {"month", "year", "week", "day", "quarter", "date"}
+_RELATIVE_DATE_RE = re.compile(
+    r"\b(last|this|next)\s+(month|year|week|quarter|day)\b|\b(19|20)\d{2}\b|\byesterday\b|\btoday\b"
+    r"|\b(" + "|".join(_MONTH_NAMES.keys()) + r")\b",
+    re.IGNORECASE,
+)
+
+
+def resolve_followup_question(question: str, user_id: int, table_name: str) -> tuple:
+    """
+    Detects whether `question` is a conversational follow-up to the user's previous
+    successful question on this same dataset, and if so, merges it into a single,
+    complete, self-contained question by re-combining it with the previous one - which is
+    then handed to the SAME deterministic pipeline (query plan engine / fast pattern SQL
+    generator) as any other fresh question, rather than hand-patching a SQL/query-plan
+    object. This reuses the pipeline's existing, battle-tested filter/group-by/date
+    resolution instead of duplicating it, and keeps the merged result just as
+    deterministic and auditable as a normal question.
+
+    Returns (resolved_question, is_followup, followup_type). When nothing qualifies as a
+    follow-up, returns (question, False, None) - the original question, untouched, so a
+    normal fully-specified question is never slowed down or misrouted. A narrow regex gate
+    (_FOLLOWUP_SHAPE_RE) plus an 8-word cap run BEFORE any of the heavier resolution below,
+    so the cost of this check on a normal question is a couple of regex matches.
+    """
+    context = get_conversational_context(user_id)
+    last_query = context.get("question") if context else None
+    if not last_query or context.get("table_name") != table_name:
+        return question, False, None
+
+    q = (question or "").strip()
+    q_low = q.lower()
+    if not q or len(q.split()) > 8 or not _FOLLOWUP_SHAPE_RE.search(q_low):
+        return question, False, None
+
+    # 1. Sort/order follow-up - same behavior the narrow special case in chat() used to
+    # handle on its own; folded in here so it's one mechanism, not two.
+    if any(kw in q_low for kw in ["sort", "order", "descending", "ascending"]):
+        last_sql = (context.get("sql") or "").lower()
+        if "order by" not in last_sql:
+            suffix = " sorted descending" if ("desc" in q_low or "descending" in q_low) else " sorted"
+            return last_query + suffix, True, "sort"
+
+    try:
+        schema_intel = get_dataset_schema_intelligence(table_name)
+    except Exception:
+        schema_intel = {}
+    categorical_cols = get_real_categorical_columns(schema_intel) if schema_intel else []
+    numeric_cols = get_real_numeric_columns(schema_intel) if schema_intel else []
+    date_cols = schema_intel.get("date_columns", []) if schema_intel else []
+
+    # 2. Group-by follow-up: "break it down by city", "by month", "group by product".
+    gb_match = re.search(
+        r"(?:break\s*it\s*down\s+by|breakdown\s+by|split\s+by|group\s+by|^by)\s+([a-z][a-z0-9_ ]{1,30})",
+        q_low,
+    )
+    if gb_match:
+        word = gb_match.group(1).strip()
+        dimension = resolve_groupby_column(q_low, categorical_cols) if categorical_cols else None
+        if not dimension and date_cols and any(w in word for w in _DATE_GRAIN_WORDS):
+            # "by month"/"by year" etc. isn't a literal column, but if the dataset has a
+            # real date column the downstream date-grouping logic already knows how to
+            # turn "<metric> by month" into a date-truncated GROUP BY - just pass the
+            # phrase through rather than trying to resolve it to a column name here.
+            dimension = word
+        if dimension:
+            # Strip any existing trailing "by X" from the previous question first, so two
+            # group-by instructions across turns don't stack into a conflicting question.
+            # Non-greedy with a lookahead boundary at the next clause keyword (or end of
+            # string) - a plain greedy `[a-z0-9_ ]*$` here would swallow a trailing filter
+            # clause too (e.g. "total revenue by city for Lahore" -> stripping "by city"
+            # greedily also ate "for Lahore", silently dropping that filter on the next
+            # group-by follow-up).
+            base = re.sub(
+                r"\s+by\s+[a-z0-9_]+(?:\s+[a-z0-9_]+)*?(?=\s+(?:for|in|during|since|after|before)\b|$)",
+                "", last_query, count=1, flags=re.IGNORECASE
+            ).strip()
+            return f"{base} by {dimension}", True, "group_by"
+
+    # 3. Metric-swap follow-up: "what about returns instead", "revenue instead".
+    if "instead" in q_low:
+        fragment = re.sub(r"\binstead\b", "", q_low).strip()
+        fragment = re.sub(r"^(what about|how about|and|also)\s+", "", fragment).strip()
+        if fragment and numeric_cols:
+            new_metric, _ = resolve_metric_column(fragment, numeric_cols)
+            old_metric, _ = resolve_metric_column(last_query.lower(), numeric_cols)
+            if new_metric and old_metric and new_metric.lower() != old_metric.lower():
+                new_q = re.sub(re.escape(old_metric), new_metric, last_query, flags=re.IGNORECASE)
+                if new_q.lower() == last_query.lower():
+                    new_q = f"{fragment} {last_query}"
+                return new_q, True, "metric_swap"
+
+    # 4. Relative time-period follow-up: "what about last month", "for this year" - handed
+    # straight to the downstream date parser (parse_question_to_query_plan already resolves
+    # these phrases on a normal question), so no column/value resolution is needed here.
+    value_fragment = re.sub(
+        r"^(now|and|also|what about|how about|for|in|during)\s+", "", q, flags=re.IGNORECASE
+    ).strip()
+    if value_fragment and _RELATIVE_DATE_RE.search(value_fragment.lower()):
+        return f"{last_query} in {value_fragment}", True, "time_period"
+
+    # 5. Value/filter follow-up: "now for Lahore", "what about Karachi".
+    if value_fragment and table_name:
+        try:
+            vocab = get_column_vocabulary(table_name, schema_intel)
+            found = find_values_in_question(value_fragment, vocab) if vocab else {}
+        except Exception:
+            found = {}
+        if found:
+            col, vals = next(iter(found.items()))
+            val = vals[0]
+            try:
+                prior_found = find_values_in_question(last_query, {col: vocab.get(col, [])})
+            except Exception:
+                prior_found = {}
+            if col in prior_found and prior_found[col]:
+                prior_val = prior_found[col][0]
+                new_q = re.sub(re.escape(prior_val), val, last_query, flags=re.IGNORECASE)
+                if new_q.lower() != last_query.lower():
+                    return new_q, True, "filter_swap"
+            return f"{last_query} for {val}", True, "filter_add"
+
+    # Looked follow-up-shaped but nothing concrete resolved against this dataset - safer
+    # to run it as its own fresh question than to guess and silently answer the wrong one.
+    return question, False, None
 
 
 def validate_concept_availability(question: str, schema_intel: dict) -> dict:
@@ -444,6 +584,29 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
             area_direct_col = next((c for c in column_list if any(kw in c.lower() for kw in ["area", "city", "destination", "location", "region", "country"])), None)
             if area_direct_col:
                 group_col = area_direct_col
+
+    # Step B.5: Date-grain breakdown ("by month", "by year", "by week", "by quarter") -
+    # wise_target names a time grain, not a real column, so Step C/D below would never
+    # resolve it (there's no literal "Month" column to match). If the dataset has a real
+    # date column, build a GROUP BY on a truncated/formatted version of it instead - this
+    # is also what makes a conversational follow-up like "break it down by month" (see
+    # resolve_followup_question) actually produce a month breakdown rather than silently
+    # falling back to an un-grouped total.
+    if not group_col and wise_target in _DATE_GRAIN_WORDS:
+        schema_date_cols = schema_intel.get("date_columns", []) if schema_intel else []
+        grain_date_col = schema_date_cols[0] if schema_date_cols else None
+        if grain_date_col:
+            safe_date_expr = f"TRY_CAST([{grain_date_col}] AS DATE)"
+            grain_sql = {
+                "day": f"FORMAT({safe_date_expr}, 'yyyy-MM-dd')",
+                "week": f"CONCAT(DATEPART(yyyy, {safe_date_expr}), '-W', RIGHT('0' + CAST(DATEPART(wk, {safe_date_expr}) AS VARCHAR(2)), 2))",
+                "month": f"FORMAT({safe_date_expr}, 'yyyy-MM')",
+                "quarter": f"CONCAT(DATEPART(yyyy, {safe_date_expr}), '-Q', DATEPART(q, {safe_date_expr}))",
+                "year": f"FORMAT({safe_date_expr}, 'yyyy')",
+                "date": f"FORMAT({safe_date_expr}, 'yyyy-MM-dd')",
+            }.get(wise_target)
+            if grain_sql:
+                group_col = grain_sql
 
     # Step C: If wise_target was another column concept (e.g. "country", "department", "company", "status", "category", "product", "role")
     if not group_col and wise_target:

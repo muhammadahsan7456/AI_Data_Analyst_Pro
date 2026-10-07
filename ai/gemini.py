@@ -502,6 +502,12 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
                             select_items.append(f"{sc} AS [{alias}]")
                         elif sc.startswith("[") and sc.endswith("]"):
                             select_items.append(sc)
+                        elif "(" in sc:
+                            # A raw SQL expression (e.g. the FORMAT(...)/DATEPART(...) date-
+                            # grain breakdown query_plan_engine builds for "by month"/"by
+                            # year" follow-ups) rather than a bare column name - bracket-
+                            # wrapping it like a column (f"[{sc}]") would produce invalid T-SQL.
+                            select_items.append(f"{sc} AS [Period]")
                         else:
                             select_items.append(f"[{sc}]")
 

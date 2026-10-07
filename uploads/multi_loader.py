@@ -462,6 +462,19 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None,
         except Exception:
             pass
 
+        # database.connection.get_existing_base_tables() caches the full list of real SQL
+        # tables for 180s to avoid a slow INFORMATION_SCHEMA scan on every request. Without
+        # invalidating it here, a table created by THIS upload is invisible to frontend.chat()
+        # (which filters the user's datasets through that same cached set) for up to 180s on
+        # a server whose cache was already warm - "No dataset uploaded in your account" for a
+        # dataset that very much was, immediately after uploading it.
+        try:
+            from utils.cache import system_cache
+            if system_cache:
+                system_cache.delete("db_existing_base_tables")
+        except Exception:
+            pass
+
         # Record dataset metadata
         with get_db_cursor(commit=True) as cursor:
             try:
