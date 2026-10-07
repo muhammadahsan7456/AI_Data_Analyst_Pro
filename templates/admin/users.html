@@ -243,5 +243,19 @@
             </tbody>
         </table>
     </div>
+
+    {% if total_pages and total_pages > 1 %}
+    <div class="pagination-bar">
+        <div>Showing Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong> ({{ total_found }} matching user{{ 's' if total_found != 1 else '' }})</div>
+        <div class="pagination-controls">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.manage_users', page=page-1, q=search_query, role=role_filter, status=status_filter) }}" class="btn btn-secondary btn-sm">⬅ Previous</a>
+            {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.manage_users', page=page+1, q=search_query, role=role_filter, status=status_filter) }}" class="btn btn-secondary btn-sm">Next ➡️</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

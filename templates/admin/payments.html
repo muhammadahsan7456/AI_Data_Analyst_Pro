@@ -209,6 +209,20 @@
             </tbody>
         </table>
     </div>
+
+    {% if total_pages and total_pages > 1 %}
+    <div class="pagination-bar">
+        <div>Showing Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong> ({{ total_found }} matching payment{{ 's' if total_found != 1 else '' }})</div>
+        <div class="pagination-controls">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.manage_payments', page=page-1, q=search_query, status=status_filter, method=method_filter, sort=sort_order, start_date=start_date, end_date=end_date) }}" class="btn btn-secondary btn-sm">⬅ Previous</a>
+            {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.manage_payments', page=page+1, q=search_query, status=status_filter, method=method_filter, sort=sort_order, start_date=start_date, end_date=end_date) }}" class="btn btn-secondary btn-sm">Next ➡️</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Reject Reason Modals: one per payment, requires the admin to state why before the

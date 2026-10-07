@@ -1,5 +1,6 @@
 import time
 import secrets
+import math
 from datetime import datetime, timedelta
 from flask import render_template, request, redirect, url_for, flash, session, Response
 from markupsafe import escape
@@ -9,11 +10,17 @@ from database.connection import get_db_cursor
 from database.queries import (
     get_admin_kpis,
     get_all_users_admin,
+    search_users_admin,
+    count_users_admin,
+    get_users_admin_filter_params,
     get_expiring_users_admin,
     update_user_status_admin,
     update_user_role_admin,
     delete_user_admin,
     get_all_payments_admin,
+    search_payments_admin,
+    count_payments_admin,
+    get_payments_admin_filter_params,
     update_payment_status_admin,
     get_all_audit_logs_admin,
     search_audit_logs_admin,
@@ -384,20 +391,41 @@ def dashboard():
 def manage_users():
     """
     Super Admin User Management Panel.
-    Displays all registered users with search, role filter, status toggle, and delete.
+    Displays registered users with search, role filter, status toggle, and delete -
+    paginated and filtered at the DATABASE level (search_users_admin/count_users_admin)
+    rather than loading every user row into Python and filtering/slicing it there, which
+    is what this route used to do and would not have scaled as the Users table grows.
     """
     users_list = []
     search_query = request.args.get("q", "").strip().lower()
     role_filter = request.args.get("role", "").strip()
     status_filter = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int) or 1
+    per_page = 20
 
+    total_found = 0
+    total_pages = 1
     try:
+        params = get_users_admin_filter_params(search_query, role_filter, status_filter)
+
         with get_db_cursor() as cursor:
-            cursor.execute(get_all_users_admin())
+            cursor.execute(count_users_admin(search_query, role_filter, status_filter), tuple(params))
+            total_found = cursor.fetchone()[0] or 0
+
+        total_pages = max(1, math.ceil(total_found / per_page))
+        page = max(1, min(page, total_pages))
+
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                search_users_admin(search_query, role_filter, status_filter, page=page, per_page=per_page),
+                tuple(params)
+            )
             raw_users = cursor.fetchall() or []
 
             # Per-user dataset count & storage usage, so the Super Admin can see who is
             # uploading the most data without having to open each account individually.
+            # Kept as one unfiltered lookup (a small aggregate over Datasets, not a full
+            # Users-table scan) rather than re-querying it per page.
             cursor.execute(get_per_user_storage_admin())
             storage_by_user = {row[0]: {"dataset_count": row[3], "storage_kb": float(row[4] or 0), "total_rows": row[5] or 0} for row in cursor.fetchall()}
 
@@ -409,27 +437,6 @@ def manage_users():
             last_ip = u[14] if len(u) > 14 else "127.0.0.1"
             sub_status = u[15] if len(u) > 15 else "active"
             sub_end = u[16] if len(u) > 16 else None
-            
-            # Apply Filters
-            if search_query:
-                match_text = f"{full_name} {email} {uname} {country} {city} {last_ip}".lower()
-                if search_query not in match_text:
-                    continue
-
-            if role_filter and role != role_filter:
-                continue
-
-            if status_filter:
-                if status_filter == "active" and (not is_active or sub_status not in ("active", "expiring_soon")):
-                    continue
-                if status_filter == "suspended" and sub_status != "suspended":
-                    continue
-                if status_filter == "expired" and sub_status != "expired":
-                    continue
-                if status_filter == "pending_approval" and sub_status != "pending_approval":
-                    continue
-                if status_filter == "rejected" and sub_status != "rejected":
-                    continue
 
             sub_end_formatted = format_12hr_datetime(sub_end) if sub_end else "N/A"
             usage = storage_by_user.get(u_id, {"dataset_count": 0, "storage_kb": 0.0, "total_rows": 0})
@@ -465,7 +472,10 @@ def manage_users():
         users=users_list,
         search_query=search_query,
         role_filter=role_filter,
-        status_filter=status_filter
+        status_filter=status_filter,
+        page=page,
+        total_pages=total_pages,
+        total_found=total_found
     )
 
 
@@ -712,44 +722,38 @@ def manage_payments():
     sort_order = request.args.get("sort", "newest").strip().lower()
     start_date_str = request.args.get("start_date", "").strip()
     end_date_str = request.args.get("end_date", "").strip()
+    page = request.args.get("page", 1, type=int) or 1
+    per_page = 20
 
     order_by = "ASC" if sort_order == "oldest" else "DESC"
 
+    total_found = 0
+    total_pages = 1
     try:
+        params = get_payments_admin_filter_params(search_query, status_filter, method_filter, start_date_str, end_date_str)
+
         with get_db_cursor() as cursor:
-            cursor.execute(get_all_payments_admin(order_by=order_by))
+            cursor.execute(
+                count_payments_admin(search_query, status_filter, method_filter, start_date_str, end_date_str),
+                tuple(params)
+            )
+            total_found = cursor.fetchone()[0] or 0
+
+        total_pages = max(1, math.ceil(total_found / per_page))
+        page = max(1, min(page, total_pages))
+
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                search_payments_admin(search_query, status_filter, method_filter, start_date_str, end_date_str,
+                                       order_by=order_by, page=page, per_page=per_page),
+                tuple(params)
+            )
             raw_p = cursor.fetchall() or []
 
         for p in raw_p:
             p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date, screenshot_path = p[0:12]
             payment_type = p[12] if len(p) > 12 else "New"
             rejection_reason = p[13] if len(p) > 13 else None
-
-            # 1. Search Query Filter
-            if search_query:
-                match_txt = f"{full_name} {email} {txn_id} {method} {plan}".lower()
-                if search_query.lower() not in match_txt:
-                    continue
-
-            # 2. Status Filter
-            if status_filter:
-                if status_filter.lower() == "pending" and status.lower() not in ["pending", "pending_review"]:
-                    continue
-                elif status_filter.lower() != "pending" and status.lower() != status_filter.lower():
-                    continue
-
-            # 3. Method / Bank Filter
-            if method_filter:
-                if method_filter.lower() not in (method or "").lower():
-                    continue
-
-            # 4. Date Range Filter
-            if start_date_str or end_date_str:
-                p_dt_str = str(p_date)[:10] if p_date else ""
-                if start_date_str and p_dt_str < start_date_str:
-                    continue
-                if end_date_str and p_dt_str > end_date_str:
-                    continue
 
             payments_list.append({
                 "id": p_id,
@@ -780,7 +784,10 @@ def manage_payments():
         method_filter=method_filter,
         sort_order=sort_order,
         start_date=start_date_str,
-        end_date=end_date_str
+        end_date=end_date_str,
+        page=page,
+        total_pages=total_pages,
+        total_found=total_found
     )
 
 
@@ -798,9 +805,15 @@ def export_payments_admin(format_type):
             cursor.execute(get_all_payments_admin())
             rows = [tuple(r) for r in (cursor.fetchall() or [])]
 
+        # Column list must match get_all_payments_admin()'s SELECT exactly (17 columns) -
+        # it previously declared only the first 12, which raised a ValueError on every
+        # export ("12 columns passed, passed data had 17 columns") and was silently
+        # swallowed by the except block below as a redirect back to the payments page,
+        # so the CSV/Excel export button has not actually produced a file.
         df = pd.DataFrame(rows, columns=[
             "PaymentID", "UserID", "FullName", "Email", "Amount", "Currency", "PaymentMethod",
-            "TransactionID", "Status", "PlanName", "PaymentDate", "ScreenshotPath"
+            "TransactionID", "Status", "PlanName", "PaymentDate", "ScreenshotPath",
+            "PaymentType", "RejectionReason", "ReviewedBy", "ReviewedAt", "PhoneNumber"
         ]).drop(columns=["ScreenshotPath"])
 
         if format_type == "excel":

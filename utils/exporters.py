@@ -44,7 +44,15 @@ def export_to_excel(df: pd.DataFrame, dataset_name: str = "Dataset") -> bytes:
             
         sample_df = df.head(30)
         for idx, col in enumerate(df.columns, 1):
-            max_len = max(sample_df[col].astype(str).str.len().max() if not sample_df[col].empty else 0, len(str(col)))
+            # A column that's entirely null (e.g. RejectionReason when nothing has been
+            # rejected) makes .astype(str).str.len().max() come back as NaN, not 0 -
+            # pandas keeps NaN as a missing-value marker straight through .astype(str)
+            # rather than turning it into the literal string "nan". int(NaN) then raises
+            # ValueError, which used to abort the whole export.
+            content_max_len = sample_df[col].astype(str).str.len().max() if not sample_df[col].empty else 0
+            if pd.isna(content_max_len):
+                content_max_len = 0
+            max_len = max(content_max_len, len(str(col)))
             col_letter = openpyxl.utils.get_column_letter(idx)
             ws.column_dimensions[col_letter].width = max(int(max_len) + 4, 12)
 

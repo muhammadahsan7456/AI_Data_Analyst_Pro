@@ -697,6 +697,94 @@ def get_all_users_admin(limit=None):
     """
 
 
+def _users_admin_where_clauses(search_query=None, role_filter=None, status_filter=None):
+    """
+    Shared WHERE-clause builder for the Users admin list, used by BOTH
+    search_users_admin() (the page of rows) and count_users_admin() (the total for
+    pagination), so the two queries can never drift out of sync with each other. Returns
+    a list of SQL fragments (joined by the caller) - the matching parameter VALUES, in
+    the same order, are built by get_users_admin_filter_params() below.
+    """
+    clauses = []
+    if search_query:
+        clauses.append(
+            "(LOWER(U.FullName) LIKE ? OR LOWER(U.Email) LIKE ? OR LOWER(U.Username) LIKE ? "
+            "OR LOWER(ISNULL(U.Country,'')) LIKE ? OR LOWER(ISNULL(U.City,'')) LIKE ? OR LOWER(LastIP.IPAddress) LIKE ?)"
+        )
+    if role_filter:
+        clauses.append("U.Role = ?")
+    if status_filter in ("suspended", "expired", "pending_approval", "rejected"):
+        clauses.append("ISNULL(U.SubscriptionStatus, 'active') = ?")
+    elif status_filter == "active":
+        # Matches the exact condition the old Python-side filter used: active AND not
+        # suspended/expired/pending/rejected (expiring_soon still counts as "active").
+        clauses.append("(U.IsActive = 1 AND ISNULL(U.SubscriptionStatus, 'active') IN ('active', 'expiring_soon'))")
+    return clauses
+
+
+def get_users_admin_filter_params(search_query=None, role_filter=None, status_filter=None):
+    """Params matching _users_admin_where_clauses(), in the same order."""
+    params = []
+    if search_query:
+        like = f"%{search_query.lower()}%"
+        params.extend([like] * 6)
+    if role_filter:
+        params.append(role_filter)
+    if status_filter in ("suspended", "expired", "pending_approval", "rejected"):
+        params.append(status_filter)
+    return params
+
+
+_USERS_ADMIN_BASE_SELECT = """
+    FROM Users U
+    OUTER APPLY (
+        SELECT TOP 1 IPAddress FROM AuditLogs
+        WHERE UserID = U.UserID AND IPAddress IS NOT NULL
+        ORDER BY CreatedAt DESC
+    ) LastIP
+"""
+
+
+def search_users_admin(search_query=None, role_filter=None, status_filter=None, page=1, per_page=20):
+    """
+    True database-level paginated + filtered Users list for the admin console (replaces
+    loading every user row into Python and filtering/slicing there). Same filters, same
+    default sort (banned/suspended/expired/expiring-soon first, then newest) as the
+    previous get_all_users_admin()-based version.
+    """
+    where_clauses = _users_admin_where_clauses(search_query, role_filter, status_filter)
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    offset = max(0, (int(page) - 1) * int(per_page))
+    return f"""
+    SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
+           ISNULL(LastIP.IPAddress, '127.0.0.1') AS LastIPAddress,
+           ISNULL(U.SubscriptionStatus, 'active') AS SubscriptionStatus,
+           U.SubscriptionEndDate
+    {_USERS_ADMIN_BASE_SELECT}
+    {where_sql}
+    ORDER BY
+        CASE
+            WHEN U.IsActive = 0 OR U.SubscriptionStatus = 'suspended' THEN 1
+            WHEN U.SubscriptionStatus = 'expired' THEN 2
+            WHEN U.SubscriptionStatus = 'expiring_soon' THEN 3
+            ELSE 4
+        END ASC,
+        U.CreatedAt DESC
+    OFFSET {offset} ROWS FETCH NEXT {int(per_page)} ROWS ONLY
+    """
+
+
+def count_users_admin(search_query=None, role_filter=None, status_filter=None):
+    """Total matching row count for search_users_admin()'s filters, for page-count math."""
+    where_clauses = _users_admin_where_clauses(search_query, role_filter, status_filter)
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    return f"""
+    SELECT COUNT(*)
+    {_USERS_ADMIN_BASE_SELECT}
+    {where_sql}
+    """
+
+
 def update_user_status_admin():
     return """
     UPDATE Users
@@ -734,6 +822,87 @@ def get_all_payments_admin(order_by="DESC", limit=None):
     FROM Payments P
     LEFT JOIN Users U ON P.UserID = U.UserID
     ORDER BY P.PaymentDate {sort_dir}
+    """
+
+
+def _payments_admin_where_clauses(search_query=None, status_filter=None, method_filter=None,
+                                   start_date=None, end_date=None):
+    """Shared WHERE-clause builder for search_payments_admin()/count_payments_admin() -
+    see _users_admin_where_clauses() for why this is split out as its own function."""
+    clauses = []
+    if search_query:
+        clauses.append(
+            "(LOWER(ISNULL(U.FullName,'')) LIKE ? OR LOWER(ISNULL(U.Email,'')) LIKE ? "
+            "OR LOWER(ISNULL(P.TransactionID,'')) LIKE ? OR LOWER(ISNULL(P.PaymentMethod,'')) LIKE ? "
+            "OR LOWER(ISNULL(P.PlanName,'')) LIKE ?)"
+        )
+    if status_filter:
+        if status_filter.lower() == "pending":
+            clauses.append("LOWER(P.Status) IN ('pending', 'pending_review')")
+        else:
+            clauses.append("LOWER(P.Status) = ?")
+    if method_filter:
+        clauses.append("LOWER(ISNULL(P.PaymentMethod,'')) LIKE ?")
+    if start_date:
+        clauses.append("CAST(P.PaymentDate AS DATE) >= ?")
+    if end_date:
+        clauses.append("CAST(P.PaymentDate AS DATE) <= ?")
+    return clauses
+
+
+def get_payments_admin_filter_params(search_query=None, status_filter=None, method_filter=None,
+                                      start_date=None, end_date=None):
+    """Params matching _payments_admin_where_clauses(), in the same order."""
+    params = []
+    if search_query:
+        like = f"%{search_query.lower()}%"
+        params.extend([like] * 5)
+    if status_filter and status_filter.lower() != "pending":
+        params.append(status_filter.lower())
+    if method_filter:
+        params.append(f"%{method_filter.lower()}%")
+    if start_date:
+        params.append(start_date)
+    if end_date:
+        params.append(end_date)
+    return params
+
+
+_PAYMENTS_ADMIN_BASE_SELECT = """
+    FROM Payments P
+    LEFT JOIN Users U ON P.UserID = U.UserID
+"""
+
+
+def search_payments_admin(search_query=None, status_filter=None, method_filter=None,
+                           start_date=None, end_date=None, order_by="DESC", page=1, per_page=20):
+    """
+    True database-level paginated + filtered Payments list for the admin console -
+    replaces loading every payment row into Python and filtering/slicing it there.
+    """
+    sort_dir = "ASC" if str(order_by).upper() == "ASC" else "DESC"
+    where_clauses = _payments_admin_where_clauses(search_query, status_filter, method_filter, start_date, end_date)
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    offset = max(0, (int(page) - 1) * int(per_page))
+    return f"""
+    SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate, P.ScreenshotPath,
+           P.PaymentType, P.RejectionReason, P.ReviewedBy, P.ReviewedAt, U.PhoneNumber
+    {_PAYMENTS_ADMIN_BASE_SELECT}
+    {where_sql}
+    ORDER BY P.PaymentDate {sort_dir}
+    OFFSET {offset} ROWS FETCH NEXT {int(per_page)} ROWS ONLY
+    """
+
+
+def count_payments_admin(search_query=None, status_filter=None, method_filter=None,
+                          start_date=None, end_date=None):
+    """Total matching row count for search_payments_admin()'s filters, for page-count math."""
+    where_clauses = _payments_admin_where_clauses(search_query, status_filter, method_filter, start_date, end_date)
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    return f"""
+    SELECT COUNT(*)
+    {_PAYMENTS_ADMIN_BASE_SELECT}
+    {where_sql}
     """
 
 
