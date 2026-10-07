@@ -74,6 +74,16 @@ def update_job(job_id: str, **fields):
             job["percent"] = 100
 
 
+def get_active_job_count() -> int:
+    """
+    Count of upload jobs currently queued or processing right now - used by the Super
+    Admin Infrastructure Health panel to show real background-job load instead of a
+    static placeholder.
+    """
+    with _lock:
+        return sum(1 for job in _jobs.values() if job.get("status") in ("queued", "processing"))
+
+
 def get_job(job_id: str, user_id: int = None):
     """Return a job, but only to the user who created it."""
     with _lock:

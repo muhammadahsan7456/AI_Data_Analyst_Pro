@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import sqlite3
+import time
 import pandas as pd
 from contextlib import contextmanager
 from dotenv import load_dotenv
@@ -220,6 +221,20 @@ def get_db_cursor(commit=False):
     finally:
         cursor.close()
         conn.close()
+
+
+def measure_db_latency_ms() -> float:
+    """
+    Real round-trip latency for a trivial query (connection acquisition from the pyodbc
+    pool + `SELECT 1` + response), in milliseconds. Used by the Super Admin Infrastructure
+    Health panel - this replaces a previously hardcoded "0.005ms" placeholder with an
+    actual timed measurement taken at the moment the page is loaded.
+    """
+    start = time.time()
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+    return round((time.time() - start) * 1000, 2)
 
 
 def init_sqlite_db(conn):

@@ -900,6 +900,48 @@ def get_all_audit_logs_admin(limit=100):
     """
 
 
+def search_audit_logs_admin(date_from=None, date_to=None, action_type=None, user_search=None,
+                             ip_address=None, text_search=None, limit=300):
+    """
+    Server-side filtered audit log query (date range, action type, user name/email search,
+    IP address, free-text search over the Details column). Every filter is combined with
+    AND; all user-suppliable values are bound as parameters (?), never string-concatenated -
+    the caller must build the params tuple in the exact same order the WHERE clauses below
+    are appended, mirroring the pattern already used in search_datasets().
+    A LEFT JOIN against Users is only needed for the user name/email search, since AuditLogs
+    itself only stores UserID.
+    """
+    where_clauses = []
+    if date_from:
+        where_clauses.append("AL.CreatedAt >= ?")
+    if date_to:
+        where_clauses.append("AL.CreatedAt <= ?")
+    if action_type:
+        where_clauses.append("AL.Action = ?")
+    if user_search:
+        where_clauses.append("(U.FullName LIKE ? OR U.Email LIKE ? OR CAST(AL.UserID AS NVARCHAR(20)) = ?)")
+    if ip_address:
+        where_clauses.append("AL.IPAddress LIKE ?")
+    if text_search:
+        where_clauses.append("AL.Details LIKE ?")
+
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+    return f"""
+    SELECT TOP ({int(limit)}) AL.LogID, AL.UserID, AL.Action, AL.Details, AL.IPAddress, AL.CreatedAt,
+           U.FullName, U.Email
+    FROM AuditLogs AL
+    LEFT JOIN Users U ON AL.UserID = U.UserID
+    {where_sql}
+    ORDER BY AL.CreatedAt DESC
+    """
+
+
+def get_distinct_audit_log_actions():
+    """Distinct Action values for the audit log filter dropdown's option list."""
+    return "SELECT DISTINCT Action FROM AuditLogs ORDER BY Action ASC"
+
+
 # ==========================================
 # QUERY HISTORY QUERIES (USER DATA ISOLATION)
 # ==========================================

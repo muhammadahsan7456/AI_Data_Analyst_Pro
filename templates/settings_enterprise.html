@@ -69,10 +69,10 @@
                 <div>
                     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Primary AI Model</label>
                     <select name="ai_model" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
-                        <option value="openai/gpt-3.5-turbo" selected>OpenAI GPT-3.5 Turbo (Fastest 1.6s)</option>
-                        <option value="meta-llama/llama-3.1-8b-instruct:free">Meta Llama 3.1 8B (Free)</option>
-                        <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free Reasoning)</option>
-                        <option value="openai/gpt-oss-20b:free">OpenAI GPT OSS 20B (Free)</option>
+                        <option value="openai/gpt-4o-mini" {% if current_ai_model == 'openai/gpt-4o-mini' or not current_ai_model %}selected{% endif %}>OpenAI GPT-4o Mini (Default)</option>
+                        <option value="meta-llama/llama-3.3-70b-instruct" {% if current_ai_model == 'meta-llama/llama-3.3-70b-instruct' %}selected{% endif %}>Meta Llama 3.3 70B</option>
+                        <option value="qwen/qwen-2.5-coder-32b-instruct" {% if current_ai_model == 'qwen/qwen-2.5-coder-32b-instruct' %}selected{% endif %}>Qwen 2.5 Coder 32B</option>
+                        <option value="openai/gpt-3.5-turbo" {% if current_ai_model == 'openai/gpt-3.5-turbo' %}selected{% endif %}>OpenAI GPT-3.5 Turbo</option>
                     </select>
                 </div>
 

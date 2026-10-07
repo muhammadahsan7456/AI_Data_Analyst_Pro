@@ -114,16 +114,20 @@ def split_multi_concept_question(question: str) -> list:
     return sub_questions[:MAX_SUB_QUESTIONS]
 
 
-def execute_multi_concept_analysis(question: str, table_name: str, columns_list: list, user_id: int = None) -> dict:
+def execute_multi_concept_analysis(question: str, table_name: str, columns_list: list, user_id: int = None, preferred_model: str = None) -> dict:
     """
     Executes multi-concept resolution for complex multi-part user prompts.
     Produces a unified multi-section report matching ChatGPT / Claude / Gemini quality.
+
+    preferred_model is forwarded to every execute_sql_with_retry() call below, so a user's
+    saved AI-model preference applies whether the question is a single concept or gets split
+    into several sub-questions.
     """
     sub_questions = split_multi_concept_question(question)
 
     # If single question concept, fall back to standard execution with guaranteed chart generation
     if len(sub_questions) <= 1:
-        single_res = execute_sql_with_retry(question, table_name, columns_list, max_retries=3)
+        single_res = execute_sql_with_retry(question, table_name, columns_list, max_retries=3, preferred_model=preferred_model)
         df_single = single_res.get("df", pd.DataFrame())
         if df_single is not None and not df_single.empty:
             import time
@@ -140,7 +144,7 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
     combined_sqls = []
 
     for idx, sub_q in enumerate(sub_questions, 1):
-        res = execute_sql_with_retry(sub_q, table_name, columns_list, max_retries=2)
+        res = execute_sql_with_retry(sub_q, table_name, columns_list, max_retries=2, preferred_model=preferred_model)
         if res and res.get("success"):
             concept_results.append({
                 "concept_id": idx,
@@ -155,7 +159,7 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
                 combined_dfs.append(res["df"])
 
     if not concept_results:
-        return execute_sql_with_retry(question, table_name, columns_list, max_retries=3)
+        return execute_sql_with_retry(question, table_name, columns_list, max_retries=3, preferred_model=preferred_model)
 
     # Build Master Multi-Concept Synthesis
     synthesis_markdown = []

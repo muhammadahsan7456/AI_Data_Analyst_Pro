@@ -254,6 +254,9 @@ def datetime_12hr_filter(val):
 # HTTP Performance Caching & Security Headers
 @app.after_request
 def add_performance_headers(response):
+    from utils.request_stats import record_request
+    record_request(response.status_code)
+
     if request.path.startswith("/static/") or request.path == "/favicon.ico":
         # Static assets (CSS/JS/images) are safe and fast to let the browser cache -
         # forcing no-cache on these was making every page reload every asset every time.

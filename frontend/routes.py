@@ -884,7 +884,8 @@ def chat():
     ASK_AI_TIMEOUT_SECONDS = 25
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as _ai_executor:
         _ai_future = _ai_executor.submit(
-            execute_multi_concept_analysis, question_for_ai, table_name, columns, user_id=user_id
+            execute_multi_concept_analysis, question_for_ai, table_name, columns,
+            user_id=user_id, preferred_model=session.get("ai_model")
         )
         try:
             ai_result = _ai_future.result(timeout=ASK_AI_TIMEOUT_SECONDS)
@@ -1018,12 +1019,21 @@ def chat():
     except Exception:
         pass
 
+    preferred_ai_model = session.get("ai_model")
+    explanation_model_used = None
     try:
-        explanation = generate_data_business_summary(selected_dataset[2], df, question)
+        explanation, explanation_model_used = generate_data_business_summary(selected_dataset[2], df, question, preferred_model=preferred_ai_model)
     except Exception as e:
         import traceback
         traceback.print_exc()
         explanation = f"Query executed successfully on dataset [{selected_dataset[2]}]. Displaying {len(df)} matching records."
+
+    # Whichever model actually answered this question (SQL generation and/or the
+    # explanation may each separately fall through to the LLM, or not need it at all if
+    # the fast deterministic pattern engine handled everything) - surfaced in the response
+    # so the Enterprise Settings "AI model" preference is independently verifiable rather
+    # than just trusted to have been applied.
+    ai_model_used = ai_result.get("model_used") or explanation_model_used
 
     # Natural Spoken Speech formatting (Feature 2)
     tts_speech = format_tts_response(question, df, explanation)
@@ -1101,7 +1111,8 @@ def chat():
             "execution_time_ms": ai_result["execution_time_ms"],
             "confidence": ai_result["confidence"],
             "retries": ai_result["retries"],
-            "rows_returned": ai_result["rows_returned"]
+            "rows_returned": ai_result["rows_returned"],
+            "ai_model_used": ai_model_used
         })
 
     return render_template(
@@ -1328,7 +1339,8 @@ def settings_enterprise():
         return redirect(url_for("frontend.settings_enterprise"))
 
     current_privacy = session.get("privacy_level", 3)
-    return render_template("settings_enterprise.html", current_privacy=current_privacy)
+    current_ai_model = session.get("ai_model", "openai/gpt-4o-mini")
+    return render_template("settings_enterprise.html", current_privacy=current_privacy, current_ai_model=current_ai_model)
 
 
 # ==========================================

@@ -95,7 +95,7 @@ def ask_ai():
 
     # AI Explanation
     explanation_prompt = explain_result(question, df.to_string(index=False))
-    explanation = ask_gemini(explanation_prompt)
+    explanation, _ = ask_gemini(explanation_prompt)
 
     print("\n========== AI EXPLANATION ==========\n")
     print(explanation)

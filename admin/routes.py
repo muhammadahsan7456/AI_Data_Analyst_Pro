@@ -16,6 +16,8 @@ from database.queries import (
     get_all_payments_admin,
     update_payment_status_admin,
     get_all_audit_logs_admin,
+    search_audit_logs_admin,
+    get_distinct_audit_log_actions,
     get_all_contact_messages,
     update_contact_message_status,
     delete_contact_message,
@@ -1039,19 +1041,58 @@ def update_payment_status(payment_id):
 @admin_required
 def audit_logs():
     """
-    Super Admin Audit Logs Viewer.
+    Super Admin Audit Logs Viewer, with server-side date range / action type / user
+    (name, email, or numeric UserID) / IP address / free-text filtering - every filter is
+    applied as a real SQL WHERE clause (search_audit_logs_admin), not by loading a fixed
+    batch of rows and filtering them in Python/JS.
     """
+    date_from = request.args.get("date_from", "").strip() or None
+    date_to = request.args.get("date_to", "").strip() or None
+    action_type = request.args.get("action_type", "").strip() or None
+    user_search = request.args.get("user_search", "").strip() or None
+    ip_address = request.args.get("ip_address", "").strip() or None
+    text_search = request.args.get("q", "").strip() or None
+
     logs_list = []
+    action_options = []
     try:
         with get_db_cursor() as cursor:
-            cursor.execute(get_all_audit_logs_admin(limit=150))
+            cursor.execute(get_distinct_audit_log_actions())
+            action_options = [r[0] for r in cursor.fetchall() if r[0]]
+
+        params = []
+        if date_from:
+            params.append(date_from)
+        if date_to:
+            # Inclusive of the whole end day, since CreatedAt carries a time component.
+            params.append(date_to + " 23:59:59")
+        if action_type:
+            params.append(action_type)
+        if user_search:
+            like_user = f"%{user_search}%"
+            params.extend([like_user, like_user, user_search])
+        if ip_address:
+            params.append(f"%{ip_address}%")
+        if text_search:
+            params.append(f"%{text_search}%")
+
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                search_audit_logs_admin(
+                    date_from=date_from, date_to=date_to, action_type=action_type,
+                    user_search=user_search, ip_address=ip_address, text_search=text_search,
+                    limit=300
+                ),
+                tuple(params)
+            )
             raw_logs = cursor.fetchall() or []
 
         for log in raw_logs:
-            log_id, user_id, action, details, ip_addr, created_at = log
+            log_id, user_id, action, details, ip_addr, created_at, full_name, email = log
             logs_list.append({
                 "id": log_id,
                 "user_id": user_id or "System",
+                "user_label": full_name or email or (str(user_id) if user_id else "System"),
                 "event_type": action,
                 "description": details or "No details provided",
                 "ip_address": ip_addr or "127.0.0.1",
@@ -1060,7 +1101,18 @@ def audit_logs():
     except Exception as e:
         print("Admin Audit Logs Error:", e)
 
-    return render_template("admin/audit_logs.html", logs=logs_list)
+    return render_template(
+        "admin/audit_logs.html",
+        logs=logs_list,
+        action_options=action_options,
+        date_from=date_from or "",
+        date_to=date_to or "",
+        action_type=action_type or "",
+        user_search=user_search or "",
+        ip_address=ip_address or "",
+        text_search=text_search or "",
+        result_count=len(logs_list)
+    )
 
 
 @admin_bp.route("/settings", methods=["GET", "POST"])
@@ -1093,7 +1145,49 @@ def settings():
         return redirect(url_for("admin.settings"))
 
     from auth.routes import _get_payment_settings_dict
-    return render_template("admin/settings.html", announcement=fetch_site_announcement(), payment_settings=_get_payment_settings_dict())
+
+    # Live Infrastructure Health metrics - every value below is measured at page-load time
+    # from the actual running process, not a hardcoded placeholder. Metrics that genuinely
+    # can't be measured without adding real APM infrastructure (e.g. a true ODBC
+    # connection-pool occupancy count - pyodbc's pooling is driver-manager-level and isn't
+    # introspectable from Python) are intentionally left out rather than faked.
+    import time as _time
+    from utils.request_stats import APP_START_TIME, get_request_stats
+    from database.connection import measure_db_latency_ms
+    from utils.cache import system_cache
+    from uploads.upload_jobs import get_active_job_count
+
+    try:
+        db_latency_ms = measure_db_latency_ms()
+        db_ok = True
+    except Exception as db_err:
+        db_latency_ms = None
+        db_ok = False
+        print("Infra Health DB Check Error:", db_err)
+
+    cache_stats = system_cache.get_stats()
+    active_jobs = get_active_job_count()
+    req_stats = get_request_stats()
+    uptime_seconds = int(_time.time() - APP_START_TIME)
+    uptime_h, _rem = divmod(uptime_seconds, 3600)
+    uptime_m, uptime_s = divmod(_rem, 60)
+    uptime_display = f"{uptime_h}h {uptime_m}m {uptime_s}s" if uptime_h else (f"{uptime_m}m {uptime_s}s" if uptime_m else f"{uptime_s}s")
+
+    infra_health = {
+        "db_ok": db_ok,
+        "db_latency_ms": db_latency_ms,
+        "cache_size": cache_stats["size"],
+        "cache_maxsize": cache_stats["maxsize"],
+        "cache_hit_ratio": cache_stats["hit_ratio"],
+        "cache_hits": cache_stats["hits"],
+        "cache_misses": cache_stats["misses"],
+        "active_upload_jobs": active_jobs,
+        "uptime_display": uptime_display,
+        "request_total": req_stats["total"],
+        "request_errors": req_stats["errors"],
+    }
+
+    return render_template("admin/settings.html", announcement=fetch_site_announcement(), payment_settings=_get_payment_settings_dict(), infra_health=infra_health)
 
 
 @admin_bp.route("/settings/payment", methods=["POST"])

@@ -378,54 +378,58 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 14px;">
-            <!-- Health Row 1 -->
+            <!-- Row 1: real DB round-trip latency, measured at page-load time -->
             <div class="health-status-row">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid fa-database" style="font-size: 18px; color: var(--accent-blue);"></i>
                     <div>
                         <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Microsoft SQL Server Engine</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">Primary Relational Database Connection</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Live round-trip latency (connection + SELECT 1), measured just now</div>
                     </div>
                 </div>
+                {% if infra_health.db_ok %}
                 <span class="badge-status badge-active" style="display: inline-flex; align-items: center; gap: 4px;">
-                    <span class="pulse-dot pulse-green"></span> 0.005ms
+                    <span class="pulse-dot pulse-green"></span> {{ infra_health.db_latency_ms }}ms
                 </span>
+                {% else %}
+                <span class="badge-status" style="background: rgba(239,68,68,0.15); color: #f87171;">Unreachable</span>
+                {% endif %}
             </div>
 
-            <!-- Health Row 2 -->
-            <div class="health-status-row">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fa-solid fa-key" style="font-size: 18px; color: var(--accent-green);"></i>
-                    <div>
-                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">AES-256 Fernet Encryption</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">Field Encryption Active at Rest</div>
-                    </div>
-                </div>
-                <span class="badge-status badge-active">Encrypted</span>
-            </div>
-
-            <!-- Health Row 3 -->
-            <div class="health-status-row">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fa-solid fa-shield-halved" style="font-size: 18px; color: var(--accent-purple);"></i>
-                    <div>
-                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Session Timeout Guard</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">1-Hour Inactivity Security Guard</div>
-                    </div>
-                </div>
-                <span class="badge-status badge-active">Active</span>
-            </div>
-
-            <!-- Health Row 4 -->
+            <!-- Row 2: real in-memory cache stats from utils.cache.system_cache -->
             <div class="health-status-row">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid fa-bolt" style="font-size: 18px; color: var(--accent-amber);"></i>
                     <div>
-                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">High Scale Dataset Engine</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">10M+ Rows Streaming Chunking</div>
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">In-Memory Cache (system_cache)</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">{{ infra_health.cache_hits }} hits / {{ infra_health.cache_misses }} misses since last restart</div>
                     </div>
                 </div>
-                <span class="badge-status badge-active">100k rows/s</span>
+                <span class="badge-status badge-active">{{ infra_health.cache_hit_ratio }}% hit rate · {{ infra_health.cache_size }}/{{ infra_health.cache_maxsize }} entries</span>
+            </div>
+
+            <!-- Row 3: real count of in-progress background upload jobs -->
+            <div class="health-status-row">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 18px; color: var(--accent-purple);"></i>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Background Upload Jobs</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Large-file ingestion jobs currently queued or processing</div>
+                    </div>
+                </div>
+                <span class="badge-status {% if infra_health.active_upload_jobs > 0 %}badge-active{% endif %}">{{ infra_health.active_upload_jobs }} active</span>
+            </div>
+
+            <!-- Row 4: real process uptime + request/error counters since this process started -->
+            <div class="health-status-row">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-server" style="font-size: 18px; color: var(--accent-green);"></i>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Process Uptime & Requests</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Since the last server restart - {{ infra_health.request_total }} requests, {{ infra_health.request_errors }} server errors (5xx)</div>
+                    </div>
+                </div>
+                <span class="badge-status badge-active">{{ infra_health.uptime_display }}</span>
             </div>
         </div>
 
@@ -434,8 +438,11 @@
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i class="fa-solid fa-circle-check" style="font-size: 20px; color: var(--accent-green);"></i>
                 <div>
-                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">System Operational SLA: 99.99%</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">All enterprise subsystems running smoothly</div>
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">
+                        {% if infra_health.request_total > 0 %}{{ ((infra_health.request_total - infra_health.request_errors) / infra_health.request_total * 100) | round(2) }}%{% else %}100%{% endif %}
+                        of requests succeeded this run
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Computed live from the request/error counters above, not a fixed SLA figure</div>
                 </div>
             </div>
         </div>
