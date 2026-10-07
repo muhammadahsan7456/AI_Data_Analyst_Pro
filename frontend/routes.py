@@ -1488,12 +1488,20 @@ def dataset_details(dataset_id):
     except Exception:
         pass
 
+    kpi_dashboard = None
+    try:
+        from ai.analytics import generate_auto_kpi_dashboard
+        kpi_dashboard = generate_auto_kpi_dashboard(table_name, df)
+    except Exception as kpi_err:
+        print("Auto KPI Dashboard Error:", kpi_err)
+
     return render_template(
         "dataset_details.html",
         dataset=dataset,
         report=report,
         insights=insights,
-        heatmap_chart=heatmap_chart_path
+        heatmap_chart=heatmap_chart_path,
+        kpi_dashboard=kpi_dashboard
     )
 
 

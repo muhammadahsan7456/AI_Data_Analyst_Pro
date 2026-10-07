@@ -5,6 +5,73 @@
 {% block header_subtitle %}Column data types, descriptive statistics, health score, missing values, and correlation matrix.{% endblock %}
 
 {% block content %}
+
+{% if kpi_dashboard and kpi_dashboard.success %}
+<!-- Auto-Generated KPI Dashboard: built automatically from this dataset's own columns,
+     no question asked - see ai.analytics.generate_auto_kpi_dashboard(). -->
+<div class="table-card" style="border-left: 4px solid var(--accent-blue); margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); margin: 0;">
+            <i class="fa-solid fa-gauge-high"></i> Auto-Generated KPI Dashboard
+        </h3>
+        <button type="button" id="insights-toggle-btn" class="btn btn-sm btn-secondary" data-dataset-id="{{ dataset[0] }}" onclick="toggleProactiveInsights(this)" style="font-size: 12px;">
+            <i class="fa-solid fa-bell"></i> <span id="insights-toggle-label">Proactive Insights: Loading…</span>
+        </button>
+    </div>
+
+    <div class="cards-grid" style="margin-bottom: {{ '20px' if kpi_dashboard.charts else '0' }};">
+        {% for kpi in kpi_dashboard.kpis %}
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-title">{{ kpi.label }}</span>
+            </div>
+            <div class="metric-value">{{ kpi.value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if kpi_dashboard.charts %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+        {% for chart in kpi_dashboard.charts %}
+        <div style="text-align: center;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">{{ chart.title }}</div>
+            <img src="{{ chart.chart_path }}" alt="{{ chart.title }}" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md);">
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+<script>
+(function () {
+    const btn = document.getElementById('insights-toggle-btn');
+    const label = document.getElementById('insights-toggle-label');
+    if (!btn) return;
+    // Reflects current state on load without a dedicated "get" endpoint - the toggle
+    // route itself returns the resulting state, so the first click sets the label
+    // correctly; until then it shows a neutral label rather than guessing on/off.
+    label.textContent = 'Proactive Insights (click to toggle)';
+})();
+
+function toggleProactiveInsights(btn) {
+    const datasetId = btn.getAttribute('data-dataset-id');
+    const label = document.getElementById('insights-toggle-label');
+    // CSRF header is added automatically by static/js/csrf.js (loaded globally in base.html).
+    fetch(`/dataset/insights-toggle/${datasetId}`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            label.textContent = data.insights_enabled ? 'Proactive Insights: ON' : 'Proactive Insights: OFF';
+            if (window.showAppToast) window.showAppToast(data.insights_enabled ? '✅ Proactive insights enabled for this dataset.' : '🔕 Proactive insights disabled for this dataset.', 'info');
+        }
+    })
+    .catch(() => { if (window.showAppToast) window.showAppToast('Could not update insights setting.', 'error'); });
+}
+</script>
+{% endif %}
+
 <!-- Health Score & Metrics -->
 <div class="cards-grid">
     <div class="metric-card" style="border-left: 4px solid var(--accent-blue);">

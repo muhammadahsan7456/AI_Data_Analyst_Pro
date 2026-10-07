@@ -217,3 +217,131 @@ def generate_ai_insights(df: pd.DataFrame) -> list:
         insights.append("💡 Dataset is well-structured and balanced. Ready for advanced SQL analytics and visualization.")
 
     return insights
+
+
+def generate_auto_kpi_dashboard(table_name: str, df: pd.DataFrame) -> dict:
+    """
+    Auto-generates a sensible default KPI/chart dashboard for a dataset with zero user
+    input - meant to appear right on the dataset's profiling page as soon as it's
+    uploaded, not just when a question is asked about it.
+
+    Column roles (which column is the main numeric metric, which is the main category to
+    break it down by, which is a date axis) are resolved via the SAME schema-intelligence
+    + metric-resolver logic Ask AI's query-plan engine uses (ai.schema_intelligence,
+    ai.metric_resolver) rather than a separate hand-rolled detector, so "what this column
+    means" is answered identically everywhere in the app.
+
+    Degrades through several levels depending on what the dataset actually has: a metric
+    + a category + a date column gets the full 3-chart treatment; fewer real columns just
+    means fewer KPI cards/charts, never an error - a dataset with no clear numeric column
+    still gets a basic row-count/column-count/top-category summary.
+    """
+    from ai.schema_intelligence import get_dataset_schema_intelligence
+    from ai.metric_resolver import get_real_numeric_columns, get_real_categorical_columns
+
+    if df is None or df.empty:
+        return {"success": False, "reason": "Dataset is empty."}
+
+    try:
+        schema_intel = get_dataset_schema_intelligence(table_name)
+    except Exception:
+        schema_intel = {}
+
+    categorical_cols = [c for c in get_real_categorical_columns(schema_intel) if c in df.columns] if schema_intel else []
+    date_cols = [c for c in schema_intel.get("date_columns", []) if c in df.columns] if schema_intel else []
+
+    # schema_intelligence classifies column semantic type from a 300-row SAMPLE, so it can
+    # occasionally call a column "numeric" that, over the full loaded dataframe, is mostly
+    # non-numeric text (observed in testing: a free-text "Comment" column classified as
+    # numeric) - using it as-is for SUM/AVG KPIs or a groupby().sum() chart would silently
+    # produce NaN/string-concatenation nonsense instead of a real number. Re-validated here
+    # against the actual df this function received, not trusted blindly.
+    numeric_cols = []
+    if schema_intel:
+        for c in get_real_numeric_columns(schema_intel):
+            if c not in df.columns:
+                continue
+            coerced = pd.to_numeric(df[c], errors="coerce")
+            if coerced.notna().mean() >= 0.8:
+                numeric_cols.append(c)
+
+    total_rows = len(df)
+    total_cols = len([c for c in df.columns if c.lower() != "recordid"])
+
+    kpis = [{"label": "Total Records", "value": f"{total_rows:,}"}]
+
+    primary_metric = numeric_cols[0] if numeric_cols else None
+    secondary_metric = numeric_cols[1] if len(numeric_cols) > 1 else None
+    primary_cat = categorical_cols[0] if categorical_cols else None
+
+    if primary_metric:
+        series = pd.to_numeric(df[primary_metric], errors="coerce").dropna()
+        if not series.empty:
+            kpis.append({"label": f"Total {primary_metric}", "value": f"{series.sum():,.2f}"})
+            kpis.append({"label": f"Average {primary_metric}", "value": f"{series.mean():,.2f}"})
+    if secondary_metric:
+        series2 = pd.to_numeric(df[secondary_metric], errors="coerce").dropna()
+        if not series2.empty:
+            kpis.append({"label": f"Total {secondary_metric}", "value": f"{series2.sum():,.2f}"})
+    if primary_cat:
+        kpis.append({"label": f"Distinct {primary_cat}", "value": f"{df[primary_cat].nunique():,}"})
+    if not primary_metric and not primary_cat:
+        # Minimal fallback: no clear numeric metric or category at all (e.g. a dataset of
+        # mostly IDs/free text) - still a genuinely useful, non-nonsensical summary.
+        kpis.append({"label": "Total Columns", "value": f"{total_cols:,}"})
+
+    kpis = kpis[:5]
+
+    charts = []  # each: {"title": str, "chart_path": str}
+    try:
+        from visualization.chart_generator import generate_chart
+
+        if primary_metric and primary_cat:
+            grouped = (
+                df.assign(**{primary_metric: pd.to_numeric(df[primary_metric], errors="coerce")})
+                .groupby(primary_cat, dropna=True)[primary_metric]
+                .sum()
+                .sort_values(ascending=False)
+                .head(10)
+                .reset_index()
+            )
+            if not grouped.empty:
+                chart_path = generate_chart(grouped, "bar")
+                if chart_path:
+                    charts.append({"title": f"{primary_metric} by {primary_cat}", "chart_path": f"/static/{chart_path}"})
+
+        if primary_metric and date_cols:
+            trend_df = df[[date_cols[0], primary_metric]].copy()
+            trend_df[date_cols[0]] = pd.to_datetime(trend_df[date_cols[0]], errors="coerce")
+            trend_df[primary_metric] = pd.to_numeric(trend_df[primary_metric], errors="coerce")
+            trend_df = trend_df.dropna()
+            if len(trend_df) >= 2:
+                span_days = (trend_df[date_cols[0]].max() - trend_df[date_cols[0]].min()).days
+                freq = "D" if span_days <= 60 else ("W" if span_days <= 400 else "M")
+                trend_grouped = trend_df.set_index(date_cols[0])[primary_metric].resample(freq).sum().reset_index()
+                trend_grouped[date_cols[0]] = trend_grouped[date_cols[0]].dt.strftime("%Y-%m-%d")
+                if len(trend_grouped) >= 2:
+                    chart_path2 = generate_chart(trend_grouped, "line")
+                    if chart_path2:
+                        charts.append({"title": f"{primary_metric} Over Time", "chart_path": f"/static/{chart_path2}"})
+
+        if not charts and primary_cat:
+            # No numeric metric to chart by category - fall back to a plain record-count
+            # distribution of the main category, still genuinely informative on its own.
+            counts = df[primary_cat].value_counts().head(10).reset_index()
+            counts.columns = [primary_cat, "Record Count"]
+            if not counts.empty:
+                chart_path3 = generate_chart(counts, "bar")
+                if chart_path3:
+                    charts.append({"title": f"Record Count by {primary_cat}", "chart_path": f"/static/{chart_path3}"})
+    except Exception as chart_err:
+        print("[AUTO KPI DASHBOARD] Chart generation notice:", chart_err)
+
+    return {
+        "success": True,
+        "kpis": kpis,
+        "charts": charts[:3],
+        "primary_metric": primary_metric,
+        "primary_category": primary_cat,
+        "has_date_column": bool(date_cols),
+    }
