@@ -545,6 +545,32 @@ def log_query_execution():
 # AI NOTIFICATIONS & SMART ASSISTANT QUERIES
 # ==========================================
 
+def get_datasets_due_for_insight_scan(batch_limit=25):
+    """
+    Datasets eligible for the proactive-insights background scan: InsightsEnabled, and
+    either never scanned or last scanned 24+ hours ago. TOP-limited and ordered oldest-
+    scanned-first so one scheduler tick never tries to scan every dataset in the system at
+    once - it works through the backlog a batch at a time, same spirit as the daily
+    subscription-expiry sweep already being safe to run on every tick.
+    """
+    return f"""
+    SELECT TOP ({int(batch_limit)}) D.DatasetID, D.DatasetName, D.UserID, U.Email
+    FROM Datasets D
+    LEFT JOIN Users U ON D.UserID = U.UserID
+    WHERE D.InsightsEnabled = 1
+      AND (D.LastInsightScanAt IS NULL OR D.LastInsightScanAt < DATEADD(hour, -24, GETDATE()))
+    ORDER BY ISNULL(D.LastInsightScanAt, '1900-01-01') ASC
+    """
+
+
+def mark_dataset_insight_scanned():
+    return "UPDATE Datasets SET LastInsightScanAt = GETDATE() WHERE DatasetID = ?"
+
+
+def toggle_dataset_insights():
+    return "UPDATE Datasets SET InsightsEnabled = CASE WHEN InsightsEnabled = 1 THEN 0 ELSE 1 END WHERE DatasetID = ? AND UserID = ?"
+
+
 def create_ai_notification():
     return """
     INSERT INTO AINotifications (UserID, Category, Title, Message, MetadataJson, IsRead, CreatedAt)

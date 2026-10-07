@@ -730,6 +730,35 @@ def favorite_dataset(dataset_id):
 
 
 # ==========================================
+# PROACTIVE INSIGHTS ON/OFF TOGGLE (per dataset)
+# ==========================================
+@frontend.route("/dataset/insights-toggle/<int:dataset_id>", methods=["POST"])
+@login_required
+def toggle_dataset_insights_route(dataset_id):
+    """
+    Lets a user turn the background proactive-insights scan on/off for one of their own
+    datasets (utils.scheduler.process_proactive_insights_scan only scans datasets with
+    InsightsEnabled=1). The UserID check in the UPDATE itself is what prevents a user from
+    toggling someone else's dataset, not a prior SELECT.
+    """
+    user_id = session.get("user_id")
+    try:
+        from database.queries import toggle_dataset_insights
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(toggle_dataset_insights(), (dataset_id, user_id))
+            affected = cursor.rowcount
+        if affected == 0:
+            return jsonify({"success": False, "error": "Dataset not found or not owned by you."}), 404
+
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT InsightsEnabled FROM Datasets WHERE DatasetID = ?", (dataset_id,))
+            row = cursor.fetchone()
+        return jsonify({"success": True, "insights_enabled": bool(row[0]) if row else None})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+# ==========================================
 # UPDATE TAGS ROUTE (ISOLATED)
 # ==========================================
 @frontend.route("/dataset/tags/<int:dataset_id>", methods=["POST"])

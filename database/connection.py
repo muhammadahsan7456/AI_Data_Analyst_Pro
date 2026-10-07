@@ -627,8 +627,20 @@ def init_db():
             IsFavorite BIT DEFAULT 0,
             Tags NVARCHAR(500) NULL,
             LastOpenedAt DATETIME2 NULL,
-            UploadDate DATETIME2 NOT NULL DEFAULT GETDATE()
+            UploadDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+            InsightsEnabled BIT NOT NULL DEFAULT 1,
+            LastInsightScanAt DATETIME2 NULL
         );
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Datasets') AND name = 'InsightsEnabled')
+    BEGIN
+        ALTER TABLE Datasets ADD InsightsEnabled BIT NOT NULL DEFAULT 1;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Datasets') AND name = 'LastInsightScanAt')
+    BEGIN
+        ALTER TABLE Datasets ADD LastInsightScanAt DATETIME2 NULL;
     END;
 
     IF OBJECT_ID('QueryLogs', 'U') IS NULL

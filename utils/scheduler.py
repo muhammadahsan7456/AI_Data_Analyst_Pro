@@ -12,9 +12,10 @@ from database.connection import get_db_cursor
 from database.queries import (
     get_due_scheduled_reports, update_scheduled_report_last_run,
     auto_suspend_overdue_users, get_users_due_on_date,
-    has_reminder_been_sent, log_reminder_sent, create_ai_notification
+    has_reminder_been_sent, log_reminder_sent, create_ai_notification,
+    get_datasets_due_for_insight_scan, mark_dataset_insight_scanned
 )
-from ai.insight_engine import generate_automated_insights
+from ai.insight_engine import generate_automated_insights, detect_period_over_period_change, phrase_proactive_insight
 from auth.email_service import email_service
 from utils.alert_engine import evaluate_alert_rules_batch
 from utils.db_backup import run_database_backup
@@ -172,6 +173,52 @@ def process_subscription_expiry_sweep():
             print(f"[SCHEDULER ENGINE] Suspension notification error (user {u_id}):", err)
 
 
+def process_proactive_insights_scan():
+    """
+    "Proactive Insights" - surfaces notable findings on a dataset without the user asking
+    a question first. Works through a small batch of datasets that are due (InsightsEnabled
+    and not scanned in the last 24h - see get_datasets_due_for_insight_scan()) every tick;
+    each dataset is only actually re-scanned once a day, so this stays cheap even as the
+    number of datasets grows, same reasoning as process_daily_backup() above.
+
+    Detection (detect_period_over_period_change) is 100% deterministic pandas aggregation -
+    no LLM call happens unless a real, statistically-sized change was already found, and
+    even then phrase_proactive_insight() has a deterministic fallback if the LLM is slow or
+    unavailable. A dataset with nothing notable this cycle just gets its scan timestamp
+    updated and produces no notification - not every scan is expected to find something.
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(get_datasets_due_for_insight_scan(batch_limit=25))
+            due_datasets = cursor.fetchall() or []
+    except Exception as err:
+        print("[SCHEDULER ENGINE] Insight scan lookup error:", err)
+        return
+
+    for dataset_id, table_name, user_id, _email in due_datasets:
+        try:
+            finding = detect_period_over_period_change(table_name)
+            if finding.get("significant"):
+                insight_text = phrase_proactive_insight(finding)
+                metric_direction = f"{finding['metric_col']} {finding['direction']}d {abs(finding['pct_change'])}%"
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(
+                        create_ai_notification(),
+                        (user_id, "proactive_insight", f"📊 Insight: {metric_direction}", insight_text, None)
+                    )
+        except Exception as err:
+            print(f"[SCHEDULER ENGINE] Insight scan error (dataset #{dataset_id}):", err)
+        finally:
+            # Mark scanned even on failure/no-finding, so a dataset that errors once (e.g.
+            # a transient DB hiccup) doesn't get retried every single tick until it happens
+            # to succeed - it'll simply be picked up again on the normal 24h cadence.
+            try:
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(mark_dataset_insight_scanned(), (dataset_id,))
+            except Exception:
+                pass
+
+
 def _scheduler_loop():
     """
     Main background daemon loop. Runs every 60 seconds.
@@ -191,6 +238,10 @@ def _scheduler_loop():
 
             # 4. One full database backup per day
             process_daily_backup()
+
+            # 5. Proactive Insights: scan a small batch of due datasets for notable
+            # period-over-period changes and notify the owner in-app.
+            process_proactive_insights_scan()
         except Exception as err:
             print("[SCHEDULER ENGINE LOG]", err)
 
