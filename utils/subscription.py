@@ -167,7 +167,12 @@ def get_user_subscription_info(user_id: int) -> dict:
             banner_message = f"⚠️ ANNOUNCEMENT: Your Pro subscription plan ends in {days_left} day(s) on {end_date_str}! Please renew your PKR 1,499 plan to avoid service interruption."
             show_banner = True
 
-        is_pro_active = (calc_status == "active" and bool(is_active))
+        # "expiring_soon" is still within the paid 30-day window (days_left is 1-5, not
+        # 0) - it's a renewal warning, not a downgrade. Only "expired"/"suspended" should
+        # drop a user to the free tier; treating "expiring_soon" as not-pro here would
+        # cut a paying user's 500 MB access short by up to 5 days before their actual
+        # SubscriptionEndDate.
+        is_pro_active = (calc_status in ("active", "expiring_soon") and bool(is_active))
 
         return {
             "status": calc_status,
