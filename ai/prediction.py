@@ -135,12 +135,67 @@ def generate_forecast(df: pd.DataFrame, target_col: str = None, date_col: str = 
         smoothed.append(alpha * y_vals[t] + (1 - alpha) * smoothed[-1])
     last_smoothed = smoothed[-1]
 
-    # Combine trend + smoothing
+    # Combine trend + smoothing (the original, always-available point forecast - kept as
+    # the fallback baseline for any dataset too short/sparse to support the seasonal
+    # decomposition below, e.g. no real date column, or under ~3 full weekly cycles).
     forecast_vals = (trend_future + last_smoothed) / 2.0
+    std_err = _base_std_err
+    seasonality_detected = False
+    seasonal_pattern = None
+    algorithm_label = "Linear Trend + Exponential Smoothing (EMA)"
+
+    # Weekly seasonal decomposition (classical additive method - no new dependency
+    # needed, statsmodels isn't installed/available in this project and isn't worth
+    # adding for this). Requires a real date column (so day-of-week is meaningful) and at
+    # least 3 full weekly cycles of daily-resampled data; below that a weekly pattern
+    # can't be distinguished from noise, so the linear-trend fallback above stands as-is.
+    MIN_CYCLES_FOR_SEASONALITY = 3
+    WEEKLY_PERIOD = 7
+    if isinstance(ts_series.index, pd.DatetimeIndex) and len(y_vals) >= WEEKLY_PERIOD * MIN_CYCLES_FOR_SEASONALITY:
+        detrended = y_vals - (slope * x_vals + intercept)
+        day_of_week = ts_series.index.dayofweek.values  # 0=Monday .. 6=Sunday
+        seasonal_index = np.zeros(WEEKLY_PERIOD)
+        for dow in range(WEEKLY_PERIOD):
+            mask = day_of_week == dow
+            if mask.any():
+                seasonal_index[dow] = detrended[mask].mean()
+        seasonal_index -= seasonal_index.mean()  # center so it only redistributes the
+        # trend's residual, never shifts the overall level (that's intercept's job)
+
+        residuals_seasonal = detrended - seasonal_index[day_of_week]
+        residuals_linear = detrended
+
+        # Only adopt the seasonal model if a weekly pattern is actually statistically
+        # significant, not just a trivial reduction in residual variance - fitting 7
+        # free seasonal-index values to noisy data WILL reduce the sum of squared
+        # residuals somewhat even when there's no real cycle (more free parameters always
+        # fit the training data at least as well), so a plain "is variance lower" check
+        # was flagging pure trend+noise data as having a weekly pattern. An F-test weighs
+        # that reduction against the degrees of freedom spent to get it.
+        from scipy import stats as _stats
+        n_obs = len(y_vals)
+        dof_seasonal = WEEKLY_PERIOD - 1
+        ss_linear = float(np.sum(residuals_linear ** 2))
+        ss_seasonal = float(np.sum(residuals_seasonal ** 2))
+        is_significant = False
+        if ss_seasonal > 0 and n_obs > dof_seasonal + 1:
+            f_stat = ((ss_linear - ss_seasonal) / dof_seasonal) / (ss_seasonal / (n_obs - dof_seasonal - 1))
+            p_value = float(_stats.f.sf(f_stat, dof_seasonal, n_obs - dof_seasonal - 1))
+            is_significant = p_value < 0.01
+        if is_significant:
+            seasonality_detected = True
+            seasonal_pattern = "weekly"
+            algorithm_label = "Linear Trend + Weekly Seasonal Decomposition"
+            std_err = float(np.std(residuals_seasonal)) if len(residuals_seasonal) else std_err
+
+            future_dow = np.array([d.dayofweek for d in (
+                ts_series.index[-1] + pd.Timedelta(days=i + 1) for i in range(forecast_days)
+            )])
+            forecast_vals = trend_future + seasonal_index[future_dow]
+
     forecast_vals = np.maximum(0, forecast_vals)  # Non-negative prediction guard
 
     # Confidence Intervals (95% CI)
-    std_err = _base_std_err
     margin_of_error = 1.96 * std_err * (1 + (np.arange(forecast_days) / float(forecast_days)))
 
     upper_bound = forecast_vals + margin_of_error
@@ -209,7 +264,9 @@ def generate_forecast(df: pd.DataFrame, target_col: str = None, date_col: str = 
         "target_col": target_col,
         "date_col": date_col or "Row Index",
         "forecast_days": forecast_days,
-        "algorithm_used": "Linear Trend + Exponential Smoothing (EMA)",
+        "algorithm_used": algorithm_label,
+        "seasonality_detected": seasonality_detected,
+        "seasonal_pattern": seasonal_pattern,
         "trend_direction": trend_direction,
         "pct_growth": pct_growth,
         "avg_historical": round(avg_hist, 2),
