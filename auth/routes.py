@@ -392,6 +392,20 @@ def signup():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(create_email_verification_token(), (new_user_id, otp_code))
 
+            # Sent synchronously so we get the REAL delivery result before putting the user
+            # on a "enter your 6-digit code" screen - previously this fired on a background
+            # thread and always claimed success instantly, so a real SMTP failure (e.g. the
+            # sending account's daily quota being exhausted) left a brand-new signup stuck
+            # on that screen forever with no code that would ever arrive and no indication
+            # anything had gone wrong (the same bug confirmed and fixed for Super Admin
+            # login OTP in this same pass).
+            email_sent = email_service.send_verification_email(email, full_name, otp_code)
+
+            if not email_sent:
+                log_audit_event("SIGNUP_OTP_EMAIL_FAILED", f"6-Digit Email OTP generated for {email} but the email FAILED to send", user_id=new_user_id)
+                flash("We could not send the verification email right now (the email service is temporarily unavailable). Please try again in a few minutes.", "error")
+                return render_template("signup.html", form_data=request.form)
+
             # Store pending OTP & user details in session
             session["pending_otp"] = {
                 "user_id": new_user_id,
@@ -409,8 +423,6 @@ def signup():
                 "attempts": 0
             }
 
-            # Dispatch 6-digit OTP via Email asynchronously in background thread for instant sub-second response
-            threading.Thread(target=email_service.send_verification_email, args=(email, full_name, otp_code), daemon=True).start()
             log_audit_event("SIGNUP_OTP_EMAIL", f"6-Digit Email OTP generated for {email}: {otp_code}", user_id=new_user_id)
 
             flash(Markup(f"🔐 Account details updated! A 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
@@ -562,7 +574,16 @@ def resend_otp():
             cursor.execute(create_email_verification_token(), (user_id, new_otp))
     except Exception: pass
 
-    threading.Thread(target=email_service.send_verification_email, args=(email, full_name, new_otp), daemon=True).start()
+    # Sent synchronously so a real send failure is reported honestly instead of claiming
+    # "a new code has been sent" when it wasn't (see the registration OTP fix above for
+    # the full rationale - same bug, same fix).
+    email_sent = email_service.send_verification_email(email, full_name, new_otp)
+
+    if not email_sent:
+        log_audit_event("RESEND_OTP_EMAIL_FAILED", f"New Email OTP generated for {email} but the email FAILED to send", user_id=user_id)
+        flash("We could not resend the verification email right now (the email service is temporarily unavailable). Please try again in a few minutes.", "error")
+        return redirect(url_for("auth.verify_otp"))
+
     log_audit_event("RESEND_OTP_EMAIL", f"New Email OTP sent to {email}: {new_otp}", user_id=user_id)
     flash(Markup(f"📧 A new 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
@@ -716,8 +737,15 @@ def login():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(create_email_verification_token(), (user_id, otp_code))
 
-            email_service.send_verification_email(em, fnm or un, otp_code)
+            # This page doesn't claim the email was sent (it shows a "Resend Verification
+            # Code" button, which goes through the checked/synchronous resend_otp route
+            # above) - but the attempt and its real result are still logged distinctly so
+            # a failure here is visible in the audit trail rather than only ever appearing
+            # as a generic send with no outcome recorded.
+            email_sent = email_service.send_verification_email(em, fnm or un, otp_code)
             log_login_attempt(user_id, "Unverified")
+            if not email_sent:
+                log_audit_event("LOGIN_UNVERIFIED_OTP_EMAIL_FAILED", f"OTP email FAILED to send to {em} on unverified-login attempt", user_id=user_id)
 
             session["pending_otp"] = {
                 "user_id": user_id,
@@ -838,9 +866,20 @@ def forgot_password():
                 cursor.execute(create_password_reset_token(), (user_id, otp_code))
 
             reset_link = url_for("auth.reset_password", token=otp_code, _external=True)
-            email_service.send_password_reset_email(email, full_name, otp_code, reset_link)
+            # Sent synchronously so a real send failure is captured in the audit log (the
+            # same silent-failure pattern fixed elsewhere in this pass) - but UNLIKE the
+            # registration/login OTP fixes, the user-facing flash below deliberately stays
+            # identical whether this succeeds or fails: branching the visible message on
+            # delivery success would let an attacker distinguish "account exists but email
+            # failed" from "no account" just by comparing responses, defeating the
+            # anti-enumeration protection this route already has by design (see the comment
+            # below). The failure is still fully visible to an operator via the audit log.
+            email_sent = email_service.send_password_reset_email(email, full_name, otp_code, reset_link)
 
-            log_audit_event("FORGOT_PASSWORD_REQUEST", f"Password reset OTP generated for {email}", user_id=user_id)
+            if email_sent:
+                log_audit_event("FORGOT_PASSWORD_REQUEST", f"Password reset OTP generated for {email}", user_id=user_id)
+            else:
+                log_audit_event("FORGOT_PASSWORD_OTP_EMAIL_FAILED", f"Password reset OTP generated for {email} but the email FAILED to send", user_id=user_id)
             trigger_ai_event(user_id, build_forgot_password_card(full_name))
 
         # Always flash the same generic message AND redirect to the same generic URL

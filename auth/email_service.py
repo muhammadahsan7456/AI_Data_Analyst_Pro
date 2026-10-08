@@ -49,12 +49,37 @@ class EmailService:
         """
         Launches an asynchronous daemon background thread for zero-latency instant HTTP response
         while SMTP delivers the email rapidly in the background (< 1 second).
+
+        This always returns True the instant the thread starts - it genuinely cannot report
+        the real delivery outcome to its caller, since by design that caller has already
+        moved on by the time SMTP actually responds. For the handful of flows where that
+        matters because the user is left waiting on something only the email can unlock (an
+        OTP code), the call sites use the synchronous _send_email directly instead (see
+        send_admin_login_otp_email, send_verification_email, send_password_reset_email).
+        For everything else here - notifications about something that already happened
+        (a payment status change, a subscription renewal) - the one thing this method can
+        still guarantee is that a real failure doesn't vanish into an ephemeral print()
+        that only exists in that process's stdout: it's written to AuditLogs directly
+        (bypassing auth.security.log_audit_event, which needs a Flask request context this
+        background thread doesn't have) so a delivery failure is visible and queryable
+        after the fact, the same way the Super Admin OTP failures were discovered in this
+        pass by reading AuditLogs history.
         """
-        thread = threading.Thread(
-            target=self._send_email,
-            args=(to_email, subject, html_body, plain_text, list_unsubscribe),
-            daemon=True
-        )
+        def _run_and_record():
+            ok = self._send_email(to_email, subject, html_body, plain_text, list_unsubscribe)
+            if not ok:
+                try:
+                    from database.connection import get_db_cursor
+                    from database.queries import insert_audit_log
+                    with get_db_cursor(commit=True) as cursor:
+                        cursor.execute(
+                            insert_audit_log(),
+                            (None, "EMAIL_SEND_FAILED", f"Background email send failed - to: {to_email}, subject: {subject}", "background-thread")
+                        )
+                except Exception as log_err:
+                    print("[SMTP] Also failed to record EMAIL_SEND_FAILED audit entry:", log_err)
+
+        thread = threading.Thread(target=_run_and_record, daemon=True)
         thread.start()
         return True
 
@@ -306,7 +331,12 @@ AI Data Analyst Pro Security Team
     </table>
 </body>
 </html>"""
-        return self._send_email_async(to_email, subject, html_body, plain_text)
+        # Sent SYNCHRONOUSLY (see send_admin_login_otp_email for the full rationale): every
+        # caller of this method puts the user on a "enter your 6-digit code" screen right
+        # after calling it, so they need the real delivery result to tell the user the code
+        # genuinely didn't go out, instead of advancing to a dead-end screen the way the
+        # admin login OTP bug did.
+        return self._send_email(to_email, subject, html_body, plain_text)
 
     def send_otp_email(self, to_email: str, user_name: str, otp_code: str) -> bool:
         return self.send_verification_email(to_email, user_name, otp_code)
@@ -404,7 +434,11 @@ AI Data Analyst Pro Security Team
     </table>
 </body>
 </html>"""
-        return self._send_email_async(to_email, subject, html_body, plain_text)
+        # Sent synchronously - auth.routes.forgot_password() needs the real result to log a
+        # genuine failure distinctly in the audit trail (while still showing the user the
+        # same generic "if an account exists..." message either way, for anti-enumeration -
+        # see the comment at that call site).
+        return self._send_email(to_email, subject, html_body, plain_text)
 
     def send_login_notification_email(self, to_email: str, user_name: str, login_time: str = None, device_info: str = None) -> bool:
         subject = "Security Alert: New login to AI Data Analyst Pro"
