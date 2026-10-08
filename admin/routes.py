@@ -138,6 +138,26 @@ def admin_login():
         # establishing the actual admin session, so a leaked/guessed password alone
         # can no longer grant Super Admin access.
         otp_code = f"{secrets.randbelow(900000) + 100000}"
+
+        # Sent synchronously (see email_service.send_admin_login_otp_email) specifically so
+        # this is a REAL delivery result, not just "a background thread was started" - a
+        # real-world SMTP failure (expired credentials, a provider's daily sending cap,
+        # network issue) must stop the login attempt here with a clear error, not silently
+        # redirect the admin to a code-entry page that will wait forever for a code that
+        # was never actually delivered.
+        from auth.email_service import EmailService
+        email_sent = EmailService().send_admin_login_otp_email(
+            to_email=email,
+            user_name=full_name or "Super Admin",
+            otp_code=otp_code,
+            ip_address=request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+        )
+
+        if not email_sent:
+            log_audit_event("ADMIN_LOGIN_OTP_FAILED", f"Password verified for {email}, but the OTP email FAILED to send - login blocked", user_id=user_id)
+            flash("Your password was correct, but we could not send the verification code email right now (the email service is temporarily unavailable). Please try again in a few minutes, or contact support if this continues.", "error")
+            return render_template("admin/login.html")
+
         session["pending_admin_otp"] = {
             "user_id": user_id,
             "full_name": full_name or "Super Admin",
@@ -148,14 +168,6 @@ def admin_login():
             "attempts": 0,
             "next": request.args.get("next") or request.form.get("next")
         }
-
-        from auth.email_service import EmailService
-        EmailService().send_admin_login_otp_email(
-            to_email=email,
-            user_name=full_name or "Super Admin",
-            otp_code=otp_code,
-            ip_address=request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
-        )
 
         log_audit_event("ADMIN_LOGIN_OTP_SENT", f"Password verified, OTP sent to {email} for Super Admin login", user_id=user_id)
         return redirect(url_for("admin.admin_verify_otp"))

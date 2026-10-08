@@ -195,7 +195,15 @@ AI Data Analyst Pro Security Team
     </table>
 </body>
 </html>"""
-        return self._send_email_async(to_email, subject, html_body, plain_text)
+        # Sent SYNCHRONOUSLY, unlike the other templates here which fire-and-forget on a
+        # background thread. Admin login is low-volume and security-critical: the caller
+        # (admin.admin_login) needs the REAL delivery result so it can tell the admin the
+        # code failed to send instead of silently redirecting them to a code-entry page
+        # that waits forever for an email that was never actually delivered (this is
+        # exactly what happened when Gmail's daily sending cap was hit - _send_email_async
+        # always returns True the instant the thread starts, regardless of what the SMTP
+        # server does seconds later deep inside that thread).
+        return self._send_email(to_email, subject, html_body, plain_text)
 
     def send_verification_email(self, to_email: str, user_name: str, otp_code: str, verification_link: str = None) -> bool:
         subject = f"{otp_code} is your AI Data Analyst Pro verification code"
