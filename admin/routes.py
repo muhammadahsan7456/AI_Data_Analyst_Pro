@@ -755,6 +755,21 @@ def manage_payments():
             payment_type = p[12] if len(p) > 12 else "New"
             rejection_reason = p[13] if len(p) > 13 else None
 
+            # A handful of older payment records have a ScreenshotPath in the DB whose
+            # actual file is no longer on disk (lost/never saved) - checked here, server
+            # side, so the template never emits an <img src> that's guaranteed to 404.
+            # Rendering it anyway and relying on an onerror handler still leaves a real
+            # failed network request in the browser console on every page load.
+            screenshot_exists = False
+            if screenshot_path:
+                try:
+                    import os
+                    rel = screenshot_path.replace("/static/", "").replace("static/", "").lstrip("/\\")
+                    from frontend import frontend as _frontend_bp
+                    screenshot_exists = os.path.exists(os.path.join(_frontend_bp.static_folder, rel))
+                except Exception:
+                    screenshot_exists = False
+
             payments_list.append({
                 "id": p_id,
                 "user_id": u_id,
@@ -769,6 +784,7 @@ def manage_payments():
                 "payment_date": format_12hr_datetime(p_date),
                 "raw_date": str(p_date)[:10],
                 "screenshot_path": screenshot_path,
+                "screenshot_exists": screenshot_exists,
                 "payment_type": payment_type,
                 "rejection_reason": rejection_reason
             })
