@@ -10,6 +10,29 @@
 <div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>About</li></ol></div></div>
 {% endblock %}
 
+{% block extra_css %}
+{% if base_template == "base.html" %}
+<!-- Same fix as faq_page.html/help.html: this page's content (the gradient avatar
+     circle, .landing-section, .feature-card, etc.) depends on CSS custom properties and
+     component classes defined in landing.css, which base.html doesn't load. Without it,
+     var(--gradient-primary) on the founder avatar circle was undefined, rendering as a
+     transparent circle with the hardcoded white "MA" text invisible on it - found live
+     while reviewing this page for the same class of bug. -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20260918_v2">
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if base_template == "base.html" %}
+<script defer src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+    });
+</script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="landing-section" style="padding-top: 40px;">
     <div class="container">

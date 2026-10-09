@@ -148,11 +148,28 @@ def top_signup():
 import gzip
 import io
 
+# Pre-authentication flows only - these never need g.current_user since there's no
+# logged-in user yet (or, for logout, there's about to not be one). The old blanket
+# "/auth/" skip in load_user_context() below also caught the POST-authentication
+# account-management pages under this same blueprint (profile, settings, security,
+# change-password), which DO need it: base.html's sidebar footer gates its "Sign Out"
+# button on `is_logged_in and current_user` (line ~130), so on every one of those pages a
+# genuinely logged-in user saw "Sign In"/"Create Account" instead - found live while
+# visually reviewing these pages for a separate issue.
+AUTH_SKIP_PREFIXES = (
+    "/auth/check-availability", "/auth/register", "/auth/signup",
+    "/auth/verify-otp", "/auth/resend-otp", "/auth/api/check-user",
+    "/auth/verify-email", "/auth/resend-verification", "/auth/login",
+    "/auth/forgot-password", "/auth/reset-password", "/auth/logout",
+)
+
+
 # Request-Level High Speed Context Caching & 1-Hour Inactivity Session Timeout
 @app.before_request
 def load_user_context():
-    # Bypass DB overhead for static files, favicons, and auth routes
-    if request.path.startswith("/static/") or request.path == "/favicon.ico" or request.path.startswith("/auth/"):
+    # Bypass DB overhead for static files, favicons, and PRE-authentication auth routes
+    # (not account-management pages under the same blueprint - see AUTH_SKIP_PREFIXES).
+    if request.path.startswith("/static/") or request.path == "/favicon.ico" or request.path.startswith(AUTH_SKIP_PREFIXES):
         return
 
     is_admin_path = request.path.startswith("/admin")

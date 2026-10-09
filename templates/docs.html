@@ -34,6 +34,24 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+{% if base_template == "base.html" %}
+<!-- See the identical comment in about.html/faq_page.html/help.html. -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20260918_v2">
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if base_template == "base.html" %}
+<script defer src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+    });
+</script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="landing-section" style="padding-top: 20px;">
     <div class="container">
