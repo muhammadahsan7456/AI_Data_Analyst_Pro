@@ -2,6 +2,7 @@ import os
 import re
 import math
 import time
+import threading
 from datetime import datetime
 import pandas as pd
 from itsdangerous import URLSafeTimedSerializer, BadSignature
@@ -469,6 +470,30 @@ def dashboard():
     return render_template("dashboard.html", **context)
 
 
+def prewarm_schema_intelligence(table_name):
+    """
+    get_dataset_schema_intelligence() (column-role detection shared by Ask AI, the
+    auto-KPI dashboard, and proactive insights) is cached after its first call for a
+    table, but that first call was happening lazily on whatever request touched the
+    dataset first - almost always the user's FIRST Ask AI question after upload, which
+    measured at ~3s of a real ~15s first-question response time, live. Computing it here
+    instead, in a background thread right after a successful upload, means that cost is
+    paid once while the user is still looking at the upload confirmation screen, not
+    while they're waiting on their first real question's answer.
+    """
+    if not table_name:
+        return
+
+    def _warm():
+        try:
+            from ai.schema_intelligence import get_dataset_schema_intelligence
+            get_dataset_schema_intelligence(table_name)
+        except Exception as err:
+            print(f"[PREWARM] schema_intelligence failed for {table_name}: {err}")
+
+    threading.Thread(target=_warm, daemon=True).start()
+
+
 # ==========================================
 # UPLOAD DATASET & MULTI-FILE AJAX ENDPOINT
 # ==========================================
@@ -550,6 +575,8 @@ def upload():
                     system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
                     log_upload_event(f"Uploaded dataset(s) '{names}' (background)",
                                      user_id=user_id)
+                    for res in (res_list or []):
+                        prewarm_schema_intelligence(res.get("table_name") if isinstance(res, dict) else None)
 
                 start_ingest_job(job_id, spooled, user_id, tags,
                                  on_success=_after_success)
@@ -571,6 +598,7 @@ def upload():
                     rows = res.get("total_rows") or res.get("rows", 0)
                     cols = res.get("total_columns") or res.get("columns", 0)
                     trigger_ai_event(user_id, build_dataset_upload_card(user_name, ds_name, rows, cols))
+                    prewarm_schema_intelligence(res.get("table_name"))
                 else:
                     errors.append(res)
 
@@ -647,6 +675,8 @@ def api_upload_file():
         def _after_success(results, errors):
             system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
             log_upload_event(f"AJAX Uploaded (background): {filename}", user_id=user_id)
+            for res in (results or []):
+                prewarm_schema_intelligence(res.get("table_name") if isinstance(res, dict) else None)
 
         start_ingest_job(job_id, [(temp_path, filename)], user_id, tags,
                          on_success=_after_success)
@@ -667,6 +697,7 @@ def api_upload_file():
         cols = res.get("total_columns") or res.get("columns", 0)
         card = build_dataset_upload_card(user_name, ds_name, rows, cols)
         trigger_ai_event(user_id, card)
+        prewarm_schema_intelligence(res.get("table_name"))
         return jsonify({"success": True, "data": res, "ai_card": card})
 
     return jsonify({"success": False, "error": res}), 400

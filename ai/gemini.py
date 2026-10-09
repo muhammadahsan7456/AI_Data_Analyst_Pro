@@ -745,22 +745,48 @@ def ask_gemini(prompt: str, max_tokens: int = 550, timeout: float = 2.5, preferr
         models_to_try.remove(preferred_model)
         models_to_try.insert(0, preferred_model)
 
+    # The OpenAI SDK's own `timeout=` kwarg has already been measured, in this exact
+    # codebase, to NOT reliably bound a call's real wall-clock time (gpt-4o-mini observed
+    # taking 25.86s against a stated 10s timeout in earlier testing) - almost certainly a
+    # connection-setup/retry cost inside the SDK/httpx layer that the timeout parameter
+    # doesn't fully cover. Live profiling for this pass found the same pattern driving a
+    # ~12s first-question Ask AI response: generate_data_business_summary's explanation
+    # call (timeout=2.0) working through all 4 FAST_MODELS in turn, each one genuinely
+    # costing multiple real seconds despite the stated budget. A daemon Thread+Queue hard
+    # timeout (the same pattern already used for phrase_proactive_insight/
+    # phrase_why_investigation, for the identical reason) can be abandoned the instant the
+    # deadline passes, regardless of what the SDK call is actually doing underneath.
+    import threading, queue as _queue
+
     for model_name in models_to_try:
+        result_q = _queue.Queue(maxsize=1)
+
+        def _call_model(_model_name=model_name):
+            try:
+                response = client.chat.completions.create(
+                    model=_model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=max_tokens,
+                    timeout=timeout
+                )
+                if response and response.choices:
+                    text = response.choices[0].message.content or ""
+                    result_q.put(text)
+                else:
+                    result_q.put(None)
+            except Exception:
+                result_q.put(None)
+
+        threading.Thread(target=_call_model, daemon=True).start()
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=max_tokens,
-                timeout=timeout
-            )
-            if response and response.choices:
-                result = response.choices[0].message.content or ""
-                if result.strip():
-                    if system_cache:
-                        system_cache.set(cache_key, (result, model_name), ttl=1800)
-                    return result, model_name
-        except Exception:
+            result = result_q.get(timeout=timeout + 0.5)
+        except _queue.Empty:
             continue
+
+        if result and result.strip():
+            if system_cache:
+                system_cache.set(cache_key, (result, model_name), ttl=1800)
+            return result, model_name
 
     return "", None
 
