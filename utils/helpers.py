@@ -132,46 +132,8 @@ def expand_city_names_in_df(df):
     return df_copy
 
 
-def generate_dynamic_prompt_suggestions(columns: list) -> list:
-    """
-    Generates domain-aware smart prompt suggestion pills tailored to the active dataset schema.
-    Returns a list of tuples: [("Icon Label", "Full Prompt Text")]
-    """
-    if not columns:
-        return [
-            ("📊 Summary Stats", "Show overall summary statistics"),
-            ("🔍 Top 10 Rows", "Show top 10 rows from dataset"),
-            ("📈 Data Distribution", "Show breakdown of key metrics")
-        ]
-
-    cols_low = [c.lower() for c in columns]
-
-    # Check for Logistics / Courier / Fulfillment Domain
-    is_logistics = any(kw in c for c in cols_low for kw in ["destination", "origin", "status", "delivery", "consignee", "courier", "rto"])
-    # Check for Sales / E-Commerce Domain
-    is_sales = any(kw in c for c in cols_low for kw in ["sales", "revenue", "product", "item", "customer", "price", "amount"])
-
-    if is_logistics:
-        return [
-            ("🚚 Delivered vs Return", "Delivered orders aur return orders count batao"),
-            ("📍 Lahore Returns", "Lahore ke return orders count batao"),
-            ("🏙️ Sub-Area Breakdown", "Lahore mein returns kaun kaun se areas se hue hain"),
-            ("📦 Top Destination Cities", "Show top 10 destination cities by order count"),
-            ("📉 High Return Cities", "Which cities have the highest return rate"),
-            ("📊 Auto Chart", "Generate best interactive chart for dataset")
-        ]
-    elif is_sales:
-        return [
-            ("💰 Total Revenue", "What is the total revenue amount"),
-            ("🛍️ Top 10 Selling Products", "Show top 10 products by sales revenue"),
-            ("💳 Average Order Value", "Calculate average order value"),
-            ("📈 Sales Breakdown", "Show revenue breakdown by category"),
-            ("📊 Auto Chart", "Generate best interactive chart for dataset")
-        ]
-    else:
-        return [
-            ("📊 Column Summary", "Show summary statistics for key columns"),
-            ("🔍 Top 10 Records", "Show top 10 records from dataset"),
-            ("📈 Distribution Breakdown", "Show breakdown of categorical metrics"),
-            ("📊 Auto Chart", "Generate best interactive chart for dataset")
-        ]
+#  generate_dynamic_prompt_suggestions() previously lived here - replaced by
+#  ai.analytics.generate_dynamic_dataset_suggestions(), which builds suggestions from a
+#  dataset's actual detected columns/values (reusing the Ask AI / auto-KPI column-role
+#  detection) instead of keyword-matching column names into one of two hardcoded domain
+#  templates.

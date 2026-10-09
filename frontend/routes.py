@@ -872,11 +872,21 @@ def chat():
 
     table_name = selected_dataset[1]
 
+    # Computed as soon as a dataset is selected (not only once a question is actually
+    # submitted, further down) - this is what the chat page's "Smart Dataset Suggestions"
+    # pills render from. Previously neither early return below passed this at all, so the
+    # template's hardcoded {% else %} fallback (written for one specific delivery/
+    # logistics dataset) was what a real user actually saw on every normal page load -
+    # the real per-dataset generator further down only ever ran on a submitted question,
+    # too late to matter for the suggestion pills themselves.
+    from ai.analytics import generate_dynamic_dataset_suggestions
+    dynamic_suggestions = generate_dynamic_dataset_suggestions(table_name)
+
     if request.method == "GET" and not question:
-        return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset)
+        return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, dynamic_suggestions=dynamic_suggestions)
 
     if not question:
-        return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset)
+        return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, dynamic_suggestions=dynamic_suggestions)
 
     # Daily AI query quota - each query calls a paid external AI API, so an unbounded
     # per-user volume (accidental loop, scripted abuse, or just very heavy manual use)
@@ -912,12 +922,6 @@ def chat():
     columns = get_table_columns(table_name)
     if not columns:
         return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, error=f"Table '{table_name}' contains no accessible columns.")
-
-    from utils.helpers import generate_dynamic_prompt_suggestions
-    dynamic_suggestions = generate_dynamic_prompt_suggestions(columns)
-
-    if not question:
-        return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, dynamic_suggestions=dynamic_suggestions)
 
     # Root-Cause "Why" Investigation (Phase 3.3): intercepts "why did X change" style
     # questions BEFORE the normal SQL-generation pipeline runs, since the literal metric

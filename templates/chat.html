@@ -88,11 +88,12 @@
                     </span>
                     {% endfor %}
                 {% else %}
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Delivered orders vs return orders breakdown')">🚚 Delivered vs Return</span>
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Lahore return orders by area')">📍 Lahore Returns</span>
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Sub area neighborhood breakdown')">🏙️ Sub-Area Breakdown</span>
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show top 10 destination cities by order count')">📦 Top Destination Cities</span>
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show dataset distribution breakdown')">📊 Auto Chart</span>
+                    <!-- Dataset-tailored suggestions (ai.analytics.generate_dynamic_dataset_suggestions)
+                         should always be populated once a dataset is selected - this is only a
+                         neutral, dataset-agnostic safety net in case that ever isn't available. -->
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show total records')">📋 Show Total Records</span>
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show top 10 rows from dataset')">🔍 Top 10 Rows</span>
+                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Generate best interactive chart for dataset')">📊 Auto Chart</span>
                 {% endif %}
             </div>
 

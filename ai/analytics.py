@@ -345,3 +345,131 @@ def generate_auto_kpi_dashboard(table_name: str, df: pd.DataFrame) -> dict:
         "primary_category": primary_cat,
         "has_date_column": bool(date_cols),
     }
+
+
+def generate_dynamic_dataset_suggestions(table_name: str) -> list:
+    """
+    Builds exactly 4 "Smart Dataset Suggestions" question pills tailored to this specific
+    dataset's actual columns - replaces a previous version that only recognized a
+    hardcoded "logistics" or "sales" domain by column-name keywords (and silently fell
+    back to literal "Lahore return orders" style suggestions, written for one specific
+    delivery dataset, for anything that didn't match). Reuses the SAME column-role
+    detection already built for Ask AI / the auto-KPI dashboard (get_dataset_schema_
+    intelligence + get_real_numeric_columns/get_real_categorical_columns) rather than a
+    separate keyword-matching system, so a pharmacy dataset, a factory dataset, and a
+    school attendance dataset each get their own genuinely relevant suggestions built
+    from their own real columns and real data - not a fixed template.
+
+    Every returned prompt is phrased so the existing deterministic Ask AI pipeline can
+    answer it directly (same vocabulary as the fast pattern SQL generator expects:
+    "Total X by Y", "Top N Y by X", "X trend over time"), since a suggestion that looks
+    good but fails when clicked would be worse than no suggestion at all.
+
+    Returns a list of up to 4 (label, prompt_text) tuples, in graceful order of
+    sophistication - a dataset too small/plain for the richer ones (no clear metric, no
+    date column) still gets simple, always-answerable fallbacks instead of erroring or
+    showing something nonsensical.
+    """
+    import pandas as pd
+    from ai.schema_intelligence import get_dataset_schema_intelligence
+    from ai.metric_resolver import get_real_numeric_columns, get_real_categorical_columns
+    from database.connection import run_query, sanitize_identifier
+
+    try:
+        schema_intel = get_dataset_schema_intelligence(table_name)
+    except Exception:
+        schema_intel = {}
+
+    categorical_cols = get_real_categorical_columns(schema_intel) if schema_intel else []
+    date_cols = schema_intel.get("date_columns", []) if schema_intel else []
+
+    # schema_intel's classifier is sample-based and has previously misclassified a
+    # string-ID-style column (e.g. "SKU1", "SKU2") as numeric - the auto-KPI dashboard
+    # already hit this and fixed it the same way: re-validate each candidate against a
+    # real sample of the actual column before trusting it, since a suggestion built on a
+    # false-numeric column doesn't error, it just silently returns a meaningless NULL
+    # total, which fails this feature's own "every suggestion must give a real answer"
+    # requirement just as badly as a crash would.
+    numeric_cols = []
+    try:
+        raw_numeric = get_real_numeric_columns(schema_intel) if schema_intel else []
+        if raw_numeric:
+            safe_tbl = sanitize_identifier(table_name)
+            cols_sql = ", ".join(f"[{c}]" for c in raw_numeric)
+            sample_df = run_query(f"SELECT TOP 500 {cols_sql} FROM {safe_tbl};")
+            for c in raw_numeric:
+                if c not in sample_df.columns:
+                    continue
+                coerced = pd.to_numeric(sample_df[c], errors="coerce")
+                if coerced.notna().mean() >= 0.8:
+                    numeric_cols.append(c)
+    except Exception:
+        numeric_cols = get_real_numeric_columns(schema_intel) if schema_intel else []
+
+    metric = numeric_cols[0] if numeric_cols else None
+    category = categorical_cols[0] if categorical_cols else None
+    second_category = categorical_cols[1] if len(categorical_cols) > 1 else None
+    date_col = date_cols[0] if date_cols else None
+
+    suggestions = []
+
+    # 1. Simple aggregate
+    if metric and category:
+        suggestions.append((f"📊 Total {metric} by {category}", f"Total {metric} by {category}"))
+    elif category:
+        suggestions.append((f"📊 Count by {category}", f"Count of records by {category}"))
+    elif metric:
+        suggestions.append((f"📊 Total {metric}", f"What is the total {metric}"))
+
+    # 2. Time-based trend, only offered when the dataset actually has a date column
+    if date_col and metric:
+        suggestions.append((f"📈 {metric} Trend", f"Total {metric} by month"))
+    elif date_col:
+        suggestions.append(("📈 Records Over Time", "Count of records by month"))
+
+    # 3. Ranking - uses the SECOND categorical column when available so this doesn't just
+    # repeat suggestion #1 with "Top 5" prefixed onto the identical breakdown.
+    rank_category = second_category or category
+    if metric and rank_category:
+        suggestions.append((f"🏆 Top 5 {rank_category}", f"Top 5 {rank_category} by {metric}"))
+    elif metric:
+        suggestions.append(("🏆 Top 10 Records", f"Top 10 records by {metric}"))
+
+    # 4. A specific filtered question using a REAL value actually present in this
+    # dataset (not a placeholder) - the most frequently occurring value in the primary
+    # categorical column, so it's guaranteed to return real matching rows.
+    if category and metric:
+        try:
+            safe_tbl = sanitize_identifier(table_name)
+            safe_col = sanitize_identifier(category)
+            top_df = run_query(
+                f"SELECT TOP 1 {safe_col} AS val FROM {safe_tbl} WHERE {safe_col} IS NOT NULL "
+                f"GROUP BY {safe_col} ORDER BY COUNT(*) DESC;"
+            )
+            if not top_df.empty:
+                top_val = str(top_df.iloc[0]["val"]).strip()
+                if top_val:
+                    suggestions.append((f"🔍 {metric} for {top_val}", f"Total {metric} for {top_val}"))
+        except Exception:
+            pass
+
+    # Fallbacks for a very simple/minimal dataset (no clear metric or date column) -
+    # always-answerable, generic questions rather than erroring or showing nothing.
+    if len(suggestions) < 4:
+        if category:
+            suggestions.append((f"🔍 Distinct {category}", f"Show all distinct values in {category}"))
+    if len(suggestions) < 4:
+        suggestions.append(("📋 Show Total Records", "Show total records"))
+    if len(suggestions) < 4:
+        suggestions.append(("🔍 Top 10 Rows", "Show top 10 rows from dataset"))
+
+    # De-duplicate while preserving order, in case a small dataset's columns made two
+    # branches above produce the same prompt text.
+    seen = set()
+    unique_suggestions = []
+    for label, prompt in suggestions:
+        if prompt not in seen:
+            seen.add(prompt)
+            unique_suggestions.append((label, prompt))
+
+    return unique_suggestions[:4]
