@@ -95,7 +95,7 @@ def is_technical_or_id_column(col_name: str, sample_val=None) -> bool:
     return False
 
 
-def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: str, preferred_model: str = None) -> tuple:
+def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: str, preferred_model: str = None, privacy_level: int = 3, ai_timeout_seconds: float = 2.0) -> tuple:
     """
     Generate deep, readable, highly attractive ChatGPT/Claude style executive-level AI business insights.
     Directly answers user's specific analytical query across ANY dataset domain (Sales, HR, Logistics, Finance, etc.).
@@ -104,6 +104,15 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
     Returns (text, model_used). model_used is None whenever the answer came from one of the
     deterministic fast-path/fallback branches below rather than the LLM - callers that only
     care about the text can do `text, _ = generate_data_business_summary(...)`.
+
+    privacy_level (Enterprise Settings "Privacy Level", previously saved to the session
+    but never actually read anywhere) controls how much of the real row data is included
+    in the prompt sent to the third-party LLM API - see ai.privacy_guard.
+    sanitize_prompt_payload for the 4 levels. The computed stats_hints below (sum/avg/
+    min/max) are always included regardless of level: they're server-side arithmetic, not
+    raw PII-bearing rows, and at the default level (3) row-level masking only touches
+    columns actually matching a PII pattern (email/phone/SSN/etc.) - a normal business
+    question like "sales by city" is unaffected either way, since City/Sales aren't PII.
     """
     if df is None or df.empty:
         return f"No matching records found in dataset `[{table_name}]` for query: *\"{question}\"*.\n\nPlease check spelling or try broadening your search filter.", None
@@ -158,13 +167,31 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
         try:
             total_rows = len(df)
             cols_to_show = [c for c in df.columns if c.lower() != "recordid"]
-            
-            if total_rows <= 25:
+
+            if privacy_level in (1, 2):
+                # Levels 1-2 are an intentional detail-for-privacy tradeoff the user
+                # explicitly chose (schema-only / aggregates-only, no raw rows at all) -
+                # sanitize_prompt_payload's own text already includes its own framing.
+                from ai.privacy_guard import sanitize_prompt_payload
+                df_preview = sanitize_prompt_payload(question, df[cols_to_show], privacy_level)
+            elif total_rows <= 25:
                 df_preview = df[cols_to_show].to_string(index=False)
             else:
                 head_str = df[cols_to_show].head(10).to_string(index=False)
                 tail_str = df[cols_to_show].tail(3).to_string(index=False)
                 df_preview = f"{head_str}\n... [{total_rows - 13} additional rows omitted] ...\n{tail_str}"
+
+            if privacy_level == 3:
+                # Default level: PII-pattern columns/values masked, everything else
+                # (category/metric columns a normal business question needs) untouched.
+                from ai.privacy_guard import mask_dataframe_pii
+                df_preview_source = mask_dataframe_pii(df[cols_to_show])
+                if total_rows <= 25:
+                    df_preview = df_preview_source.to_string(index=False)
+                else:
+                    head_str = df_preview_source.head(10).to_string(index=False)
+                    tail_str = df_preview_source.tail(3).to_string(index=False)
+                    df_preview = f"{head_str}\n... [{total_rows - 13} additional rows omitted] ...\n{tail_str}"
 
             stats_hints = []
             numeric_cols = [c for c in cols_to_show if pd.api.types.is_numeric_dtype(df[c]) and not is_technical_or_id_column(c)]
@@ -210,7 +237,12 @@ STRICT GUIDELINES:
 - Do NOT mention SQL, queries, databases, Python, or tech stack.
 - Return ONLY clean Markdown text."""
 
-            ai_summary, model_used = ask_gemini(llm_summary_prompt, max_tokens=450, timeout=2.0, preferred_model=preferred_model)
+            # Enterprise Settings "Max AI Response Timeout" - previously saved to the
+            # session but never read anywhere. This is a per-model-attempt budget (the
+            # multi-model fallback loop in ask_gemini can still try up to 4 models), not a
+            # total request ceiling, so the UI's "Fast Multi-model Fallback" framing holds
+            # at any of the 3 offered values.
+            ai_summary, model_used = ask_gemini(llm_summary_prompt, max_tokens=450, timeout=ai_timeout_seconds, preferred_model=preferred_model)
             if ai_summary and len(ai_summary.strip()) > 50 and ("Direct Answer" in ai_summary or "Answer" in ai_summary):
                 print(f"[AI MODEL USED] explanation generated by: {model_used}")
                 return ai_summary.strip(), model_used

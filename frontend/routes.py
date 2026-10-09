@@ -1179,9 +1179,21 @@ def chat():
         pass
 
     preferred_ai_model = session.get("ai_model")
+    current_privacy_level = session.get("privacy_level", 3)
+    # Default (2.0s) matches the value this call already used before this setting was
+    # wired up, for any user who hasn't explicitly visited Enterprise Settings and saved a
+    # choice - the dropdown's own visual default of "6 seconds" only takes effect once a
+    # user actually saves the form, not merely because it's the first <option>. Silently
+    # defaulting everyone to 6s here would have undone the per-model hard-timeout fix
+    # (ask_gemini can try up to 4 models) for the large majority of users who never touch
+    # this setting at all.
+    current_ai_timeout = session.get("ai_timeout", 2)
     explanation_model_used = None
     try:
-        explanation, explanation_model_used = generate_data_business_summary(selected_dataset[2], df, question, preferred_model=preferred_ai_model)
+        explanation, explanation_model_used = generate_data_business_summary(
+            selected_dataset[2], df, question, preferred_model=preferred_ai_model,
+            privacy_level=current_privacy_level, ai_timeout_seconds=float(current_ai_timeout)
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1467,12 +1479,15 @@ def predictions():
         return redirect(url_for("frontend.dashboard"))
 
     selected_dataset = user_datasets[0]
-    forecast_days = 30
+    # Enterprise Settings "Default Forecast Horizon" - previously saved to the session but
+    # never read back anywhere, so it had no effect regardless of what a user selected.
+    default_forecast_days = session.get("default_forecast_days", 30)
+    forecast_days = default_forecast_days
     result = None
 
     if request.method == "POST":
         dataset_id = request.form.get("dataset_id", type=int)
-        forecast_days = request.form.get("forecast_days", 30, type=int)
+        forecast_days = request.form.get("forecast_days", default_forecast_days, type=int)
 
         with get_db_cursor() as cursor:
             cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
@@ -1506,9 +1521,21 @@ def settings_enterprise():
     if request.method == "POST":
         privacy_level = request.form.get("privacy_level", 3, type=int)
         ai_model = request.form.get("ai_model", "openai/gpt-3.5-turbo")
+        ai_timeout = request.form.get("ai_timeout", 6, type=int)
+        default_forecast_days = request.form.get("default_forecast_days", 30, type=int)
+        # These two are saved so the form correctly shows the user's last choice, but
+        # genuinely wiring them to real behavior wasn't done in this pass - see the
+        # comments on the Export and Dashboard Refresh Rate controls in
+        # templates/settings_enterprise.html for exactly why.
+        default_export_format = request.form.get("default_export_format", "pdf")
+        refresh_rate = request.form.get("refresh_rate", 0, type=int)
 
         session["privacy_level"] = privacy_level
         session["ai_model"] = ai_model
+        session["ai_timeout"] = ai_timeout
+        session["default_forecast_days"] = default_forecast_days
+        session["default_export_format"] = default_export_format
+        session["refresh_rate"] = refresh_rate
 
         log_audit_event("UPDATE_SETTINGS", f"Updated Privacy Level to {privacy_level}", user_id=user_id)
         flash("Enterprise Settings saved successfully!", "success")
@@ -1516,7 +1543,19 @@ def settings_enterprise():
 
     current_privacy = session.get("privacy_level", 3)
     current_ai_model = session.get("ai_model", "openai/gpt-4o-mini")
-    return render_template("settings_enterprise.html", current_privacy=current_privacy, current_ai_model=current_ai_model)
+    current_ai_timeout = session.get("ai_timeout", 6)
+    current_default_forecast_days = session.get("default_forecast_days", 30)
+    current_default_export_format = session.get("default_export_format", "pdf")
+    current_refresh_rate = session.get("refresh_rate", 0)
+    return render_template(
+        "settings_enterprise.html",
+        current_privacy=current_privacy,
+        current_ai_model=current_ai_model,
+        current_ai_timeout=current_ai_timeout,
+        current_default_forecast_days=current_default_forecast_days,
+        current_default_export_format=current_default_export_format,
+        current_refresh_rate=current_refresh_rate,
+    )
 
 
 # ==========================================

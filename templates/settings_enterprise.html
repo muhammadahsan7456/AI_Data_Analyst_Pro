@@ -79,9 +79,9 @@
                 <div>
                     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Max AI Response Timeout</label>
                     <select name="ai_timeout" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
-                        <option value="6" selected>6 Seconds (Fast Multi-model Fallback)</option>
-                        <option value="10">10 Seconds</option>
-                        <option value="15">15 Seconds</option>
+                        <option value="6" {% if current_ai_timeout == 6 or not current_ai_timeout %}selected{% endif %}>6 Seconds (Fast Multi-model Fallback)</option>
+                        <option value="10" {% if current_ai_timeout == 10 %}selected{% endif %}>10 Seconds</option>
+                        <option value="15" {% if current_ai_timeout == 15 %}selected{% endif %}>15 Seconds</option>
                     </select>
                 </div>
             </div>
@@ -97,30 +97,39 @@
                 <div>
                     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Default Forecast Horizon</label>
                     <select name="default_forecast_days" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
-                        <option value="7">7 Days (Short Term)</option>
-                        <option value="30" selected>30 Days (Monthly Trend)</option>
-                        <option value="90">90 Days (Quarterly Forecast)</option>
-                        <option value="365">365 Days (1 Year Annual)</option>
+                        <option value="7" {% if current_default_forecast_days == 7 %}selected{% endif %}>7 Days (Short Term)</option>
+                        <option value="30" {% if current_default_forecast_days == 30 or not current_default_forecast_days %}selected{% endif %}>30 Days (Monthly Trend)</option>
+                        <option value="90" {% if current_default_forecast_days == 90 %}selected{% endif %}>90 Days (Quarterly Forecast)</option>
+                        <option value="365" {% if current_default_forecast_days == 365 %}selected{% endif %}>365 Days (1 Year Annual)</option>
                     </select>
                 </div>
 
                 <div>
                     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Default Export Format</label>
+                    <!-- Saved and will show your last choice here, but every export button
+                         on every page (dataset exports, chat results, etc.) is already a
+                         specific, explicitly-labeled format (CSV/Excel/PDF/...), not a
+                         single generic "Export" action this setting could redirect -
+                         wiring this up for real would mean adding one, which is a UI
+                         change outside this fix's scope. -->
                     <select name="default_export_format" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
-                        <option value="pdf" selected>PDF Executive Report</option>
-                        <option value="excel">Excel Spreadsheet (.xlsx)</option>
-                        <option value="word">Word Document (.docx)</option>
-                        <option value="pptx">PowerPoint Presentation (.pptx)</option>
+                        <option value="pdf" {% if current_default_export_format == 'pdf' or not current_default_export_format %}selected{% endif %}>PDF Executive Report</option>
+                        <option value="excel" {% if current_default_export_format == 'excel' %}selected{% endif %}>Excel Spreadsheet (.xlsx)</option>
+                        <option value="word" {% if current_default_export_format == 'word' %}selected{% endif %}>Word Document (.docx)</option>
+                        <option value="pptx" {% if current_default_export_format == 'pptx' %}selected{% endif %}>PowerPoint Presentation (.pptx)</option>
                     </select>
                 </div>
 
                 <div>
                     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Dashboard Refresh Rate</label>
+                    <!-- Saved and will show your last choice here, but the dashboard has no
+                         auto-refresh/polling mechanism at all yet to wire this into -
+                         building one is more than this fix's scope. -->
                     <select name="refresh_rate" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
-                        <option value="0" selected>Manual Refresh</option>
-                        <option value="30">Every 30 Seconds</option>
-                        <option value="60">Every 1 Minute</option>
-                        <option value="300">Every 5 Minutes</option>
+                        <option value="0" {% if current_refresh_rate == 0 or not current_refresh_rate %}selected{% endif %}>Manual Refresh</option>
+                        <option value="30" {% if current_refresh_rate == 30 %}selected{% endif %}>Every 30 Seconds</option>
+                        <option value="60" {% if current_refresh_rate == 60 %}selected{% endif %}>Every 1 Minute</option>
+                        <option value="300" {% if current_refresh_rate == 300 %}selected{% endif %}>Every 5 Minutes</option>
                     </select>
                 </div>
             </div>
