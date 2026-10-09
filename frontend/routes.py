@@ -2176,7 +2176,8 @@ def testimonials_page():
 @frontend.route("/faq")
 def faq_page():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("faq_page.html", is_logged_in=is_logged_in)
+    base_template = "base.html" if is_logged_in else "landing_base.html"
+    return render_template("faq_page.html", is_logged_in=is_logged_in, base_template=base_template)
 
 
 # ==========================================
@@ -2245,13 +2246,20 @@ Sitemap: {base_url}/sitemap.xml
 @frontend.route("/about")
 def about():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("about.html", is_logged_in=is_logged_in)
+    # A logged-in user clicking "About Us" from their own dashboard sidebar was getting
+    # pulled completely out of their dashboard context into the public marketing site's
+    # layout (different nav, no sidebar, just a single "Dashboard" button back) - these
+    # info pages are reachable both from the public site AND the dashboard sidebar, so
+    # which shell they render inside has to follow where the user actually came from.
+    base_template = "base.html" if is_logged_in else "landing_base.html"
+    return render_template("about.html", is_logged_in=is_logged_in, base_template=base_template)
 
 
 @frontend.route("/docs")
 def docs():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("docs.html", is_logged_in=is_logged_in)
+    base_template = "base.html" if is_logged_in else "landing_base.html"
+    return render_template("docs.html", is_logged_in=is_logged_in, base_template=base_template)
 
 
 @frontend.route("/privacy")
@@ -2269,7 +2277,8 @@ def terms():
 @frontend.route("/help")
 def help_center():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("help.html", is_logged_in=is_logged_in)
+    base_template = "base.html" if is_logged_in else "landing_base.html"
+    return render_template("help.html", is_logged_in=is_logged_in, base_template=base_template)
 
 
 @frontend.route("/contact")
