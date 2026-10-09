@@ -54,6 +54,14 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+{% if base_template == "base.html" %}
+<!-- See the identical comment in faq_page.html - this page's content is also written
+     entirely against landing.css's component library, which base.html doesn't load. -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20260918_v2">
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="landing-section" style="padding-top: 20px;">
     <div class="container">
@@ -157,6 +165,20 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if base_template == "base.html" %}
+<!-- This page's content uses the .reveal scroll-in animation class (opacity:0 until a
+     'revealed' class is added), driven by the IntersectionObserver in animations.js -
+     landing_base.html already loads it; base.html doesn't. Without this, every .reveal
+     element here stayed at opacity:0 forever, rendering as a blank content area. Safe to
+     load standalone: its THREE.js/VanillaTilt-dependent sections are self-guarded
+     (typeof checks) and simply no-op without those libraries present. -->
+<script defer src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+    });
+</script>
+{% endif %}
 <script>
     // FAQ Accordion functionality
     document.addEventListener('DOMContentLoaded', () => {

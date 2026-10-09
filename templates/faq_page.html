@@ -46,6 +46,21 @@
 <div class="breadcrumb-bar"><div class="container"><ol class="breadcrumb-list"><li><a href="{{ url_for('frontend.home') }}">Home</a></li><li class="breadcrumb-sep">/</li><li>FAQ</li></ol></div></div>
 {% endblock %}
 
+{% block extra_css %}
+{% if base_template == "base.html" %}
+<!-- This page's content (.faq-item/.faq-question/.faq-answer accordion, .landing-section,
+     .feature-card, etc.) is written entirely against landing.css's component library.
+     landing_base.html already loads it directly; base.html (the dashboard shell used here
+     for a logged-in user) doesn't, since it has its own separate style.css for dashboard
+     components - without this, every FAQ answer rendered permanently visible with none of
+     its card spacing (the accordion's closed/open state and item/list spacing both live in
+     landing.css, and nothing in style.css defines them), reported as "broken formatting".
+     Loaded as an addition after style.css, not a replacement, so the dashboard shell itself
+     (sidebar, header) is untouched - only this page's own content classes are affected. -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20260918_v2">
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="landing-section" style="padding-top: 40px;">
     <div class="container">
@@ -166,6 +181,17 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if base_template == "base.html" %}
+<!-- See the identical comment in help.html's extra_js block - this page's .reveal
+     elements need animations.js's scroll observer (not loaded by base.html), and are
+     revealed immediately here too so they're visible without waiting on a scroll event. -->
+<script defer src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+    });
+</script>
+{% endif %}
 <script>
 function toggleFaq(elem) {
     const answer = elem.nextElementSibling;
