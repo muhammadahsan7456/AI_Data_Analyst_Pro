@@ -829,7 +829,40 @@ def init_db():
 
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SubscriptionStatus')
     BEGIN
-        ALTER TABLE Users ADD SubscriptionStatus NVARCHAR(50) DEFAULT 'active';
+        -- 'free' here (not 'active'): this app's registration is free-forever by design
+        -- (see utils.subscription.get_user_subscription_info - a "free" status gets full
+        -- platform access at the 1 MB upload tier with no expiry). create_user()'s INSERT
+        -- never sets this column itself, so every brand-new signup gets whatever this
+        -- default is; 'active' had been silently granting every new registration a real
+        -- 30-day Pro-tier (500 MB) window with no payment at all, found live in this
+        -- pass's mandatory regression check.
+        ALTER TABLE Users ADD SubscriptionStatus NVARCHAR(50) DEFAULT 'free';
+    END;
+
+    -- The column already exists on this database with its old DEFAULT 'active'
+    -- constraint still attached (the block above only fires for a column that doesn't
+    -- exist yet, so it never touches an already-migrated database) - every new signup
+    -- would keep getting 'active' from THIS constraint until it's dropped and recreated
+    -- with the correct 'free' default. Constraint names on an ALTER-added DEFAULT are
+    -- system-generated, not fixed, so this has to look it up rather than DROP CONSTRAINT
+    -- by a literal name.
+    IF EXISTS (
+        SELECT 1 FROM sys.default_constraints dc
+        JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+        WHERE dc.parent_object_id = OBJECT_ID('Users') AND c.name = 'SubscriptionStatus'
+          AND dc.definition != '(''free'')'
+    )
+    BEGIN
+        DECLARE @old_default_name NVARCHAR(200);
+        SELECT @old_default_name = dc.name FROM sys.default_constraints dc
+        JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+        WHERE dc.parent_object_id = OBJECT_ID('Users') AND c.name = 'SubscriptionStatus';
+
+        IF @old_default_name IS NOT NULL
+        BEGIN
+            EXEC('ALTER TABLE Users DROP CONSTRAINT ' + @old_default_name);
+            EXEC('ALTER TABLE Users ADD CONSTRAINT DF_Users_SubscriptionStatus DEFAULT ''free'' FOR SubscriptionStatus');
+        END;
     END;
 
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SubscriptionEndDate')
@@ -922,9 +955,31 @@ def init_db():
         UPDATE PaymentSettings SET SadaPayNumber = EasypaisaNumber WHERE SadaPayNumber IS NULL OR SadaPayNumber = '';
     END;
 
-    -- Initialize NULL subscription dates & statuses
-    UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE())) WHERE SubscriptionEndDate IS NULL;
-    UPDATE Users SET SubscriptionStatus = 'active' WHERE SubscriptionStatus IS NULL;
+    -- These ran on EVERY server start and actively corrupted free-tier accounts back
+    -- toward fake Pro access - found live during this pass's mandatory upload-gate
+    -- regression check (a freshly created account with no payment history showed up as a
+    -- Pro user with 500 MB access). A NULL SubscriptionEndDate is the CORRECT, by-design
+    -- state for a free-forever account (see utils.subscription.get_user_subscription_info:
+    -- 'free'/'basic'/'trial' status never even looks at the end date) - it is not missing
+    -- data to backfill. Likewise, a NULL status should resolve to 'free' (this app's
+    -- actual default tier), not 'active'.
+    --
+    -- Order matters here: the one-time mis-defaulted-account correction MUST run before
+    -- the "fill in a missing end date for genuinely active accounts" statement below - it
+    -- identifies mis-defaulted accounts specifically by SubscriptionStatus='active' AND
+    -- SubscriptionEndDate IS NULL (a real approval always sets a real end date, per
+    -- database.queries.activate_user_new_subscription / extend_user_subscription_one_month,
+    -- so a NULL end date on an 'active' row is only possible via the mis-default, never a
+    -- real payment). Running the end-date backfill first would silently give those exact
+    -- rows a fake end date and make them invisible to this WHERE clause, as happened in
+    -- this fix's own first (buggy) draft - caught and corrected in this same pass.
+    UPDATE Users SET SubscriptionStatus = 'free'
+    WHERE SubscriptionStatus = 'active' AND SubscriptionEndDate IS NULL
+      AND Role NOT IN ('SuperAdmin', 'Admin');
+
+    UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE()))
+    WHERE SubscriptionEndDate IS NULL AND SubscriptionStatus IN ('active', 'expiring_soon');
+    UPDATE Users SET SubscriptionStatus = 'free' WHERE SubscriptionStatus IS NULL;
 
     -- CREATE HIGH PERFORMANCE NON-CLUSTERED INDEXES
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Datasets_UserID_UploadDate' AND object_id = OBJECT_ID('Datasets'))
