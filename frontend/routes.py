@@ -955,7 +955,7 @@ def chat():
                     print("Why-Investigation Chart Error:", chart_err)
 
             why_result_html = contrib_df.to_html(
-                classes="table table-bordered table-striped custom-table", index=False
+                classes="table table-bordered table-striped custom-table", index=False, na_rep="—"
             ) if not contrib_df.empty else ""
 
             try:
@@ -1238,11 +1238,24 @@ def chat():
 
     display_df = display_df.reset_index(drop=True)
     if "S.No" not in display_df.columns:
-        display_df.insert(0, "S.No", [i if i != len(display_df) else "" for i in range(1, len(display_df) + 1)])
+        # The last row only gets a blank S.No when it's actually the synthetic "Total"
+        # summary row appended above (recognizable by its first-column value), never just
+        # because it happens to be the last row - the previous `i != len(display_df)`
+        # check blanked out a real last row's serial number whenever no Total row had been
+        # appended at all (e.g. this exact dataset/query shape), which is wrong - every
+        # genuine data row should show its number.
+        is_total_row = len(display_df) > 0 and str(display_df.iloc[-1, 0]) == "Total"
+        row_numbers = list(range(1, len(display_df) + 1))
+        if is_total_row:
+            row_numbers[-1] = ""
+        display_df.insert(0, "S.No", row_numbers)
 
+    # Missing/NaN values render as the clean placeholder below rather than the literal
+    # text "NaN" - display formatting only, the underlying df/calculations are untouched.
     result_html = display_df.to_html(
         classes="table table-bordered table-striped custom-table",
-        index=False
+        index=False,
+        na_rep="—"
     )
 
     query_plan = ai_result.get("query_plan") or (parse_question_to_query_plan(question_for_ai, table_name) if parse_question_to_query_plan else {})
@@ -1422,7 +1435,8 @@ def multi_dataset_analyze():
     df = analysis_res["df"]
     result_html = df.head(50).to_html(
         classes="table table-bordered table-striped custom-table",
-        index=False
+        index=False,
+        na_rep="—"
     )
     analysis_res["result_html"] = result_html
     del analysis_res["df"]  # remove non-serializable DF
@@ -1560,7 +1574,8 @@ def view_dataset(dataset_id):
 
     preview_html = page_df.to_html(
         classes="table table-bordered table-striped custom-table",
-        index=False
+        index=False,
+        na_rep="—"
     )
 
     return render_template(
