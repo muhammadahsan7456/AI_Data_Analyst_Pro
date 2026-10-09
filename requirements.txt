@@ -37,3 +37,8 @@ bcrypt>=4.0.0
 reportlab>=4.0.0
 python-docx>=1.0.0
 python-pptx>=0.6.0
+
+# Live System Health metrics (CPU/RAM) for the /health monitoring page - without this,
+# frontend.health() silently fell back to hardcoded placeholder numbers (5.0% CPU, 25%
+# RAM) instead of genuinely live data.
+psutil>=5.9.0
