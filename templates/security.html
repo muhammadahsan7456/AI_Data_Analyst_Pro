@@ -61,7 +61,7 @@
                         <span class="badge badge-warning">Failed Attempt</span>
                         {% endif %}
                     </td>
-                    <td style="color: var(--text-muted); font-size: 13px;">{{ lh[7]|string }}</td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ lh[7]|datetime_12hr }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -97,7 +97,7 @@
                     <td><span class="badge badge-info">{{ log[1] }}</span></td>
                     <td>{{ log[2] }}</td>
                     <td><code>{{ log[3] }}</code></td>
-                    <td style="color: var(--text-muted); font-size: 13px;">{{ log[4]|string }}</td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ log[4]|datetime_12hr }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -351,7 +351,25 @@ if __name__ == "__main__":
     print(f"[SERVER] Starting AI Data Analyst Pro High Performance Server on http://127.0.0.1:{port} ...")
     try:
         from waitress import serve
-        serve(app, host="127.0.0.1", port=port, threads=16)
+        # Waitress strips X-Forwarded-For/X-Real-IP by default from ANY client, trusted or
+        # not - a real security default (nothing stops a random internet client sending a
+        # fake X-Forwarded-For otherwise), but it means auth.security.get_client_ip()'s
+        # header reading never saw real data: every captured login/audit IP was Waitress's
+        # own loopback peer address, 127.0.0.1, for every user - confirmed live (spoofed
+        # X-Forwarded-For arrived at the socket, per req.header_items(), but was still
+        # 127.0.0.1 by the time Flask's request.headers saw it). Since this process only
+        # binds to 127.0.0.1 itself, the only thing that can ever connect to it directly is
+        # a reverse proxy already running on this same machine (nginx, a cloud load
+        # balancer's local agent, etc.) - trusting exactly that one hop from loopback is
+        # the correct, narrow fix for this deployment shape, not a blanket "trust
+        # everyone" that would reopen the spoofing hole.
+        serve(
+            app, host="127.0.0.1", port=port, threads=16,
+            trusted_proxy="127.0.0.1",
+            trusted_proxy_count=1,
+            trusted_proxy_headers={"x-forwarded-for", "x-forwarded-proto", "x-forwarded-host"},
+            clear_untrusted_proxy_headers=True,
+        )
     except ImportError:
         # waitress itself isn't installed - fall back to Flask's own server, but NEVER
         # with debug=True: that turns on the interactive Werkzeug debugger, which lets
