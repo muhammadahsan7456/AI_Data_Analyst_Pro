@@ -49,13 +49,22 @@
                 questionInput.value = currentText;
             }
 
-            // Ultra-responsive 1.8s silence auto-submit timer (fast & natural conversational rhythm)
+            // Silence auto-submit timer. Was 1800ms - too short for a natural pause mid
+            // sentence (a user thinking between clauses of a longer question, e.g. "total
+            // sales... [pause] ...by city last month"), which cut questions off before
+            // they were finished. 3500ms gives real natural pauses room without feeling
+            // sluggish for a short, complete question. The manual "click the mic again to
+            // finish" path (toggleVoiceRecognition -> recognition.stop() -> onend submits
+            // whatever's been captured) already existed as a reliable fallback regardless
+            // of this timer or any quirk in the browser's own end-of-speech detection -
+            // see updateMicUI below, where the button label now says so explicitly instead
+            // of leaving that a hidden, undiscoverable behavior.
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(function () {
                 if (isListening && currentText.length > 0) {
                     rec.stop();
                 }
-            }, 1800);
+            }, 3500);
         };
 
         rec.onerror = function (event) {
@@ -397,7 +406,7 @@
                 btn.classList.add("listening", "pulse-animation");
                 btn.style.background = "linear-gradient(135deg, #ef4444, #dc2626)";
                 btn.style.boxShadow = "0 0 0 10px rgba(239, 68, 68, 0.3)";
-                if (span) span.textContent = "Listening... Speak Now!";
+                if (span) span.textContent = "Listening... Click Mic When Done";
                 if (icon) icon.className = "fa-solid fa-microphone-slash";
             } else {
                 btn.classList.remove("listening", "pulse-animation");
