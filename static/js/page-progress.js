@@ -67,13 +67,29 @@
     // file download rather than a real page navigation - an <a> with a `download`
     // attribute, or pointing at one of this app's known file-response routes. These
     // never navigate the page away, so the bar had nothing real to represent for them.
-    const DOWNLOAD_HREF_PATTERN = /\/(dataset\/export|query\/export|download-chart|receipts\/\d+\/download|admin\/(users|payments)\/export|admin\/payment\/invoice\/\d+\/download)\b/;
+    // Matched against both <a href> links AND <form action> targets (a growing list of
+    // exact paths was missing new routes as they were added - e.g. the "Process &
+    // Download Cleaned CSV" POST form on dataset_clean.html and the
+    // /report-builder/<id>?download=1 link were both missed by an earlier, narrower
+    // version of this pattern - so this checks for the general shape of a download URL
+    // instead of enumerating every route by exact name).
+    const DOWNLOAD_URL_PATTERN = /(\/(dataset\/export|dataset\/clean|query\/export|download-chart|report-builder|receipts\/\d+\/download|admin\/(users|payments)\/export|admin\/payment\/invoice\/\d+\/download)\b)|([?&](download|export)=)/;
+
+    function isDownloadUrl(url) {
+        return DOWNLOAD_URL_PATTERN.test(url || "");
+    }
 
     function isDownloadLink(el) {
         const link = el && el.closest ? el.closest("a[href]") : null;
         if (!link) return false;
         if (link.hasAttribute("download")) return true;
-        return DOWNLOAD_HREF_PATTERN.test(link.getAttribute("href") || "");
+        return isDownloadUrl(link.getAttribute("href"));
+    }
+
+    function isDownloadFormSubmit(el) {
+        const form = el && el.closest ? el.closest("form") : (el && el.tagName === "FORM" ? el : null);
+        if (!form) return false;
+        return isDownloadUrl(form.getAttribute("action") || form.action || "");
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -85,6 +101,17 @@
                 // The window never actually unloads for a download, so there's nothing to
                 // un-suppress on pageshow for this path - clear the flag shortly after
                 // instead, well past when a real competing navigation would have started.
+                setTimeout(function () { suppressNext = false; }, 1000);
+            }
+        }, true);
+
+        // Separate from the click listener above: a <form method="POST"> submit button
+        // never matches `closest("a[href]")` since there's no anchor tag involved, so a
+        // POST-based download (e.g. a "Download" button inside a form) needs its own check
+        // against the form's action URL.
+        document.addEventListener("submit", function (e) {
+            if (isDownloadFormSubmit(e.target)) {
+                suppressNext = true;
                 setTimeout(function () { suppressNext = false; }, 1000);
             }
         }, true);

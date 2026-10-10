@@ -410,6 +410,12 @@
                         <span>Contact Messages</span>
                     </a>
                 </li>
+                <li class="admin-nav-item {% if request.endpoint == 'admin.manage_reviews' %}active{% endif %}">
+                    <a href="{{ url_for('admin.manage_reviews') }}">
+                        <i class="fa-solid fa-star"></i>
+                        <span>Reviews</span>
+                    </a>
+                </li>
                 <li class="admin-nav-item {% if request.endpoint == 'admin.audit_logs' %}active{% endif %}">
                     <a href="{{ url_for('admin.audit_logs') }}">
                         <i class="fa-solid fa-shield-halved"></i>
@@ -502,6 +508,6 @@
     </script>
     <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
     <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
 </body>
 </html>

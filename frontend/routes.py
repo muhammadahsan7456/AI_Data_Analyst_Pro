@@ -2170,7 +2170,22 @@ def security_overview():
 @frontend.route("/testimonials")
 def testimonials_page():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("testimonials.html", is_logged_in=is_logged_in)
+
+    reviews = []
+    try:
+        from database.queries import get_approved_reviews
+        with get_db_cursor() as cursor:
+            cursor.execute(get_approved_reviews())
+            for review_id, name, role, text, rating in (cursor.fetchall() or []):
+                initials = "".join([p[0] for p in name.split()[:2]]).upper() or "U"
+                reviews.append({
+                    "id": review_id, "name": name, "role": role or "",
+                    "text": text, "rating": rating, "initials": initials
+                })
+    except Exception as e:
+        print("Testimonials Fetch Error:", e)
+
+    return render_template("testimonials.html", is_logged_in=is_logged_in, reviews=reviews)
 
 
 @frontend.route("/faq")

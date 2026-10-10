@@ -3,11 +3,21 @@ import smtplib
 import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from email.utils import make_msgid, formatdate
 from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Embedded (CID) rather than linked by URL: a <img src="http://127.0.0.1:...">  would
+# render as a broken image for every recipient, since that address isn't reachable from
+# outside this machine (and even on a real production domain, many email clients block
+# remote images by default until the user clicks "show images"). Attaching the file
+# directly into the message and referencing it as cid:logo displays immediately in every
+# client, with no external request at all.
+LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "favicon.png")
+LOGO_CID = "aidataanalystpro_logo"
 
 
 class EmailService:
@@ -29,7 +39,14 @@ class EmailService:
         user = (os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER") or "").strip()
         pwd = (os.getenv("SMTP_PASSWORD") or "").strip()
         
-        mail_from = user if user else (os.getenv("MAIL_FROM") or os.getenv("SMTP_FROM_EMAIL") or "noreply@aidataanlystpro.com").strip()
+        # The "From" address must be a sender VERIFIED in the SMTP provider's dashboard,
+        # which is not necessarily the same as the SMTP login (e.g. Brevo's SMTP login is
+        # an account-specific relay address like "xxxxx@smtp-brevo.com", while the actual
+        # verified sender is a real mailbox like "you@gmail.com"). Sending "From" the login
+        # instead of the verified sender gets silently rejected by the provider - this is
+        # exactly what broke Super Admin OTP delivery after switching from Gmail SMTP (where
+        # login and verified sender happened to be identical, masking the bug) to Brevo.
+        mail_from = (os.getenv("MAIL_FROM") or os.getenv("SMTP_FROM_EMAIL") or user or "noreply@aidataanlystpro.com").strip()
         from_name = os.getenv("MAIL_FROM_NAME", "AI Data Analyst Pro").strip()
 
         return {
@@ -93,7 +110,10 @@ class EmailService:
         if not plain_text:
             plain_text = "Please view this email in an HTML-compatible email client."
 
-        msg = MIMEMultipart("alternative")
+        # Outer container is "related" (not "alternative") so the embedded logo image can
+        # sit alongside the text/html alternative pair - "alternative" alone has no way to
+        # carry a third, non-alternative part like an inline image.
+        msg = MIMEMultipart("related")
         msg["Subject"] = subject
         msg["From"] = f"{cfg['from_name']} <{cfg['from_email']}>"
         msg["To"] = to_email
@@ -110,10 +130,21 @@ class EmailService:
             msg["List-Unsubscribe"] = list_unsubscribe
             msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
 
+        alt_part = MIMEMultipart("alternative")
         text_part = MIMEText(plain_text, "plain", "utf-8")
         html_part = MIMEText(html_body, "html", "utf-8")
-        msg.attach(text_part)
-        msg.attach(html_part)
+        alt_part.attach(text_part)
+        alt_part.attach(html_part)
+        msg.attach(alt_part)
+
+        try:
+            with open(LOGO_PATH, "rb") as logo_file:
+                logo_img = MIMEImage(logo_file.read())
+            logo_img.add_header("Content-ID", f"<{LOGO_CID}>")
+            logo_img.add_header("Content-Disposition", "inline", filename="logo.png")
+            msg.attach(logo_img)
+        except Exception as logo_err:
+            print("[SMTP NOTICE] Could not attach logo image:", logo_err)
 
         ports_to_try = [465, 587] if cfg["port"] == 465 else [cfg["port"], 465, 587]
         for port in ports_to_try:
@@ -177,7 +208,7 @@ AI Data Analyst Pro Security Team
                         <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
-                                    <td><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI Data Analyst Pro</span></td>
+                                    <td><img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span></td>
                                     <td align="right"><span style="font-size: 11px; font-weight: 700; color: #f87171; background-color: rgba(248,113,113,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(248,113,113,0.3);">Super Admin Security</span></td>
                                 </tr>
                             </table>
@@ -268,7 +299,7 @@ AI Data Analyst Pro Security Team
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td>
-                                        <span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI Data Analyst Pro</span>
+                                        <img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span>
                                     </td>
                                     <td align="right">
                                         <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background-color: rgba(56,189,248,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3);">Security Verification</span>
@@ -376,7 +407,7 @@ AI Data Analyst Pro Security Team
                         <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
-                                    <span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI Data Analyst Pro</span>
+                                    <img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span>
                                 </td>
                                 <td align="right">
                                     <span style="font-size: 11px; font-weight: 700; color: #f87171; background-color: rgba(248,113,113,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(248,113,113,0.3);">Password Reset</span>
@@ -476,7 +507,7 @@ AI Data Analyst Pro Security Team
                         <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
-                                    <span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI Data Analyst Pro</span>
+                                    <img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span>
                                 </td>
                                 <td align="right">
                                     <span style="font-size: 11px; font-weight: 700; color: #34d399; background-color: rgba(52,211,153,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(52,211,153,0.3);">Login Notification</span>
@@ -570,7 +601,7 @@ AI Data Analyst Pro Support Team
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td>
-                                        <span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI Data Analyst Pro</span>
+                                        <img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span>
                                     </td>
                                     <td align="right">
                                         <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background-color: rgba(56,189,248,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3);">Support Reply</span>
@@ -647,6 +678,7 @@ AI Data Analyst Pro Support Team
                 <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                     <tr>
                         <td style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); padding: 30px; text-align: center; color: #ffffff;">
+                            <img src="cid:aidataanalystpro_logo" width="40" height="40" alt="" style="border-radius: 8px; margin-bottom: 8px;"><br>
                             <h1 style="margin: 0; font-size: 24px; font-weight: 800;">AI Data Analyst Pro</h1>
                             <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.9;">Official Payment Transaction Update</p>
                         </td>
@@ -723,6 +755,7 @@ AI Data Analyst Pro Support Team
                     <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%); padding: 36px 30px; text-align: center; color: #ffffff;">
+                            <img src="cid:aidataanalystpro_logo" width="44" height="44" alt="" style="border-radius: 10px; margin-bottom: 10px;"><br>
                             <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">AI Data Analyst Pro</h1>
                             <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95; font-weight: 500;">Next-Gen Enterprise Data Intelligence & Analytics</p>
                         </td>
@@ -804,7 +837,7 @@ AI Data Analyst Pro Support Team
                         <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
-                                    <td><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI Data Analyst Pro</span></td>
+                                    <td><img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span></td>
                                     <td align="right"><span style="font-size: 11px; font-weight: 700; color: {badge_color}; background-color: {badge_color}1f; padding: 4px 10px; border-radius: 20px; border: 1px solid {badge_color}4d;">{badge_text}</span></td>
                                 </tr>
                             </table>

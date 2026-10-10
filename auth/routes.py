@@ -44,6 +44,7 @@ from database.queries import (
     reset_failed_login,
     get_user_profile,
     upsert_user_profile,
+    set_user_company_on_signup,
     get_user_settings,
     upsert_user_settings,
     create_email_verification_token,
@@ -272,6 +273,7 @@ def signup():
         phone = request.form.get("phone", "").strip()
         country = request.form.get("country", "").strip()
         city = request.form.get("city", "").strip()
+        company = request.form.get("company", "").strip()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
         terms = request.form.get("terms") == "on"
@@ -284,7 +286,8 @@ def signup():
             "email": email,
             "phone": phone,
             "country": country,
-            "city": city
+            "city": city,
+            "company": company
         }
 
         if not terms:
@@ -363,6 +366,10 @@ def signup():
 
             if not new_user_id:
                 raise ValueError("Failed to retrieve User ID for registration.")
+
+            if company:
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(set_user_company_on_signup(), (new_user_id, company, new_user_id, new_user_id, company))
 
             reg_payment = session.get("reg_payment")
             if reg_payment and not is_updating_existing:

@@ -39,7 +39,13 @@ from database.queries import (
     get_monthly_signups_trend,
     get_per_user_storage_admin,
     update_payment_settings,
-    activate_user_new_subscription
+    activate_user_new_subscription,
+    get_all_reviews_admin,
+    get_review_by_id,
+    create_review,
+    update_review,
+    toggle_review_approved,
+    delete_review
 )
 from auth.security import log_audit_event, verify_password, generate_secure_token
 from utils.helpers import format_12hr_datetime
@@ -777,8 +783,15 @@ def manage_payments():
                 try:
                     import os
                     rel = screenshot_path.replace("/static/", "").replace("static/", "").lstrip("/\\")
-                    from frontend import frontend as _frontend_bp
-                    screenshot_exists = os.path.exists(os.path.join(_frontend_bp.static_folder, rel))
+                    # "from frontend import frontend" (previously here) always raised
+                    # ImportError - "frontend" has no attribute/submodule literally named
+                    # "frontend" (the Blueprint lives at frontend.routes.frontend), so this
+                    # silently fell into the except below on every single row and defaulted
+                    # screenshot_exists to False even for screenshots that genuinely exist
+                    # on disk - every payment showed "Screenshot unavailable" regardless of
+                    # the real file. Resolved directly off this file's own location instead.
+                    static_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+                    screenshot_exists = os.path.exists(os.path.join(static_root, rel))
                 except Exception:
                     screenshot_exists = False
 
@@ -1492,3 +1505,120 @@ def delete_contact_message_route(message_id):
         flash(f"Failed to delete message: {str(e)}", "error")
 
     return redirect(url_for("admin.contact_messages"))
+
+
+# ==========================================
+# PUBLIC REVIEWS / TESTIMONIALS MANAGEMENT
+# ==========================================
+
+@admin_bp.route("/reviews")
+@admin_required
+def manage_reviews():
+    """
+    Super Admin management console for the public /reviews (testimonials) page -
+    add, edit, hide/show, and delete reviews. The public page only ever renders
+    rows with IsApproved = 1.
+    """
+    reviews_list = []
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(get_all_reviews_admin())
+            rows = cursor.fetchall() or []
+        for row in rows:
+            review_id, name, role, text, rating, is_approved, display_order, created_at = row
+            reviews_list.append({
+                "id": review_id,
+                "name": name,
+                "role": role or "",
+                "text": text,
+                "rating": rating,
+                "is_approved": bool(is_approved),
+                "display_order": display_order,
+                "created_at": format_12hr_datetime(created_at)
+            })
+    except Exception as e:
+        print("Admin Reviews Fetch Error:", e)
+        flash(f"Failed to load reviews: {str(e)}", "error")
+
+    edit_review = None
+    edit_id = request.args.get("edit", type=int)
+    if edit_id:
+        edit_review = next((r for r in reviews_list if r["id"] == edit_id), None)
+
+    visible_count = sum(1 for r in reviews_list if r["is_approved"])
+    return render_template("admin/reviews.html", reviews=reviews_list, visible_count=visible_count, edit_review=edit_review)
+
+
+@admin_bp.route("/reviews/save", methods=["POST"])
+@admin_required
+def save_review():
+    """
+    Creates a new review, or updates an existing one when review_id is present -
+    one form handles both Add and Edit from the same admin/reviews.html page.
+    """
+    admin_id = session.get("admin_user_id") or session.get("user_id")
+    review_id = request.form.get("review_id", type=int)
+    name = request.form.get("name", "").strip()
+    role = request.form.get("role", "").strip()
+    text = request.form.get("text", "").strip()
+    rating = request.form.get("rating", type=int) or 5
+    display_order = request.form.get("display_order", type=int) or 0
+    rating = max(1, min(5, rating))
+
+    if not name or not text:
+        flash("Reviewer name and review text are required.", "error")
+        return redirect(url_for("admin.manage_reviews"))
+
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            if review_id:
+                cursor.execute(update_review(), (name, role, text, rating, display_order, review_id))
+                log_audit_event("ADMIN_REVIEW_UPDATED", f"Updated review #{review_id} ({name})", user_id=admin_id)
+                flash(f"Review by '{name}' updated successfully.", "success")
+            else:
+                cursor.execute(create_review(), (name, role, text, rating, 1, display_order))
+                log_audit_event("ADMIN_REVIEW_CREATED", f"Created new review by {name}", user_id=admin_id)
+                flash(f"Review by '{name}' added successfully and is now live on the public Reviews page.", "success")
+    except Exception as e:
+        print("Save Review Error:", e)
+        flash(f"Failed to save review: {str(e)}", "error")
+
+    return redirect(url_for("admin.manage_reviews"))
+
+
+@admin_bp.route("/reviews/toggle/<int:review_id>", methods=["POST"])
+@admin_required
+def toggle_review(review_id):
+    """
+    Super Admin shows/hides a review on the public page without deleting it.
+    """
+    admin_id = session.get("admin_user_id") or session.get("user_id")
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(toggle_review_approved(), (review_id,))
+        log_audit_event("ADMIN_REVIEW_VISIBILITY_TOGGLED", f"Toggled visibility of review #{review_id}", user_id=admin_id)
+        flash(f"Review #{review_id} visibility updated.", "success")
+    except Exception as e:
+        print("Toggle Review Error:", e)
+        flash(f"Failed to update review visibility: {str(e)}", "error")
+
+    return redirect(url_for("admin.manage_reviews"))
+
+
+@admin_bp.route("/reviews/delete/<int:review_id>", methods=["POST"])
+@admin_required
+def delete_review_route(review_id):
+    """
+    Super Admin permanently deletes a review.
+    """
+    admin_id = session.get("admin_user_id") or session.get("user_id")
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(delete_review(), (review_id,))
+        log_audit_event("ADMIN_REVIEW_DELETED", f"Deleted review #{review_id}", user_id=admin_id)
+        flash(f"Review #{review_id} deleted successfully.", "success")
+    except Exception as e:
+        print("Delete Review Error:", e)
+        flash(f"Failed to delete review: {str(e)}", "error")
+
+    return redirect(url_for("admin.manage_reviews"))

@@ -447,6 +447,17 @@ def init_sqlite_db(conn):
             TriggeredValue REAL NOT NULL,
             Message TEXT NOT NULL,
             TriggeredAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS Reviews (
+            ReviewID INTEGER PRIMARY KEY AUTOINCREMENT,
+            ReviewerName TEXT NOT NULL,
+            ReviewerRole TEXT,
+            ReviewText TEXT NOT NULL,
+            Rating INTEGER NOT NULL DEFAULT 5,
+            IsApproved INTEGER NOT NULL DEFAULT 1,
+            DisplayOrder INTEGER NOT NULL DEFAULT 0,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )'''
     ]
 
@@ -921,6 +932,35 @@ def init_db():
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PaymentSettings') AND name = 'SadaPayNumber')
     BEGIN
         ALTER TABLE PaymentSettings ADD SadaPayNumber NVARCHAR(50) NULL;
+    END;
+
+    IF OBJECT_ID('Reviews', 'U') IS NULL
+    BEGIN
+        CREATE TABLE Reviews (
+            ReviewID INT IDENTITY(1,1) PRIMARY KEY,
+            ReviewerName NVARCHAR(200) NOT NULL,
+            ReviewerRole NVARCHAR(200) NULL,
+            ReviewText NVARCHAR(MAX) NOT NULL,
+            Rating INT NOT NULL DEFAULT 5,
+            IsApproved BIT NOT NULL DEFAULT 1,
+            DisplayOrder INT NOT NULL DEFAULT 0,
+            CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+            UpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
+    IF NOT EXISTS (SELECT * FROM Reviews)
+    BEGIN
+        -- Seeds the page with the site's original launch testimonials so the public
+        -- Reviews page isn't empty the first time this table is created - from here on
+        -- Super Admin fully manages this list (add/edit/hide/delete) from the admin panel.
+        INSERT INTO Reviews (ReviewerName, ReviewerRole, ReviewText, Rating, IsApproved, DisplayOrder) VALUES
+        ('Haris Khan', 'Lead Supply Chain Analyst - Karachi, Pakistan', 'We used to spend 15+ hours a week writing T-SQL queries and building charts manually. AI Data Analyst Pro does it in 0.005 milliseconds. The natural Roman Urdu voice query feature is unbelievable!', 5, 1, 1),
+        ('Muhammad Ahmed', 'Head of Business Intelligence - Lahore, Pakistan', 'The automated PowerPoint and PDF exports save us hours before executive board meetings. Plus, the AES-256 field encryption gives our compliance team complete peace of mind.', 5, 1, 2),
+        ('Syed Ali Farhan', 'E-commerce Director - Dubai, UAE', 'The multi-dataset JOIN engine is top notch. We connected sales and inventory datasets and got instant cross-analysis insights without writing a single complex SQL JOIN statement.', 5, 1, 3),
+        ('Fatima Noor', 'Operations Manager - Islamabad, Pakistan', 'Our logistics team uses the voice AI feature daily. Just saying ''Karachi se Lahore orders dikhao'' gives us instant results. It''s like having a bilingual data scientist on call 24/7.', 5, 1, 4),
+        ('Rizwan Javed', 'Senior Data Engineer - Faisalabad, Pakistan', 'Processing 10 million rows of sales data used to crash our tools. AI Data Analyst Pro handles it effortlessly with streaming chunking. The speed difference is night and day.', 5, 1, 5),
+        ('Ahmed Hassan', 'CTO - Rawalpindi, Pakistan', 'The ROI was immediate. We replaced 3 separate analytics tools with just AI Data Analyst Pro. The automated chart generation and executive takeaways are incredibly polished.', 5, 1, 6);
     END;
 
     IF OBJECT_ID('ReminderLog', 'U') IS NULL

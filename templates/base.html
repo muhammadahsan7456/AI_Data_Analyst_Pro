@@ -139,7 +139,7 @@
                         {% endif %}
                         <div style="overflow: hidden;">
                             <div style="font-weight: 700; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{{ current_user[4] }}</div>
-                            <div style="font-size: 11px; color: var(--accent-blue); font-weight: 600;">Active Account</div>
+                            <div style="font-size: 11px; color: var(--accent-blue); font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{{ current_user[17] if current_user|length > 17 and current_user[17] else 'Active Account' }}</div>
                         </div>
                     </a>
                 </div>
@@ -359,7 +359,7 @@
          already applied by the inline script in <head>, so deferring theme.js causes no flash. -->
     <script defer src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
     <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
-    <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=1"></script>
+    <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
     <script defer src="{{ url_for('frontend.static', filename='js/app.js') }}?v=20260918_v6"></script>
     <script defer src="{{ url_for('frontend.static', filename='js/voice_ai.js') }}?v=20260918_v3"></script>
 

@@ -353,12 +353,31 @@
                 </div>
             </div>
         </div>
-        <form method="POST" action="{{ url_for('admin.trigger_backup_now') }}" onsubmit="return confirm('Run a full database backup now? This may take a moment on a large database.');">
+        <form method="POST" action="{{ url_for('admin.trigger_backup_now') }}" onsubmit="return confirmAndRunBackup(this);">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn-save-settings" style="background: linear-gradient(135deg, #2563eb, #38bdf8);">
+            <button type="submit" id="backup-now-btn" class="btn-save-settings" style="background: linear-gradient(135deg, #2563eb, #38bdf8);">
                 <i class="fa-solid fa-cloud-arrow-down"></i> Backup Now
             </button>
         </form>
+        <script>
+            // A real BACKUP DATABASE run against this app's live data takes somewhere
+            // around 15-20 seconds - long enough that, with no visual change on this
+            // button, admins were clicking it and seeing nothing happen for that whole
+            // stretch (the standard full-page POST gives no feedback of its own until
+            // the response finally arrives), which reads as the page being stuck/frozen
+            // rather than a slow-but-working action.
+            function confirmAndRunBackup(form) {
+                if (!confirm('Run a full database backup now? This takes about 15-20 seconds on this database.')) {
+                    return false;
+                }
+                const btn = document.getElementById('backup-now-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Backing up database... please wait (~15-20s)';
+                }
+                return true;
+            }
+        </script>
     </div>
 
     <!-- System Status & Infrastructure Info Card -->

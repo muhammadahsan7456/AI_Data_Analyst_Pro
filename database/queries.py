@@ -37,9 +37,10 @@ def get_user_by_username():
 
 def get_user_by_id():
     return """
-    SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, PasswordHash, ProfileImage, IsActive, IsVerified, Role, FailedLoginAttempts, LockoutUntil, CreatedAt
-    FROM Users
-    WHERE UserID = ?
+    SELECT u.UserID, u.FirstName, u.LastName, u.Username, u.FullName, u.Email, u.PhoneNumber, u.Country, u.City, u.PasswordHash, u.ProfileImage, u.IsActive, u.IsVerified, u.Role, u.FailedLoginAttempts, u.LockoutUntil, u.CreatedAt, p.Company
+    FROM Users u
+    LEFT JOIN UserProfiles p ON p.UserID = u.UserID
+    WHERE u.UserID = ?
     """
 
 
@@ -111,6 +112,19 @@ def get_user_profile():
     SELECT ProfileID, UserID, Bio, Occupation, Company, Department, Designation, Website, LinkedIn, GitHub, Portfolio, ProfileImage, Timezone, Language
     FROM UserProfiles
     WHERE UserID = ?
+    """
+
+
+def set_user_company_on_signup():
+    return """
+    IF EXISTS (SELECT 1 FROM UserProfiles WHERE UserID = ?)
+    BEGIN
+        UPDATE UserProfiles SET Company = ?, UpdatedAt = GETDATE() WHERE UserID = ?
+    END
+    ELSE
+    BEGIN
+        INSERT INTO UserProfiles (UserID, Company, UpdatedAt) VALUES (?, ?, GETDATE())
+    END
     """
 
 
@@ -1355,4 +1369,63 @@ def delete_contact_message():
     return """
     DELETE FROM ContactMessages
     WHERE MessageID = ?
+    """
+
+
+# ==========================================
+# PUBLIC REVIEWS / TESTIMONIALS (Super Admin Managed)
+# ==========================================
+
+def get_all_reviews_admin():
+    return """
+    SELECT ReviewID, ReviewerName, ReviewerRole, ReviewText, Rating, IsApproved, DisplayOrder, CreatedAt
+    FROM Reviews
+    ORDER BY DisplayOrder ASC, CreatedAt DESC
+    """
+
+
+def get_approved_reviews():
+    return """
+    SELECT ReviewID, ReviewerName, ReviewerRole, ReviewText, Rating
+    FROM Reviews
+    WHERE IsApproved = 1
+    ORDER BY DisplayOrder ASC, CreatedAt DESC
+    """
+
+
+def create_review():
+    return """
+    INSERT INTO Reviews (ReviewerName, ReviewerRole, ReviewText, Rating, IsApproved, DisplayOrder)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """
+
+
+def update_review():
+    return """
+    UPDATE Reviews
+    SET ReviewerName = ?, ReviewerRole = ?, ReviewText = ?, Rating = ?, DisplayOrder = ?, UpdatedAt = GETDATE()
+    WHERE ReviewID = ?
+    """
+
+
+def toggle_review_approved():
+    return """
+    UPDATE Reviews
+    SET IsApproved = CASE WHEN IsApproved = 1 THEN 0 ELSE 1 END, UpdatedAt = GETDATE()
+    WHERE ReviewID = ?
+    """
+
+
+def delete_review():
+    return """
+    DELETE FROM Reviews
+    WHERE ReviewID = ?
+    """
+
+
+def get_review_by_id():
+    return """
+    SELECT ReviewID, ReviewerName, ReviewerRole, ReviewText, Rating, IsApproved, DisplayOrder
+    FROM Reviews
+    WHERE ReviewID = ?
     """

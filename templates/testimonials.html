@@ -39,61 +39,23 @@
             </div>
         </div>
 
-        <!-- Testimonials Grid -->
+        <!-- Testimonials Grid (dynamic - managed by Super Admin) -->
         <div class="testimonial-grid stagger-children">
+            {% set gradients = ['#3b82f6, #8b5cf6', '#10b981, #06b6d4', '#f59e0b, #ef4444', '#a855f7, #ec4899', '#14b8a6, #0ea5e9', '#f97316, #dc2626'] %}
+            {% for r in reviews %}
             <div class="testimonial-card reveal" data-tilt>
-                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                <p class="testimonial-text">"We used to spend 15+ hours a week writing T-SQL queries and building charts manually. AI Data Analyst Pro does it in 0.005 milliseconds. The natural Roman Urdu voice query feature is unbelievable!"</p>
+                <div class="testimonial-stars">
+                    {% for i in range(r.rating) %}<i class="fa-solid fa-star"></i>{% endfor %}{% for i in range(5 - r.rating) %}<i class="fa-regular fa-star"></i>{% endfor %}
+                </div>
+                <p class="testimonial-text">"{{ r.text }}"</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">HK</div>
-                    <div><div class="testimonial-name">Haris Khan</div><div class="testimonial-role">Lead Supply Chain Analyst • Karachi, Pakistan</div></div>
+                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, {{ gradients[loop.index0 % gradients|length] }});">{{ r.initials }}</div>
+                    <div><div class="testimonial-name">{{ r.name }}</div><div class="testimonial-role">{{ r.role }}</div></div>
                 </div>
             </div>
-
-            <div class="testimonial-card reveal" data-tilt>
-                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                <p class="testimonial-text">"The automated PowerPoint and PDF exports save us hours before executive board meetings. Plus, the AES-256 field encryption gives our compliance team complete peace of mind."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #10b981, #06b6d4);">MA</div>
-                    <div><div class="testimonial-name">Muhammad Ahmed</div><div class="testimonial-role">Head of Business Intelligence • Lahore, Pakistan</div></div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal" data-tilt>
-                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                <p class="testimonial-text">"The multi-dataset JOIN engine is top notch. We connected sales and inventory datasets and got instant cross-analysis insights without writing a single complex SQL JOIN statement."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">SA</div>
-                    <div><div class="testimonial-name">Syed Ali Farhan</div><div class="testimonial-role">E-commerce Director • Dubai, UAE</div></div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal" data-tilt>
-                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                <p class="testimonial-text">"Our logistics team uses the voice AI feature daily. Just saying 'Karachi se Lahore orders dikhao' gives us instant results. It's like having a bilingual data scientist on call 24/7."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #a855f7, #ec4899);">FN</div>
-                    <div><div class="testimonial-name">Fatima Noor</div><div class="testimonial-role">Operations Manager • Islamabad, Pakistan</div></div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal" data-tilt>
-                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                <p class="testimonial-text">"Processing 10 million rows of sales data used to crash our tools. AI Data Analyst Pro handles it effortlessly with streaming chunking. The speed difference is night and day."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #14b8a6, #0ea5e9);">RJ</div>
-                    <div><div class="testimonial-name">Rizwan Javed</div><div class="testimonial-role">Senior Data Engineer • Faisalabad, Pakistan</div></div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal" data-tilt>
-                <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                <p class="testimonial-text">"The ROI was immediate. We replaced 3 separate analytics tools with just AI Data Analyst Pro. The automated chart generation and executive takeaways are incredibly polished."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, #f97316, #dc2626);">AH</div>
-                    <div><div class="testimonial-name">Ahmed Hassan</div><div class="testimonial-role">CTO • Rawalpindi, Pakistan</div></div>
-                </div>
-            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No reviews yet - check back soon!</p>
+            {% endfor %}
         </div>
     </div>
 </section>
