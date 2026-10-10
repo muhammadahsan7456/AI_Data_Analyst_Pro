@@ -153,6 +153,12 @@ def get_connection_string():
     user = os.getenv("DB_USER", "")
     password = os.getenv("DB_PASSWORD", "")
 
+    # ODBC Driver 18 defaults to Encrypt=yes with strict certificate validation (Driver 17
+    # defaulted to no encryption, so this is new behavior on upgrade). Managed SQL Server
+    # hosts like RDS don't present a certificate that validates against the system trust
+    # store, so without this the driver refuses the connection outright - confirmed live
+    # when deploying against RDS: every connection attempt failed until this was added.
+    # The connection itself is still encrypted in transit; this only skips chain validation.
     if user and password:
         return (
             f"DRIVER={{{driver}}};"
@@ -160,6 +166,7 @@ def get_connection_string():
             f"DATABASE={database};"
             f"UID={user};"
             f"PWD={password};"
+            f"TrustServerCertificate=yes;"
         )
     else:
         return (
@@ -167,6 +174,7 @@ def get_connection_string():
             f"SERVER={server};"
             f"DATABASE={database};"
             f"Trusted_Connection={trusted};"
+            f"TrustServerCertificate=yes;"
         )
 
 
