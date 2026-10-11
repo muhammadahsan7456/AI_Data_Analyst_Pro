@@ -1185,6 +1185,13 @@ body {
         gap: 12px !important;
     }
 
+    /* profile.html's sidebar-card + content 2-column grid is set as an inline style
+       (280px 1fr), which held at that fixed width on a real phone and pushed the
+       content column off-screen. */
+    .sidebar-content-grid {
+        grid-template-columns: 1fr !important;
+    }
+
     .page-header {
         flex-direction: column;
         align-items: flex-start !important;

@@ -103,6 +103,9 @@
                 </a>
 
                 <ul class="nav-links" id="nav-menu">
+                    {% if not is_logged_in %}
+                    <li class="nav-mobile-signin-item"><a href="{{ url_for('auth.login') }}" class="nav-link-item">Sign In</a></li>
+                    {% endif %}
                     <li><a href="{{ url_for('frontend.home') }}" class="nav-link-item {% if request.endpoint == 'frontend.home' %}active{% endif %}">Home</a></li>
                     <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.features_page' %}active{% endif %}">Features</a></li>
                     <li><a href="{{ url_for('frontend.demo_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.demo_page' %}active{% endif %}">Live Demo</a></li>

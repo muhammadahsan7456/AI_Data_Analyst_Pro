@@ -273,6 +273,13 @@ header.site-header.scrolled {
     list-style: none;
 }
 
+/* Duplicate of the dedicated .btn-nav-login button above the hamburger - only needed as a
+   fallback inside the mobile dropdown where that button is hidden for space (see the
+   max-width: 768px block below), so it stays hidden everywhere else. */
+.nav-mobile-signin-item {
+    display: none;
+}
+
 .nav-link-item {
     color: var(--text-muted);
     font-size: 14px;
@@ -2077,6 +2084,12 @@ main > .landing-section:first-child {
     .mobile-toggle { display: block; }
 
     .btn-nav-login { display: none; }
+    .nav-mobile-signin-item { display: block; }
+
+    /* At 22px with a 44px icon box, "AI Analyst Pro" wrapped to two lines and collided
+       with the theme-toggle button next to it on a real phone - confirmed live. */
+    .brand-logo { font-size: 15px; gap: 8px; white-space: nowrap; }
+    .brand-icon-box { width: 34px; height: 34px; font-size: 15px; }
 
     .hero-title { letter-spacing: -0.5px; }
     .hero-section { padding-top: 120px; }
@@ -2092,6 +2105,13 @@ main > .landing-section:first-child {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
 
     .video-player-container { height: 280px; }
+
+    /* docs.html sets this 2-column grid as an inline style (280px sidebar + content),
+       which held at that fixed width on a real phone and pushed the content column
+       off-screen - text was visibly cut off at the right edge. !important is needed
+       since an inline style otherwise outranks any stylesheet rule, media query or not. */
+    .docs-layout-grid { grid-template-columns: 1fr !important; }
+    .docs-sidebar { position: static !important; }
 }
 
 @media (max-width: 480px) {
