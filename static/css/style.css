@@ -1029,6 +1029,15 @@ body {
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-lg);
+        /* .sidebar has no overflow set at all (fine on desktop, where its height always
+           matches the full nav + footer content). As a fixed-height mobile drawer, the
+           nav list (11 links) plus the footer (avatar/company name, Sign Out, Dark Mode)
+           together are taller than most real phone viewports, and with no overflow the
+           excess was simply inaccessible - no amount of scrolling reached it, since the
+           drawer itself is position:fixed and detached from the page's own scroll.
+           Confirmed live: Sign Out and the bottom nav items were unreachable. */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .sidebar.open {
