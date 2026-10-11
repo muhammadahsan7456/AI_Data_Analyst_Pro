@@ -112,6 +112,17 @@
     transition: all 0.2s ease;
     box-shadow: 0 2px 6px rgba(0,0,0,0.03);
 }
+/* 6 boxes at 52px + 10px gaps need ~362px, but the card's own 38px side padding
+   leaves well under that on a real phone (390px viewport -> ~314px inner width) -
+   confirmed live, boxes were pushed past the card edge and cut off. */
+@media (max-width: 480px) {
+    .auth-luxury-card { padding: 36px 16px !important; }
+    #otp-boxes-container { gap: 6px !important; }
+    .otp-box-digit { width: 42px; height: 52px; font-size: 20px; }
+}
+@media (max-width: 360px) {
+    .otp-box-digit { width: 38px; height: 48px; font-size: 18px; }
+}
 .otp-box-digit:focus {
     border-color: #38bdf8;
     box-shadow: 0 0 14px rgba(56,189,248,0.4);

@@ -57,7 +57,7 @@
      landing.css, and nothing in style.css defines them), reported as "broken formatting".
      Loaded as an addition after style.css, not a replacement, so the dashboard shell itself
      (sidebar, header) is untouched - only this page's own content classes are affected. -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20260918_v2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261011_v1">
 {% endif %}
 {% endblock %}
 
@@ -185,7 +185,7 @@
 <!-- See the identical comment in help.html's extra_js block - this page's .reveal
      elements need animations.js's scroll observer (not loaded by base.html), and are
      revealed immediately here too so they're visible without waiting on a scroll event. -->
-<script defer src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=2"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
