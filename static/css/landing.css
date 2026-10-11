@@ -273,6 +273,14 @@ header.site-header.scrolled {
     list-style: none;
 }
 
+.nav-drawer-header, .nav-drawer-close, .mobile-nav-overlay {
+    display: none;
+}
+
+body.mobile-nav-locked {
+    overflow: hidden;
+}
+
 /* Duplicate of the dedicated .btn-nav-login button above the hamburger - only needed as a
    fallback inside the mobile dropdown where that button is hidden for space (see the
    max-width: 768px block below), so it stays hidden everywhere else. */
@@ -2065,21 +2073,72 @@ main > .landing-section:first-child {
 }
 
 @media (max-width: 768px) {
+    /* Off-canvas slide-in drawer, not a centered dropdown - the previous version faded
+       the whole link list in as a full-width block right under the header, which read
+       as a centered popup rather than navigation. This slides in from the right edge
+       like a standard mobile nav drawer, with a backdrop overlay and explicit close (X). */
     .nav-links {
-        display: none;
+        display: flex;
         position: fixed;
-        top: 76px; left: 0;
-        width: 100%;
+        top: 0; right: 0;
+        width: 280px;
+        max-width: 85vw;
+        height: 100vh;
         background: var(--header-bg);
         backdrop-filter: blur(24px);
         flex-direction: column;
+        align-items: stretch;
         padding: 20px;
-        gap: 12px;
-        border-bottom: 1px solid var(--border-glass);
-        z-index: 999;
+        gap: 4px;
+        border-left: 1px solid var(--border-glass);
+        box-shadow: -16px 0 40px rgba(0, 0, 0, 0.35);
+        z-index: 1001;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        overflow-y: auto;
     }
 
-    .nav-links.mobile-open { display: flex; animation: fadeInDown 0.3s ease-out; }
+    .nav-links.mobile-open { transform: translateX(0); }
+
+    .nav-links .nav-link-item, .nav-links .nav-mobile-signin-item .nav-link-item {
+        display: block;
+        padding: 14px 10px;
+        border-bottom: 1px solid var(--border-glass);
+        font-size: 15px;
+    }
+
+    .nav-drawer-header {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 8px;
+        border-bottom: none !important;
+    }
+
+    .nav-drawer-close {
+        display: block;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 22px;
+        cursor: pointer;
+        padding: 6px;
+        line-height: 1;
+    }
+
+    .mobile-nav-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 15, 0.6);
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .mobile-nav-overlay.mobile-open {
+        display: block;
+        opacity: 1;
+    }
 
     .mobile-toggle { display: block; }
 
@@ -2112,6 +2171,11 @@ main > .landing-section:first-child {
        since an inline style otherwise outranks any stylesheet rule, media query or not. */
     .docs-layout-grid { grid-template-columns: 1fr !important; }
     .docs-sidebar { position: static !important; }
+
+    /* signup.html's Phone/Country/City row is a fixed 3-column inline grid - on a real
+       390px phone each column was too narrow for its placeholder text, which visibly
+       truncated ("+1...", "Uni...", "Ne..."). Confirmed live via screenshot. */
+    .auth-row-3col { grid-template-columns: 1fr !important; }
 }
 
 @media (max-width: 480px) {
@@ -2122,6 +2186,11 @@ main > .landing-section:first-child {
     .stats-grid { grid-template-columns: 1fr; }
     .sandbox-prompt-chips { flex-direction: column; }
     .chip-btn { width: 100%; justify-content: center; }
+
+    /* signup.html's Name/Username/Email/Password 2-column rows held up fine down to
+       ~390px but started truncating placeholder text ("e.g. Joh...") on a real 360px
+       phone - confirmed live via screenshot. */
+    .auth-row-2col { grid-template-columns: 1fr !important; }
 }
 
 /* ===== FLASH MESSAGE BANNERS (public/landing pages) ===== */

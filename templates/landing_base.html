@@ -102,7 +102,14 @@
                     <span>AI Analyst Pro</span>
                 </a>
 
+                <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="toggleMobileNav()"></div>
+
                 <ul class="nav-links" id="nav-menu">
+                    <li class="nav-drawer-header">
+                        <button class="nav-drawer-close" onclick="toggleMobileNav()" aria-label="Close Menu">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </li>
                     {% if not is_logged_in %}
                     <li class="nav-mobile-signin-item"><a href="{{ url_for('auth.login') }}" class="nav-link-item">Sign In</a></li>
                     {% endif %}
@@ -264,6 +271,8 @@
     <script>
         function toggleMobileNav() {
             document.getElementById('nav-menu').classList.toggle('mobile-open');
+            document.getElementById('mobile-nav-overlay').classList.toggle('mobile-open');
+            document.body.classList.toggle('mobile-nav-locked');
         }
         function handleSubscribe(e) {
             e.preventDefault();
