@@ -271,12 +271,26 @@
                 // Don't unobserve so elements don't reset
             }
         });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    // threshold/rootMargin tuned conservative (0.12, -40px) read fine on a slow, deliberate
+    // desktop scroll, but on a real phone - faster flick-scrolling, smaller viewport so more
+    // of a long section is off-screen at once - entire sections stayed at opacity:0 for a
+    // noticeable stretch, reading as "half the page is blank/broken" rather than a fade-in.
+    // Triggering as soon as any sliver of the element is visible keeps the fade-in effect
+    // for a deliberate scroll while eliminating that blank window on mobile.
+    }, { threshold: 0.01, rootMargin: '0px 0px 0px 0px' });
 
     document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(el => {
-            observer.observe(el);
-        });
+        const els = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+        els.forEach(el => observer.observe(el));
+
+        // Safety net: if IntersectionObserver never fires for some element (a slow/low-end
+        // device, a browser quirk, a tab that was backgrounded during load), force every
+        // reveal element visible after 3s regardless. No real page content on this app ever
+        // needs longer than that to genuinely appear - the alternative is content that stays
+        // invisible indefinitely, which is a worse failure than skipping the fade-in.
+        setTimeout(() => {
+            els.forEach(el => el.classList.add('revealed'));
+        }, 3000);
     });
 })();
 
