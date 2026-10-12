@@ -206,6 +206,7 @@
                         <p style="color: #92400e; font-size: 16px; font-weight: 600;">${data.error}</p>
                     </div>
                 `;
+                container.scrollIntoView({ behavior: "smooth", block: "start" });
                 if (data.tts_speech) speakText(data.tts_speech);
                 return;
             }
@@ -324,6 +325,7 @@
                 }
 
                 container.innerHTML = html;
+                container.scrollIntoView({ behavior: "smooth", block: "start" });
 
                 if (data.chart_spec && data.chart_spec.labels && data.chart_spec.labels.length > 0) {
                     setTimeout(() => {
