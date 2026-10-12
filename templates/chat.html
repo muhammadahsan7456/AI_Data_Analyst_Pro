@@ -802,6 +802,17 @@ document.addEventListener("DOMContentLoaded", function() {
             renderInteractivePlotlyChart(currentChartSpec, activeMode);
         }
     });
+
+    // This page answers by a full form POST + reload, not AJAX - the answer is genuinely
+    // there in the response, but the reloaded page lands at the top by default, well above
+    // the results section, so it looked like nothing had happened until the user scrolled
+    // down manually. Scroll straight to the answer when this page load actually contains one.
+    (function () {
+        const resultsEl = document.getElementById("chat-results-container");
+        if (resultsEl && resultsEl.textContent.trim().length > 0) {
+            resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    })();
 });
 </script>
 {% endblock %}

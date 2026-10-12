@@ -130,7 +130,7 @@
 <div style="display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap;">
     {% if session.get('user_role') in ['Admin', 'Manager', 'Analyst'] %}
     <a href="{{ url_for('frontend.upload') }}" class="btn btn-primary">
-        <i class="fa-solid fa-cloud-arrow-up"></i> Multi-Format Uploader
+        <i class="fa-solid fa-cloud-arrow-up"></i> Dataset Upload
     </a>
     <a href="{{ url_for('frontend.chat') }}" class="btn btn-secondary">
         <i class="fa-solid fa-microphone"></i> Voice AI Assistant

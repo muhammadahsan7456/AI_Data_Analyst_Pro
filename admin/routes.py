@@ -226,6 +226,20 @@ def admin_verify_otp():
             session["admin_session_token"] = generate_secure_token()
             session["admin_last_activity"] = int(time.time())
 
+            # Also establish the regular user session for this same account/UserID - a
+            # Super Admin login previously set ONLY the admin_* keys, so visiting the
+            # ordinary user pages (Profile, Settings) while logged in purely as admin had
+            # no session["user_id"] to work with: get_user_subscription_info(None) fell
+            # through to its early "no user" default (missing is_pro/plan_name entirely),
+            # which rendered as "Free Plan" / an empty profile for an account that actually
+            # has full Enterprise SuperAdmin access - confirmed live. It's genuinely the
+            # same account, so there's no reason it shouldn't also be logged in as itself.
+            session["user_id"] = user_id
+            session["user_name"] = pending.get("full_name")
+            session["user_email"] = pending.get("email")
+            session["user_role"] = pending.get("role")
+            session["last_activity"] = int(time.time())
+
             log_audit_event("ADMIN_LOGIN_SUCCESS", f"Super Admin '{pending.get('full_name')}' logged into Executive Console (2FA verified)", user_id=user_id)
             flash(f"👑 Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
             return redirect(pending.get("next") or url_for("admin.dashboard"))
@@ -256,6 +270,13 @@ def admin_logout():
 
     for k in ["admin_user_id", "admin_user_name", "admin_user_email", "admin_user_role", "admin_session_token", "admin_last_activity"]:
         session.pop(k, None)
+
+    # Admin login also establishes the regular user session for this same account (see
+    # verify_otp) - clear it here too, otherwise "Logout Super Admin" would silently leave
+    # the account logged into the ordinary user pages, which isn't what logging out means.
+    if session.get("user_id") == admin_id:
+        for k in ["user_id", "user_name", "user_email", "user_role", "last_activity"]:
+            session.pop(k, None)
 
     flash("👋 Super Admin logged out successfully.", "info")
     return redirect(url_for("admin.admin_login"))

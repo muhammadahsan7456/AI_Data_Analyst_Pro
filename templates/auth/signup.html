@@ -21,44 +21,27 @@
             <input type="text" style="display:none; position:absolute; opacity:0;" name="fake_user_prevent_autofill" tabindex="-1" autocomplete="new-password">
             <input type="password" style="display:none; position:absolute; opacity:0;" name="fake_pass_prevent_autofill" tabindex="-1" autocomplete="new-password">
 
-            <!-- Row 1: Name -->
-            <div class="auth-row-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div class="auth-form-group" style="margin-bottom: 0;">
-                    <label for="first_name" class="auth-label">First Name</label>
-                    <div class="auth-input-wrapper">
-                        <i class="fa-solid fa-user input-icon"></i>
-                        <input type="text" name="first_name" id="first_name" required autocomplete="off" value="{{ form_data.first_name if form_data else '' }}" placeholder="e.g. John" class="auth-input">
-                    </div>
-                    <div id="first_name-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
+            <!-- Row 1: Name (Last Name and Username removed from this form - fewer fields,
+                 less friction. Username is still required internally for login/@display,
+                 so it's auto-generated server-side from the email instead - see signup()
+                 in auth/routes.py.) -->
+            <div class="auth-form-group" style="margin-bottom: 16px;">
+                <label for="first_name" class="auth-label">Full Name</label>
+                <div class="auth-input-wrapper">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" name="first_name" id="first_name" required autocomplete="off" value="{{ form_data.first_name if form_data else '' }}" placeholder="e.g. John Doe" class="auth-input">
                 </div>
-                <div class="auth-form-group" style="margin-bottom: 0;">
-                    <label for="last_name" class="auth-label">Last Name</label>
-                    <div class="auth-input-wrapper">
-                        <i class="fa-solid fa-user input-icon"></i>
-                        <input type="text" name="last_name" id="last_name" required autocomplete="off" value="{{ form_data.last_name if form_data else '' }}" placeholder="e.g. Doe" class="auth-input">
-                    </div>
-                    <div id="last_name-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
-                </div>
+                <div id="first_name-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
             </div>
 
-            <!-- Row 2: Username & Email -->
-            <div class="auth-row-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div class="auth-form-group" style="margin-bottom: 0;">
-                    <label for="username" class="auth-label">Username</label>
-                    <div class="auth-input-wrapper">
-                        <i class="fa-solid fa-at input-icon"></i>
-                        <input type="text" name="username" id="username" required autocomplete="off" value="{{ form_data.username if form_data else '' }}" placeholder="e.g. john_doe" class="auth-input">
-                    </div>
-                    <div id="username-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
+            <!-- Row 2: Email -->
+            <div class="auth-form-group" style="margin-bottom: 16px;">
+                <label for="email" class="auth-label">Corporate or Gmail Address</label>
+                <div class="auth-input-wrapper">
+                    <i class="fa-solid fa-envelope input-icon"></i>
+                    <input type="email" name="email" id="email" required autocomplete="off" value="{{ form_data.email if form_data else '' }}" placeholder="name@company.com" class="auth-input">
                 </div>
-                <div class="auth-form-group" style="margin-bottom: 0;">
-                    <label for="email" class="auth-label">Corporate or Gmail Address</label>
-                    <div class="auth-input-wrapper">
-                        <i class="fa-solid fa-envelope input-icon"></i>
-                        <input type="email" name="email" id="email" required autocomplete="off" value="{{ form_data.email if form_data else '' }}" placeholder="name@company.com" class="auth-input">
-                    </div>
-                    <div id="email-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
-                </div>
+                <div id="email-feedback" class="field-hint" style="font-size: 12px; font-weight: 600; margin-top: 4px; display: none;"></div>
             </div>
 
             <!-- Row 3: Phone, Country & City -->
@@ -160,8 +143,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("signup-form");
     const fn = document.getElementById("first_name");
-    const ln = document.getElementById("last_name");
-    const un = document.getElementById("username");
     const em = document.getElementById("email");
     const pwd = document.getElementById("signup_password");
     const cpwd = document.getElementById("confirm_password");
@@ -217,36 +198,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     let isEmailAvailable = true;
-    let isUsernameAvailable = true;
 
-    if (fn) fn.addEventListener("input", () => setHint(fn, "first_name-feedback", fn.value.trim().length >= 2, "First name must be at least 2 characters."));
-    if (ln) ln.addEventListener("input", () => setHint(ln, "last_name-feedback", ln.value.trim().length >= 2, "Last name must be at least 2 characters."));
-    
-    if (un) {
-        let timer;
-        un.addEventListener("input", () => {
-            clearTimeout(timer);
-            const val = un.value.trim();
-            if (!/^[a-zA-Z0-9_]{3,30}$/.test(val)) {
-                setHint(un, "username-feedback", false, "Username must be 3-30 letters, numbers, or underscores.");
-                isUsernameAvailable = false;
-                return;
-            }
-            timer = setTimeout(() => {
-                fetch(`/auth/api/check-user?username=${encodeURIComponent(val)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.available) {
-                            setHint(un, "username-feedback", false, data.message);
-                            isUsernameAvailable = false;
-                        } else {
-                            setHint(un, "username-feedback", true, "Username is available");
-                            isUsernameAvailable = true;
-                        }
-                    }).catch(() => {});
-            }, 300);
-        });
-    }
+    if (fn) fn.addEventListener("input", () => setHint(fn, "first_name-feedback", fn.value.trim().length >= 2, "Full name must be at least 2 characters."));
 
     if (em) {
         let timer;
@@ -310,9 +263,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (form) {
         form.addEventListener("submit", function (e) {
             let valid = true;
-            if (!fn.value.trim() || fn.value.trim().length < 2) { setHint(fn, "first_name-feedback", false, "First name is required (min 2 chars)."); valid = false; }
-            if (!ln.value.trim() || ln.value.trim().length < 2) { setHint(ln, "last_name-feedback", false, "Last name is required (min 2 chars)."); valid = false; }
-            if (!isUsernameAvailable || !/^[a-zA-Z0-9_]{3,30}$/.test(un.value.trim())) { setHint(un, "username-feedback", false, isUsernameAvailable ? "Username must be 3-30 letters, numbers, or underscores." : "This username is already taken."); valid = false; }
+            if (!fn.value.trim() || fn.value.trim().length < 2) { setHint(fn, "first_name-feedback", false, "Full name is required (min 2 chars)."); valid = false; }
             if (!isEmailAvailable || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())) { setHint(em, "email-feedback", false, isEmailAvailable ? "Valid email address is required." : "An account with this email address already exists."); valid = false; }
             const pwdVal = pwd.value;
             const pwdValid = pwdVal.length >= 8 && /[A-Z]/.test(pwdVal) && /[a-z]/.test(pwdVal) && /[0-9]/.test(pwdVal) && /[^A-Za-z0-9]/.test(pwdVal);

@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import uuid
 import secrets
@@ -270,6 +271,25 @@ def signup():
         last_name = request.form.get("last_name", "").strip()
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip().lower()
+
+        # Last Name and Username are no longer collected on the signup form (simplified
+        # per product decision - fewer fields, less friction). Username still has to exist
+        # and be unique (it's used for login and @username display elsewhere), so it's
+        # auto-generated from the email's local part here instead of asking for it -
+        # falling back to a numeric/random suffix on collision, same as a user picking a
+        # taken name would have to.
+        if not username and email:
+            base_username = re.sub(r"[^a-zA-Z0-9_]", "", email.split("@")[0])[:25] or "user"
+            candidate = base_username
+            with get_db_cursor() as cursor:
+                for attempt in range(20):
+                    cursor.execute(get_user_by_username(), (candidate,))
+                    if not cursor.fetchone():
+                        break
+                    candidate = f"{base_username}{secrets.randbelow(9000) + 1000}"
+                else:
+                    candidate = f"{base_username}{secrets.token_hex(4)}"
+            username = candidate
         phone = request.form.get("phone", "").strip()
         country = request.form.get("country", "").strip()
         city = request.form.get("city", "").strip()

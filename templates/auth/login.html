@@ -2,7 +2,8 @@
 
 {% block seo_meta %}
 <title>Sign In — AI Data Analyst Pro | Enterprise AI Analytics Platform</title>
-<meta name="description" content="Sign in to your AI Data Analyst Pro enterprise account. Access sub-second SQL queries, voice AI, automated exports, and executive dashboards.">
+<meta name="description"
+    content="Sign in to your AI Data Analyst Pro enterprise account. Access sub-second SQL queries, voice AI, automated exports, and executive dashboards.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -17,43 +18,54 @@
         <p class="auth-subtitle">Sign in to your AI Data Analyst Pro enterprise workspace</p>
 
         {% if unverified_email %}
-        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid var(--accent-gold); padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 20px; text-align: left; font-size: 13px; color: var(--text-primary);">
-            <strong style="display: block; margin-bottom: 4px; font-size: 14px; color: var(--accent-gold);"><i class="fa-solid fa-triangle-exclamation"></i> Email Not Verified</strong>
+        <div
+            style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid var(--accent-gold); padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 20px; text-align: left; font-size: 13px; color: var(--text-primary);">
+            <strong style="display: block; margin-bottom: 4px; font-size: 14px; color: var(--accent-gold);"><i
+                    class="fa-solid fa-triangle-exclamation"></i> Email Not Verified</strong>
             Please verify your email address (<strong>{{ unverified_email }}</strong>) before logging in.
-            <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="margin-top: 10px;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-hero-secondary" style="font-weight: 700; font-size: 12px; width: 100%; justify-content: center; padding: 9px 12px; border-radius: var(--radius-sm); border-color: rgba(245, 158, 11, 0.4); color: var(--accent-gold);">
+            <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="margin-top: 10px;"><input type="hidden"
+                    name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-hero-secondary"
+                    style="font-weight: 700; font-size: 12px; width: 100%; justify-content: center; padding: 9px 12px; border-radius: var(--radius-sm); border-color: rgba(245, 158, 11, 0.4); color: var(--accent-gold);">
                     <i class="fa-solid fa-paper-plane"></i> Resend Verification Code
                 </button>
             </form>
         </div>
         {% endif %}
 
-        <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" id="login-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" id="login-form"><input
+                type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="auth-form-group">
                 <label for="email_or_username" class="auth-label">
                     Email Address or Username
                 </label>
                 <div class="auth-input-wrapper">
                     <i class="fa-solid fa-user input-icon"></i>
-                    <input type="text" name="email_or_username" id="email_or_username" required placeholder="name@company.com or username" class="auth-input" autocomplete="username">
+                    <input type="text" name="email_or_username" id="email_or_username" required
+                        placeholder="name@company.com or username" class="auth-input" autocomplete="username">
                 </div>
             </div>
 
             <div class="auth-form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
                     <label for="password" class="auth-label" style="margin-bottom: 0;">Password</label>
-                    <a href="{{ url_for('auth.forgot_password') }}" style="font-size: 12px; color: var(--accent-gold); text-decoration: none; font-weight: 600;">Forgot Password?</a>
+                    <a href="{{ url_for('auth.forgot_password') }}"
+                        style="font-size: 12px; color: var(--accent-gold); text-decoration: none; font-weight: 600;">Forgot
+                        Password?</a>
                 </div>
                 <div class="auth-input-wrapper">
                     <i class="fa-solid fa-lock input-icon"></i>
-                    <input type="password" name="password" id="password" required placeholder="••••••••" class="auth-input" autocomplete="current-password">
+                    <input type="password" name="password" id="password" required placeholder="••••••••"
+                        class="auth-input" autocomplete="current-password">
                     <i class="fa-solid fa-eye btn-toggle-pwd" data-target="password" title="Show/Hide password"></i>
                 </div>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-secondary);">
-                    <input type="checkbox" name="remember" style="width: 16px; height: 16px; accent-color: var(--accent-gold);">
+                <label
+                    style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" name="remember"
+                        style="width: 16px; height: 16px; accent-color: var(--accent-gold);">
                     Remember me on this device
                 </label>
             </div>
@@ -76,7 +88,7 @@
     // Password toggle
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const targetId = this.getAttribute('data-target');
                 const input = document.getElementById(targetId);
                 if (input) {
