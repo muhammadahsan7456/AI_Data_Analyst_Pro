@@ -443,19 +443,13 @@
             });
         });
 
-        // Intercept Chat Form Submit to run via AJAX without page reload lag
-        const chatForm = document.getElementById("chat-form");
-        if (chatForm) {
-            chatForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const questionInput = document.getElementById("question-input");
-                const question = questionInput ? questionInput.value.trim() : "";
-                if (question) {
-                    executeVoiceQueryAJAX(question);
-                }
-            });
-        }
+        // Chat form submit is already handled by chat.html's own listener, which calls
+        // executeVoiceQueryAJAX (defined above, on window) when available - this used to
+        // duplicate that same listener here, so every question fired two concurrent AJAX
+        // requests (confirmed live: each submit produced two /chat?ajax=1 calls). That
+        // doubled backend load per question and raced two overlapping showLoading/
+        // hideLoading + chart-redraw + TTS cycles against each other, which is exactly why
+        // asking several questions in a row made the page appear to hang on "loading".
 
         // If AI response text exists on chat page, speak natural TTS answer
         const aiSpeechElement = document.getElementById("ai-speech-text");
