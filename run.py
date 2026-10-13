@@ -380,8 +380,18 @@ if __name__ == "__main__":
         # balancer's local agent, etc.) - trusting exactly that one hop from loopback is
         # the correct, narrow fix for this deployment shape, not a blanket "trust
         # everyone" that would reopen the spoofing hole.
+        # threads=16 meant only 16 requests could be in flight at once - and most request
+        # time here is spent waiting on RDS or an external AI API call, not on CPU work, so
+        # a handful of concurrently slow requests (a multi-second AI query, a large upload)
+        # could already exhaust the pool and leave the next visitor queued behind them, even
+        # with no CPU pressure at all. Raised to a level suited for I/O-bound work on a
+        # small instance; connection_limit/channel_timeout made explicit instead of relying
+        # on Waitress's defaults, so queuing behavior under load is a deliberate choice here,
+        # not an accident of whatever those defaults happen to be.
         serve(
-            app, host="127.0.0.1", port=port, threads=16,
+            app, host="127.0.0.1", port=port, threads=32,
+            connection_limit=300,
+            channel_timeout=120,
             trusted_proxy="127.0.0.1",
             trusted_proxy_count=1,
             trusted_proxy_headers={"x-forwarded-for", "x-forwarded-proto", "x-forwarded-host"},
