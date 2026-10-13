@@ -7,6 +7,7 @@ from markupsafe import escape
 from admin import admin_bp
 from admin.decorators import admin_required
 from database.connection import get_db_cursor
+from utils.geoip import get_location_from_ip
 from database.queries import (
     get_admin_kpis,
     get_all_users_admin,
@@ -517,7 +518,12 @@ def manage_users():
                 "email": email,
                 "username": uname,
                 "phone": phone or "N/A",
-                "location": f"{city or ''}, {country or ''}".strip(", ") or "N/A",
+                # Self-reported City/Country (filled in on signup) takes priority when
+                # present; most accounts never fill those in (confirmed live - the Super
+                # Admin account created directly in the database had neither), so this falls
+                # back to geolocating the user's own last-login IP instead of just showing
+                # "N/A" for almost every row.
+                "location": (f"{city or ''}, {country or ''}".strip(", ") or get_location_from_ip(last_ip) or "N/A"),
                 "profile_image": profile_img if (profile_img and profile_img != "/static/images/default_avatar.png") else None,
                 "initials": get_user_initials(full_name, email),
                 "is_active": bool(is_active) and sub_status != "suspended",

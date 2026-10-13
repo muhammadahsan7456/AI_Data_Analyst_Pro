@@ -181,7 +181,9 @@
                         </form>
                     </td>
                     <td>
-                        {% if u.subscription_status == 'pending_approval' %}
+                        {% if u.role in ('SuperAdmin', 'Admin') %}
+                        <span class="badge-status" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid #8b5cf6;"><i class="fa-solid fa-crown" style="font-size: 8px;"></i> Full Access ({{ u.role }})</span>
+                        {% elif u.subscription_status == 'pending_approval' %}
                         <span class="badge-status" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6;"><i class="fa-solid fa-hourglass-half" style="font-size: 8px;"></i> Pending Approval</span>
                         {% elif u.subscription_status == 'rejected' %}
                         <span class="badge-status" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;"><i class="fa-solid fa-xmark" style="font-size: 8px;"></i> Rejected</span>
@@ -198,7 +200,11 @@
                         {% endif %}
                     </td>
                     <td style="color: #38bdf8; font-size: 12px; font-weight: 700;">
+                        {% if u.role in ('SuperAdmin', 'Admin') %}
+                        N/A (Full Access)
+                        {% else %}
                         {{ u.subscription_end if u.subscription_status not in ('free', 'basic', 'trial') else 'N/A (Free Tier)' }}
+                        {% endif %}
                     </td>
                     <td style="color: var(--text-muted); font-size: 12px;">{{ u.created_at }}</td>
                     <td style="text-align: right;">

@@ -927,6 +927,42 @@ def forgot_password():
 
 
 # ==========================================
+# RESET PASSWORD - CODE VERIFICATION (STEP 1 OF 2)
+# ==========================================
+@auth_bp.route("/reset-password/verify-code", methods=["POST"])
+def reset_password_verify_code():
+    """
+    Checks a reset code's validity (exists, unused, unexpired, under the attempt limit)
+    without consuming it or changing anything - lets the reset-password page only reveal
+    the new-password fields once the code is actually confirmed, instead of asking for the
+    code and the new password in the same breath. The real reset_password() POST below
+    still independently re-validates the code before touching the database; this endpoint
+    existing doesn't weaken that, it just gives the page something to check against first.
+    """
+    otp_code = request.form.get("otp_code", "").strip()
+
+    with get_db_cursor() as cursor:
+        cursor.execute(get_password_reset_token(), (otp_code,))
+        tok_data = cursor.fetchone()
+
+    if not tok_data:
+        try:
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(increment_reset_token_attempt(), (otp_code,))
+        except Exception:
+            pass
+        return jsonify({"valid": False, "message": "Invalid or expired password reset code."})
+
+    attempts = tok_data[5] if len(tok_data) > 5 else 0
+    if attempts >= 5:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(mark_reset_token_used(), (otp_code,))
+        return jsonify({"valid": False, "message": "Maximum verification attempts exceeded. Please request a new code."})
+
+    return jsonify({"valid": True})
+
+
+# ==========================================
 # RESET PASSWORD ROUTE
 # ==========================================
 @auth_bp.route("/reset-password", methods=["GET", "POST"])
