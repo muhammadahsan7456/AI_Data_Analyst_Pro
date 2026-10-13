@@ -47,9 +47,11 @@ from database.queries import (
     toggle_review_approved,
     delete_review,
     create_user_session,
-    invalidate_user_session
+    invalidate_user_session,
+    get_user_by_id,
+    update_user_password
 )
-from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip
+from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength
 from utils.helpers import format_12hr_datetime
 
 
@@ -1343,6 +1345,52 @@ def trigger_backup_now():
         flash(f"✅ Database backup created successfully: {backup_path}", "success")
     else:
         flash("❌ Database backup failed. Check server logs for details.", "error")
+    return redirect(url_for("admin.settings"))
+
+
+@admin_bp.route("/settings/change-password", methods=["POST"])
+@admin_required
+def change_admin_password():
+    """
+    Super Admin's own password change - the account-level auth.change_password route
+    technically already works for a Super Admin (admin login now also sets
+    session["user_id"]), but it isn't reachable from anywhere in the admin interface and
+    redirects back to the regular-user Profile page, not the Executive Console. This gives
+    Super Admin a proper, self-contained password change on the admin Settings page,
+    mirroring the same current-password verification and strength rules.
+    """
+    admin_id = session.get("admin_user_id") or session.get("user_id")
+    current_pwd = request.form.get("current_password", "")
+    new_pwd = request.form.get("new_password", "")
+    confirm_pwd = request.form.get("confirm_password", "")
+
+    if new_pwd != confirm_pwd:
+        flash("New passwords do not match.", "error")
+        return redirect(url_for("admin.settings"))
+
+    with get_db_cursor() as cursor:
+        cursor.execute(get_user_by_id(), (admin_id,))
+        admin_user = cursor.fetchone()
+
+    if not admin_user or not verify_password(current_pwd, admin_user[9]):
+        flash("Incorrect current password.", "error")
+        return redirect(url_for("admin.settings"))
+
+    is_strong, msg = validate_password_strength(new_pwd)
+    if not is_strong:
+        flash(msg, "error")
+        return redirect(url_for("admin.settings"))
+
+    new_hash = hash_password(new_pwd)
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(update_user_password(), (new_hash, admin_id))
+        log_audit_event("ADMIN_PASSWORD_CHANGE", "Super Admin password changed from Executive Console settings.", user_id=admin_id)
+        flash("🔐 Super Admin password updated successfully.", "success")
+    except Exception as e:
+        print("Admin Change Password Error:", e)
+        flash(f"Failed to update password: {str(e)}", "error")
+
     return redirect(url_for("admin.settings"))
 
 

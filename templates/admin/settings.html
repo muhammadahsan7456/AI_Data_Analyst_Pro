@@ -466,5 +466,82 @@
             </div>
         </div>
     </div>
+
+    <!-- Super Admin Change Password Card -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-icon-badge icon-badge-blue">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <div>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    Change Super Admin Password
+                </h3>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
+                    Update the password used to sign in to the Executive Console.
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.change_admin_password') }}" id="admin-change-pwd-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="margin-bottom: 14px;">
+                <div class="form-group-label"><span>Current Password</span></div>
+                <div style="position: relative;">
+                    <input type="password" name="current_password" id="admin-current-password" class="setting-input-field" style="padding-right: 44px;" required autocomplete="current-password">
+                    <i class="fa-solid fa-eye admin-btn-toggle-pwd" data-target="admin-current-password" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);"></i>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+                <div>
+                    <div class="form-group-label"><span>New Password</span></div>
+                    <div style="position: relative;">
+                        <input type="password" name="new_password" id="admin-new-password" class="setting-input-field" style="padding-right: 44px;" required autocomplete="new-password">
+                        <i class="fa-solid fa-eye admin-btn-toggle-pwd" data-target="admin-new-password" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group-label"><span>Confirm New Password</span></div>
+                    <div style="position: relative;">
+                        <input type="password" name="confirm_password" id="admin-confirm-password" class="setting-input-field" style="padding-right: 44px;" required autocomplete="new-password">
+                        <i class="fa-solid fa-eye admin-btn-toggle-pwd" data-target="admin-confirm-password" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 18px;">
+                <i class="fa-solid fa-circle-info"></i> Must be 8+ characters with uppercase, lowercase, a number, and a special character.
+            </div>
+            <button type="submit" class="btn-save-settings">
+                <i class="fa-solid fa-key"></i> Update Password
+            </button>
+        </form>
+
+        <script>
+            document.querySelectorAll('.admin-btn-toggle-pwd').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const input = document.getElementById(this.getAttribute('data-target'));
+                    if (!input) return;
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        this.classList.remove('fa-eye');
+                        this.classList.add('fa-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        this.classList.remove('fa-eye-slash');
+                        this.classList.add('fa-eye');
+                    }
+                });
+            });
+
+            document.getElementById('admin-change-pwd-form').addEventListener('submit', function (e) {
+                const newPwd = document.getElementById('admin-new-password').value;
+                const confirmPwd = document.getElementById('admin-confirm-password').value;
+                if (newPwd !== confirmPwd) {
+                    e.preventDefault();
+                    alert('New password and confirmation do not match.');
+                }
+            });
+        </script>
+    </div>
 </div>
 {% endblock %}
