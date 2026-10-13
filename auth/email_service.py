@@ -18,6 +18,7 @@ load_dotenv()
 # client, with no external request at all.
 LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "favicon.png")
 LOGO_CID = "aidataanalystpro_logo"
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
 
 
 class EmailService:
@@ -786,7 +787,7 @@ AI Data Analyst Pro Support Team
 
                             <!-- CTA Button -->
                             <div style="text-align: center; margin: 32px 0;">
-                                <a href="http://127.0.0.1:5000/" target="_blank" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
+                                <a href="{PUBLIC_BASE_URL}/" target="_blank" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
                                     Explore AI Data Platform &rarr;
                                 </a>
                             </div>
@@ -912,7 +913,7 @@ AI Data Analyst Pro Support Team
                 </td></tr>
             </table>
             <div style="text-align: center;">
-                <a href="#" style="background: linear-gradient(135deg, #2563eb, #38bdf8); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
+                <a href="{PUBLIC_BASE_URL}/auth/login" style="background: linear-gradient(135deg, #2563eb, #38bdf8); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
             </div>
         """
         html_body = self._wrap_branded_email("Approved", "#10b981", "Your Dashboard is Active!", body)
