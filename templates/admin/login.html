@@ -302,10 +302,14 @@
             </div>
 
             <div class="admin-form-group">
-                <label class="admin-label">Super Admin Security Password</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label class="admin-label" style="margin-bottom: 0;">Super Admin Security Password</label>
+                    <a href="{{ url_for('auth.forgot_password') }}" style="font-size: 12px; color: var(--accent-red); text-decoration: none; font-weight: 600;">Forgot Password?</a>
+                </div>
                 <div class="admin-input-wrapper">
                     <i class="fa-solid fa-key admin-input-icon"></i>
-                    <input type="password" name="password" class="admin-input" placeholder="••••••••••••" required>
+                    <input type="password" name="password" id="admin-login-password" class="admin-input" style="padding-right: 46px;" placeholder="••••••••••••" required>
+                    <i class="fa-solid fa-eye admin-login-toggle-pwd" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; font-size: 16px;"></i>
                 </div>
             </div>
 
@@ -322,5 +326,22 @@
     <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
     <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
     <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
+    <script>
+        document.querySelectorAll('.admin-login-toggle-pwd').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = document.getElementById('admin-login-password');
+                if (!input) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

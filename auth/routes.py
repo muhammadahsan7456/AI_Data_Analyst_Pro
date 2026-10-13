@@ -971,11 +971,13 @@ def reset_password(token=""):
 
         # Fetch user name for toast
         user_name = "User"
+        user_role = ""
         with get_db_cursor() as cursor:
             cursor.execute(get_user_by_id(), (user_id,))
             u = cursor.fetchone()
             if u:
                 user_name = u[4] or u[3]
+                user_role = str(u[13] or "").strip()
 
         new_hash = hash_password(password)
         try:
@@ -992,6 +994,11 @@ def reset_password(token=""):
                 "message": "Your password has been reset successfully. Please log in with your new password."
             }
             flash("Your password has been reset successfully! Please log in with your new password.", "success")
+            # A Super Admin/Admin who used this flow (e.g. from the "Forgot Password?"
+            # link now on the admin gateway) should land back on that same gateway, not
+            # the regular user login page they never use.
+            if user_role in ["SuperAdmin", "Admin"]:
+                return redirect(url_for("admin.admin_login"))
             return redirect(url_for("auth.login"))
         except Exception as e:
             flash(f"Error resetting password: {str(e)}", "error")
