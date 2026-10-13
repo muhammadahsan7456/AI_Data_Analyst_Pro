@@ -45,9 +45,11 @@ from database.queries import (
     create_review,
     update_review,
     toggle_review_approved,
-    delete_review
+    delete_review,
+    create_user_session,
+    invalidate_user_session
 )
-from auth.security import log_audit_event, verify_password, generate_secure_token
+from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip
 from utils.helpers import format_12hr_datetime
 
 
@@ -133,6 +135,7 @@ def admin_login():
         if not verify_password(password, pwd_hash):
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(increment_failed_login(), (user_id,))
+            log_login_attempt(user_id, "Failed")
             log_audit_event("ADMIN_LOGIN_FAILED", f"Failed Super Admin login attempt for {email}")
             flash("Access Denied: Invalid Super Admin credentials.", "error")
             return render_template("admin/login.html")
@@ -239,7 +242,23 @@ def admin_verify_otp():
             session["user_email"] = pending.get("email")
             session["user_role"] = pending.get("role")
             session["last_activity"] = int(time.time())
+            session["session_token"] = session["admin_session_token"]
 
+            # The admin login flow never recorded anything in LoginHistory or UserSessions
+            # (unlike the regular auth.login path), so the Security & Sessions page - which
+            # Super Admin can also reach now that it shares the regular user session above -
+            # showed no login record and no active-session row for admin logins at all.
+            # Logged/created here, at the point the admin session actually gets
+            # established, same as a regular "Success" login.
+            log_login_attempt(user_id, "Success")
+            try:
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(
+                        create_user_session(),
+                        (user_id, session["admin_session_token"], get_client_ip(), request.headers.get("User-Agent", "")[:500])
+                    )
+            except Exception as e:
+                print("Create Admin Session Error:", e)
             log_audit_event("ADMIN_LOGIN_SUCCESS", f"Super Admin '{pending.get('full_name')}' logged into Executive Console (2FA verified)", user_id=user_id)
             flash(f"👑 Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
             return redirect(pending.get("next") or url_for("admin.dashboard"))
@@ -268,6 +287,14 @@ def admin_logout():
     if admin_id:
         log_audit_event("ADMIN_LOGOUT", f"Super Admin '{admin_name}' logged out.", user_id=admin_id)
 
+    admin_token = session.get("admin_session_token")
+    if admin_token:
+        try:
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(invalidate_user_session(), (admin_token,))
+        except Exception as e:
+            print("Invalidate Admin Session Error:", e)
+
     for k in ["admin_user_id", "admin_user_name", "admin_user_email", "admin_user_role", "admin_session_token", "admin_last_activity"]:
         session.pop(k, None)
 
@@ -275,7 +302,7 @@ def admin_logout():
     # verify_otp) - clear it here too, otherwise "Logout Super Admin" would silently leave
     # the account logged into the ordinary user pages, which isn't what logging out means.
     if session.get("user_id") == admin_id:
-        for k in ["user_id", "user_name", "user_email", "user_role", "last_activity"]:
+        for k in ["user_id", "user_name", "user_email", "user_role", "last_activity", "session_token"]:
             session.pop(k, None)
 
     flash("👋 Super Admin logged out successfully.", "info")

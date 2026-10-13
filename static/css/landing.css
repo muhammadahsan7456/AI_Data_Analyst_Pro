@@ -541,6 +541,16 @@ main > .landing-section:first-child {
     animation: gradient-shift 6s ease infinite;
 }
 
+/* The dark-theme gradient above starts at pure white (#ffffff), which reads fine against
+   the dark hero background but, as gradient-shift animates background-position, that same
+   white segment periodically sweeps across the text - on light theme's white/near-white
+   page background that's white-on-white, so the heading visibly vanishes once per cycle
+   even though the animation itself is running correctly. Swapped for stops that keep
+   enough contrast against a light background all the way through the animation. */
+[data-theme="light"] .hero-title .gradient-text {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 35%, #2563eb 65%, #0ea5e9 100%);
+}
+
 .hero-subtitle {
     font-size: clamp(16px, 2.4vw, 20px);
     color: var(--text-secondary);

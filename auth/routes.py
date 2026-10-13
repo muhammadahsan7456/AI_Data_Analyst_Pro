@@ -25,7 +25,9 @@ from auth.security import (
     generate_secure_token,
     validate_password_strength,
     log_login_attempt,
-    log_audit_event
+    log_audit_event,
+    parse_user_agent,
+    get_client_ip
 )
 from auth.decorators import login_required, admin_required, manager_required
 
@@ -803,8 +805,12 @@ def login():
         session["session_token"] = session_token
         try:
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_user_session(), (user_id, session_token))
-        except Exception: pass
+                cursor.execute(
+                    create_user_session(),
+                    (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
+                )
+        except Exception as e:
+            print("Create Session Error:", e)
 
         log_login_attempt(user_id, "Success")
         log_audit_event("LOGIN", "User logged in successfully.", user_id=user_id)
@@ -1209,6 +1215,23 @@ def security():
 
         cursor.execute(get_user_audit_logs(limit=15), (user_id,))
         audit_logs = cursor.fetchall()
+
+    # The template renders these as real device rows ("which browser/OS is this session
+    # on"), same as the Login History table below it - this was being fetched but never
+    # actually displayed, so the whole "Active Device Sessions" card only ever showed its
+    # own header with no rows. Reuse the same UA parser the login-history logging uses.
+    current_token = session.get("session_token", "")
+    active_sessions = [
+        {
+            "session_id": s[0],
+            "is_current": s[1] == current_token,
+            "ip_address": s[2],
+            "parsed_ua": parse_user_agent(s[3]),
+            "expires_at": s[4],
+            "created_at": s[5],
+        }
+        for s in active_sessions
+    ]
 
     return render_template(
         "security.html",

@@ -22,6 +22,43 @@
             </button>
         </form>
     </div>
+
+    {% if active_sessions %}
+    <div class="table-container" style="margin-top: 20px;">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Browser</th>
+                    <th>Operating System</th>
+                    <th>Device</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sess in active_sessions %}
+                <tr>
+                    <td><code style="background: var(--bg-primary); padding: 2px 6px; border-radius: 4px;">{{ sess.ip_address }}</code></td>
+                    <td>{{ sess.parsed_ua.browser }}</td>
+                    <td>{{ sess.parsed_ua.os }}</td>
+                    <td>{{ sess.parsed_ua.device }}</td>
+                    <td style="color: var(--text-muted); font-size: 13px;">{{ sess.expires_at|datetime_12hr }}</td>
+                    <td>
+                        {% if sess.is_current %}
+                        <span class="badge badge-success">This Device</span>
+                        {% else %}
+                        <span class="badge badge-info">Other Device</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); margin-top: 16px;">No other active sessions found.</p>
+    {% endif %}
 </div>
 
 <!-- Login History Log Table -->

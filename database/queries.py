@@ -265,7 +265,7 @@ def get_user_login_history(limit=10):
 def create_user_session():
     return """
     INSERT INTO UserSessions (UserID, SessionToken, IPAddress, UserAgent, ExpiresAt, IsActive, CreatedAt)
-    VALUES (?, ?, DATEADD(DAY, 7, GETDATE()), 1, GETDATE())
+    VALUES (?, ?, ?, ?, DATEADD(DAY, 7, GETDATE()), 1, GETDATE())
     """
 
 
