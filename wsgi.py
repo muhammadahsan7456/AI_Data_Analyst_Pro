@@ -1,6 +1,11 @@
 """
-Production WSGI Entry Point for AI Data Analyst Pro
-Runs high-concurrency production WSGI server using Waitress.
+Docker/container WSGI entry point for AI Data Analyst Pro (see Dockerfile's CMD).
+
+The actual production deployment (EC2 + nginx + systemd) runs run.py directly,
+not this file - binding to 0.0.0.0 here is correct for a container, where
+run.py's 127.0.0.1-only binding (and the trusted_proxy config that assumes a
+reverse proxy on that same loopback) would not be reachable from outside the
+container at all.
 """
 
 import os
@@ -25,7 +30,10 @@ if __name__ == "__main__":
         from waitress import serve
         port = int(os.getenv("PORT", 5000))
         print(f"🚀 Launching Enterprise Production Waitress WSGI Server on http://0.0.0.0:{port} ...")
-        serve(app, host="0.0.0.0", port=port, threads=8)
+        # Thread/connection settings kept in sync with run.py's tuning (see that file's
+        # comment for the full reasoning) - threads=8 here was stale and would under-serve
+        # concurrent requests compared to the entry point actually used in production.
+        serve(app, host="0.0.0.0", port=port, threads=32, connection_limit=300, channel_timeout=120)
     except ImportError:
         print("⚠️ Waitress WSGI server not installed. Falling back to default Flask server...")
         app.run(host="0.0.0.0", port=5000, debug=False)

@@ -71,6 +71,9 @@
             <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" id="hero-cta-demo">
                 <i class="fa-solid fa-play"></i> Explore Live Demo
             </a>
+            <button type="button" class="btn-hero-secondary" id="hero-cta-video" onclick="openPromoVideoModal()">
+                <i class="fa-solid fa-circle-play"></i> Watch 1-Min Demo
+            </button>
         </div>
 
         <!-- Animated Stats Counters -->
@@ -217,6 +220,18 @@
         </div>
     </div>
 </section>
+
+<!-- Promo Video Modal - the <video> tag deliberately has no src/source at all until
+     openPromoVideoModal() sets one, so visiting the homepage never triggers a ~9MB
+     download; it only loads once someone actually clicks "Watch 1-Min Demo". -->
+<div id="promo-video-modal" class="payment-modal-overlay" style="display: none;">
+    <div class="payment-modal-card" style="max-width: 720px; padding: 16px;">
+        <button type="button" class="payment-modal-close" onclick="closePromoVideoModal()" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <video id="promo-video-player" controls preload="none" playsinline style="width: 100%; border-radius: var(--radius-lg); display: block; margin-top: 8px;"></video>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -230,6 +245,29 @@
             'bilingual voice queries',
             'executive board briefings'
         ], 60, 35, 2000);
+    });
+
+    function openPromoVideoModal() {
+        const modal = document.getElementById('promo-video-modal');
+        const video = document.getElementById('promo-video-player');
+        if (!video.src) {
+            video.src = "{{ url_for('static', filename='videos/product-demo.mp4') }}";
+        }
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        video.play().catch(function () {});
+    }
+
+    function closePromoVideoModal() {
+        const modal = document.getElementById('promo-video-modal');
+        const video = document.getElementById('promo-video-player');
+        video.pause();
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('promo-video-modal').addEventListener('click', function (e) {
+        if (e.target === this) closePromoVideoModal();
     });
 </script>
 {% endblock %}
