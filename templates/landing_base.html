@@ -53,7 +53,13 @@
     <!-- Font Awesome (preconnect first: the stylesheet itself then pulls ~280KB of icon
          webfonts from the same origin, so paying the TLS handshake up front saves ~400ms) -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <!-- Loaded non-render-blocking: the icon font CSS was holding up first paint for a
+         ~280KB external stylesheet that only affects icon glyphs, not page text/layout.
+         Preloading it lets the browser fetch it in parallel without waiting on it, then
+         swaps it in as a real stylesheet once it arrives (icons pop in a beat later
+         instead of blocking everything else from rendering first). -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
 
     <!-- Landing Page CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261014_v1">

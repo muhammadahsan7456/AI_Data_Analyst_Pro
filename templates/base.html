@@ -27,7 +27,9 @@
     <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/fonts.css') }}?v=20260927">
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
 
     <!-- Page-specific stylesheets (e.g. Bootstrap, for the handful of report-style pages
          built with Bootstrap's grid/card/list-group classes) - deliberately placed BEFORE
