@@ -37,3 +37,6 @@ db_backups/
 backups/
 *.bak
 
+# Selenium/pytest run artifacts
+.pytest_cache/
+
