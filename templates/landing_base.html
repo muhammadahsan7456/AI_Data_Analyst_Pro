@@ -265,12 +265,38 @@
          Safe to defer: the inline script in <head> already sets data-theme before first paint. -->
     <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
     <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
-    <!-- Three.js -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Vanilla Tilt -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
-    <!-- Shared Animation Engine -->
-    <script defer src="{{ url_for('static', filename='js/animations.js') }}?v=2"></script>
+
+    <!-- three.js alone is ~600KB (r128 full build) - purely for the decorative hero particle
+         background, no functional purpose. Even deferred, the browser still downloads it
+         immediately in parallel with everything else, competing for the same constrained
+         bandwidth that FCP/LCP-critical CSS needs - confirmed as the single largest resource
+         on the page under Lighthouse's throttled mobile test. Loading it (and vanilla-tilt,
+         and animations.js, which needs both already defined before it runs - see the
+         typeof THREE === 'undefined' guard in init3DConstellation) only after the page has
+         actually finished loading keeps the exact same visual effect, just starts it a beat
+         later instead of letting it compete with what's needed for first paint.
+         async=false on dynamically-created scripts preserves this relative execution order
+         even though they're injected out of document order. -->
+    <script>
+        (function loadDeferredHeavyScripts() {
+            function loadScript(src) {
+                const s = document.createElement('script');
+                s.src = src;
+                s.async = false;
+                document.body.appendChild(s);
+            }
+            function start() {
+                loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+                loadScript('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js');
+                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=2');
+            }
+            if (document.readyState === 'complete') {
+                start();
+            } else {
+                window.addEventListener('load', start);
+            }
+        })();
+    </script>
 
     {% block extra_js %}{% endblock %}
 
