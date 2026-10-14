@@ -237,8 +237,11 @@
 
 {% block extra_js %}
 <script>
-    // Typed text effect for hero subtitle
-    document.addEventListener('DOMContentLoaded', function() {
+    // Typed text effect for hero subtitle - initTypedText is defined in animations.js,
+    // which now loads only after window.load (see landing_base.html), so DOMContentLoaded
+    // alone isn't a safe signal that it exists yet. animationsEngineReady fires once it
+    // genuinely has.
+    function startHeroTypedText() {
         initTypedText('typed-hero', [
             'PowerPoint & PDF exports',
             'AI data visualizations',
@@ -246,7 +249,12 @@
             'bilingual voice queries',
             'executive board briefings'
         ], 60, 35, 2000);
-    });
+    }
+    if (typeof initTypedText === 'function') {
+        document.addEventListener('DOMContentLoaded', startHeroTypedText);
+    } else {
+        window.addEventListener('animationsEngineReady', startHeroTypedText);
+    }
 
     function openPromoVideoModal() {
         const modal = document.getElementById('promo-video-modal');

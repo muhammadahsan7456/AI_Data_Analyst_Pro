@@ -3,6 +3,24 @@
  * Three.js 3D constellation, scroll reveals, animated counters, typed text
  */
 
+// This file is now loaded dynamically after window.load (see landing_base.html), which
+// fires well after DOMContentLoaded - every document.addEventListener('DOMContentLoaded',
+// ...) below used to run immediately once this file parsed, since the browser fired
+// DOMContentLoaded right away in the normal <script defer> load order. A listener added
+// for an event that has already fired never runs (confirmed live), so those callbacks were
+// silently dead: .reveal/.reveal-left/.reveal-right/.reveal-scale elements (opacity: 0 by
+// default in CSS, only made visible by the scroll-reveal observer below) stayed invisible
+// forever, counters never animated, tilt/anchor-scroll never initialized. This runs the
+// callback immediately if the DOM is already ready, exactly like DOMContentLoaded would
+// have for a listener registered in time.
+function onDomReady(fn) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fn);
+    } else {
+        fn();
+    }
+}
+
 // ===== 1. THREE.JS 3D NEURAL NETWORK CONSTELLATION =====
 (function init3DConstellation() {
     const canvas = document.getElementById('hero-3d-canvas');
@@ -279,7 +297,7 @@
     // for a deliberate scroll while eliminating that blank window on mobile.
     }, { threshold: 0.01, rootMargin: '0px 0px 0px 0px' });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    onDomReady(() => {
         const els = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
         els.forEach(el => observer.observe(el));
 
@@ -331,7 +349,7 @@
         });
     }, { threshold: 0.5 });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    onDomReady(() => {
         document.querySelectorAll('[data-counter]').forEach(el => {
             counterObserver.observe(el);
         });
@@ -378,7 +396,7 @@ function initTypedText(elementId, texts, typeSpeed, deleteSpeed, pauseTime) {
 
 
 // ===== 5. VANILLA TILT INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', () => {
+onDomReady(() => {
     if (typeof VanillaTilt !== 'undefined') {
         document.querySelectorAll('[data-tilt]').forEach(el => {
             VanillaTilt.init(el, {
@@ -394,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ===== 6. SMOOTH SCROLL FOR ANCHOR LINKS =====
-document.addEventListener('DOMContentLoaded', () => {
+onDomReady(() => {
     document.querySelectorAll('a[href^="#"]').forEach(link => {
         link.addEventListener('click', (e) => {
             const id = link.getAttribute('href');
@@ -413,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ===== 7. PAGE LOAD FADE-IN =====
-document.addEventListener('DOMContentLoaded', () => {
+onDomReady(() => {
     document.body.style.opacity = '0';
     document.body.style.transition = 'opacity 0.5s ease';
     requestAnimationFrame(() => {

@@ -279,16 +279,26 @@
          even though they're injected out of document order. -->
     <script>
         (function loadDeferredHeavyScripts() {
-            function loadScript(src) {
+            function loadScript(src, onload) {
                 const s = document.createElement('script');
                 s.src = src;
                 s.async = false;
+                if (onload) s.onload = onload;
                 document.body.appendChild(s);
             }
             function start() {
                 loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
                 loadScript('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js');
-                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=2');
+                // animations.js defines functions some pages' own inline scripts call
+                // (e.g. index.html's initTypedText on DOMContentLoaded) - DOMContentLoaded
+                // always fires before window.load, so a page-specific script waiting on
+                // DOMContentLoaded alone would call a not-yet-defined function and throw
+                // (confirmed live: "initTypedText is not defined"). Dispatching this event
+                // once animations.js has actually finished loading gives those callers a
+                // real signal to wait on instead of assuming a fixed load order.
+                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=2', function () {
+                    window.dispatchEvent(new Event('animationsEngineReady'));
+                });
             }
             if (document.readyState === 'complete') {
                 start();
