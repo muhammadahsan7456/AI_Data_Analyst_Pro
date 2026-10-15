@@ -260,7 +260,7 @@
         const modal = document.getElementById('promo-video-modal');
         const video = document.getElementById('promo-video-player');
         if (!video.src) {
-            video.src = "{{ url_for('static', filename='videos/product-demo.mp4') }}";
+            video.src = "{{ url_for('static', filename='videos/product-demo.mp4') }}?v=20261015_v2";
         }
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
