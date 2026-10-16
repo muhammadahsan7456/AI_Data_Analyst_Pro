@@ -769,7 +769,8 @@ def favorite_dataset(dataset_id):
         system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+        print("Favorite Toggle Error (raw, server-side only):", str(e))
+        return jsonify({"success": False, "error": "Could not update favorite status. Please try again."}), 400
 
 
 # ==========================================
@@ -798,7 +799,8 @@ def toggle_dataset_insights_route(dataset_id):
             row = cursor.fetchone()
         return jsonify({"success": True, "insights_enabled": bool(row[0]) if row else None})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+        print("Insights Toggle Error (raw, server-side only):", str(e))
+        return jsonify({"success": False, "error": "Could not update insights setting. Please try again."}), 400
 
 
 # ==========================================
@@ -1015,7 +1017,6 @@ def chat():
                 user_datasets=user_datasets,
                 selected_dataset=selected_dataset,
                 question=question,
-                sql=None,
                 is_why_investigation=True,
                 result=why_result_html,
                 explanation=why_explanation,
@@ -1125,7 +1126,6 @@ def chat():
                 "success": False,
                 "is_out_of_domain": False,
                 "is_data_not_found": bool(ai_result.get("is_data_not_found")),
-                "sql": ai_result["sql"],
                 "error": clean_user_err,
                 "tts_speech": clean_user_err if ai_result.get("is_data_not_found") else "Sorry, I could not execute that query on the dataset."
             })
@@ -1134,7 +1134,6 @@ def chat():
             user_datasets=user_datasets,
             selected_dataset=selected_dataset,
             question=question,
-            sql=ai_result["sql"],
             error=clean_user_err,
             tts_speech=clean_user_err if ai_result.get("is_data_not_found") else "Sorry, I could not execute that query on the dataset."
         )
@@ -1145,7 +1144,6 @@ def chat():
             return jsonify({
                 "success": True,
                 "is_out_of_domain": False,
-                "sql": ai_result["sql"],
                 "rows_returned": 0,
                 "execution_time_ms": ai_result["execution_time_ms"],
                 "confidence": ai_result["confidence"],
@@ -1158,7 +1156,6 @@ def chat():
             user_datasets=user_datasets,
             selected_dataset=selected_dataset,
             question=question,
-            sql=ai_result["sql"],
             execution_time_ms=ai_result["execution_time_ms"],
             confidence=ai_result["confidence"],
             retries=ai_result["retries"],
@@ -1287,7 +1284,10 @@ def chat():
     )
 
     query_plan = ai_result.get("query_plan") or (parse_question_to_query_plan(question_for_ai, table_name) if parse_question_to_query_plan else {})
-    applied_filters = [f["sql_clause"] for f in query_plan.get("filters", [])] if query_plan else []
+    # Human-readable "Column: Value" labels for the filter badges - built from the
+    # plan's own column/value fields, not the raw sql_clause (which is literal SQL
+    # syntax and must not reach the browser; see docs/SQL_SAFETY_REPORT.md Task 4).
+    applied_filters = [f"{f['column']}: {f['value']}" for f in query_plan.get("filters", [])] if query_plan else []
 
     if is_ajax:
         return jsonify({
@@ -1296,8 +1296,6 @@ def chat():
             "selected_dataset_id": selected_dataset[0],
             "selected_dataset_name": selected_dataset[2],
             "is_out_of_domain": False,
-            "sql": ai_result["sql"],
-            "query_plan": query_plan,
             "applied_filters": applied_filters,
             "result_html": result_html,
             "explanation": format_ai_explanation(explanation),
@@ -1319,8 +1317,6 @@ def chat():
         user_datasets=user_datasets,
         selected_dataset=selected_dataset,
         question=question,
-        sql=ai_result["sql"],
-        query_plan=query_plan,
         applied_filters=applied_filters,
         result=result_html,
         explanation=explanation,
@@ -2478,7 +2474,8 @@ def api_ai_notifications_mark_read():
             cursor.execute(mark_ai_notification_read(), (user_id, notif_id, notif_id))
         return jsonify({"success": True})
     except Exception as err:
-        return jsonify({"success": False, "error": str(err)}), 500
+        print("Mark Notification Read Error (raw, server-side only):", err)
+        return jsonify({"success": False, "error": "Could not update notification. Please try again."}), 500
 
 
 @frontend.route("/api/ai-notifications/clear", methods=["POST"])
@@ -2493,7 +2490,8 @@ def api_ai_notifications_clear():
             cursor.execute(clear_user_ai_notifications(), (user_id,))
         return jsonify({"success": True})
     except Exception as err:
-        return jsonify({"success": False, "error": str(err)}), 500
+        print("Clear Notifications Error (raw, server-side only):", err)
+        return jsonify({"success": False, "error": "Could not clear notifications. Please try again."}), 500
 
 
 # ==========================================
@@ -2519,7 +2517,8 @@ def api_dataset_quality(dataset_id):
     try:
         quality_res = analyze_dataset_quality(tbl_name)
     except Exception as e:
-        return jsonify({"success": False, "error": f"Quality analysis failed: {str(e)}"}), 500
+        print("Quality Analysis Error (raw, server-side only):", str(e))
+        return jsonify({"success": False, "error": "Quality analysis failed. Please try again."}), 500
     return jsonify({"success": True, "quality": quality_res})
 
 
@@ -2542,7 +2541,8 @@ def api_dataset_insights(dataset_id):
     try:
         insights_res = generate_automated_insights(tbl_name)
     except Exception as e:
-        return jsonify({"success": False, "error": f"Insight generation failed: {str(e)}"}), 500
+        print("Insight Generation Error (raw, server-side only):", str(e))
+        return jsonify({"success": False, "error": "Insight generation failed. Please try again."}), 500
     return jsonify({"success": True, "insights": insights_res})
 
 
@@ -2564,7 +2564,6 @@ def api_query_history():
                     "id": r[0],
                     "dataset_id": r[1],
                     "question": r[2],
-                    "sql": r[3],
                     "status": r[4],
                     "rows": r[5],
                     "time_ms": r[6],
@@ -2587,7 +2586,8 @@ def api_delete_query_history(history_id):
             cursor.execute(delete_query_history_item(), (history_id, user_id))
         return jsonify({"success": True})
     except Exception as err:
-        return jsonify({"success": False, "error": str(err)}), 500
+        print("Delete Query History Error (raw, server-side only):", err)
+        return jsonify({"success": False, "error": "Could not delete history item. Please try again."}), 500
 
 
 @frontend.route("/api/query-history/clear", methods=["POST"])
@@ -2600,7 +2600,8 @@ def api_clear_query_history():
             cursor.execute(clear_user_query_history(), (user_id,))
         return jsonify({"success": True})
     except Exception as err:
-        return jsonify({"success": False, "error": str(err)}), 500
+        print("Clear Query History Error (raw, server-side only):", err)
+        return jsonify({"success": False, "error": "Could not clear history. Please try again."}), 500
 
 
 # ==========================================
@@ -2637,7 +2638,8 @@ def api_scheduled_reports():
                 cursor.execute(create_scheduled_report(), (user_id, ds_id, report_type, frequency, recipient, sched_time))
             return jsonify({"success": True})
         except Exception as err:
-            return jsonify({"success": False, "error": str(err)}), 500
+            print("Create Scheduled Report Error (raw, server-side only):", err)
+            return jsonify({"success": False, "error": "Could not create scheduled report. Please try again."}), 500
 
     # GET: List reports
     reports = []
@@ -2673,7 +2675,8 @@ def api_toggle_scheduled_report(report_id):
             cursor.execute(toggle_scheduled_report(), (report_id, user_id))
         return jsonify({"success": True})
     except Exception as err:
-        return jsonify({"success": False, "error": str(err)}), 500
+        print("Toggle Scheduled Report Error (raw, server-side only):", err)
+        return jsonify({"success": False, "error": "Could not update scheduled report. Please try again."}), 500
 
 
 @frontend.route("/api/alert-rules", methods=["GET", "POST"])
@@ -2713,7 +2716,8 @@ def api_alert_rules():
                 cursor.execute(create_alert_rule(), (user_id, ds_id, metric_name, op, threshold, recipient))
             return jsonify({"success": True})
         except Exception as err:
-            return jsonify({"success": False, "error": str(err)}), 500
+            print("Create Alert Rule Error (raw, server-side only):", err)
+            return jsonify({"success": False, "error": "Could not create alert rule. Please try again."}), 500
 
     # GET: List active alert rules
     rules = []
@@ -2756,7 +2760,8 @@ def api_dataset_health(dataset_id):
         health_data = analyze_table_health(table_name)
         return jsonify({"success": True, "health": health_data})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        print("Dataset Health Error (raw, server-side only):", str(e))
+        return jsonify({"success": False, "error": "Could not compute dataset health. Please try again."}), 500
 
 
 @frontend.route("/report-builder/<int:dataset_id>", methods=["GET", "POST"])

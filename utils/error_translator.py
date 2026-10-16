@@ -33,14 +33,15 @@ def format_user_friendly_error(raw_error) -> str:
     if "incorrect syntax" in err_lower or "syntax error" in err_lower:
         return "Query Syntax Notice: The AI SQL Query could not be processed. Please rephrase your question in natural English or Roman Urdu."
 
-    # 6. Generic ODBC Driver / SQL Server Error Cleanup
+    # 6. Generic ODBC Driver / SQL Server Error Cleanup - never echo the raw driver
+    # message back to the browser (it can contain table/column names or server
+    # detail); log it server-side instead and show a safe generic notice.
     if "odbc driver" in err_lower or "sqlexecdirectw" in err_lower or "pyodbc" in err_lower:
-        clean_msg = re.sub(r"\([^)]*\)|\[[^\]]*\]", "", err_str).strip()
-        clean_msg = re.sub(r"\s+", " ", clean_msg)
-        if len(clean_msg) > 120:
-            clean_msg = clean_msg[:120] + "..."
-        return f"Database Notice: {clean_msg or 'Unable to complete database operation. Please refine your query.'}"
+        print("Database Notice (raw, server-side only):", err_str)
+        return "Database Notice: Unable to complete database operation. Please refine your query."
 
-    # Default Clean Output (no raw code brackets)
-    clean_msg = re.sub(r"\([^)]*\)|\[[^\]]*\]", "", err_str).strip()
-    return f"Notice: {clean_msg or err_str}"
+    # Default: anything not matched above is an unanticipated error shape, so it
+    # is never safe to echo to the browser - log it server-side and return a
+    # generic notice instead of the raw/cleaned exception text.
+    print("Unhandled query error (raw, server-side only):", err_str)
+    return "Notice: We couldn't process that request. Please rephrase your question and try again."
