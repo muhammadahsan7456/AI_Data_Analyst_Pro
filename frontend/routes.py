@@ -2109,7 +2109,7 @@ def export_query_result(format_type):
             )
         elif format_type == "pdf":
             insights = generate_fast_export_insights(df)
-            chart_type = select_chart(df)
+            chart_type = request.args.get("chart_type") or select_chart(df)
             chart_path = generate_chart(df, chart_type) if chart_type else None
             pdf_bytes = export_to_pdf_report(df, dataset_name=clean_q_name, insights=insights, chart_file_path=chart_path)
             return Response(
@@ -2119,7 +2119,7 @@ def export_query_result(format_type):
             )
         elif format_type in ["word", "docx"]:
             insights = generate_fast_export_insights(df)
-            chart_type = select_chart(df)
+            chart_type = request.args.get("chart_type") or select_chart(df)
             chart_path = generate_chart(df, chart_type) if chart_type else None
             word_bytes = export_to_word_report(df, dataset_name=clean_q_name, insights=insights, chart_file_path=chart_path)
             return Response(
@@ -2129,7 +2129,7 @@ def export_query_result(format_type):
             )
         elif format_type in ["pptx", "ppt", "powerpoint"]:
             insights = generate_fast_export_insights(df)
-            chart_type = select_chart(df)
+            chart_type = request.args.get("chart_type") or select_chart(df)
             chart_path = generate_chart(df, chart_type) if chart_type else None
             pptx_bytes = export_to_pptx_report(df, dataset_name=clean_q_name, insights=insights, chart_file_path=chart_path)
             return Response(

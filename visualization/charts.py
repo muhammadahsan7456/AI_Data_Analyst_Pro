@@ -484,9 +484,123 @@ def create_heatmap(dataframe: pd.DataFrame):
 def create_radar_chart(dataframe: pd.DataFrame):
     return create_bar_chart(dataframe)
 
-# 10. TREEMAP
+# 10. TREEMAP - real squarified rectangle layout (standard Bruls/Huizing/van Wijk
+# algorithm, implemented in-house rather than adding a new third-party dependency
+# for one chart type), not a bar chart alias.
+def _squarify_normalize(values, total_area):
+    total = sum(values)
+    if total <= 0:
+        return [0 for _ in values]
+    return [v * total_area / total for v in values]
+
+
+def _squarify_layout_row(sizes, x, y, dx, dy, horizontal):
+    s = sum(sizes)
+    rects = []
+    if horizontal:
+        h = s / dx if dx else 0
+        cx = x
+        for v in sizes:
+            w = v / h if h else 0
+            rects.append((cx, y, w, h))
+            cx += w
+        return rects, h
+    else:
+        w = s / dy if dy else 0
+        cy = y
+        for v in sizes:
+            h = v / w if w else 0
+            rects.append((x, cy, w, h))
+            cy += h
+        return rects, w
+
+
+def _squarify_worst(row, length):
+    if not row or length <= 0:
+        return float("inf")
+    s, mx, mn = sum(row), max(row), min(row)
+    if s <= 0 or mn <= 0:
+        return float("inf")
+    side = s / length
+    return max((side * side) / mn, mn / (side * side)) if side else float("inf")
+
+
+def _squarify(values, x, y, dx, dy):
+    """Returns a list of (x, y, w, h) rectangles, one per value, sized by area."""
+    remaining = [v for v in values if v > 0]
+    if not remaining:
+        return []
+    rects = []
+    rx, ry, rdx, rdy = x, y, dx, dy
+    while remaining:
+        horizontal = rdx >= rdy
+        length = rdy if horizontal else rdx
+        row = [remaining[0]]
+        for nxt in remaining[1:]:
+            if _squarify_worst(row, length) >= _squarify_worst(row + [nxt], length):
+                row.append(nxt)
+            else:
+                break
+        row_rects, used = _squarify_layout_row(row, rx, ry, rdx, rdy, horizontal)
+        rects.extend(row_rects)
+        remaining = remaining[len(row):]
+        if horizontal:
+            ry += used
+            rdy -= used
+        else:
+            rx += used
+            rdx -= used
+        if rdx <= 0 or rdy <= 0:
+            break
+    return rects
+
+
 def create_treemap_chart(dataframe: pd.DataFrame):
-    return create_bar_chart(dataframe)
+    setup_style(dark=True)
+    df = preprocess_chart_dataframe(dataframe)
+    numeric = get_numeric_columns_clean(df)
+    categorical = get_clean_categorical_columns(df)
+
+    if not categorical:
+        return create_bar_chart(dataframe)
+
+    x = categorical[0]
+    if numeric:
+        y = numeric[0]
+        data = df.groupby(x)[y].sum().sort_values(ascending=False)
+    else:
+        y = "Record Count"
+        data = df[x].value_counts()
+
+    data = data[data > 0].head(12)
+    if data.empty:
+        return None
+
+    labels = data.index.astype(str).tolist()
+    values = [float(v) for v in data.values]
+    total = sum(values)
+
+    fig, ax = plt.subplots(figsize=(10, 6.5))
+    dx, dy = 100.0, 100.0
+    areas = _squarify_normalize(values, dx * dy)
+    rects = _squarify(areas, 0, 0, dx, dy)
+
+    for i, (rect, val, label) in enumerate(zip(rects, values, labels)):
+        rx, ry, rw, rh = rect
+        color = COLOR_PALETTE[i % len(COLOR_PALETTE)]
+        ax.add_patch(plt.Rectangle((rx, ry), rw, rh, facecolor=color, edgecolor="#0b0f19", linewidth=2.5, alpha=0.9))
+        pct = 100 * val / total if total else 0
+        if rw > 9 and rh > 7:
+            display_label = label if len(label) <= 16 else label[:14] + "…"
+            ax.text(rx + rw / 2, ry + rh / 2, f"{display_label}\n{val:,.0f} ({pct:.0f}%)",
+                    ha="center", va="center", color="white", fontsize=9, fontweight="bold")
+
+    ax.set_xlim(0, dx)
+    ax.set_ylim(0, dy)
+    ax.axis("off")
+    ax.set_title(f"{y} Treemap by {x}", fontweight="bold", pad=18)
+    plt.tight_layout()
+    return fig
 
 # 11. SUNBURST
 def create_sunburst_chart(dataframe: pd.DataFrame):
@@ -496,9 +610,45 @@ def create_sunburst_chart(dataframe: pd.DataFrame):
 def create_waterfall_chart(dataframe: pd.DataFrame):
     return create_bar_chart(dataframe)
 
-# 13. FUNNEL
+# 13. FUNNEL - real descending horizontal-bar funnel, not a plain bar chart: bars
+# are centered and scaled relative to the largest stage, like the interactive
+# Plotly funnel in the chat UI, instead of a left-aligned bar chart.
 def create_funnel_chart(dataframe: pd.DataFrame):
-    return create_bar_chart(dataframe)
+    setup_style(dark=True)
+    df = preprocess_chart_dataframe(dataframe)
+    numeric = get_numeric_columns_clean(df)
+    categorical = get_clean_categorical_columns(df)
+
+    if not categorical or not numeric:
+        return create_bar_chart(dataframe)
+
+    x, y = categorical[0], numeric[0]
+    data = df.groupby(x)[y].sum().sort_values(ascending=False).head(7)
+    if data.empty:
+        return None
+
+    labels = data.index.astype(str).tolist()
+    values = [float(v) for v in data.values]
+    max_val = max(values) if values else 1
+    n = len(values)
+
+    fig, ax = plt.subplots(figsize=(9, 1 + n * 0.9))
+    for i, (label, val) in enumerate(zip(labels, values)):
+        width = (val / max_val) * 10 if max_val else 0
+        y_pos = n - i
+        ax.barh(y_pos, width, left=-width / 2, height=0.75,
+                color=COLOR_PALETTE[i % len(COLOR_PALETTE)], edgecolor="#0b0f19", linewidth=2, zorder=3)
+        pct = 100 * val / max_val if max_val else 0
+        display_label = label if len(label) <= 18 else label[:16] + "…"
+        ax.text(0, y_pos, f"{display_label}: {val:,.0f} ({pct:.0f}%)", ha="center", va="center",
+                color="white", fontweight="bold", fontsize=10, zorder=4)
+
+    ax.set_xlim(-6, 6)
+    ax.set_ylim(0.3, n + 0.7)
+    ax.axis("off")
+    ax.set_title(f"{y} Funnel by {x}", fontweight="bold", pad=18)
+    plt.tight_layout()
+    return fig
 
 # 14. BUBBLE
 def create_bubble_chart(dataframe: pd.DataFrame):
@@ -507,6 +657,52 @@ def create_bubble_chart(dataframe: pd.DataFrame):
 # 15. CANDLESTICK
 def create_candlestick_chart(dataframe: pd.DataFrame):
     return create_line_chart(dataframe)
+
+# 16. DONUT - genuinely distinct from the pie chart: wider center hole, a center
+# total label, and no explode offset, rather than being an alias of create_pie_chart.
+def create_donut_chart(dataframe: pd.DataFrame):
+    setup_style(dark=True)
+    df = preprocess_chart_dataframe(dataframe)
+    numeric = get_numeric_columns_clean(df)
+    categorical = get_clean_categorical_columns(df)
+
+    if not numeric or not categorical:
+        if not categorical:
+            return None
+        data = df[categorical[0]].value_counts().head(6)
+        label_col = categorical[0]
+    else:
+        x, y = categorical[0], numeric[0]
+        sample_df = downsample_dataframe(df[[x, y]].dropna(), max_rows=10000)
+        if sample_df[x].nunique() == len(sample_df) and len(sample_df) <= 10:
+            data = sample_df.set_index(x)[y].head(8)
+        else:
+            data = sample_df.groupby(x)[y].sum().sort_values(ascending=False).head(8)
+        label_col = x
+
+    if data.empty:
+        return None
+
+    fig, ax = plt.subplots(figsize=(7, 6.5))
+    colors = COLOR_PALETTE[:len(data)]
+    wedges, texts, autotexts = ax.pie(
+        data.values,
+        labels=data.index.astype(str),
+        autopct="%1.1f%%",
+        startangle=140,
+        colors=colors,
+        pctdistance=0.82,
+        wedgeprops=dict(width=0.32, edgecolor="#0b0f19", linewidth=2.5)
+    )
+    plt.setp(autotexts, size=9, weight="bold", color="white")
+    plt.setp(texts, size=10, weight="bold", color="#f3f4f6")
+
+    total = float(data.values.sum())
+    ax.text(0, 0, f"{total:,.0f}\nTotal", ha="center", va="center",
+            fontsize=15, fontweight="bold", color="#f3f4f6")
+    ax.set_title(f"{label_col} Breakdown (Donut)", fontweight="bold", pad=18)
+    plt.tight_layout()
+    return fig
 
 
 def show_chart(chart_type: str, dataframe: pd.DataFrame):

@@ -228,7 +228,7 @@
                                 <div style="display: flex; gap: 8px;">
                                     <a href="/query/export/csv" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
                                     <a href="/query/export/excel" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
-                                    <a href="/query/export/pdf" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
+                                    <a href="/query/export/pdf" id="export-pdf-link" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
                                 </div>
                             </div>
                             <div class="table-container">${data.result_html}</div>
