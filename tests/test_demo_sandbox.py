@@ -46,13 +46,27 @@ def test_demo_sandbox_requested_count_matches_shown_rows(driver, base_url):
 def test_demo_sandbox_top5_insight_percentage_matches_rows(driver, base_url):
     """The top10 case's insight claims a % of rows from a specific origin city -
     verify that percentage is actually correct for the rows shown, instead of a
-    hardcoded number that can silently drift out of sync with the sample data."""
-    driver.get(base_url + "/demo")
-    driver.find_element(By.CSS_SELECTOR, "button[onclick*=\"runSandbox('top10'\"]").click()
+    hardcoded number that can silently drift out of sync with the sample data.
 
-    rows = WebDriverWait(driver, 10).until(
-        lambda d: d.find_elements(By.CSS_SELECTOR, "#sandbox-tbody tr") or False
+    top10 is already the sandbox's default-active case on page load, so simply
+    clicking its button again doesn't guarantee a detectable DOM change to wait
+    on. Click a different case first to force a real transition, then click
+    top10 and wait for its SQL text to actually appear before reading rows -
+    otherwise this reads a transient/stale DOM state mid-re-render."""
+    driver.get(base_url + "/demo")
+    WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "button[onclick*=\"runSandbox('count'\"]"))
+    ).click()
+    WebDriverWait(driver, 10).until(
+        EC.text_to_be_present_in_element((By.ID, "sandbox-sql"), "COUNT")
     )
+
+    driver.find_element(By.CSS_SELECTOR, "button[onclick*=\"runSandbox('top10'\"]").click()
+    WebDriverWait(driver, 10).until(
+        EC.text_to_be_present_in_element((By.ID, "sandbox-sql"), "TOP 5")
+    )
+
+    rows = driver.find_elements(By.CSS_SELECTOR, "#sandbox-tbody tr")
     origins = [row.find_elements(By.TAG_NAME, "td")[3].text.strip() for row in rows]
     khi_count = sum(1 for o in origins if o == "KHI")
     real_pct = round(100 * khi_count / len(origins))
