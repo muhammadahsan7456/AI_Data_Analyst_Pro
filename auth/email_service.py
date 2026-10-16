@@ -737,7 +737,7 @@ AI Data Analyst Pro Support Team
         plain_text = (
             "Thank you for subscribing to AI Data Analyst Pro product updates!\n\n"
             "You are now on the VIP list to receive high-scale data analytics tips, "
-            "security advisories, sub-second T-SQL optimizations, and feature announcements.\n\n"
+            "security advisories, fast T-SQL optimizations, and feature announcements.\n\n"
             f"Unsubscribe at any time: {unsubscribe_url}\n\n"
             "AI Data Analyst Pro Team"
         )
@@ -771,14 +771,14 @@ AI Data Analyst Pro Support Team
 
                             <p style="font-size: 15px; color: #cbd5e1; line-height: 1.7; margin-bottom: 24px;">
                                 Hello Subscriber,<br><br>
-                                Thank you for joining <strong style="color: #38bdf8;">AI Data Analyst Pro</strong>. You will now receive exclusive updates on high-scale data analytics, sub-second T-SQL performance tuning, AES-256 security insights, and product feature releases.
+                                Thank you for joining <strong style="color: #38bdf8;">AI Data Analyst Pro</strong>. You will now receive exclusive updates on high-scale data analytics, fast T-SQL performance tuning, AES-256 security insights, and product feature releases.
                             </p>
 
                             <!-- Feature Card Box -->
                             <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 28px;">
                                 <div style="font-size: 14px; font-weight: 700; color: #38bdf8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">⚡ What You Get As A Subscriber:</div>
                                 <ul style="margin: 0; padding-left: 20px; color: #e2e8f0; font-size: 14px; line-height: 1.8;">
-                                    <li><strong>10M+ Scale Performance Tips:</strong> Sub-second query strategies.</li>
+                                    <li><strong>10M+ Scale Performance Tips:</strong> Fast query strategies.</li>
                                     <li><strong>Bilingual Voice AI Updates:</strong> Urdu & English voice query engine news.</li>
                                     <li><strong>Automated Export Blueprints:</strong> Executive PowerPoint & PDF guides.</li>
                                     <li><strong>Security Advisories:</strong> AES-256 field encryption & compliance insights.</li>

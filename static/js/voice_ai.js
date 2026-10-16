@@ -220,18 +220,6 @@
                     </div>
                 `;
 
-                if (data.sql) {
-                    html += `
-                        <div class="table-card" style="border-left: 4px solid var(--accent-purple);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-purple);"><i class="fa-solid fa-code"></i> Local T-SQL Query</h3>
-                                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('sql-text').innerText); showAppToast('SQL Copied!', 'success');"><i class="fa-solid fa-copy"></i> Copy SQL</button>
-                            </div>
-                            <pre id="sql-text" style="background: var(--bg-sidebar); color: #38bdf8; padding: 16px; border-radius: var(--radius-md); font-family: monospace; font-size: 14px; overflow-x: auto;">${data.sql}</pre>
-                        </div>
-                    `;
-                }
-
                 if (data.result_html) {
                     html += `
                         <div class="table-card">
@@ -240,7 +228,7 @@
                                 <div style="display: flex; gap: 8px;">
                                     <a href="/query/export/csv" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
                                     <a href="/query/export/excel" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
-                                    <a href="/query/export/pdf" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
+                                    <a href="/query/export/pdf" id="export-pdf-link" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
                                 </div>
                             </div>
                             <div class="table-container">${data.result_html}</div>

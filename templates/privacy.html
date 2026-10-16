@@ -35,9 +35,17 @@
             </div>
             <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
                 <div><strong>Effective Date:</strong> January 1, 2026</div>
-                <div><strong>Last Updated:</strong> August 14, 2026</div>
+                <div><strong>Last Updated:</strong> October 17, 2026</div>
             </div>
         </div>
+    </div>
+
+    <!-- Technical accuracy update notice -->
+    <div class="glass-card" style="padding: 18px 24px; border-radius: var(--radius-md); border-left: 4px solid #f59e0b; background: rgba(245,158,11,0.08); margin-bottom: 28px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+        This update brings the policy's wording in line with what the product's code actually does
+        today (what data reaches our AI service, how voice input works, and how account deletion
+        works). It is a technical accuracy pass, not a legal review - please have this reviewed by
+        qualified legal counsel before relying on it for regulatory compliance.
     </div>
 
     <!-- Main Content Container with Table of Contents -->
@@ -47,12 +55,15 @@
         <div class="glass-card" style="padding: 20px; border-radius: var(--radius-md); position: sticky; top: 90px; background: var(--bg-surface); border: 1px solid var(--border-color);">
             <h4 style="font-size: 14px; font-weight: 800; color: var(--accent-green); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Privacy Sections</h4>
             <nav style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
-                <a href="#priv-1" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">1. Zero Data Reselling</a>
+                <a href="#priv-1" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">1. Data Sale & Training Policy</a>
                 <a href="#priv-2" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">2. Database Isolation</a>
-                <a href="#priv-3" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">3. LLM Data Transmission</a>
+                <a href="#priv-3" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">3. What We Send to Our AI Service</a>
+                <a href="#priv-voice" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">3b. Voice Input</a>
                 <a href="#priv-4" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">4. Encryption Standards</a>
                 <a href="#priv-5" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">5. Session Governance</a>
                 <a href="#priv-6" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">6. Compliance & Rights</a>
+                <a href="#priv-7" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">7. Sub-Processors</a>
+                <a href="#priv-8" style="color: var(--text-secondary); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.color='#34d399'; this.style.background='rgba(52,211,153,0.1)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.background='none'">8. Contact</a>
             </nav>
         </div>
 
@@ -62,16 +73,14 @@
             <!-- Section 1 -->
             <div id="priv-1" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
                 <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-lock" style="color: var(--accent-green);"></i> 1. Absolute Zero Data Reselling & Model Training Guarantee
+                    <i class="fa-solid fa-lock" style="color: var(--accent-green);"></i> 1. Data Sale & Model Training Policy
                 </h3>
                 <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
-                    We enforce a strict <strong>Zero Third-Party Data Monetization Policy</strong>. Your uploaded CSV files, Excel spreadsheets, dataset records, and generated analytical outputs:
+                    Within our own systems, we do not sell, lease, rent, or share your uploaded CSV files, Excel spreadsheets, dataset records, or generated analytical outputs with advertising networks or data brokers, and we do not use them to train our own models. They remain accessible solely to authorized authenticated users within your account instance.
                 </p>
-                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
-                    <li>Are <strong>NEVER sold, leased, rented, or shared</strong> with advertising networks or data brokers.</li>
-                    <li>Are <strong>NEVER used to train or fine-tune public artificial intelligence foundation models</strong>.</li>
-                    <li>Remain strictly confidential and accessible solely to authorized authenticated users within your account instance.</li>
-                </ul>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0;">
+                    Some of your data is sent to a third-party AI service to generate answers (see Section 3 below). We have not configured any specific "do not train on this data" setting with that service at the account/API level, so we cannot currently guarantee that the underlying AI providers never retain or train on data submitted through them - this depends on their own policies, linked in Section 3. Configuring and verifying a no-training/data-retention agreement with our AI service is on our roadmap; until that's done and verified, treat this as the honest state of affairs rather than a guarantee.
+                </p>
             </div>
 
             <!-- Section 2 -->
@@ -90,15 +99,33 @@
             <!-- Section 3 -->
             <div id="priv-3" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
                 <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-purple);"></i> 3. Secure LLM Prompt Guardrails & PII Protection
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-purple);"></i> 3. What We Send to Our AI Service
                 </h3>
                 <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
-                    When you ask natural language analytical questions, the AI Translation Engine transmits only column headers and non-sensitive structural schema definitions to OpenRouter LLM endpoints:
+                    We use <strong>OpenRouter</strong> to route AI requests to one of several underlying model providers depending on the task: OpenAI (GPT-4o mini, GPT-3.5 Turbo), Meta (Llama 3.3), and Alibaba (Qwen 2.5 Coder). OpenRouter forwards your request to whichever of these providers handles it, and that provider's own privacy policy also applies to that request. See
+                    <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener" style="color: var(--accent-blue);">OpenRouter's privacy policy</a> for how they handle data in transit.
                 </p>
-                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
-                    <li>Raw database record rows remain securely inside your local SQL Server instance and are executed via localized T-SQL engine calls.</li>
-                    <li>Automated <strong>PII Guardrails</strong> detect and mask sensitive identifiers (e.g., credit card numbers, social security codes, passwords) prior to query processing.</li>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    We do not send your whole dataset to the AI service. Column names are always sent so the AI knows your data's structure. Beyond that, what's sent depends on what you're doing:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin-bottom: 12px;">
+                    <li><strong>Generating the SQL query for your question:</strong> we send your column names, plus a small sample - the first 3 rows of your table and up to 6 example values per text column - so the AI can match your wording to your actual data (e.g. knowing a status column uses "Delivered" rather than "Complete"). This sample is not masked.</li>
+                    <li><strong>Writing the plain-English summary of your results (default setting):</strong> we send a sample of the actual result rows (typically up to ~13 rows) with values in columns we recognize as likely-sensitive (names matching patterns like email, phone, card number, SSN/CNIC, salary, address) masked before sending. Columns we don't recognize as sensitive by name or value pattern - e.g. city, product, category, amount - are sent unmasked. You can change this in your account's AI privacy level setting to send schema/aggregates only (stricter) or full unmasked samples (if you explicitly opt into "Developer Mode").</li>
+                    <li><strong>Automated insights and "why" explanations:</strong> we send only the computed numbers (totals, percentage changes) and the category label involved (e.g. a city or product name that was already going to be shown to you as a chart axis or table value) - not raw rows.</li>
                 </ul>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0;">
+                    Field-level encryption (Section 4) protects your data at rest in our database; it does not reduce what's described above, since data is decrypted before any AI request is built. Automated PII masking is pattern-based (column name and value-format matching) and may not catch every sensitive value - don't rely on it as a substitute for not uploading data you don't want an AI service to see.
+                </p>
+            </div>
+
+            <!-- Section 3b: Voice Input -->
+            <div id="priv-voice" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-microphone" style="color: var(--accent-red);"></i> 3b. Voice Input
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0;">
+                    Voice questions use your browser's built-in speech recognition (the Web Speech API), not a service we run. Your browser sends the audio directly to its own vendor (for example, Google's servers if you're using Chrome) to convert it to text - we never receive or store the audio itself. Only the resulting text is sent to us, the same as if you had typed the question. Review your browser vendor's privacy policy for how they handle that audio.
+                </p>
             </div>
 
             <!-- Section 4 -->
@@ -136,8 +163,41 @@
                 </p>
                 <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
                     <li><strong>Right of Access & Export:</strong> Export your full raw datasets and analytical reports at any time in CSV, Excel, PDF, Word, or PowerPoint formats.</li>
-                    <li><strong>Right to Erasure (Be Forgotten):</strong> Permanently delete your account, profile credentials, and uploaded datasets with zero data retention.</li>
+                    <li><strong>Right to Erasure (Be Forgotten):</strong> There is currently no self-service "delete my account" button - erasure requests are handled by contacting us (Section 8). Once processed, deletion is thorough: your account, profile credentials, uploaded datasets (including the underlying database tables), query history, and payment records are all permanently removed, not just deactivated.</li>
                 </ul>
+            </div>
+
+            <!-- Section 7: Sub-Processors -->
+            <div id="priv-7" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-diagram-project" style="color: var(--accent-cyan);"></i> 7. Sub-Processors
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    Third-party services we use to operate AI Data Analyst Pro, and what each one sees:
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li><strong>OpenRouter</strong> (and, through it, OpenAI / Meta / Alibaba Qwen): receives the AI prompt data described in Section 3 when you ask a question or request an AI-generated summary or insight.</li>
+                    <li><strong>Email delivery provider</strong> (SMTP, currently Brevo): sends account verification (OTP) codes and notification emails to the email address you registered with. Receives your email address and the email content, not your dataset contents.</li>
+                    <li><strong>Your browser vendor</strong> (e.g. Google, for Chrome's speech recognition): processes voice audio for transcription when you use voice input - see Section 3b. We don't choose this provider; it's whichever browser you use.</li>
+                    <li>We do not use any SMS provider, and we do not use an automated third-party payment gateway - Pro plan payments are manual bank/mobile-wallet transfers (Easypaisa, NayaPay, SadaPay) that you initiate yourself, with a payment screenshot you upload for manual review by our Super Admin before activation. That screenshot is stored and visible only to the Super Admin for verification purposes.</li>
+                </ul>
+            </div>
+
+            <!-- Section 8: Contact -->
+            <div id="priv-8" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-envelope" style="color: var(--accent-green);"></i> 8. Contact & Data Controller
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+                    For privacy questions, data export, or erasure requests, contact us at
+                    <a href="mailto:support@aidataanalyst.pro" style="color: var(--accent-blue);">support@aidataanalyst.pro</a>
+                    or via WhatsApp at <a href="https://wa.me/923053107456" target="_blank" rel="noopener" style="color: var(--accent-blue);">+92 305 310 7456</a>.
+                </p>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0;">
+                    Registered business/legal entity name: <strong>AI Data Analyst Pro</strong>.
+                    Registered business address: <strong>Qazafi Chowk, Karachi, Pakistan</strong>.
+                    We do not currently operate under a specific data protection regulator.
+                </p>
             </div>
 
         </div>

@@ -158,21 +158,6 @@
 </div>
 {% endif %}
 
-{% if sql %}
-<!-- Generated SQL Block -->
-<div class="table-card" style="border-left: 4px solid var(--accent-purple);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-purple);">
-            <i class="fa-solid fa-code"></i> Local T-SQL Query
-        </h3>
-        <button class="btn btn-secondary btn-sm btn-copy-sql" onclick="navigator.clipboard.writeText(document.getElementById('sql-text').innerText); showAppToast('SQL Copied to Clipboard!', 'success');">
-            <i class="fa-solid fa-copy"></i> Copy SQL
-        </button>
-    </div>
-    <pre id="sql-text" style="background: var(--bg-sidebar); color: #38bdf8; padding: 16px; border-radius: var(--radius-md); font-family: monospace; font-size: 14px; overflow-x: auto;">{{ sql }}</pre>
-</div>
-{% endif %}
-
 {% if result %}
 <!-- Results Table -->
 <div class="table-card">
@@ -183,7 +168,7 @@
         <div style="display: flex; gap: 8px;">
             <a href="{{ url_for('frontend.export_query_result', format_type='csv') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
             <a href="{{ url_for('frontend.export_query_result', format_type='excel') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
-            <a href="{{ url_for('frontend.export_query_result', format_type='pdf') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
+            <a href="{{ url_for('frontend.export_query_result', format_type='pdf') }}" id="export-pdf-link" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> PDF</a>
         </div>
     </div>
     <div class="table-container">
@@ -756,6 +741,21 @@ function selectVisualChartMode(mode, btn) {
     if (btn && btn.disabled) return;
     syncActiveChartButton(mode);
     toggleChartDisplayMode(mode);
+    updateExportChartType(mode);
+}
+
+// Keeps the PDF export link's chart type in sync with whatever the user is
+// currently looking at, so exporting after switching to Donut/Treemap/Funnel
+// actually produces that chart type instead of silently falling back to
+// whatever the server would have auto-selected.
+function updateExportChartType(mode) {
+    const pdfLink = document.getElementById("export-pdf-link");
+    if (!pdfLink) return;
+    try {
+        const url = new URL(pdfLink.href, window.location.origin);
+        url.searchParams.set("chart_type", mode);
+        pdfLink.href = url.toString();
+    } catch (e) {}
 }
 
 function toggleChartDisplayMode(mode) {

@@ -25,7 +25,7 @@
     {
       "@type": "Question",
       "name": "How does the AI Voice Agent work?",
-      "acceptedAnswer": {"@type": "Answer", "text": "Click the Voice AI button on the Ask AI page. Web Speech API transcribes your speech in real-time, auto-corrects typos, and executes T-SQL queries in sub-second time without page reload."}
+      "acceptedAnswer": {"@type": "Answer", "text": "Click the Voice AI button on the Ask AI page. Web Speech API transcribes your speech, auto-corrects typos, and executes T-SQL queries in {{ site_config.TYPICAL_RESPONSE_TIME }} without page reload."}
     },
     {
       "@type": "Question",
@@ -35,7 +35,7 @@
     {
       "@type": "Question",
       "name": "How do I export data and reports?",
-      "acceptedAnswer": {"@type": "Answer", "text": "Export in 6 formats: Excel (.xlsx), PDF Report, Word (.docx), PowerPoint (.pptx), Vector SVG, and CSV. All exports generate in under 100 milliseconds."}
+      "acceptedAnswer": {"@type": "Answer", "text": "Export in 6 formats: Excel (.xlsx), PDF Report, Word (.docx), PowerPoint (.pptx), Vector SVG, and CSV. Exports complete in {{ site_config.EXPORT_TYPICAL_TIME }}."}
     }
   ]
 }
@@ -104,7 +104,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    Click the <strong>"Click to Speak (Voice AI)"</strong> button on the Ask AI page. The Web Speech API transcribes your speech in real-time, auto-corrects speech typos (e.g., "top 5 ross" → "top 5 rows" or Urdu numbers "paanch" → "5"), and executes the T-SQL query in sub-second time (0.02s) without reloading the page. Both English and Roman Urdu are fully supported.
+                    Click the <strong>"Click to Speak (Voice AI)"</strong> button on the Ask AI page. The Web Speech API transcribes your speech, auto-corrects speech typos (e.g., "top 5 ross" → "top 5 rows" or Urdu numbers "paanch" → "5"), and executes the T-SQL query in {{ site_config.TYPICAL_RESPONSE_TIME }} without reloading the page. Both English and Roman Urdu are fully supported.
                 </div>
             </div>
 
@@ -114,7 +114,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    The platform enforces a strict <strong>AI Context Guardrail</strong>. Non-dataset queries (e.g., "who is president", "tell me a joke", "weather today") are caught in 0.001s without querying the database, returning: <code style="color: var(--accent-amber);">"I can only answer questions related to uploaded datasets."</code> This ensures enterprise data focus and prevents data exfiltration.
+                    The platform enforces a strict <strong>AI Context Guardrail</strong>. Non-dataset queries (e.g., "who is president", "tell me a joke", "weather today") are caught immediately, without querying the database, returning: <code style="color: var(--accent-amber);">"I can only answer questions related to uploaded datasets."</code> This ensures enterprise data focus and prevents data exfiltration.
                 </div>
             </div>
 
@@ -124,7 +124,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    Export data in <strong>6 formats</strong> from the Dashboard or Query Results: <strong>Excel (.xlsx)</strong> with styled sheets + summary KPI tab, <strong>PDF Report</strong> with AI insights + chart, <strong>Word (.docx)</strong>, <strong>PowerPoint (.pptx)</strong> with executive slides, <strong>Vector SVG (.svg)</strong>, and <strong>CSV (.csv)</strong>. All exports generate in under 100 milliseconds.
+                    Export data in <strong>6 formats</strong> from the Dashboard or Query Results: <strong>Excel (.xlsx)</strong> with styled sheets + summary KPI tab, <strong>PDF Report</strong> with AI insights + chart, <strong>Word (.docx)</strong>, <strong>PowerPoint (.pptx)</strong> with executive slides, <strong>Vector SVG (.svg)</strong>, and <strong>CSV (.csv)</strong>. Exports complete in {{ site_config.EXPORT_TYPICAL_TIME }}.
                 </div>
             </div>
 

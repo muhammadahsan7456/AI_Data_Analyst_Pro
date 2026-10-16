@@ -26,7 +26,7 @@
       "name": "How does the AI Voice Agent work?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Click the voice button to speak in English or Roman Urdu. The engine normalizes speech typos and executes optimized T-SQL in sub-second time without page reloads."
+        "text": "Click the voice button to speak in English or Roman Urdu. The engine normalizes speech typos and executes optimized T-SQL in {{ site_config.TYPICAL_RESPONSE_TIME }} without page reloads."
       }
     },
     {
@@ -105,7 +105,7 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        Click the "Voice AI" microphone button on the query page. The Web Speech API transcribes your speech in real-time in English or Roman Urdu. The system auto-corrects speech typos (such as <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu numbers <em>"paanch" ➔ "5"</em>) and runs the query in sub-second time (0.02s) without reloading the page.
+                        Click the "Voice AI" microphone button on the query page. The Web Speech API transcribes your speech in English or Roman Urdu. The system auto-corrects speech typos (such as <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu numbers <em>"paanch" ➔ "5"</em>) and runs the query in {{ site_config.TYPICAL_RESPONSE_TIME }} without reloading the page.
                     </div>
                 </div>
 
@@ -115,7 +115,7 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        The platform enforces strict <strong>AI Context Guardrails</strong>. Queries unrelated to uploaded datasets (such as <em>"who is president"</em> or <em>"tell me a joke"</em>) are intercepted in 0.001s without touching the database, saving processing resources and protecting enterprise data focus.
+                        The platform enforces strict <strong>AI Context Guardrails</strong>. Queries unrelated to uploaded datasets (such as <em>"who is president"</em> or <em>"tell me a joke"</em>) are intercepted immediately without touching the database, saving processing resources and protecting enterprise data focus.
                     </div>
                 </div>
 
@@ -135,7 +135,7 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        You can export reports in 6 enterprise formats in sub-second time:
+                        You can export reports in 6 enterprise formats ({{ site_config.EXPORT_TYPICAL_TIME }}):
                         <strong>PowerPoint (.pptx)</strong>, <strong>Executive PDF</strong> (with high-res charts), <strong>Excel (.xlsx)</strong> (with summary KPI sheet), <strong>Word (.docx)</strong>, <strong>Vector SVG (.svg)</strong>, and <strong>CSV (.csv)</strong>.
                     </div>
                 </div>
@@ -147,7 +147,7 @@
                     Still have questions? Our engineering team is here to help.
                 </h3>
                 <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
-                    Direct support via WhatsApp or email with guaranteed 2-hour response time for enterprise clients.
+                    Direct support via WhatsApp or email for enterprise clients.
                 </p>
                 <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
                     <a href="https://wa.me/923053107456" target="_blank" class="btn-whatsapp-direct">

@@ -33,7 +33,8 @@ try:
         create_waterfall_chart,
         create_funnel_chart,
         create_bubble_chart,
-        create_candlestick_chart
+        create_candlestick_chart,
+        create_donut_chart
     )
 except ModuleNotFoundError:
     from charts import (
@@ -51,13 +52,16 @@ except ModuleNotFoundError:
         create_waterfall_chart,
         create_funnel_chart,
         create_bubble_chart,
-        create_candlestick_chart
+        create_candlestick_chart,
+        create_donut_chart
     )
 
 CHART_MAP = {
     "bar": create_bar_chart,
+    "horizontal_bar": create_bar_chart,
     "line": create_line_chart,
     "pie": create_pie_chart,
+    "donut": create_donut_chart,
     "histogram": create_histogram,
     "scatter": create_scatter_chart,
     "box": create_box_plot,
@@ -95,6 +99,7 @@ from visualization.charts import (
     create_funnel_chart,
     create_bubble_chart,
     create_candlestick_chart,
+    create_donut_chart,
     preprocess_chart_dataframe
 )
 

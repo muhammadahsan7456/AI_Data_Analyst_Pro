@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Features — AI Data Analyst Pro | Enterprise AI Analytics Platform Capabilities</title>
-<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and 8 chart types.">
+<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
 <meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, AES-256 Encryption, Multi-Dataset Join, PowerPoint Export, Data Visualization">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -69,8 +69,8 @@
 
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4, #0e7490);"><i class="fa-solid fa-bolt"></i></div>
-                <h3 class="feature-card-title">Sub-Second 0.005ms T-SQL Engine</h3>
-                <p class="feature-card-desc">85%+ of standard data requests are evaluated locally in under 0.005ms by our fast T-SQL pattern engine, avoiding external LLM network delays completely.</p>
+                <h3 class="feature-card-title">Fast Local T-SQL Pattern Engine</h3>
+                <p class="feature-card-desc">Many common data requests are answered by a local T-SQL pattern engine in milliseconds, without an external AI call, avoiding network delays.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
@@ -88,13 +88,13 @@
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ef4444, #b91c1c);"><i class="fa-solid fa-chart-pie"></i></div>
                 <h3 class="feature-card-title">Automated AI Chart Generation</h3>
-                <p class="feature-card-desc">AI automatically selects the best chart type (Bar, Line, Pie, Scatter, Histogram, Box Plot, Area, Heatmap) and generates interactive Plotly visualizations.</p>
+                <p class="feature-card-desc">AI automatically selects the best chart type ({{ site_config.SUPPORTED_CHART_TYPES|join(', ') }}) and generates interactive Plotly visualizations.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ec4899, #be185d);"><i class="fa-solid fa-file-powerpoint"></i></div>
                 <h3 class="feature-card-title">1-Click Executive Report Exports</h3>
-                <p class="feature-card-desc">Generate professional PowerPoint (PPTX), PDF, Word (DOCX), Excel (XLSX), CSV, and SVG chart exports in under 100ms with AI executive takeaways included.</p>
+                <p class="feature-card-desc">Generate professional PowerPoint (PPTX), PDF, Word (DOCX), Excel (XLSX), CSV, and SVG chart exports — {{ site_config.EXPORT_TYPICAL_TIME }} — with AI executive takeaways included.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
