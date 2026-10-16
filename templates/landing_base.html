@@ -105,7 +105,7 @@
                     <div class="brand-icon-box">
                         <i class="fa-solid fa-brain"></i>
                     </div>
-                    <span>AI Data Analyst Pro</span>
+                    <span>{{ site_config.BRAND_NAME }}</span>
                 </a>
 
                 <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="toggleMobileNav()"></div>
@@ -187,9 +187,9 @@
                 <div class="footer-brand-col">
                     <a href="{{ url_for('frontend.home') }}" class="footer-brand">
                         <div class="brand-icon-box"><i class="fa-solid fa-brain"></i></div>
-                        <span>AI Data Analyst Pro</span>
+                        <span>{{ site_config.BRAND_NAME }}</span>
                     </a>
-                    <p class="footer-desc">Enterprise-grade AI data analysis platform with sub-second T-SQL intelligence, bilingual voice querying, and automated executive reports.</p>
+                    <p class="footer-desc">Enterprise-grade AI data analysis platform with AI query responses {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice querying, and automated executive reports.</p>
                     <div class="footer-enterprise-badge">
                         <span class="pulse-dot"></span> Production-Ready v2.5 Enterprise
                     </div>

@@ -28,6 +28,7 @@ from database.queries import get_user_by_id, get_user_settings
 from frontend.routes import frontend
 from auth import auth_bp
 from admin import admin_bp
+import site_config
 
 # Auto-initialize database tables and background scheduler thread on launch
 try:
@@ -251,7 +252,8 @@ def inject_user_context():
         is_admin_logged_in=bool(session.get("admin_user_id")),
         max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "500")),
         subscription_info=sub_info,
-        pending_payments_count=pending_payments_count
+        pending_payments_count=pending_payments_count,
+        site_config=site_config
     )
 
 
