@@ -10,6 +10,12 @@ EXPORT_TYPICAL_TIME were measured.
 
 BRAND_NAME = "AI Data Analyst Pro"
 
+# Verified against the real Datasets table (54 rows at time of writing, see
+# docs/BASELINE.md) - rounded down to a safely-true figure rather than the
+# previous unverified "500+" claim.
+PROJECTS_COMPLETED_NUMBER = 50
+PROJECTS_COMPLETED = "50+"
+
 # Measured against the real pipeline (question -> SQL generation -> SQL
 # execution -> result returned) across 23 representative English and Roman
 # Urdu questions on 2026-10-16. Median 0.63s, 95th percentile 1.56s.
@@ -24,3 +30,18 @@ TYPICAL_RESPONSE_TIME_LABEL = "Typically 1 to 3 seconds"
 # See docs/PERFORMANCE_MEASUREMENT.md for the raw per-format numbers.
 EXPORT_TYPICAL_TIME = "a few seconds, depending on format and dataset size"
 EXPORT_TYPICAL_TIME_LABEL = "Typically a few seconds, depending on format and dataset size"
+
+# The 10 chart types a user can actually pick in the interactive Ask AI chart
+# switcher (templates/chat.html's "Switch Chart Format" bar), each backed by a
+# genuinely distinct Plotly trace type (verified in templates/chat.html's
+# selectVisualChartMode JS, not aliased to another type). Note: the separate
+# static-image export backend (visualization/charts.py, used for PDF/PPTX/Word
+# exports) only has 8 of these as truly distinct renderers - Donut, Treemap and
+# Funnel fall back to Pie/Bar/Bar shapes in exported documents. That's a product
+# gap, not a copy inconsistency, and is called out in the task report rather
+# than silently fixed here.
+SUPPORTED_CHART_TYPES = [
+    "Pie", "Donut", "Vertical Bar", "Horizontal Bar", "Line",
+    "Area", "Scatter", "Heatmap", "Treemap", "Funnel",
+]
+CHART_COUNT = len(SUPPORTED_CHART_TYPES)

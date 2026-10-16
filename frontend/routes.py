@@ -192,7 +192,19 @@ def secure_payment_screenshot(payment_id):
 @frontend.route("/")
 def home():
     is_logged_in = bool(session.get("user_id"))
-    return render_template("index.html", is_logged_in=is_logged_in)
+    # Real values for the JSON-LD aggregateRating block, computed from the
+    # Reviews table rather than a hardcoded marketing number.
+    review_count, avg_rating = 0, 0
+    try:
+        from database.queries import get_approved_reviews
+        with get_db_cursor() as cursor:
+            cursor.execute(get_approved_reviews())
+            ratings = [row[4] for row in (cursor.fetchall() or [])]
+        review_count = len(ratings)
+        avg_rating = round(sum(ratings) / review_count, 1) if review_count else 0
+    except Exception:
+        pass
+    return render_template("index.html", is_logged_in=is_logged_in, review_count=review_count, avg_rating=avg_rating)
 
 
 @frontend.route("/pricing")
@@ -2185,7 +2197,24 @@ def testimonials_page():
     except Exception as e:
         print("Testimonials Fetch Error:", e)
 
-    return render_template("testimonials.html", is_logged_in=is_logged_in, reviews=reviews)
+    # Real stats computed from the Reviews/Users tables, not hardcoded marketing
+    # numbers - so this page (and the JSON-LD aggregateRating below) always
+    # reflects what's actually in the database.
+    review_count = len(reviews)
+    avg_rating = round(sum(r["rating"] for r in reviews) / review_count, 1) if review_count else 0
+    satisfaction_rate = round(100 * sum(1 for r in reviews if r["rating"] >= 4) / review_count) if review_count else 0
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM Users")
+            registered_users = cursor.fetchone()[0] or 0
+    except Exception:
+        registered_users = 0
+
+    return render_template(
+        "testimonials.html", is_logged_in=is_logged_in, reviews=reviews,
+        review_count=review_count, avg_rating=avg_rating,
+        satisfaction_rate=satisfaction_rate, registered_users=registered_users
+    )
 
 
 @frontend.route("/faq")

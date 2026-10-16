@@ -25,8 +25,8 @@
   "operatingSystem": "All (Web Based)",
   "applicationCategory": "BusinessApplication",
   "offers": { "@type": "Offer", "price": "1499.00", "priceCurrency": "PKR" },
-  "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and AES-256 encryption.",
-  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "512" }
+  "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and AES-256 encryption."{% if review_count %},
+  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "{{ avg_rating }}", "ratingCount": "{{ review_count }}" }{% endif %}
 }
 </script>
 <script type="application/ld+json">
@@ -79,19 +79,19 @@
         <!-- Animated Stats Counters -->
         <div class="stats-grid reveal">
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="10" data-suffix="M+" data-duration="2000">0</div>
+                <div class="counter-value" data-counter data-target="10" data-suffix="M+" data-duration="2000">10M+</div>
                 <div class="stat-label">Rows Processed</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="3" data-prefix="&lt;" data-suffix="s" data-duration="2000">0</div>
+                <div class="counter-value" data-counter data-target="3" data-prefix="&lt;" data-suffix="s" data-duration="2000">&lt;3s</div>
                 <div class="stat-label">Typical Query Response</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="256" data-suffix="-bit" data-duration="1500">0</div>
+                <div class="counter-value" data-counter data-target="256" data-suffix="-bit" data-duration="1500">256-bit</div>
                 <div class="stat-label">AES Encryption</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="99.99" data-suffix="%" data-decimals="2" data-duration="2000">0</div>
+                <div class="counter-value" data-counter data-target="99.99" data-suffix="%" data-decimals="2" data-duration="2000">99.99%</div>
                 <div class="stat-label">Uptime SLA</div>
             </div>
         </div>
@@ -201,7 +201,7 @@
                 Ready to Transform Your Data Analysis?
             </h2>
             <p style="font-size: 16px; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 28px; position: relative;">
-                Join 500+ enterprises using AI Data Analyst Pro to analyze 10M+ rows, generate instant reports, and make data-driven decisions faster.
+                Join the {{ site_config.PROJECTS_COMPLETED }} projects completed with AI Data Analyst Pro to analyze 10M+ rows, generate instant reports, and make data-driven decisions faster.
             </p>
             <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; position: relative;">
                 {% if is_logged_in %}

@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Features — AI Data Analyst Pro | Enterprise AI Analytics Platform Capabilities</title>
-<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and 8 chart types.">
+<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
 <meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, AES-256 Encryption, Multi-Dataset Join, PowerPoint Export, Data Visualization">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -88,7 +88,7 @@
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ef4444, #b91c1c);"><i class="fa-solid fa-chart-pie"></i></div>
                 <h3 class="feature-card-title">Automated AI Chart Generation</h3>
-                <p class="feature-card-desc">AI automatically selects the best chart type (Bar, Line, Pie, Scatter, Histogram, Box Plot, Area, Heatmap) and generates interactive Plotly visualizations.</p>
+                <p class="feature-card-desc">AI automatically selects the best chart type ({{ site_config.SUPPORTED_CHART_TYPES|join(', ') }}) and generates interactive Plotly visualizations.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>

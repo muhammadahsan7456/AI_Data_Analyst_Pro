@@ -1,8 +1,8 @@
 {% extends "landing_base.html" %}
 
 {% block seo_meta %}
-<title>Customer Reviews — AI Data Analyst Pro | Trusted by 500+ Data Analysts</title>
-<meta name="description" content="See verified reviews from 500+ enterprise data analysts and business leaders using AI Data Analyst Pro for automated SQL querying, voice AI, and executive report generation.">
+<title>Customer Reviews — AI Data Analyst Pro | {{ site_config.PROJECTS_COMPLETED }} Projects Completed</title>
+<meta name="description" content="See reviews from data analysts and business leaders using AI Data Analyst Pro for automated SQL querying, voice AI, and executive report generation.">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
 
@@ -14,28 +14,30 @@
 <section class="landing-section" style="padding-top: 40px;">
     <div class="container">
         <div class="section-header reveal">
-            <div class="section-badge"><i class="fa-solid fa-star"></i> Verified User Reviews</div>
-            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Loved by <span class="gradient-text">500+ Data Analysts</span> & Business Leaders</h1>
+            <div class="section-badge"><i class="fa-solid fa-star"></i> User Reviews</div>
+            <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">Loved by <span class="gradient-text">{{ site_config.PROJECTS_COMPLETED }} Projects</span> & Business Leaders</h1>
             <p class="section-subtitle">See how top analytics teams use AI Data Analyst Pro to automate SQL queries, generate PowerPoint briefings, and speed up decisions.</p>
         </div>
 
-        <!-- Stats Bar -->
+        <!-- Stats Bar (real values, computed from the Users/Reviews tables in
+             frontend.testimonials_page - server-rendered first so the real number
+             shows even with JS off, then animated on top when scrolled into view) -->
         <div class="stats-grid reveal stagger-children" style="margin-top: 0; margin-bottom: 56px;">
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="512" data-suffix="+" data-duration="2000">0</div>
-                <div class="stat-label">Active Users</div>
+                <div class="counter-value" data-counter data-target="{{ registered_users }}" data-suffix="+" data-duration="2000">{{ registered_users }}+</div>
+                <div class="stat-label">Registered Users</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="4.9" data-suffix="/5" data-decimals="1" data-duration="1500">0</div>
+                <div class="counter-value" data-counter data-target="{{ avg_rating }}" data-suffix="/5" data-decimals="1" data-duration="1500">{{ "%.1f"|format(avg_rating) }}/5</div>
                 <div class="stat-label">Average Rating</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="98" data-suffix="%" data-duration="1800">0</div>
-                <div class="stat-label">Satisfaction Rate</div>
+                <div class="counter-value" data-counter data-target="{{ satisfaction_rate }}" data-suffix="%" data-duration="1800">{{ satisfaction_rate }}%</div>
+                <div class="stat-label">Satisfaction Rate (4-5 star reviews)</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="54" data-suffix="hrs" data-duration="1600">0</div>
-                <div class="stat-label">Avg. Time Saved / Month</div>
+                <div class="counter-value" data-counter data-target="{{ site_config.PROJECTS_COMPLETED_NUMBER }}" data-suffix="+" data-duration="1600">{{ site_config.PROJECTS_COMPLETED }}</div>
+                <div class="stat-label">Projects Completed</div>
             </div>
         </div>
 
@@ -69,7 +71,7 @@
 <!-- CTA -->
 <section class="landing-section" style="padding: 60px 0; text-align: center;">
     <div class="container reveal">
-        <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: 16px;">Join 500+ Happy Analysts</h2>
+        <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: 16px;">Join Our Happy Analysts</h2>
         <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
             <a href="{{ url_for('auth.register_payment') }}" class="btn-hero-primary"><i class="fa-solid fa-rocket"></i> Start Your Journey</a>
             <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary"><i class="fa-solid fa-play"></i> Try Demo First</a>

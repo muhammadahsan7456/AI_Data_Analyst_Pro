@@ -142,21 +142,12 @@
                         </div>
                     </div>
                     <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
-                        Every query result generates high-resolution charts automatically. The visual engine detects whether data is temporal, categorical, or relational to render the optimal visualization.
+                        Every query result generates high-resolution charts automatically. The visual engine detects whether data is temporal, categorical, or relational to render the optimal visualization. You can also manually switch between all {{ site_config.CHART_COUNT }} chart types from the "Switch Chart Format" bar on any result.
                     </p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 8px; padding: 14px;">
-                            <strong style="color: var(--accent-gold); display: block; font-size: 14px; margin-bottom: 4px;">Bar & Column</strong>
-                            <span style="font-size: 12px; color: var(--text-muted);">Categorical comparison & Top N rankings</span>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 8px; padding: 14px;">
-                            <strong style="color: var(--accent-blue); display: block; font-size: 14px; margin-bottom: 4px;">Line & Area</strong>
-                            <span style="font-size: 12px; color: var(--text-muted);">Time-series trends & revenue curves</span>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 8px; padding: 14px;">
-                            <strong style="color: var(--accent-purple); display: block; font-size: 14px; margin-bottom: 4px;">Donut & Pie</strong>
-                            <span style="font-size: 12px; color: var(--text-muted);">Proportional share & breakdown analysis</span>
-                        </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
+                        {% for chart_name in site_config.SUPPORTED_CHART_TYPES %}
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 8px; padding: 12px 14px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-secondary);">{{ chart_name }}</div>
+                        {% endfor %}
                     </div>
                 </div>
 
