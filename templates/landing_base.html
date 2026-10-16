@@ -16,7 +16,7 @@
     <meta name="robots" content="index, follow">
     {% block seo_meta %}
     <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-    <meta name="description" content="Transform datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
+    <meta name="description" content="Transform datasets up to 10M+ rows into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
     <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics">
     <link rel="canonical" href="{{ request.url }}">
     {% endblock %}
@@ -26,7 +26,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
-    <meta property="og:description" content="Sub-second AI data analysis, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
+    <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
     <meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
     <meta property="og:site_name" content="AI Data Analyst Pro">
     {% endblock %}
@@ -35,7 +35,7 @@
     {% block twitter_meta %}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AI Data Analyst Pro — Enterprise AI Analytics">
-    <meta name="twitter:description" content="Transform datasets into instant insights with AI. Sub-second SQL, voice querying, and automated exports.">
+    <meta name="twitter:description" content="Transform datasets into insights with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, voice querying, and automated exports.">
     <meta name="twitter:image" content="{{ request.url_root }}static/images/og-preview.png">
     {% endblock %}
 
@@ -87,7 +87,7 @@
         "price": "1499.00",
         "priceCurrency": "PKR"
       },
-      "description": "Enterprise AI Data Analysis Platform processing 10M+ records with sub-second AI query responses, automated exports, and AES-256 encryption."
+      "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and AES-256 encryption."
     }
     </script>
     {% endblock %}
@@ -189,7 +189,7 @@
                         <div class="brand-icon-box"><i class="fa-solid fa-brain"></i></div>
                         <span>{{ site_config.BRAND_NAME }}</span>
                     </a>
-                    <p class="footer-desc">Enterprise-grade AI data analysis platform with AI query responses {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice querying, and automated executive reports.</p>
+                    <p class="footer-desc">Enterprise-grade AI data analysis platform with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice querying, and automated executive reports.</p>
                     <div class="footer-enterprise-badge">
                         <span class="pulse-dot"></span> Production-Ready v2.5 Enterprise
                     </div>

@@ -963,7 +963,7 @@ def init_db():
         -- Reviews page isn't empty the first time this table is created - from here on
         -- Super Admin fully manages this list (add/edit/hide/delete) from the admin panel.
         INSERT INTO Reviews (ReviewerName, ReviewerRole, ReviewText, Rating, IsApproved, DisplayOrder) VALUES
-        ('Haris Khan', 'Lead Supply Chain Analyst - Karachi, Pakistan', 'We used to spend 15+ hours a week writing T-SQL queries and building charts manually. AI Data Analyst Pro does it in 0.005 milliseconds. The natural Roman Urdu voice query feature is unbelievable!', 5, 1, 1),
+        ('Haris Khan', 'Lead Supply Chain Analyst - Karachi, Pakistan', 'We used to spend 15+ hours a week writing T-SQL queries and building charts manually. AI Data Analyst Pro does it in seconds. The natural Roman Urdu voice query feature is unbelievable!', 5, 1, 1),
         ('Muhammad Ahmed', 'Head of Business Intelligence - Lahore, Pakistan', 'The automated PowerPoint and PDF exports save us hours before executive board meetings. Plus, the AES-256 field encryption gives our compliance team complete peace of mind.', 5, 1, 2),
         ('Syed Ali Farhan', 'E-commerce Director - Dubai, UAE', 'The multi-dataset JOIN engine is top notch. We connected sales and inventory datasets and got instant cross-analysis insights without writing a single complex SQL JOIN statement.', 5, 1, 3),
         ('Fatima Noor', 'Operations Manager - Islamabad, Pakistan', 'Our logistics team uses the voice AI feature daily. Just saying ''Karachi se Lahore orders dikhao'' gives us instant results. It''s like having a bilingual data scientist on call 24/7.', 5, 1, 4),

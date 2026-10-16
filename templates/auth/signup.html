@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Create Enterprise Account — AI Data Analyst Pro | Register Free</title>
-<meta name="description" content="Create your free enterprise AI Data Analyst Pro account. Process 10M+ rows with sub-second SQL queries, automated PPTX/PDF reports, and AES-256 encryption.">
+<meta name="description" content="Create your free enterprise AI Data Analyst Pro account. Process 10M+ rows with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated PPTX/PDF reports, and AES-256 encryption.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -14,7 +14,7 @@
             <i class="fa-solid fa-user-plus"></i>
         </div>
         <h1 class="auth-title">Create Enterprise Account</h1>
-        <p class="auth-subtitle">Get started with AI Data Analyst Pro — sub-second SQL, automated reports, and voice AI.</p>
+        <p class="auth-subtitle">Get started with AI Data Analyst Pro — fast SQL, automated reports, and voice AI.</p>
 
         <form method="POST" action="{{ url_for('auth.register_details') }}" id="signup-form" novalidate autocomplete="off"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- Hidden honeypot inputs -->

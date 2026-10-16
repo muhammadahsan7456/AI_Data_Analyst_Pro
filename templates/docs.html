@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Platform Documentation & Architecture Guide — AI Data Analyst Pro</title>
-<meta name="description" content="Technical documentation for AI Data Analyst Pro: 10M+ row dataset ingestion, sub-second SQL querying, bilingual voice AI, automated PPTX/PDF exports, and AES-256 encryption.">
+<meta name="description" content="Technical documentation for AI Data Analyst Pro: 10M+ row dataset ingestion, SQL querying with responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice AI, automated PPTX/PDF exports, and AES-256 encryption.">
 <meta name="keywords" content="AI Data Analyst Docs, SQL Architecture, Voice AI Querying, Automated PowerPoint Export, Parquet CSV Parsing">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -13,7 +13,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "AI Data Analyst Pro Platform Architecture & User Guide",
-  "description": "Comprehensive guide to multi-format parsing, sub-second T-SQL intelligence, voice querying, and automated exports.",
+  "description": "Comprehensive guide to multi-format parsing, fast T-SQL intelligence, voice querying, and automated exports.",
   "author": {
     "@type": "Organization",
     "name": "AI Data Analyst Pro"
@@ -58,7 +58,7 @@
         <div class="section-header reveal">
             <div class="section-badge"><i class="fa-solid fa-book-open"></i> Technical Guide</div>
             <h1 class="section-title">Platform <span class="gradient-text">Documentation</span></h1>
-            <p class="section-subtitle">Comprehensive guide to ingestion, sub-second T-SQL analytics, bilingual voice AI, and automated reporting.</p>
+            <p class="section-subtitle">Comprehensive guide to ingestion, fast T-SQL analytics, bilingual voice AI, and automated reporting.</p>
         </div>
 
         <div class="docs-layout-grid" style="display: grid; grid-template-columns: 280px 1fr; gap: 36px; align-items: start;">
@@ -120,13 +120,13 @@
                         </div>
                     </div>
                     <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
-                        Ask analytical questions using your voice or keyboard. The voice engine normalizes spoken typos (e.g., <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu phonetic phrases like <em>"sab se zyada revenue" ➔ MAX(revenue)</em>) and executes optimized T-SQL in sub-second time.
+                        Ask analytical questions using your voice or keyboard. The voice engine normalizes spoken typos (e.g., <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu phonetic phrases like <em>"sab se zyada revenue" ➔ MAX(revenue)</em>) and executes optimized T-SQL in {{ site_config.TYPICAL_RESPONSE_TIME }}.
                     </p>
                     <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
                         <strong style="color: #ffffff; display: block; margin-bottom: 8px;">Query Syntax & Natural Language Examples:</strong>
                         <ul style="padding-left: 20px;">
-                            <li><code>"Show top 10 customers by total sales"</code> ➔ Instant GROUP BY aggregation</li>
-                            <li><code>"What is the average transaction amount in 2026?"</code> ➔ Instant AVG with date filter</li>
+                            <li><code>"Show top 10 customers by total sales"</code> ➔ Fast GROUP BY aggregation</li>
+                            <li><code>"What is the average transaction amount in 2026?"</code> ➔ Fast AVG with date filter</li>
                             <li><code>"Which product category has the lowest margin?"</code> ➔ ORDER BY ASC with margin calculation</li>
                         </ul>
                     </div>
@@ -165,12 +165,12 @@
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
                         <div class="feature-icon-wrapper" style="margin-bottom: 0; background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-file-export"></i></div>
                         <div>
-                            <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">4. Sub-Second Full Export Center</h2>
+                            <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">4. Full Export Center</h2>
                             <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">PPTX, PDF, Excel, Word, SVG & CSV</span>
                         </div>
                     </div>
                     <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
-                        Download complete dataset queries and generated visualizations across multiple executive document formats with embedded AI takeaways in under 100ms.
+                        Download complete dataset queries and generated visualizations across multiple executive document formats with embedded AI takeaways — {{ site_config.EXPORT_TYPICAL_TIME }}.
                     </p>
                     <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
                         <ul style="padding-left: 20px;">

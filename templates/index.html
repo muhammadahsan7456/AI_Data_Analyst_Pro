@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-<meta name="description" content="Transform datasets up to 10M+ rows into instant executive insights, charts, and sub-second exports with AI. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
+<meta name="description" content="Transform datasets up to 10M+ rows into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
 <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics, Voice AI Querying">
 <link rel="canonical" href="{{ request.url_root }}">
 {% endblock %}
@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url_root }}">
 <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
-<meta property="og:description" content="Sub-second AI data analysis, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
+<meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
 <meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
 <meta property="og:site_name" content="AI Data Analyst Pro">
 {% endblock %}
@@ -25,7 +25,7 @@
   "operatingSystem": "All (Web Based)",
   "applicationCategory": "BusinessApplication",
   "offers": { "@type": "Offer", "price": "1499.00", "priceCurrency": "PKR" },
-  "description": "Enterprise AI Data Analysis Platform processing 10M+ records with sub-second AI query responses, automated exports, and AES-256 encryption.",
+  "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and AES-256 encryption.",
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "512" }
 }
 </script>
@@ -54,7 +54,7 @@
         </h1>
 
         <p class="hero-subtitle">
-            Ask natural language questions in <strong>English or Roman Urdu</strong>, perform multi-dataset cross analysis, generate instant sub-second 
+            Ask natural language questions in <strong>English or Roman Urdu</strong>, perform multi-dataset cross analysis, generate
             <span id="typed-hero" style="color: var(--accent-cyan); font-weight: 600;"></span><span style="border-right: 2px solid var(--accent-cyan); animation: blink 1s step-end infinite; margin-left: 2px;">&nbsp;</span>
         </p>
 
@@ -83,8 +83,8 @@
                 <div class="stat-label">Rows Processed</div>
             </div>
             <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="0.005" data-suffix="ms" data-decimals="3" data-duration="2000">0</div>
-                <div class="stat-label">Query Speed</div>
+                <div class="counter-value" data-counter data-target="3" data-prefix="&lt;" data-suffix="s" data-duration="2000">0</div>
+                <div class="stat-label">Typical Query Response</div>
             </div>
             <div class="stat-card" data-tilt>
                 <div class="counter-value" data-counter data-target="256" data-suffix="-bit" data-duration="1500">0</div>
@@ -108,8 +108,8 @@
             <div class="trust-item">
                 <i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i>
                 <div>
-                    <div class="trust-item-title">Sub-Second AI Speed</div>
-                    <div class="trust-item-sub">&lt;0.005ms Query Engine</div>
+                    <div class="trust-item-title">Fast AI Query Engine</div>
+                    <div class="trust-item-sub">{{ site_config.TYPICAL_RESPONSE_TIME_LABEL }}</div>
                 </div>
             </div>
             <div class="trust-item">
@@ -160,8 +160,8 @@
 
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4, #0e7490);"><i class="fa-solid fa-file-powerpoint"></i></div>
-                <h3 class="feature-card-title">Sub-Second Fast Exports</h3>
-                <p class="feature-card-desc">Generate PowerPoint presentations (PPTX), executive PDFs, formatted Excel, and CSV files locally in under 100 milliseconds.</p>
+                <h3 class="feature-card-title">Fast Exports</h3>
+                <p class="feature-card-desc">Generate PowerPoint presentations (PPTX), executive PDFs, formatted Excel, and CSV files — {{ site_config.EXPORT_TYPICAL_TIME }}.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
