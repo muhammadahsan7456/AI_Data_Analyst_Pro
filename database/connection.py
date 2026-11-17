@@ -265,6 +265,10 @@ def init_sqlite_db(conn):
             Role TEXT NOT NULL DEFAULT 'Analyst',
             FailedLoginAttempts INTEGER DEFAULT 0,
             LockoutUntil TEXT,
+            SubscriptionStatus TEXT DEFAULT 'free',
+            SubscriptionEndDate TEXT,
+            SuspendedAt TEXT,
+            SuspensionReason TEXT,
             CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UpdatedAt TEXT
         )''',
@@ -474,6 +478,17 @@ def init_sqlite_db(conn):
             cursor.execute(t)
         except Exception as e:
             print("SQLite Table Creation Notice:", e)
+
+    cursor.execute("PRAGMA table_info(Users)")
+    user_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("SubscriptionStatus", "TEXT DEFAULT 'free'"),
+        ("SubscriptionEndDate", "TEXT"),
+        ("SuspendedAt", "TEXT"),
+        ("SuspensionReason", "TEXT"),
+    ):
+        if column not in user_cols:
+            cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {definition}")
 
     try:
         cursor.execute("PRAGMA table_info(Payments)")

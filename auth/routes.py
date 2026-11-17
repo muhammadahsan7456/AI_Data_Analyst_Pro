@@ -113,12 +113,16 @@ def _notify_admins_new_payment(user_name, user_email, amount, txn_id):
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(create_ai_notification(), (admin_id, "payment_submitted", title, message, None))
         except Exception:
-            pass
+            logger.exception("Could not create payment notification for admin_id=%s.", admin_id)
         if admin_email:
             try:
-                email_service.send_admin_new_payment_alert_email(admin_email, user_name, user_email, amount, txn_id)
+                sent = email_service.send_admin_new_payment_alert_email(
+                    admin_email, user_name, user_email, amount, txn_id
+                )
+                if not sent:
+                    logger.warning("Payment alert email was not sent to admin_id=%s.", admin_id)
             except Exception:
-                pass
+                logger.exception("Could not send payment alert email to admin_id=%s.", admin_id)
 
 
 # ==========================================
@@ -553,7 +557,8 @@ def verify_otp():
             try:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(increment_email_token_attempt(), (expected_code,))
-            except Exception: pass
+            except Exception:
+                logger.exception("Could not record failed email OTP attempt for user_id=%s.", user_id)
 
             remaining = 5 - attempts
             if remaining <= 0:
@@ -590,25 +595,27 @@ def resend_otp():
             if cnt and cnt[0] >= 3:
                 flash("Too many requests. Please try again later.", "error")
                 return redirect(url_for("auth.verify_otp"))
-    except Exception: pass
+    except Exception:
+        logger.exception("Could not check OTP resend rate limit for user_id=%s.", user_id)
+        flash("We could not verify the resend limit right now. Please try again shortly.", "error")
+        return redirect(url_for("auth.verify_otp"))
 
-    # Invalidate previous OTP
+    # Persist the new token and invalidate the old one atomically before sending it.
     old_code = pending.get("otp_code")
-    if old_code:
-        try:
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(mark_email_token_used(), (old_code,))
-        except Exception: pass
-
     new_otp = f"{secrets.randbelow(900000) + 100000}"
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            if old_code:
+                cursor.execute(mark_email_token_used(), (old_code,))
+            cursor.execute(create_email_verification_token(), (user_id, new_otp))
+    except Exception:
+        logger.exception("Could not persist resent email OTP for user_id=%s.", user_id)
+        flash("We could not prepare a new verification code right now. Please try again.", "error")
+        return redirect(url_for("auth.verify_otp"))
+
     pending["otp_code"] = new_otp
     pending["attempts"] = 0
     session["pending_otp"] = pending
-
-    try:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(create_email_verification_token(), (user_id, new_otp))
-    except Exception: pass
 
     # Sent synchronously so a real send failure is reported honestly instead of claiming
     # "a new code has been sent" when it wasn't (see the registration OTP fix above for
@@ -1177,7 +1184,8 @@ def login():
                 prev_cnt = cursor.fetchone()
                 if prev_cnt and prev_cnt[0] <= 1:
                     is_new_device = True
-        except Exception: pass
+        except Exception:
+            logger.exception("Could not check login history for user_id=%s.", user_id)
 
         if is_new_device:
             trigger_ai_event(
@@ -1191,7 +1199,8 @@ def login():
             )
             try:
                 email_service.send_login_notification_email(em, user_display_name, datetime.now().strftime("%Y-%m-%d %H:%M UTC"), client_info["device"])
-            except Exception: pass
+            except Exception:
+                logger.exception("Could not send new-device login notice for user_id=%s.", user_id)
         else:
             trigger_ai_event(
                 user_id,
@@ -1334,7 +1343,8 @@ def reset_password(token=""):
             try:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(increment_reset_token_attempt(), (otp_code,))
-            except Exception: pass
+            except Exception:
+                logger.exception("Could not record failed password reset attempt.")
             flash("Invalid or expired password reset code.", "error")
             return render_template("reset_password.html", token=token, otp_code=otp_code)
 
@@ -1640,7 +1650,8 @@ def logout():
         try:
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(invalidate_user_session(), (session_token,))
-        except Exception: pass
+        except Exception:
+            logger.exception("Could not invalidate stored session token for user_id=%s.", user_id)
 
     log_audit_event("LOGOUT", "User logged out.", user_id=user_id)
 

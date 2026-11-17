@@ -37,6 +37,28 @@
 
 ### Next
 
-Phase 3: run compile/test checks and exercise application routes/flows in an isolated local database, then document any untestable production-only checks.
+Phase 3: continue isolated QA. Do not start the UI redesign until the authenticated flows and interaction coverage are green.
 
-Phase 2: fix the confirmed email false-success and startup data-rewrite risks surgically; improve safe server-side diagnostics for auth/OTP failures; then verify with isolated tests that do not send real email or modify the live database.
+## Phase 3 — Full QA sweep
+
+**Status:** In progress; core targeted checks pass, but full authenticated/browser QA is incomplete. Phase 4 is gated.
+
+### Completed
+
+- Fixed an SQLite schema gap: existing `Users` tables now receive missing subscription columns during initialization. A regression test verifies the columns are added without losing the existing user row.
+- Found a second OTP resend failure mode: database errors during rate-limit checks or token persistence were silently ignored, allowing sends to bypass the rate limit or present a code that could not be verified. Resend now fails closed, persists the replacement token and invalidates the old token in one transaction before sending, and logs persistence failures. Added tests for normal resend, failed rate-limit lookup, and failed token persistence.
+- Replaced silent catches for dashboard metric/notification queries and related auth side effects with server-side logging. Malformed notification metadata now logs a warning rather than silently disappearing.
+- Targeted isolated auth/email/database tests: **15 passed**. Application Python compile check: **passed**.
+- With the single-process isolated QA server and temporary SQLite database, GET smoke tests returned HTTP 200 for public/auth pages (`/`, login/register/signup, forgot password, demo, features, pricing, testimonials, docs, FAQ, about, help, contact, privacy, terms, security overview), health/sitemap/robots, and admin login. Gated dashboard/upload/chat/admin pages redirected to the appropriate login page.
+- In the browser, a wrong-password login showed the safe generic error; test registration reached the six-digit OTP screen; submitting a wrong OTP stayed on that screen and reported four attempts remaining. Homepage reload had no browser console or page errors. SMTP was mocked; no real email was sent.
+
+### Incomplete / not verified
+
+- The existing Selenium suite stalled (the full run stopped after 13 tests; a targeted run also hung). It was stopped rather than reported as passing. The browser request-context link-crawl helper also failed with a browser-protocol `Storage.getCookies` error, so link checks used direct HTTP smoke requests instead.
+- The isolated browser session did not complete OTP verification, signed-in dashboard access, upload size/payment gates, Ask AI/chart generation, exports, payment approval/rejection, profile/company/logo, review/audit/settings interactions, or admin operational flows.
+- Mobile widths, theme contrast, and the redesigned UI have not been tested; the redesign has not started because Phase 3 is not green.
+- Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
+
+### Next
+
+Resolve the Selenium/browser-test hang or replace it with a reliable isolated test path. Complete the authenticated flow and interaction checks using only temporary test data and mocked external services; then run the UI redesign in its required order and re-test each page group.

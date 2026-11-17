@@ -170,6 +170,98 @@ def test_resend_verification_sends_six_digit_code_and_starts_otp_session(monkeyp
     assert all(sent[0][2] not in message for message in audit_messages)
 
 
+def test_otp_resend_fails_closed_when_rate_limit_check_fails(monkeypatch, caplog):
+    client = _client(monkeypatch, _unverified_user())
+    sent = []
+    monkeypatch.setattr(
+        auth_routes.email_service,
+        "send_verification_email",
+        lambda email, name, code: sent.append((email, name, code)) or True,
+    )
+
+    def unavailable_db(commit=False):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(auth_routes, "get_db_cursor", unavailable_db)
+    with client.session_transaction() as session:
+        session["pending_otp"] = {
+            "user_id": 71,
+            "email": "old@example.com",
+            "full_name": "Old Account",
+            "otp_code": "123456",
+            "attempts": 0,
+        }
+
+    response = client.post("/auth/resend-otp")
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/auth/verify-otp")
+    assert sent == []
+    assert "Could not check OTP resend rate limit" in caplog.text
+
+
+def test_otp_resend_persists_new_code_before_sending(monkeypatch):
+    client = _client(monkeypatch, _unverified_user())
+    sent = []
+    monkeypatch.setattr(
+        auth_routes.email_service,
+        "send_verification_email",
+        lambda email, name, code: sent.append((email, name, code)) or True,
+    )
+    with client.session_transaction() as session:
+        session["pending_otp"] = {
+            "user_id": 71,
+            "email": "old@example.com",
+            "full_name": "Old Account",
+            "otp_code": "123456",
+            "attempts": 2,
+        }
+
+    response = client.post("/auth/resend-otp")
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/auth/verify-otp")
+    assert len(sent) == 1
+    assert len(sent[0][2]) == 6 and sent[0][2].isdigit()
+    with client.session_transaction() as session:
+        assert session["pending_otp"]["otp_code"] == sent[0][2]
+        assert session["pending_otp"]["attempts"] == 0
+
+
+def test_otp_resend_does_not_send_when_token_persistence_fails(monkeypatch, caplog):
+    client = _client(monkeypatch, _unverified_user())
+    sent = []
+    monkeypatch.setattr(
+        auth_routes.email_service,
+        "send_verification_email",
+        lambda email, name, code: sent.append((email, name, code)) or True,
+    )
+    original_get_db_cursor = auth_routes.get_db_cursor
+
+    def fail_commit(commit=False):
+        if commit:
+            raise RuntimeError("database unavailable")
+        return original_get_db_cursor(commit=commit)
+
+    monkeypatch.setattr(auth_routes, "get_db_cursor", fail_commit)
+    with client.session_transaction() as session:
+        session["pending_otp"] = {
+            "user_id": 71,
+            "email": "old@example.com",
+            "full_name": "Old Account",
+            "otp_code": "123456",
+            "attempts": 0,
+        }
+
+    response = client.post("/auth/resend-otp")
+
+    assert response.status_code == 302
+    assert sent == []
+    with client.session_transaction() as session:
+        assert session["pending_otp"]["otp_code"] == "123456"
+    assert "Could not persist resent email OTP" in caplog.text
+
+
 def test_registration_and_email_otp_verification(monkeypatch):
     app = Flask(__name__)
     app.secret_key = "test-secret-key"
