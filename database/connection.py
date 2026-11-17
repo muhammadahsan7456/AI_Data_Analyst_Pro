@@ -495,15 +495,23 @@ def init_db():
     global _db_initialized
     if _db_initialized:
         return
-    _db_initialized = True
 
     conn = get_connection()
     if isinstance(conn, SQLiteConnectionAdapter):
         init_sqlite_db(conn)
         validate_smtp_config()
+        _db_initialized = True
         return
 
     query = """
+    IF OBJECT_ID('dbo.SchemaMigrations', 'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.SchemaMigrations (
+            MigrationID NVARCHAR(100) NOT NULL PRIMARY KEY,
+            AppliedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
     IF OBJECT_ID('Users', 'U') IS NULL
     BEGIN
         CREATE TABLE Users (
@@ -1003,31 +1011,22 @@ def init_db():
         UPDATE PaymentSettings SET SadaPayNumber = EasypaisaNumber WHERE SadaPayNumber IS NULL OR SadaPayNumber = '';
     END;
 
-    -- These ran on EVERY server start and actively corrupted free-tier accounts back
-    -- toward fake Pro access - found live during this pass's mandatory upload-gate
-    -- regression check (a freshly created account with no payment history showed up as a
-    -- Pro user with 500 MB access). A NULL SubscriptionEndDate is the CORRECT, by-design
-    -- state for a free-forever account (see utils.subscription.get_user_subscription_info:
-    -- 'free'/'basic'/'trial' status never even looks at the end date) - it is not missing
-    -- data to backfill. Likewise, a NULL status should resolve to 'free' (this app's
-    -- actual default tier), not 'active'.
-    --
-    -- Order matters here: the one-time mis-defaulted-account correction MUST run before
-    -- the "fill in a missing end date for genuinely active accounts" statement below - it
-    -- identifies mis-defaulted accounts specifically by SubscriptionStatus='active' AND
-    -- SubscriptionEndDate IS NULL (a real approval always sets a real end date, per
-    -- database.queries.activate_user_new_subscription / extend_user_subscription_one_month,
-    -- so a NULL end date on an 'active' row is only possible via the mis-default, never a
-    -- real payment). Running the end-date backfill first would silently give those exact
-    -- rows a fake end date and make them invisible to this WHERE clause, as happened in
-    -- this fix's own first (buggy) draft - caught and corrected in this same pass.
-    UPDATE Users SET SubscriptionStatus = 'free'
-    WHERE SubscriptionStatus = 'active' AND SubscriptionEndDate IS NULL
-      AND Role NOT IN ('SuperAdmin', 'Admin');
+    IF NOT EXISTS (
+        SELECT 1 FROM dbo.SchemaMigrations
+        WHERE MigrationID = '20261118_subscription_data_repair'
+    )
+    BEGIN
+        UPDATE Users SET SubscriptionStatus = 'free'
+        WHERE SubscriptionStatus = 'active' AND SubscriptionEndDate IS NULL
+          AND Role NOT IN ('SuperAdmin', 'Admin');
 
-    UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE()))
-    WHERE SubscriptionEndDate IS NULL AND SubscriptionStatus IN ('active', 'expiring_soon');
-    UPDATE Users SET SubscriptionStatus = 'free' WHERE SubscriptionStatus IS NULL;
+        UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE()))
+        WHERE SubscriptionEndDate IS NULL AND SubscriptionStatus IN ('active', 'expiring_soon');
+        UPDATE Users SET SubscriptionStatus = 'free' WHERE SubscriptionStatus IS NULL;
+
+        INSERT INTO dbo.SchemaMigrations (MigrationID)
+        VALUES ('20261118_subscription_data_repair');
+    END;
 
     -- CREATE HIGH PERFORMANCE NON-CLUSTERED INDEXES
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Datasets_UserID_UploadDate' AND object_id = OBJECT_ID('Datasets'))
@@ -1074,16 +1073,14 @@ def init_db():
         CREATE NONCLUSTERED INDEX IX_AuditLogs_UserID_CreatedAt ON AuditLogs(UserID, CreatedAt DESC) INCLUDE (IPAddress);
     END;
     """
-    try:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(query)
-    except Exception as err:
-        print("Init DB Notice:", err)
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(query)
 
     validate_smtp_config()
 
     # Table value encryption disabled to ensure 100% C-speed SQL filtering and query compatibility for Ask AI
     pass
+    _db_initialized = True
 
 
 def validate_smtp_config():

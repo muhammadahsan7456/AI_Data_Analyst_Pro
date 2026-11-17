@@ -24,6 +24,19 @@
 - No production SMTP/server logs or provider console are available here. Do not claim that a real OTP was delivered or identify an SMTP rejection without those.
 - The production `SECRET_KEY`, cookie/proxy settings, process count, encryption-key continuity, and actual database target must be compared with the deployment configuration.
 
+## Phase 2 — Login and admin access fixes
+
+**Status:** Complete; code changes and isolated regression tests are in place.
+
+- SMTP now fails closed when credentials are missing or a provider rejects delivery, and logs sanitized server-side failure details rather than reporting false success.
+- Unverified-user login advances to code entry only after a successful send; the resend path now issues a six-digit OTP, rate-limits requests, and establishes the matching pending session. The login page's resend control targets that flow. OTP values are no longer written to audit logs.
+- Malformed lockout timestamps are logged and fail closed for both user and admin sign-in.
+- `SECRET_KEY` is required before database startup; no random per-process replacement is generated.
+- The subscription data repair is guarded by a SQL Server migration marker so it runs once per database, not on every restart. Database initialization failures are no longer cached or swallowed, and the app does not continue serving after startup initialization fails.
+- Added isolated tests for missing SMTP credentials, SMTP rejection, signup and email OTP verification, unverified login/resend, forgot-password request, admin OTP, wrong passwords, malformed lockout state, and failed DB initialization. Targeted result: **11 passed**. These tests use fakes; no real email was sent and no database rows were changed.
+
 ### Next
+
+Phase 3: run compile/test checks and exercise application routes/flows in an isolated local database, then document any untestable production-only checks.
 
 Phase 2: fix the confirmed email false-success and startup data-rewrite risks surgically; improve safe server-side diagnostics for auth/OTP failures; then verify with isolated tests that do not send real email or modify the live database.

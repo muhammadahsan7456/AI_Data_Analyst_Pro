@@ -1,6 +1,7 @@
 import time
 import secrets
 import math
+import logging
 from datetime import datetime, timedelta
 from flask import render_template, request, redirect, url_for, flash, session, Response
 from markupsafe import escape
@@ -52,8 +53,10 @@ from database.queries import (
     get_user_by_id,
     update_user_password
 )
-from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength
+from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength, is_lockout_active
 from utils.helpers import format_12hr_datetime
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_site_announcement():
@@ -127,13 +130,14 @@ def admin_login():
         # highest-value target on the whole site.
         if lockout_until:
             try:
-                lockout_dt = datetime.fromisoformat(str(lockout_until)) if isinstance(lockout_until, str) else lockout_until
-                if datetime.now() < lockout_dt:
+                if is_lockout_active(lockout_until):
                     log_audit_event("ADMIN_LOGIN_LOCKED", f"Login blocked (account locked) for {email}")
                     flash("Account temporarily locked due to multiple failed login attempts. Please try again in a few minutes.", "error")
                     return render_template("admin/login.html")
-            except Exception:
-                pass
+            except (TypeError, ValueError, OverflowError):
+                logger.exception("Could not evaluate admin login lockout for user_id=%s.", user_id)
+                flash("We could not verify your account's sign-in status. Please try again later.", "error")
+                return render_template("admin/login.html")
 
         if not verify_password(password, pwd_hash):
             with get_db_cursor(commit=True) as cursor:
