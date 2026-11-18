@@ -129,3 +129,44 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 ### Next
 
 Finish Group 6 interaction verification using an isolated authenticated Playwright session, then continue to Group 7.
+
+---
+
+# Release: final polish (branch `release/final-polish`)
+
+Started 2026-11-18. `fix/post-migration` was already merged into `main` (merge commit `462617d`), so this branch starts from `main` and does not repeat that work. Environment used: Python 3.12 venv, SQLite QA fallback (`ALLOW_SQLITE_FALLBACK=true`, throwaway DB and throwaway Fernet key), unixODBC shared library only (no SQL Server available). Nothing here touched the production database, production email, or Docker files.
+
+## R-Phase 1 — Audit and baseline
+
+**Status:** Complete.
+
+- Inventory: 125 URL rules. Public: `/`, `/features`, `/pricing`, `/testimonials`, `/faq`, `/docs`, `/about`, `/help`, `/contact`, `/demo`, `/privacy`, `/terms`, `/security-overview`, `/health`, `/sitemap.xml`, `/robots.txt`. Auth (`/auth/*`): login, register/signup (+details, payment), verify-otp, resend-otp, resend-verification, verify-email, forgot/reset password (+verify-code), google, google/login, google/callback, profile, settings, security, change-password, logout. Portal: `/dashboard`, `/upload`, `/api/upload-file`, `/api/upload-status/<job>`, `/chat`, `/dataset/*` (view, details, edit, clean, export, favorite, tags, insights-toggle, delete), `/predictions`, `/report-builder/<id>`, `/executive-summary/<id>`, `/data-health/<id>`, `/receipts*`, `/subscription/renew`, `/waiting-approval`, `/settings/enterprise`, `/query/export/<fmt>`, `/download-chart`, `/api/*` (notifications, history, alert rules, scheduled reports, smart search, insights, quality, health, multi-dataset). Admin (`/admin/*`): login, verify-otp, dashboard, users (+export, role, status, extend, delete), payments (+status, invoice, export), reviews, settings (+payment, backup, password), subscribers, contact-messages, audit-logs, logout.
+- Baseline tests: 30 non-Selenium tests passed. Selenium suites (`test_auth.py`, `test_public_pages.py`, `test_demo_sandbox.py`) need a running server + Chrome and were not run.
+- Suspected problem areas (to verify in later phases): Google OAuth (confirmed, R-Phase 2); admin console accepted a normal portal session for admin roles (OTP bypass, fixed); open redirect via `?next=` on login (fixed); `wsgi.py` bound 0.0.0.0 without proxy trust, so real client IP/HTTPS scheme were lost (fixed); state-changing GET `/dataset/delete/<id>`; production cookie lacks `Secure`, no HTTPS redirect on port 80, no HSTS (live check: config, not code); `PUBLIC_BASE_URL` unset in production makes email links default to `http://127.0.0.1:5000` (env).
+
+## R-Phase 2 — Google sign-in
+
+**Status:** Code fixed and covered by tests; live verification needs the deploy.
+
+Live evidence gathered before changes (read-only requests to the public site):
+- `https://aidataanalystpro.co.uk/auth/google` → 302 to Google with `redirect_uri=https://aidataanalystpro.co.uk/auth/google/callback`; Google shows its normal account chooser (no `redirect_uri_mismatch`), so the Cloud Console redirect URI is already accepted.
+- `https://www.aidataanalystpro.co.uk/auth/google` sets the state cookie on the **www** host but sends Google the **apex** callback, so the state check always fails for www visitors.
+- Session cookie is served without `Secure`; `http://` is served directly (no redirect to https).
+
+Root causes in code (`auth/routes.py`):
+1. New Google users always failed: `upsert_user_profile()` (25 markers) called with 11 params and `upsert_user_settings()` (13 markers) with 6 → driver error → transaction rolled back → "Google authentication error".
+2. Existing users always failed on SQL Server: inline T-SQL inserted into non-existent columns `UserProfiles.CreatedAt`, `UserSettings.ExportFormat/DefaultChart/DefaultDashboard` (compile-time error even in an unexecuted branch).
+3. www/apex host mismatch (above).
+4. `email_verified` never checked; an unverified password account with the same email was merged and its unproven password kept working.
+5. Raw exception text was flashed to users; token-exchange errors were `print`ed with Google's response body.
+
+Fix: canonical origin from `PUBLIC_BASE_URL` (falls back to the apex domain, then the request); login hop to the canonical host before state is set; state + 10-minute expiry + PKCE (S256); `email_verified` required; portable row creation for `UserProfiles`/`UserSettings`; new users are `free`, verified, no OTP/payment step; existing verified users are linked and keep their password; unverified same-email accounts get verified and their unproven password retired (owner can use Forgot password); suspended users refused; payment-gate redirect same as password login; friendly messages, details only in server logs. Optional `GOOGLE_REDIRECT_URI` override.
+
+Related security fixes: `admin/decorators.py` + `admin/routes.py` now require `admin_user_id` (set only by admin password + OTP), so a portal session (password or Google) for an admin no longer opens `/admin`. Login `?next=` accepts only same-site relative paths. `wsgi.py` binds 127.0.0.1 with one trusted local proxy hop outside Docker (Docker unchanged; `BIND_HOST` override).
+
+Tests: `tests/test_google_oauth.py` (9 tests, real auth blueprint on a temp SQLite DB, Google endpoints mocked). Before the fix: 6 of 8 OAuth tests failed (new and existing users redirected back to `/auth/login`). After: 9 passed. Full non-Selenium suite: 39 passed.
+
+Not verifiable here: a real Google round-trip and the SQL Server execution of the new statements (both need the deployed app).
+
+### Next
+R-Phase 3: monochrome design system.
