@@ -45,6 +45,7 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ### Completed
 
+- Upload size group passed. In the isolated QA server, the free test account uploaded a 600,018-byte CSV successfully; an exactly 1 MiB request returned HTTP 400 with `upgrade_required=true`. The >500 MiB server-side guard returned HTTP 400 for a simulated stream reporting 500 MiB + 1 byte, without allocating a large file. Added focused regression tests for 1 MiB - 1 byte, exactly 1 MiB, and >500 MiB; **3 passed**.
 - Fixed an SQLite schema gap: existing `Users` tables now receive missing subscription columns during initialization. A regression test verifies the columns are added without losing the existing user row.
 - Found a second OTP resend failure mode: database errors during rate-limit checks or token persistence were silently ignored, allowing sends to bypass the rate limit or present a code that could not be verified. Resend now fails closed, persists the replacement token and invalidates the old token in one transaction before sending, and logs persistence failures. Added tests for normal resend, failed rate-limit lookup, and failed token persistence.
 - Replaced silent catches for dashboard metric/notification queries and related auth side effects with server-side logging. Malformed notification metadata now logs a warning rather than silently disappearing.
@@ -61,4 +62,4 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ### Next
 
-Resolve the Selenium/browser-test hang or replace it with a reliable isolated test path. Complete the authenticated flow and interaction checks using only temporary test data and mocked external services; then run the UI redesign in its required order and re-test each page group.
+Continue with group 2: exercise five varied Ask AI questions against isolated test data, verify chart behavior for chart-suitable result shapes, and fix any confirmed root cause before proceeding to exports.
