@@ -224,7 +224,18 @@ def submit_payment_proof():
         from werkzeug.utils import secure_filename
         data = request.form if request.form else (request.get_json(silent=True) or {})
         email = (data.get("email") or "").strip().lower()
-        method = (data.get("payment_method") or "Easypaisa").strip()
+        submitted_method = (data.get("payment_method") or "EasyPaisa").strip()
+        payment_methods = {
+            "easypaisa": "EasyPaisa",
+            "nayapay": "NayaPay",
+            "sadapay": "SadaPay",
+        }
+        method = payment_methods.get(submitted_method.casefold())
+        if not method:
+            return jsonify({
+                "success": False,
+                "message": "Select EasyPaisa, NayaPay, or SadaPay as the payment method.",
+            }), 400
         txn_id = (data.get("transaction_id") or "").strip()
 
         if not email:

@@ -1089,6 +1089,8 @@ def update_payment_status(payment_id):
                 new_end_date = cursor.fetchone()[0]
 
             start_label = datetime.now().strftime("%d %b %Y")
+            if isinstance(new_end_date, str):
+                    new_end_date = datetime.fromisoformat(new_end_date)
             end_label = new_end_date.strftime("%d %b %Y") if new_end_date else "N/A"
 
             if u_email:

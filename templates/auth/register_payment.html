@@ -59,8 +59,8 @@
                         <i class="fa-solid fa-wallet input-icon"></i>
                         <select name="payment_method" id="payment_method" required class="auth-input" style="appearance: auto;">
                             <option value="">Select method...</option>
-                            <option value="Easypaisa" {% if form_data.payment_method == 'Easypaisa' %}selected{% endif %}>Easypaisa</option>
-                            <option value="Nayapay" {% if form_data.payment_method == 'Nayapay' %}selected{% endif %}>Nayapay</option>
+                            <option value="EasyPaisa" {% if form_data.payment_method|lower == 'easypaisa' %}selected{% endif %}>EasyPaisa</option>
+                            <option value="NayaPay" {% if form_data.payment_method|lower == 'nayapay' %}selected{% endif %}>NayaPay</option>
                             <option value="SadaPay" {% if form_data.payment_method == 'SadaPay' %}selected{% endif %}>SadaPay</option>
                         </select>
                     </div>

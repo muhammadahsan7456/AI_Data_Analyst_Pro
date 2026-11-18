@@ -3,6 +3,8 @@ import sys
 import re
 import sqlite3
 import time
+import calendar
+from datetime import date, datetime, timedelta
 import pandas as pd
 from contextlib import contextmanager
 from dotenv import load_dotenv
@@ -31,6 +33,23 @@ def adapt_tsql_for_sqlite(query: str) -> str:
         return query
 
     s = query.strip()
+
+    def replace_dateadd_date_cast(match):
+        unit = match.group(1).lower()
+        amount = match.group(2).strip()
+        base = match.group(3).strip()
+        if base.upper() == "GETDATE()":
+            base_expr = "date('now')"
+        else:
+            base_expr = f"date({base})"
+        return f"DATEADD('{unit}', {amount}, {base_expr})"
+
+    s = re.sub(
+        r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*CAST\s*\(\s*(GETDATE\(\)|[A-Za-z_][\w.]*)\s+AS\s+DATE\s*\)\s*\)",
+        replace_dateadd_date_cast,
+        s,
+        flags=re.IGNORECASE,
+    )
 
     def replace_dateadd(match):
         unit = match.group(1).lower()
@@ -73,7 +92,50 @@ def adapt_tsql_for_sqlite(query: str) -> str:
             else:
                 s = s + f" LIMIT {limit_val}"
 
+    s = re.sub(
+        r"\bOFFSET\s+(\d+)\s+ROWS?\s+FETCH\s+NEXT\s+(\d+)\s+ROWS?\s+ONLY\b",
+        lambda match: f"LIMIT {match.group(2)} OFFSET {match.group(1)}",
+        s,
+        flags=re.IGNORECASE,
+    )
+
     return s
+
+
+def _sqlite_dateadd(unit, amount, value):
+    if value is None:
+        return None
+
+    unit = str(unit).lower()
+    amount = int(amount)
+    date_only = isinstance(value, date) and not isinstance(value, datetime)
+    if not date_only and isinstance(value, str):
+        value = value.strip()
+        date_only = len(value) == 10
+    base = value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+
+    if unit in ("month", "months", "mm", "m"):
+        month_index = base.year * 12 + base.month - 1 + amount
+        year, month = divmod(month_index, 12)
+        month += 1
+        day = min(base.day, calendar.monthrange(year, month)[1])
+        result = base.replace(year=year, month=month, day=day)
+    elif unit in ("year", "years", "yy", "yyyy"):
+        year = base.year + amount
+        day = min(base.day, calendar.monthrange(year, base.month)[1])
+        result = base.replace(year=year, day=day)
+    elif unit in ("day", "days", "dd", "d"):
+        result = base + timedelta(days=amount)
+    elif unit in ("hour", "hours", "hh"):
+        result = base + timedelta(hours=amount)
+    elif unit in ("minute", "minutes", "mi", "n"):
+        result = base + timedelta(minutes=amount)
+    elif unit in ("second", "seconds", "ss", "s"):
+        result = base + timedelta(seconds=amount)
+    else:
+        raise ValueError(f"Unsupported DATEADD unit: {unit}")
+
+    return result.date().isoformat() if date_only else result.isoformat(sep=" ")
 
 
 class SQLiteCursorAdapter:
@@ -121,6 +183,7 @@ class SQLiteConnectionAdapter:
             db_path = os.path.join(os.path.dirname(__file__), "AI_Data_Analyst_Pro_cloud.db")
         self.db_path = db_path
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.conn.create_function("DATEADD", 3, _sqlite_dateadd)
         try:
             self.conn.execute("PRAGMA synchronous = OFF;")
             self.conn.execute("PRAGMA journal_mode = WAL;")
@@ -394,7 +457,18 @@ def init_sqlite_db(conn):
             Status TEXT NOT NULL DEFAULT 'Pending',
             PlanName TEXT DEFAULT 'Pro Plan (PKR 1,499/mo)',
             ScreenshotPath TEXT NULL,
-            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PaymentType TEXT NOT NULL DEFAULT 'New',
+            RejectionReason TEXT,
+            ReviewedBy INTEGER,
+            ReviewedAt TEXT
+        )''',
+        '''CREATE TABLE IF NOT EXISTS SiteAnnouncement (
+            AnnouncementID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Title TEXT NOT NULL DEFAULT 'Platform Announcement',
+            Message TEXT NOT NULL DEFAULT '',
+            IsEnabled INTEGER NOT NULL DEFAULT 0,
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''',
         '''CREATE TABLE IF NOT EXISTS NewsletterSubscribers (
             SubscriberID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -490,13 +564,17 @@ def init_sqlite_db(conn):
         if column not in user_cols:
             cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {definition}")
 
-    try:
-        cursor.execute("PRAGMA table_info(Payments)")
-        p_cols = [r[1] for r in cursor.fetchall()]
-        if "ScreenshotPath" not in p_cols:
-            cursor.execute("ALTER TABLE Payments ADD COLUMN ScreenshotPath TEXT NULL")
-    except Exception:
-        pass
+    cursor.execute("PRAGMA table_info(Payments)")
+    payment_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("ScreenshotPath", "TEXT"),
+        ("PaymentType", "TEXT NOT NULL DEFAULT 'New'"),
+        ("RejectionReason", "TEXT"),
+        ("ReviewedBy", "INTEGER"),
+        ("ReviewedAt", "TEXT"),
+    ):
+        if column not in payment_cols:
+            cursor.execute(f"ALTER TABLE Payments ADD COLUMN {column} {definition}")
 
     conn.commit()
 
