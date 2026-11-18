@@ -1,33 +1,34 @@
 /* ==========================================================================
-   AI Data Analyst Pro - Enterprise Glassmorphism SaaS Design System
+   AI Data Analyst Pro - analyst workspace styles
+   Warm neutrals, ink, copper accents, and precise typography
    ========================================================================== */
 
 :root {
-    /* Light Theme Palette - Sharp High Contrast */
-    --bg-primary: #f8fafc;
-    --bg-surface: #ffffff;
-    --bg-sidebar: #0f172a;
-    --bg-sidebar-hover: #1e293b;
-    --text-primary: #000000;
-    --text-secondary: #1e293b;
-    --text-muted: #475569;
-    --border-color: #cbd5e1;
+    --bg-primary: #f4f2eb;
+    --bg-surface: #fffefa;
+    --bg-sidebar: #17252d;
+    --bg-sidebar-hover: #24353d;
+    --text-primary: #1c2931;
+    --text-secondary: #46575e;
+    --text-muted: #62727a;
+    --border-color: #d6dad5;
     
-    /* Brand Colors */
-    --accent-blue: #2563eb;
-    --accent-blue-hover: #1d4ed8;
-    --accent-cyan: #06b6d4;
-    --accent-green: #10b981;
-    --accent-red: #ef4444;
-    --accent-yellow: #f59e0b;
-    --accent-purple: #8b5cf6;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
+    --accent-blue: #b94e35;
+    --accent-blue-hover: #9f402b;
+    --accent-blue-light: #eee5db;
+    --accent-cyan: #347b79;
+    --accent-green: #347451;
+    --accent-red: #ad4539;
+    --accent-yellow: #946817;
+    --accent-purple: #8a6349;
+    --shadow-sm: 0 1px 3px rgba(24, 37, 45, 0.07);
+    --shadow-md: 0 4px 12px rgba(24, 37, 45, 0.09);
+    --shadow-lg: 0 12px 28px rgba(24, 37, 45, 0.12);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
     --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
     --transition-fast: 0.15s ease;
     --transition-normal: 0.25s ease;
 }
@@ -39,23 +40,32 @@
 }
 
 [data-theme="dark"] {
-    /* Dark Theme Overrides - Crisp Pure White Text */
-    --bg-primary: #0b0f19;
-    --bg-surface: #111827;
-    --bg-sidebar: #070a13;
-    --bg-sidebar-hover: #1f2937;
-    --text-primary: #ffffff;
-    --text-secondary: #f1f5f9;
-    --text-muted: #cbd5e1;
-    --border-color: #334155;
-    --accent-blue-light: #1e293b;
+    --bg-primary: #11191f;
+    --bg-surface: #1b282f;
+    --bg-sidebar: #0c1419;
+    --bg-sidebar-hover: #1d2b32;
+    --text-primary: #f2f0e9;
+    --text-secondary: #c0cbc8;
+    --text-muted: #9caeaa;
+    --border-color: #34444a;
+    --accent-blue: #e7835c;
+    --accent-blue-hover: #f0956f;
+    --accent-blue-light: #25373c;
+    --accent-cyan: #78aaa5;
+    --accent-green: #78b58f;
+    --accent-red: #eb8174;
+    --accent-yellow: #e2bd73;
+    --accent-purple: #c29a79;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.22);
+    --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.28);
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font-family);
 }
 
 html {
@@ -86,16 +96,15 @@ body {
 
 /* Glassmorphism Cards */
 .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 [data-theme="dark"] .glass-card {
-    background: rgba(17, 24, 39, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-surface);
+    border-color: var(--border-color);
 }
 
 /* Pulse Animation for Voice Mic Recording */
@@ -345,6 +354,8 @@ body {
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -1px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* Tables & Data Presentation */
@@ -1251,5 +1262,17 @@ body {
     100% {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
     }
 }

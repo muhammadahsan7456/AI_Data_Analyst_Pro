@@ -75,6 +75,17 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - The remaining authenticated user forms and other profile/security settings were not included in the profile/public-page group. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
 - Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
 
+## Phase 4 — UI redesign
+
+**Status:** In progress; group 1 complete.
+
+### Group 1 — Shared tokens and typography
+
+- Updated the dashboard and public/auth palettes to warm neutrals, ink, and copper while preserving existing CSS variable names. Replaced the dashboard glass-card blur with solid theme surfaces, applied the monospace token and tabular figures to dashboard metrics and landing stats, and updated both stylesheet cache versions.
+- Added `prefers-reduced-motion` rules to both shared stylesheets. Playwright emulation confirmed smooth scrolling is disabled and animation/transition durations are reduced to `0.01ms` on auth and dashboard pages.
+- Checked the public home page in light and dark themes at 360, 390, 768, and 1440 px; auth at 360, 390, and 768 px; and dashboard at 360, 390, 768, and 1440 px. No horizontal overflow was observed. Dashboard metrics use the monospace font. Auth placeholder contrast measured at least **7.21:1** in light mode and **5.77:1** in dark mode.
+- Browser QA used the isolated temporary SQLite-backed server and a disposable QA account; it did not write to the configured SQL Server database or send email.
+
 ### Next
 
-Phase 3 groups 1–8, final targeted tests, compile check, and QA cleanup are complete. Start Phase 4 with the shared theme tokens/typography, then public shell and home page; test after each page group.
+Group 2: redesign and test the public header, footer, and mobile navigation, preserving existing route, element, and JavaScript contracts.
