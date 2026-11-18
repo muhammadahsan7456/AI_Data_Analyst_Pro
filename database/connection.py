@@ -143,6 +143,18 @@ def adapt_tsql_for_sqlite(query: str) -> str:
     s = re.sub(r"\bTRY_CONVERT\s*\(\s*(?:FLOAT|DECIMAL\s*\(\s*\d+\s*,\s*\d+\s*\)|INT|BIGINT)\s*,", "CAST(", s, flags=re.IGNORECASE)
     s = re.sub(r"\bN?VARCHAR\s*\(\s*(?:MAX|\d+)\s*\)", "TEXT", s, flags=re.IGNORECASE)
     s = re.sub(r"\bLEN\s*\(", "length(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bN'", "'", s)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:year|yy|yyyy)\s*,\s*([^()]+?)\s*\)", r"CAST(strftime('%Y', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:month|mm|m)\s*,\s*([^()]+?)\s*\)", r"CAST(strftime('%m', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:day|dd|d)\s*,\s*([^()]+?)\s*\)", r"CAST(strftime('%d', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:quarter|qq|q)\s*,\s*([^()]+?)\s*\)", r"((CAST(strftime('%m', \1) AS INTEGER) + 2) / 3)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:weekday|dw)\s*,\s*([^()]+?)\s*\)", r"(CAST(strftime('%w', \1) AS INTEGER) + 1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDAY\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%d', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCONVERT\s*\(\s*(?:DATE)\s*,\s*([^()]+?)\s*\)", r"date(\1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCONVERT\s*\(\s*(?:FLOAT|REAL|DECIMAL\s*\(\s*\d+\s*,\s*\d+\s*\))\s*,\s*([^()]+?)\s*\)", r"CAST(\1 AS REAL)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCONVERT\s*\(\s*(?:INT|BIGINT)\s*,\s*([^()]+?)\s*\)", r"CAST(\1 AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCHARINDEX\s*\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)", r"instr(\2, \1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bSYSUTCDATETIME\s*\(\s*\)|\bGETUTCDATE\s*\(\s*\)", "CURRENT_TIMESTAMP", s, flags=re.IGNORECASE)
     s = re.sub(r"\bYEAR\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%Y', \1) AS INTEGER)", s, flags=re.IGNORECASE)
     s = re.sub(r"\bMONTH\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%m', \1) AS INTEGER)", s, flags=re.IGNORECASE)
     s = re.sub(r"FORMAT\s*\(\s*([^,()]+(?:\([^()]*\))?)\s*,\s*'yyyy-MM'\s*\)", r"strftime('%Y-%m', \1)", s, flags=re.IGNORECASE)
@@ -230,6 +242,11 @@ class SQLiteCursorAdapter:
             self._cursor.close()
         except Exception:
             pass
+
+
+def register_sqlite_functions(conn):
+    """SQL Server functions the translated queries call (used by the dev DB and the vault mirror)."""
+    conn.create_function("DATEADD", 3, _sqlite_dateadd)
 
 
 class SQLiteConnectionAdapter:
@@ -1304,6 +1321,18 @@ def run_query(query: str, params: tuple = None, timeout: int = None) -> pd.DataF
     dataset a user uploaded), where a slow outlier should fail fast with a clear error
     rather than hang the request that triggered it.
     """
+    # Encrypted datasets: the rows live only in the vault, so the query runs against the
+    # owner's decrypted in-memory copy (see utils/dataset_vault.py).
+    try:
+        from utils import dataset_vault
+        vaulted = dataset_vault.vaulted_table_in(str(query))
+    except Exception:
+        vaulted = None
+    if vaulted:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            return dataset_vault.query(vaulted, adapt_tsql_for_sqlite(str(query)), params or None)
+
     conn = get_connection()
     if timeout is not None and hasattr(conn, "timeout"):
         try:

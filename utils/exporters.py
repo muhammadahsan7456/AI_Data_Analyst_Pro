@@ -283,7 +283,7 @@ def export_invoice_to_pdf(payment: dict) -> bytes:
         [
             [Paragraph("DESCRIPTION / PLAN TIER", hdr_style), Paragraph("BILLING PERIOD", hdr_style),
              Paragraph("PAYMENT METHOD", hdr_style), Paragraph("AMOUNT", hdr_style)],
-            [Paragraph(f"<b>{payment.get('plan_name', '')}</b><br/><font color='#64748b' size=7>Includes 10M+ Streaming Chunking, Field-level encryption at Rest &amp; Sub-Second Exports</font>", cell_style),
+            [Paragraph(f"<b>{payment.get('plan_name', '')}</b><br/><font color='#64748b' size=7>Includes uploads up to 500 MB, encrypted dataset storage &amp; Sub-Second Exports</font>", cell_style),
              Paragraph("30-Day Monthly Cycle", cell_muted_style),
              Paragraph(str(payment.get("payment_method", "")), cell_muted_style),
              Paragraph(f"<b>{currency} {amount:,.2f}</b>", cell_style)]

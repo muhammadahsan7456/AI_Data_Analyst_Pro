@@ -1901,6 +1901,11 @@ def delete_dataset(dataset_id):
                     cursor.execute(f"IF OBJECT_ID('{table_name}', 'U') IS NOT NULL DROP TABLE {sanitize_identifier(table_name)}")
                 except Exception as drop_err:
                     print("Drop Table Warning:", drop_err)
+                try:
+                    from utils import dataset_vault
+                    dataset_vault.drop(table_name)
+                except Exception:
+                    pass
 
             # 3. Delete metadata record from Datasets table
             cursor.execute(delete_dataset_record(user_id=user_id), (dataset_id,))

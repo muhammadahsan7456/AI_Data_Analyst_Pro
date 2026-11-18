@@ -47,7 +47,7 @@
             </div>
             <div class="pipeline-step-card active-step">
                 <div class="pipeline-num">Stage 03</div>
-                <div class="pipeline-title"><i class="fa-solid fa-key" style="color: var(--accent-purple);"></i> Fernet Decrypt</div>
+                <div class="pipeline-title"><i class="fa-solid fa-key" style="color: var(--accent-purple);"></i> In-memory Decrypt</div>
             </div>
             <div class="pipeline-step-card active-step">
                 <div class="pipeline-num">Stage 04</div>
@@ -65,7 +65,7 @@
                     <i class="fa-solid fa-chart-simple"></i> Show Top 5 Sales Orders
                 </button>
                 <button class="chip-btn" onclick="runSandbox('count', this)">
-                    <i class="fa-solid fa-hashtag"></i> Count Total Records (10M Scale)
+                    <i class="fa-solid fa-hashtag"></i> Count Total Records
                 </button>
                 <button class="chip-btn" onclick="runSandbox('last', this)">
                     <i class="fa-solid fa-file-lines"></i> Show Last 3 Booking Entries
@@ -121,7 +121,7 @@
             </div>
             <div class="sandbox-explain-card">
                 <div class="sandbox-explain-title" style="color: var(--accent-purple);"><i class="fa-solid fa-key"></i> How Is Data Secured?</div>
-                <div class="sandbox-explain-desc">All text fields are stored encrypted in Microsoft SQL Server as `enc:gAAAAAB...` ciphertext. Authorized user sessions decrypt data transparently.</div>
+                <div class="sandbox-explain-desc">Uploaded rows are stored only as encrypted chunks (AES-256-GCM). They are decrypted in memory, for the dataset owner's own questions.</div>
             </div>
             <div class="sandbox-explain-card">
                 <div class="sandbox-explain-title" style="color: var(--accent-green);"><i class="fa-solid fa-file-powerpoint"></i> How Do Exports Work?</div>
@@ -183,7 +183,7 @@ function runSandbox(type, btn) {
         revenue: {
             sql: "SELECT SUM([COD_Value]) AS [Total_Revenue], AVG([COD_Value]) AS [Avg_Order] FROM [Sales_Orders];",
             rows: '<tr><td colspan="3"><strong>Total_Revenue:</strong> 9,540,200,000 PKR</td><td colspan="3"><strong>Avg_Order:</strong> 954 PKR</td></tr>',
-            insight: '<strong>Financial Metrics</strong>: Aggregated total COD revenues across 10M records.<br><strong>Key Insight</strong>: Average order value is stable at <strong>954 PKR</strong> per transaction.<br><strong>Strategic Action</strong>: Incentivize bundled checkout orders to drive AOV above 1,200 PKR.'
+            insight: '<strong>Financial Metrics</strong>: Aggregated total COD revenues across all records.<br><strong>Key Insight</strong>: Average order value is stable at <strong>954 PKR</strong> per transaction.<br><strong>Strategic Action</strong>: Incentivize bundled checkout orders to drive AOV above 1,200 PKR.'
         },
         join: {
             sql: "SELECT TOP 2 A.Consignment, A.COD_Value, B.Status FROM [Jan_Sales] A INNER JOIN [Feb_Sales] B ON A.Consignment = B.Consignment;",

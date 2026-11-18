@@ -207,3 +207,42 @@ Root causes (`ai/gemini.py` unless noted):
 Server hard timeout: `/chat` already caps the pipeline at 25 s (`ASK_AI_TIMEOUT_SECONDS`) and returns a clear message.
 Tests: `tests/test_ask_ai_guardrails.py` (30). Non-Selenium suite: 69 passed.
 Not verified: the LLM path (needs `OPENROUTER_API_KEY`) and these queries on SQL Server.
+
+## R-Phase 5 — Upload and encrypted storage
+
+**Status:** Encryption at rest implemented and verified on the QA (SQLite) database; SQL Server execution not verified here.
+
+Finding: before this change, new uploads were stored in plaintext. `database/connection.py` had encryption switched off "for Ask AI speed", while the site said data was encrypted at rest. Verified: a 6,000-row CSV produced a table whose text columns were readable with plain SQL.
+
+Owner's requirement (2026-11-19): customer datasets must be encrypted so that even the Super Admin cannot read them, while Ask AI keeps answering normally.
+
+Design (`utils/dataset_vault.py`):
+- Each dataset gets its own random AES-256-GCM key, stored only wrapped by the server master key `DATASET_ENCRYPTION_KEY` (env, never in the DB).
+- Rows are stored as encrypted Parquet chunks (≤100k rows each) in `DatasetVault`; `DatasetVaultMeta` holds the wrapped key and counts. Table name + chunk number are authenticated (AAD).
+- The dataset's own SQL table is still created (schema, types, column lookups) but holds no rows.
+- `run_query()` sends any SELECT on a vaulted table to an in-memory SQLite copy decrypted for that request (never written to disk), cached for 15 minutes and bounded by total rows. Prewarmed right after upload.
+- Uploads are refused with a clear message if the master key is missing, instead of silently storing plaintext.
+- Deleting a dataset (user or admin) removes its ciphertext and key.
+- Existing plaintext datasets: `python -m utils.dataset_vault migrate` (idempotent; skips vaulted tables; empties the plaintext table after copying). Not run automatically.
+
+Honest limit: someone holding BOTH the database and the server's `DATASET_ENCRYPTION_KEY` can decrypt (the server must read data to answer questions). The DB alone, backups and the admin console show only ciphertext. Column names are not encrypted.
+
+Schema changes (additive, idempotent, created on first use): tables `DatasetVault(TableName, ChunkNo, Payload)` and `DatasetVaultMeta(TableName, WrappedKey, KeyVersion, TotalRows, ChunkCount, CreatedAt)`.
+
+Also fixed: `uploads/data_loader.py` downcast float columns to float32 (~7 significant digits), so totals drifted (650k-row Profit total 252,743,264 vs true 252,743,276.6). Floats are now kept as float64; totals match the source exactly.
+
+Evidence (QA, SQLite, this sandbox):
+| Test | Result |
+|---|---|
+| 6,000-row CSV upload | encrypted; plaintext table 0 rows; ciphertext contains no "Lahore"/"North" |
+| 650,000-row CSV (54.1 MB, Pro) | background job, progress 0→25→48→70→93→100, 3.8 s total |
+| Ask AI battery on encrypted 6,000 rows | 17/17 correct, 10/10 refused, 2/2 missing flagged |
+| Ask AI battery on encrypted 650,000 rows | 17/17 correct; first question 3.1 s (decrypt + load), then ~0.4–1.2 s |
+| Decrypt 650k rows | 0.46 s; totals and counts equal pandas on the source file |
+| Dataset page, details, health, exec summary, report builder, CSV/Excel export | 200, real values shown |
+| Migration of 5 existing plaintext QA tables | migrated 5, re-run skipped all, sums unchanged |
+| `tests/test_dataset_vault.py` | 7 passed (no plaintext, query correctness, float precision, missing key refuses, wrong key fails, migration, delete) |
+
+Free gate: 1.09 MB CSV refused for Free (400, `upgrade_required`). Uploads above `UPLOAD_ASYNC_THRESHOLD_MB` (8 MB) run as background jobs with real progress.
+
+Copy: unverified "10M+ rows/records" claims replaced with "up to 500 MB"; encryption copy now describes AES-256-GCM per-dataset keys.

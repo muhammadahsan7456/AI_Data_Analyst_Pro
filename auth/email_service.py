@@ -211,13 +211,13 @@ AI Data Analyst Pro Security Team
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Security Code</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 10px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e5e5e5; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                     <tr>
-                        <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
+                        <td style="background-color: #0a0a0a; padding: 28px 36px; text-align: left;">
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td><img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span></td>
@@ -228,8 +228,8 @@ AI Data Analyst Pro Security Team
                     </tr>
                     <tr>
                         <td style="padding: 36px;">
-                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0f172a;">Super Admin Login Verification</h1>
-                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0a0a0a;">Super Admin Login Verification</h1>
+                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                                 Hello <strong>{user_name_clean}</strong>,<br><br>
                                 A Super Admin login attempt was made on your account. Enter the code below to complete sign-in:
                             </p>
@@ -242,7 +242,7 @@ AI Data Analyst Pro Security Team
                                     </td>
                                 </tr>
                             </table>
-                            {f'<p style="margin: 0 0 12px 0; font-size: 12px; color: #94a3b8;">{ip_line}</p>' if ip_line else ''}
+                            {f'<p style="margin: 0 0 12px 0; font-size: 12px; color: #a3a3a3;">{ip_line}</p>' if ip_line else ''}
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; margin-top: 12px;">
                                 <tr>
                                     <td style="padding: 14px 16px; font-size: 13px; color: #92400e; line-height: 1.5;">
@@ -253,8 +253,8 @@ AI Data Analyst Pro Security Team
                         </td>
                     </tr>
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 24px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">&copy; 2026 AI Data Analyst Pro Inc. All rights reserved.</p>
+                        <td style="background-color: #fafafa; padding: 24px 36px; border-top: 1px solid #e5e5e5; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">&copy; 2026 AI Data Analyst Pro Inc. All rights reserved.</p>
                         </td>
                     </tr>
                 </table>
@@ -298,23 +298,23 @@ AI Data Analyst Pro Security Team
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Verification</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 10px;">
         <tr>
             <td align="center">
                 <!-- Main Container Card -->
-                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e5e5e5; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                     
                     <!-- Top Branding Bar -->
                     <tr>
-                        <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
+                        <td style="background-color: #0a0a0a; padding: 28px 36px; text-align: left;">
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td>
                                         <img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span>
                                     </td>
                                     <td align="right">
-                                        <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background-color: rgba(56,189,248,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3);">Security Verification</span>
+                                        <span style="font-size: 11px; font-weight: 700; color: #0a0a0a; background-color: rgba(56,189,248,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3);">Security Verification</span>
                                     </td>
                                 </tr>
                             </table>
@@ -324,8 +324,8 @@ AI Data Analyst Pro Security Team
                     <!-- Body Content -->
                     <tr>
                         <td style="padding: 36px;">
-                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0f172a;">Verify Your Email Address</h1>
-                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0a0a0a;">Verify Your Email Address</h1>
+                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                                 Hello <strong>{user_name_clean}</strong>,<br><br>
                                 Thank you for registering with <strong>AI Data Analyst Pro</strong>. To finalize your account setup and unlock automated SQL analytics, please enter the 6-digit verification code below:
                             </p>
@@ -333,15 +333,15 @@ AI Data Analyst Pro Security Team
                             <!-- 6-Digit OTP Box -->
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
                                 <tr>
-                                    <td align="center" style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px;">
-                                        <div style="font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Your 6-Digit Verification Code</div>
-                                        <div style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #2563eb; margin: 4px 0;">{otp_code}</div>
-                                        <div style="font-size: 12px; color: #64748b; margin-top: 8px;">Code expires in <strong>10 minutes</strong></div>
+                                    <td align="center" style="background-color: #fafafa; border: 2px dashed #d4d4d4; border-radius: 12px; padding: 24px;">
+                                        <div style="font-size: 12px; font-weight: 700; color: #737373; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Your 6-Digit Verification Code</div>
+                                        <div style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #0a0a0a; margin: 4px 0;">{otp_code}</div>
+                                        <div style="font-size: 12px; color: #737373; margin-top: 8px;">Code expires in <strong>10 minutes</strong></div>
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                            <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #525252;">
                                 Enter this code on the verification page to activate your enterprise dashboard.
                             </p>
 
@@ -358,11 +358,11 @@ AI Data Analyst Pro Security Team
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 24px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                        <td style="background-color: #fafafa; padding: 24px 36px; border-top: 1px solid #e5e5e5; text-align: center;">
+                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #737373; line-height: 1.5;">
                                 This is an automated security notification sent to <strong>{to_email}</strong>.
                             </p>
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
                                 &copy; 2026 AI Data Analyst Pro Inc. All rights reserved.
                             </p>
                         </td>
@@ -409,13 +409,13 @@ AI Data Analyst Pro Security Team
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Password Reset</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 10px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e5e5e5; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                     
-                    <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
+                    <td style="background-color: #0a0a0a; padding: 28px 36px; text-align: left;">
                         <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
@@ -430,8 +430,8 @@ AI Data Analyst Pro Security Team
 
                     <tr>
                         <td style="padding: 36px;">
-                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0f172a;">Reset Your Password</h1>
-                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0a0a0a;">Reset Your Password</h1>
+                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                                 Hello <strong>{user_name_clean}</strong>,<br><br>
                                 We received a request to reset the password for your <strong>AI Data Analyst Pro</strong> account. Use the 6-digit verification code below to set a new password:
                             </p>
@@ -446,13 +446,13 @@ AI Data Analyst Pro Security Team
                                 </tr>
                             </table>
 
-                            <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                            <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #525252;">
                                 Enter this code on the password reset page to choose your new password.
                             </p>
 
-                            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 6px; margin-top: 24px;">
+                            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #fafafa; border-left: 4px solid #737373; border-radius: 6px; margin-top: 24px;">
                                 <tr>
-                                    <td style="padding: 14px 16px; font-size: 13px; color: #475569; line-height: 1.5;">
+                                    <td style="padding: 14px 16px; font-size: 13px; color: #525252; line-height: 1.5;">
                                         If you did not request a password reset, you can safely ignore this email. Your current password will remain unchanged.
                                     </td>
                                 </tr>
@@ -461,11 +461,11 @@ AI Data Analyst Pro Security Team
                     </tr>
 
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 24px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                        <td style="background-color: #fafafa; padding: 24px 36px; border-top: 1px solid #e5e5e5; text-align: center;">
+                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #737373; line-height: 1.5;">
                                 Automated security alert sent to <strong>{to_email}</strong>.
                             </p>
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
                                 &copy; 2026 AI Data Analyst Pro Inc. All rights reserved.
                             </p>
                         </td>
@@ -509,13 +509,13 @@ AI Data Analyst Pro Security Team
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Login Alert</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 10px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e5e5e5; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                     
-                    <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
+                    <td style="background-color: #0a0a0a; padding: 28px 36px; text-align: left;">
                         <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
@@ -530,30 +530,30 @@ AI Data Analyst Pro Security Team
 
                     <tr>
                         <td style="padding: 36px;">
-                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0f172a;">New Account Login Detected</h1>
-                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0a0a0a;">New Account Login Detected</h1>
+                            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                                 Hello <strong>{user_name_clean}</strong>,<br><br>
                                 A successful login was detected on your <strong>AI Data Analyst Pro</strong> account with the following details:
                             </p>
 
-                            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin: 20px 0;">
+                            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 10px; margin: 20px 0;">
                                 <tr>
-                                    <td style="padding: 16px; font-size: 14px; color: #334155; line-height: 1.8;">
+                                    <td style="padding: 16px; font-size: 14px; color: #404040; line-height: 1.8;">
                                         <strong>Time:</strong> {time_str}<br>
                                         <strong>Device & Client:</strong> {dev_str}
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                            <p style="margin: 0; font-size: 13px; color: #737373; line-height: 1.5;">
                                 If this was you, no further action is required. If you did not log in, please reset your account password immediately to secure your account.
                             </p>
                         </td>
                     </tr>
 
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 24px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                        <td style="background-color: #fafafa; padding: 24px 36px; border-top: 1px solid #e5e5e5; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
                                 &copy; 2026 AI Data Analyst Pro Inc. All rights reserved.
                             </p>
                         </td>
@@ -603,20 +603,20 @@ AI Data Analyst Pro Support Team
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Support Reply</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 10px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e5e5e5; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                     <tr>
-                        <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
+                        <td style="background-color: #0a0a0a; padding: 28px 36px; text-align: left;">
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td>
                                         <img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span>
                                     </td>
                                     <td align="right">
-                                        <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background-color: rgba(56,189,248,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3);">Support Reply</span>
+                                        <span style="font-size: 11px; font-weight: 700; color: #0a0a0a; background-color: rgba(56,189,248,0.12); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3);">Support Reply</span>
                                     </td>
                                 </tr>
                             </table>
@@ -625,34 +625,34 @@ AI Data Analyst Pro Support Team
 
                     <tr>
                         <td style="padding: 36px;">
-                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0f172a;">Re: {subject_clean}</h1>
-                            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0a0a0a;">Re: {subject_clean}</h1>
+                            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                                 Hello <strong>{user_name_clean}</strong>,<br><br>
                                 Thank you for contacting us. Here is our response to your inquiry:
                             </p>
 
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 20px 0;">
                                 <tr>
-                                    <td style="background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 6px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: #1e3a5f; white-space: pre-line;">{admin_reply}</td>
+                                    <td style="background-color: #f5f5f5; border-left: 4px solid #0a0a0a; border-radius: 6px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: #262626; white-space: pre-line;">{admin_reply}</td>
                                 </tr>
                             </table>
 
-                            <p style="margin: 24px 0 8px 0; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Your Original Message</p>
+                            <p style="margin: 24px 0 8px 0; font-size: 12px; font-weight: 700; color: #a3a3a3; text-transform: uppercase; letter-spacing: 0.5px;">Your Original Message</p>
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
-                                    <td style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.5; color: #64748b; white-space: pre-line; font-style: italic;">"{original_message}"</td>
+                                    <td style="background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 14px 16px; font-size: 13px; line-height: 1.5; color: #737373; white-space: pre-line; font-style: italic;">"{original_message}"</td>
                                 </tr>
                             </table>
 
-                            <p style="margin: 24px 0 0 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                            <p style="margin: 24px 0 0 0; font-size: 13px; color: #737373; line-height: 1.5;">
                                 Have more questions? Just reply directly to this email.
                             </p>
                         </td>
                     </tr>
 
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 24px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                        <td style="background-color: #fafafa; padding: 24px 36px; border-top: 1px solid #e5e5e5; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
                                 &copy; 2026 AI Data Analyst Pro Inc. All rights reserved.
                             </p>
                         </td>
@@ -683,13 +683,13 @@ AI Data Analyst Pro Support Team
     <meta charset="UTF-8">
     <title>Payment Status Update</title>
 </head>
-<body style="font-family: Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px;">
+<body style="font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
     <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
             <td align="center">
                 <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                     <tr>
-                        <td style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); padding: 30px; text-align: center; color: #ffffff;">
+                        <td style="background: #0a0a0a; padding: 30px; text-align: center; color: #ffffff;">
                             <img src="cid:aidataanalystpro_logo" width="40" height="40" alt="" style="border-radius: 8px; margin-bottom: 8px;"><br>
                             <h1 style="margin: 0; font-size: 24px; font-weight: 800;">AI Data Analyst Pro</h1>
                             <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.9;">Official Payment Transaction Update</p>
@@ -697,34 +697,34 @@ AI Data Analyst Pro Support Team
                     </tr>
                     <tr>
                         <td style="padding: 36px;">
-                            <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #0f172a;">Payment Transaction Update</h2>
-                            <p style="font-size: 15px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #0a0a0a;">Payment Transaction Update</h2>
+                            <p style="font-size: 15px; color: #525252; line-height: 1.6; margin-bottom: 24px;">
                                 Hello <strong>{user_name_clean}</strong>,<br><br>
                                 Your payment status for <strong>{plan_name}</strong> has been updated in our billing system.
                             </p>
 
-                            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #334155;">
+                            <div style="background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #404040;">
                                     <span><strong>Transaction ID:</strong></span>
-                                    <span style="font-family: monospace; color: #2563eb;">{txn_id}</span>
+                                    <span style="font-family: monospace; color: #0a0a0a;">{txn_id}</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #334155;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #404040;">
                                     <span><strong>Amount:</strong></span>
                                     <span style="font-weight: 700; color: #059669;">PKR {amount:,.2f}</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 14px; color: #334155;">
+                                <div style="display: flex; justify-content: space-between; font-size: 14px; color: #404040;">
                                     <span><strong>Payment Status:</strong></span>
                                     <span style="font-weight: 800; color: {status_color}; uppercase;">{status_clean}</span>
                                 </div>
                             </div>
 
-                            <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">
+                            <p style="font-size: 13px; color: #737373; line-height: 1.5; margin: 0;">
                                 If you have any questions regarding your billing receipt, please contact priority enterprise support at support@aidataanalystpro.com.
                             </p>
                         </td>
                     </tr>
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
+                        <td style="background-color: #fafafa; padding: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 12px; color: #a3a3a3;">
                             &copy; 2026 AI Data Analyst Pro. All rights reserved.
                         </td>
                     </tr>
@@ -759,14 +759,14 @@ AI Data Analyst Pro Support Team
     <meta charset="UTF-8">
     <title>Newsletter Subscription Confirmed</title>
 </head>
-<body style="font-family: 'Inter', Arial, sans-serif; background-color: #07090e; margin: 0; padding: 30px 10px; color: #ffffff;">
+<body style="font-family: 'Inter', Arial, sans-serif; background-color: #0a0a0a; margin: 0; padding: 30px 10px; color: #ffffff;">
     <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
             <td align="center">
-                <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+                <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #0a0a0a; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
                     <!-- Header -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%); padding: 36px 30px; text-align: center; color: #ffffff;">
+                        <td style="background: #0a0a0a; padding: 36px 30px; text-align: center; color: #ffffff;">
                             <img src="cid:aidataanalystpro_logo" width="44" height="44" alt="" style="border-radius: 10px; margin-bottom: 10px;"><br>
                             <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">AI Data Analyst Pro</h1>
                             <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95; font-weight: 500;">Next-Gen Enterprise Data Intelligence & Analytics</p>
@@ -775,20 +775,20 @@ AI Data Analyst Pro Support Team
 
                     <!-- Body Content -->
                     <tr>
-                        <td style="padding: 40px 36px; background-color: #0f172a;">
+                        <td style="padding: 40px 36px; background-color: #0a0a0a;">
                             <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #ffffff; font-weight: 700;">
                                 You're In - Welcome to the VIP List
                             </h2>
 
-                            <p style="font-size: 15px; color: #cbd5e1; line-height: 1.7; margin-bottom: 24px;">
+                            <p style="font-size: 15px; color: #d4d4d4; line-height: 1.7; margin-bottom: 24px;">
                                 Hello Subscriber,<br><br>
-                                Thank you for joining <strong style="color: #38bdf8;">AI Data Analyst Pro</strong>. You will now receive exclusive updates on high-scale data analytics, fast T-SQL performance tuning, AES-256 security insights, and product feature releases.
+                                Thank you for joining <strong style="color: #0a0a0a;">AI Data Analyst Pro</strong>. You will now receive exclusive updates on high-scale data analytics, fast T-SQL performance tuning, AES-256 security insights, and product feature releases.
                             </p>
 
                             <!-- Feature Card Box -->
                             <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 28px;">
-                                <div style="font-size: 14px; font-weight: 700; color: #38bdf8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">What You Get As A Subscriber:</div>
-                                <ul style="margin: 0; padding-left: 20px; color: #e2e8f0; font-size: 14px; line-height: 1.8;">
+                                <div style="font-size: 14px; font-weight: 700; color: #0a0a0a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">What You Get As A Subscriber:</div>
+                                <ul style="margin: 0; padding-left: 20px; color: #e5e5e5; font-size: 14px; line-height: 1.8;">
                                     <li><strong>10M+ Scale Performance Tips:</strong> Fast query strategies.</li>
                                     <li><strong>Bilingual Voice AI Updates:</strong> Urdu & English voice query engine news.</li>
                                     <li><strong>Automated Export Blueprints:</strong> Executive PowerPoint & PDF guides.</li>
@@ -798,23 +798,23 @@ AI Data Analyst Pro Support Team
 
                             <!-- CTA Button -->
                             <div style="text-align: center; margin: 32px 0;">
-                                <a href="{PUBLIC_BASE_URL}/" target="_blank" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
+                                <a href="{PUBLIC_BASE_URL}/" target="_blank" style="background: #0a0a0a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
                                     Explore AI Data Platform &rarr;
                                 </a>
                             </div>
 
-                            <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; text-align: center;">
-                                Subscribed Email: <strong style="color: #cbd5e1;">{clean_email}</strong>
+                            <p style="font-size: 13px; color: #a3a3a3; line-height: 1.6; margin: 0; text-align: center;">
+                                Subscribed Email: <strong style="color: #d4d4d4;">{clean_email}</strong>
                             </p>
                         </td>
                     </tr>
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #060912; padding: 24px; border-top: 1px solid rgba(255, 255, 255, 0.08); text-align: center; font-size: 12px; color: #64748b;">
+                        <td style="background-color: #0a0a0a; padding: 24px; border-top: 1px solid rgba(255, 255, 255, 0.08); text-align: center; font-size: 12px; color: #737373;">
                             &copy; 2026 AI Data Analyst Pro. Enterprise Data Intelligence Platform.<br>
                             All Rights Reserved.<br>
-                            <a href="{unsubscribe_url}" style="color: #64748b; text-decoration: underline;">Unsubscribe from these emails</a>
+                            <a href="{unsubscribe_url}" style="color: #737373; text-decoration: underline;">Unsubscribe from these emails</a>
                         </td>
                     </tr>
                 </table>
@@ -840,13 +840,13 @@ AI Data Analyst Pro Support Team
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{heading}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 10px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e5e5e5; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                     <tr>
-                        <td style="background-color: #0f172a; padding: 28px 36px; text-align: left;">
+                        <td style="background-color: #0a0a0a; padding: 28px 36px; text-align: left;">
                             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td><img src="cid:aidataanalystpro_logo" width="24" height="24" alt="" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;"><span style="font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">AI Data Analyst Pro</span></td>
@@ -857,13 +857,13 @@ AI Data Analyst Pro Support Team
                     </tr>
                     <tr>
                         <td style="padding: 36px;">
-                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0f172a;">{heading}</h1>
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #0a0a0a;">{heading}</h1>
                             {body_html}
                         </td>
                     </tr>
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 24px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">&copy; 2026 AI Data Analyst Pro Inc. All rights reserved.</p>
+                        <td style="background-color: #fafafa; padding: 24px 36px; border-top: 1px solid #e5e5e5; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">&copy; 2026 AI Data Analyst Pro Inc. All rights reserved.</p>
                         </td>
                     </tr>
                 </table>
@@ -878,28 +878,28 @@ AI Data Analyst Pro Support Team
         name = user_name or "Valued Customer"
         plain_text = f"Hello {name},\n\nWe received your payment proof (PKR 1,499). Our team is verifying it now - your Pro dashboard (500 MB upload access) will be activated as soon as it's approved.\n\nAI Data Analyst Pro Team"
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 Thank you! Your payment proof (<strong>PKR 1,499</strong>) has been received and is currently under review by our team.
             </p>
-            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 6px;">
-                <tr><td style="padding: 14px 16px; font-size: 13px; color: #1e3a5f;">
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; border-left: 4px solid #0a0a0a; border-radius: 6px;">
+                <tr><td style="padding: 14px 16px; font-size: 13px; color: #262626;">
                     Your dashboard will be activated as soon as our team verifies the payment - this is usually quick. You'll get an email and an in-app notification the moment it's approved.
                 </td></tr>
             </table>
         """
-        html_body = self._wrap_branded_email("Under Review", "#2563eb", "Payment Received - Under Review", body)
+        html_body = self._wrap_branded_email("Under Review", "#0a0a0a", "Payment Received - Under Review", body)
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
     def send_admin_new_payment_alert_email(self, admin_email: str, user_name: str, user_email: str, amount: float, txn_id: str) -> bool:
         subject = f"New Payment Submitted by {user_name} - Review Needed"
         plain_text = f"{user_name} ({user_email}) submitted a payment of PKR {amount:,.2f} (Txn: {txn_id}). Please review it in the Super Admin panel."
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 A new payment screenshot has been submitted and is awaiting your review.
             </p>
-            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-                <tr><td style="padding: 16px; font-size: 14px; color: #334155; line-height: 1.8;">
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 10px;">
+                <tr><td style="padding: 16px; font-size: 14px; color: #404040; line-height: 1.8;">
                     <strong>User:</strong> {user_name} ({user_email})<br>
                     <strong>Amount:</strong> PKR {amount:,.2f}<br>
                     <strong>Transaction ID:</strong> {txn_id}
@@ -914,7 +914,7 @@ AI Data Analyst Pro Support Team
         name = user_name or "Valued Customer"
         plain_text = f"Hello {name},\n\nYour payment has been approved! Your dashboard has been enabled and all functionality is now accessible.\n\nSubscription: {start_date} to {end_date}\n\nLog in: access your dashboard now.\n\nAI Data Analyst Pro Team"
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 Great news! Your payment has been verified and approved. <strong>Your dashboard has been enabled and all functionality is now accessible.</strong> You can access your dashboard without any issue or problem.
             </p>
@@ -924,7 +924,7 @@ AI Data Analyst Pro Support Team
                 </td></tr>
             </table>
             <div style="text-align: center;">
-                <a href="{PUBLIC_BASE_URL}/auth/login" style="background: linear-gradient(135deg, #2563eb, #38bdf8); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
+                <a href="{PUBLIC_BASE_URL}/auth/login" style="background: #0a0a0a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
             </div>
         """
         html_body = self._wrap_branded_email("Approved", "#10b981", "Your Dashboard is Active!", body)
@@ -936,14 +936,14 @@ AI Data Analyst Pro Support Team
         reason_clean = reason or "Payment could not be verified."
         plain_text = f"Hello {name},\n\nYour payment submission could not be approved.\n\nReason: {reason_clean}\n\nPlease upload a new payment screenshot to try again.\n\nAI Data Analyst Pro Team"
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 We were unable to verify your payment submission.
             </p>
             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; margin-bottom: 20px;">
                 <tr><td style="padding: 14px 16px; font-size: 13px; color: #991b1b;"><strong>Reason:</strong> {reason_clean}</td></tr>
             </table>
-            <p style="margin: 0; font-size: 14px; color: #475569;">Please upload a new, clear payment screenshot with the correct details to try again.</p>
+            <p style="margin: 0; font-size: 14px; color: #525252;">Please upload a new, clear payment screenshot with the correct details to try again.</p>
         """
         html_body = self._wrap_branded_email("Action Needed", "#ef4444", "Payment Verification Issue", body)
         return self._send_email_async(to_email, subject, html_body, plain_text)
@@ -954,7 +954,7 @@ AI Data Analyst Pro Support Team
         subject = f"Reminder: Your Subscription is Due {when}"
         plain_text = f"Hello {name},\n\nYour monthly subscription of PKR 1,499 is due on {due_date}. Please pay and upload your screenshot to keep your 500 MB Pro access.\n\nAI Data Analyst Pro Team"
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 Your monthly subscription of <strong>PKR 1,499</strong> is due on <strong>{due_date}</strong>. Please pay and upload your screenshot to keep your 500 MB Pro upload access.
             </p>
@@ -967,7 +967,7 @@ AI Data Analyst Pro Support Team
         subject = "Your Dashboard Has Been Suspended"
         plain_text = f"Hello {name},\n\nYour Pro subscription has expired. Please pay PKR 1,499 and upload the screenshot to re-activate 500 MB uploads.\n\nAI Data Analyst Pro Team"
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 Your Pro subscription has expired. Please pay <strong>PKR 1,499</strong> and upload the screenshot to re-activate your 500 MB Pro access.
             </p>
@@ -980,7 +980,7 @@ AI Data Analyst Pro Support Team
         subject = "Subscription Renewed - Dashboard Re-activated"
         plain_text = f"Hello {name},\n\nYour subscription has been renewed and your dashboard is active again.\n\nNew period: {start_date} to {end_date}\n\nAI Data Analyst Pro Team"
         body = f"""
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 Your renewal payment has been approved! Your dashboard is active again.
             </p>

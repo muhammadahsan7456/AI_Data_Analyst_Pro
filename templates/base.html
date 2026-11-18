@@ -175,7 +175,7 @@
         <!-- Main Content -->
         <main class="main-content {% if request.endpoint == 'frontend.dashboard' %}dashboard-workspace{% endif %}">
             {% if is_logged_in and subscription_info and subscription_info.show_banner %}
-            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}linear-gradient(135deg, #7f1d1d, #b91c1c){% else %}linear-gradient(135deg, #7c2d12, #c2410c){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}#f87171{% else %}#fb923c{% endif %};">
+            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}var(--mono-danger){% else %}var(--mono-warning){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}#f87171{% else %}#fb923c{% endif %};">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid {% if subscription_info.status == 'suspended' %}fa-ban{% elif subscription_info.status == 'expired' %}fa-triangle-exclamation{% else %}fa-clock{% endif %}" style="font-size: 20px; color: #fef08a;"></i>
                     <div>
@@ -324,8 +324,8 @@
         .sub-expiry-modal p { font-size: 14px; line-height: 1.6; color: var(--text-muted); margin-bottom: 22px; }
         .sub-expiry-modal-actions { display: flex; flex-direction: column; gap: 10px; }
         .sub-expiry-btn-primary {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            color: #fff; text-decoration: none; padding: 12px 20px; border-radius: var(--radius-md);
+            background: var(--mono-ink);
+            color: var(--mono-on-ink); text-decoration: none; padding: 12px 20px; border-radius: var(--radius-md);
             font-weight: 700; font-size: 14px;
         }
         .sub-expiry-btn-secondary {

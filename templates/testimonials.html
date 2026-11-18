@@ -51,7 +51,7 @@
                 </div>
                 <p class="testimonial-text">"{{ r.text }}"</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, {{ gradients[loop.index0 % gradients|length] }});">{{ r.initials }}</div>
+                    <div class="testimonial-avatar" style="background: var(--mono-ink);">{{ r.initials }}</div>
                     <div><div class="testimonial-name">{{ r.name }}</div><div class="testimonial-role">{{ r.role }}</div></div>
                 </div>
             </div>

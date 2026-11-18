@@ -61,8 +61,8 @@
         width: 38px;
         height: 38px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #737373 0%, #737373 100%);
-        color: #ffffff;
+        background: var(--mono-ink);
+        color: var(--mono-on-ink);
         font-weight: 700;
         font-size: 14px;
         display: flex;
@@ -211,7 +211,7 @@
                         <div style="display: flex; gap: 6px; justify-content: flex-end;">
                             <!-- Extend +30 Days Button -->
                             <form method="POST" action="{{ url_for('admin.extend_user_subscription', user_id=u.id) }}" style="display: inline;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 6px 10px; font-size: 11px; font-weight: 700; border: none; border-radius: 4px;" title="Verify Receipt & Extend +30 Days">
+                                <button type="submit" class="btn btn-sm" style="background: var(--mono-success); color: white; padding: 6px 10px; font-size: 11px; font-weight: 700; border: none; border-radius: 4px;" title="Verify Receipt & Extend +30 Days">
                                     <i class="fa-solid fa-calendar-plus"></i> +30 Days
                                 </button>
                             </form>

@@ -29,8 +29,8 @@ def optimize_dataframe_memory(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.columns:
         if is_integer_dtype(df[col]):
             df[col] = pd.to_numeric(df[col], downcast="integer")
-        elif is_float_dtype(df[col]):
-            df[col] = pd.to_numeric(df[col], downcast="float")
+        # Floats are deliberately NOT downcast: float32 keeps only ~7 significant digits,
+        # so a value such as 1,234,567.89 was stored as 1,234,567.875 and totals drifted.
 
     return df
 
@@ -318,6 +318,18 @@ def create_table(table_name: str, dataframe: pd.DataFrame):
     finally:
         conn.close()
 
+    # Rows of every new dataset are stored encrypted (utils/dataset_vault.py); the table
+    # just created keeps the schema and stays empty. Raises if the master key is missing,
+    # so a dataset is never silently stored in plaintext when encryption is expected.
+    from utils import dataset_vault
+    if dataset_vault.vault_enabled():
+        try:
+            dataset_vault.register_table(table_name)
+        except dataset_vault.VaultUnavailable:
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(f"DROP TABLE {sanitize_identifier(table_name)}")
+            raise
+
 
 def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     """
@@ -348,6 +360,11 @@ def insert_dataframe(table_name: str, dataframe: pd.DataFrame) -> dict:
     df = clean_dataframe(dataframe)
     total_rows = len(df)
     inserted_count = 0
+
+    from utils import dataset_vault
+    if dataset_vault.is_vaulted(table_name):
+        written = dataset_vault.append_rows(table_name, df)
+        return {"total": total_rows, "inserted": written, "failed": max(0, total_rows - written)}
 
     conn = get_connection()
     cursor = conn.cursor()

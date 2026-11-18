@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Platform Documentation & Architecture Guide — AI Data Analyst Pro</title>
-<meta name="description" content="Technical documentation for AI Data Analyst Pro: 10M+ row dataset ingestion, SQL querying with responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice AI, automated PPTX/PDF exports, and field-level encryption.">
+<meta name="description" content="Technical documentation for AI Data Analyst Pro: dataset ingestion up to 500 MB, SQL querying with responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice AI, automated PPTX/PDF exports, and encrypted dataset storage.">
 <meta name="keywords" content="AI Data Analyst Docs, SQL Architecture, Voice AI Querying, Automated PowerPoint Export, Parquet CSV Parsing">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -92,7 +92,7 @@
                         <div class="feature-icon-wrapper" style="margin-bottom: 0;"><i class="fa-solid fa-cloud-arrow-up"></i></div>
                         <div>
                             <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">1. Multi-Format Dataset Uploader</h2>
-                            <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">Supports 9 Enterprise Formats • Up to 10M+ Records</span>
+                            <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">Supports 9 Enterprise Formats • Up to 500 MB on Pro</span>
                         </div>
                     </div>
                     <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
@@ -113,7 +113,7 @@
                 <!-- Section 2 -->
                 <div id="doc-voice" class="feature-card" style="padding: 36px;">
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
-                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: linear-gradient(135deg, #737373, #737373);"><i class="fa-solid fa-microphone-lines"></i></div>
+                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: var(--mono-ink);"><i class="fa-solid fa-microphone-lines"></i></div>
                         <div>
                             <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">2. Voice AI & Natural Language Querying</h2>
                             <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">English & Roman Urdu Speech Normalization</span>
@@ -135,7 +135,7 @@
                 <!-- Section 3 -->
                 <div id="doc-charts" class="feature-card" style="padding: 36px;">
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
-                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: linear-gradient(135deg, #10b981, #047857);"><i class="fa-solid fa-chart-pie"></i></div>
+                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: var(--mono-success);"><i class="fa-solid fa-chart-pie"></i></div>
                         <div>
                             <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">3. Enterprise Dark Visualizations</h2>
                             <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">Automated AI Chart Type Selection</span>
@@ -154,7 +154,7 @@
                 <!-- Section 4 -->
                 <div id="doc-export" class="feature-card" style="padding: 36px;">
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
-                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-file-export"></i></div>
+                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: var(--mono-warning);"><i class="fa-solid fa-file-export"></i></div>
                         <div>
                             <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">4. Full Export Center</h2>
                             <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">PPTX, PDF, Excel, Word, SVG & CSV</span>

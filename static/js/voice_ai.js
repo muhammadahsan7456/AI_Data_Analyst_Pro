@@ -274,7 +274,7 @@
                                 <span style="font-size: 12px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; display: flex; align-items: center; gap: 6px;">
                                     <i class="fa-solid fa-sliders"></i> Switch Chart Format:
                                 </span>
-                                <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid #38bdf8; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid #38bdf8; background: var(--mono-ink); color: var(--mono-on-ink); cursor: pointer; transition: all 0.2s ease;">
                                     Pie Chart (Gol)
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="donut" onclick="selectVisualChartMode('donut', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
@@ -394,13 +394,13 @@
             const icon = btn.querySelector("i");
             if (listening) {
                 btn.classList.add("listening", "pulse-animation");
-                btn.style.background = "linear-gradient(135deg, #ef4444, #dc2626)";
+                btn.style.background = "var(--mono-danger)";
                 btn.style.boxShadow = "0 0 0 10px rgba(239, 68, 68, 0.3)";
                 if (span) span.textContent = "Listening... Click Mic When Done";
                 if (icon) icon.className = "fa-solid fa-microphone-slash";
             } else {
                 btn.classList.remove("listening", "pulse-animation");
-                btn.style.background = "linear-gradient(135deg, var(--accent-blue), var(--accent-purple))";
+                btn.style.background = "var(--mono-ink)";
                 btn.style.boxShadow = "0 4px 15px rgba(37, 99, 235, 0.4)";
                 if (span) span.textContent = "Click to Speak (Voice AI)";
                 if (icon) icon.className = "fa-solid fa-microphone-lines";

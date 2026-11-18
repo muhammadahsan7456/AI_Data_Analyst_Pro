@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-<meta name="description" content="Transform datasets up to 10M+ rows into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
+<meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
 <meta name="keywords" content="AI data analyst, ask questions about CSV, Excel data analysis, Roman Urdu data questions, PowerPoint export, encrypted datasets">
 <link rel="canonical" href="{{ request.url_root }}">
 {% endblock %}
@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url_root }}">
 <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
-<meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
+<meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
 <meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
 <meta property="og:site_name" content="AI Data Analyst Pro">
 {% endblock %}
@@ -25,7 +25,7 @@
   "operatingSystem": "All (Web Based)",
   "applicationCategory": "BusinessApplication",
   "offers": { "@type": "Offer", "price": "1499.00", "priceCurrency": "PKR" },
-  "description": "Upload CSV or Excel files and ask questions in plain English or Roman Urdu. Answers with tables and charts, typically in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and field-level encryption."{% if review_count %},
+  "description": "Upload CSV or Excel files and ask questions in plain English or Roman Urdu. Answers with tables and charts, typically in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and encrypted dataset storage."{% if review_count %},
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "{{ avg_rating }}", "ratingCount": "{{ review_count }}" }{% endif %}
 }
 </script>

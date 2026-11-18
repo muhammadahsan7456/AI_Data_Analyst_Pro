@@ -16,8 +16,8 @@
     <meta name="robots" content="index, follow">
     {% block seo_meta %}
     <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-    <meta name="description" content="Transform datasets up to 10M+ rows into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
-    <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, Field-level Data Encryption, 10M Rows Analytics">
+    <meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
+    <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, Encrypted Dataset Storage, Large Dataset Analytics">
     <link rel="canonical" href="{{ request.url }}">
     {% endblock %}
 
@@ -26,7 +26,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
-    <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
+    <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
     <meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
     <meta property="og:site_name" content="AI Data Analyst Pro">
     {% endblock %}
@@ -88,7 +88,7 @@
         "price": "1499.00",
         "priceCurrency": "PKR"
       },
-      "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and field-level encryption."
+      "description": "Enterprise AI Data Analysis Platform for datasets up to 500 MB with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and encrypted dataset storage."
     }
     </script>
     {% endblock %}
@@ -359,7 +359,7 @@
                 btn.disabled = false;
                 if (data.success) {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    btn.style.background = 'var(--mono-success)';
                     if (msg) { msg.style.color = ''; msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Subscribed! Check your inbox.'); msg.style.display = 'block'; }
                     if (input) input.value = '';
                     setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; btn.style.background = ''; }, 4000);
