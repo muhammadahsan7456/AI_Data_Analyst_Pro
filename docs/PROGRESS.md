@@ -97,4 +97,14 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ### Next
 
-Group 3: redesign the home page hero and sections, then test responsive layout and interactions before moving to auth pages.
+### Group 3 — Home page hero and sections
+
+- Replaced the generic gradient-led hero with a question-first analyst workspace, an inline SVG sample revenue chart and sparkline, compact monospace KPI figures, and a three-step workflow section. Reworked the final CTA to use the theme surfaces and concrete copy; preserved the existing route targets, counter hooks, typed-text ID, and video modal behavior.
+- Playwright verified HTTP 200, no horizontal overflow or off-screen hero/workflow/CTA elements at 360, 390, 768, 1024, and 1440 px in both themes, and no page or console errors. Hero heading/badge contrast measured **5.78:1** in light mode and **6.59:1** in dark mode; primary CTA text measured **13.29:1** and **15.57:1** respectively.
+- The new typed-text cursor and preview transition reduce to **0.01 ms** under `prefers-reduced-motion`. The sample chart renders with its accessible title/description; all four counter hooks and the existing hero CTA/video IDs remain present.
+- The demo and registration CTAs returned HTTP 200. The video modal opened and closed correctly; its media request was deliberately aborted during QA to avoid downloading the large video. Authenticated home-page rendering was not rechecked.
+- Kept the shared counters, reveals, and typed-text animation while skipping Three.js and vanilla-tilt downloads on the redesigned home page. Browser request inspection confirmed neither heavy CDN library was requested, the local animation engine initialized, and the typed example continued to render.
+
+### Next
+
+Group 4: redesign and test the login, registration, OTP, and forgot-password pages.

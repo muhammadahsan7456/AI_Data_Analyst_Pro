@@ -62,7 +62,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
 
     <!-- Landing Page CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v9">
 
     {% block extra_css %}{% endblock %}
 
@@ -258,9 +258,8 @@
         </div>
     </footer>
 
-    <!-- All deferred: none of these need to run before the page paints, and as parser-blocking
-         tags they were costing ~5.6s of render-blocking time on mobile. defer keeps their
-         relative execution order, so three.js is still defined before animations.js reads it. -->
+    <!-- These scripts do not need to run before the page paints. The optional libraries
+         below are injected before animations.js on pages that use their effects. -->
     <!-- CSRF token auto-attach for AJAX requests -->
     <script defer src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
     <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift).
@@ -268,17 +267,9 @@
     <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
     <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
 
-    <!-- three.js alone is ~600KB (r128 full build) - purely for the decorative hero particle
-         background, no functional purpose. Even deferred, the browser still downloads it
-         immediately in parallel with everything else, competing for the same constrained
-         bandwidth that FCP/LCP-critical CSS needs - confirmed as the single largest resource
-         on the page under Lighthouse's throttled mobile test. Loading it (and vanilla-tilt,
-         and animations.js, which needs both already defined before it runs - see the
-         typeof THREE === 'undefined' guard in init3DConstellation) only after the page has
-         actually finished loading keeps the exact same visual effect, just starts it a beat
-         later instead of letting it compete with what's needed for first paint.
-         async=false on dynamically-created scripts preserves this relative execution order
-         even though they're injected out of document order. -->
+    <!-- The decorative Three.js background and vanilla-tilt are not needed by the home
+         page's lightweight SVG preview. Load them only on pages that use those effects;
+         animations.js remains shared for counters, reveals, and typed text. -->
     <script>
         (function loadDeferredHeavyScripts() {
             function loadScript(src, onload) {
@@ -289,8 +280,10 @@
                 document.body.appendChild(s);
             }
             function start() {
-                loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-                loadScript('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js');
+                if (!document.querySelector('.home-analyst-hero')) {
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js');
+                }
                 // animations.js defines functions some pages' own inline scripts call
                 // (e.g. index.html's initTypedText on DOMContentLoaded) - DOMContentLoaded
                 // always fires before window.load, so a page-specific script waiting on

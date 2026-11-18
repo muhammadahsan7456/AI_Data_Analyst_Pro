@@ -43,52 +43,100 @@
 
 {% block content %}
 <!-- ===== HERO SECTION ===== -->
-<section class="hero-section">
-    <div class="container" style="position: relative; z-index: 2;">
-        <div class="hero-badge reveal">
-            <i class="fa-solid fa-bolt"></i> Next-Gen Enterprise Data Intelligence Platform
+<section class="hero-section home-analyst-hero">
+    <div class="container home-hero-container">
+        <div class="home-hero-layout">
+            <div class="home-hero-copy">
+                <div class="hero-badge reveal">
+                    <i class="fa-solid fa-chart-line" aria-hidden="true"></i> CSV · Excel · Questions in plain language
+                </div>
+
+                <h1 class="hero-title">
+                    Ask a clear question. Get a clear answer from <span class="gradient-text">your data.</span>
+                </h1>
+
+                <p class="hero-subtitle">
+                    Bring a CSV or Excel file and ask in <strong>English or Roman Urdu</strong>:
+                    “Which regions drove the highest revenue last quarter?” Review the result, chart, and summary before you export.
+                    <span class="home-hero-typed-line">You can also ask for <span id="typed-hero" class="home-hero-typed-text"></span><span class="home-hero-typed-cursor" aria-hidden="true">&nbsp;</span></span>
+                </p>
+
+                <div class="hero-cta-group">
+                    {% if is_logged_in %}
+                    <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-primary" id="hero-cta-dash">
+                        <i class="fa-solid fa-table-columns" aria-hidden="true"></i> Open your workspace
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" id="hero-cta-reg">
+                        <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Start free with a CSV
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" id="hero-cta-demo">
+                        <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Browse sample analysis
+                    </a>
+                    <button type="button" class="btn-hero-secondary" id="hero-cta-video" onclick="openPromoVideoModal()">
+                        <i class="fa-solid fa-circle-play" aria-hidden="true"></i> See the walkthrough
+                    </button>
+                </div>
+            </div>
+
+            <aside class="home-workspace-preview" aria-label="Sample analysis workspace">
+                <div class="preview-window-bar">
+                    <span class="preview-file-label"><i class="fa-solid fa-table" aria-hidden="true"></i> northwind_sales.csv</span>
+                    <span class="preview-sample-label">SAMPLE DATA</span>
+                </div>
+                <div class="preview-question">
+                    <span class="preview-eyebrow">QUESTION</span>
+                    <p>Which regions drove the highest revenue last quarter?</p>
+                </div>
+                <div class="preview-result-heading">
+                    <div>
+                        <span class="preview-eyebrow">REVENUE BY REGION · Q4</span>
+                        <strong>$842,600</strong>
+                    </div>
+                    <div class="preview-change">
+                        <svg class="preview-sparkline" viewBox="0 0 84 26" aria-hidden="true">
+                            <polyline points="2,21 14,17 25,19 37,10 48,14 60,7 72,11 82,3" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        </svg>
+                        <span>+18.4%</span>
+                    </div>
+                </div>
+                <svg class="preview-bar-chart" viewBox="0 0 520 180" role="img" aria-labelledby="sample-chart-title sample-chart-description">
+                    <title id="sample-chart-title">Sample revenue by region</title>
+                    <desc id="sample-chart-description">West leads with 289 thousand dollars, followed by East, North, and South.</desc>
+                    <line x1="58" y1="26" x2="504" y2="26" stroke="var(--border-glass)" stroke-width="1"></line>
+                    <line x1="58" y1="63" x2="504" y2="63" stroke="var(--border-glass)" stroke-width="1"></line>
+                    <line x1="58" y1="100" x2="504" y2="100" stroke="var(--border-glass)" stroke-width="1"></line>
+                    <line x1="58" y1="137" x2="504" y2="137" stroke="var(--border-glass)" stroke-width="1"></line>
+                    <text x="4" y="30" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">$300k</text>
+                    <text x="4" y="67" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">$200k</text>
+                    <text x="4" y="104" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">$100k</text>
+                    <text x="44" y="141" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)">$0</text>
+                    <rect x="102" y="69" width="54" height="68" rx="3" fill="var(--accent-blue)" opacity="0.62"></rect>
+                    <rect x="202" y="76" width="54" height="61" rx="3" fill="var(--accent-blue)" opacity="0.62"></rect>
+                    <rect x="302" y="61" width="54" height="76" rx="3" fill="var(--accent-blue)" opacity="0.62"></rect>
+                    <rect x="402" y="30" width="54" height="107" rx="3" fill="var(--accent-gold)"></rect>
+                    <text x="129" y="160" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-mono)">North</text>
+                    <text x="229" y="160" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-mono)">South</text>
+                    <text x="329" y="160" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-mono)">East</text>
+                    <text x="429" y="160" fill="var(--text-primary)" font-size="11" text-anchor="middle" font-family="var(--font-mono)">West</text>
+                </svg>
+                <div class="preview-answer-note"><span class="preview-answer-mark" aria-hidden="true">↗</span> West led the quarter at <strong>$289k</strong></div>
+            </aside>
         </div>
 
-        <h1 class="hero-title">
-            Transform Enterprise Datasets into <span class="gradient-text">Instant Executive Insights</span> with AI
-        </h1>
-
-        <p class="hero-subtitle">
-            Ask natural language questions in <strong>English or Roman Urdu</strong>, perform multi-dataset cross analysis, generate
-            <span id="typed-hero" style="color: var(--accent-cyan); font-weight: 600;"></span><span style="border-right: 2px solid var(--accent-cyan); animation: blink 1s step-end infinite; margin-left: 2px;">&nbsp;</span>
-        </p>
-
-        <div class="hero-cta-group">
-            {% if is_logged_in %}
-            <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-primary" id="hero-cta-dash">
-                <i class="fa-solid fa-rocket"></i> Launch Dashboard
-            </a>
-            {% else %}
-            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" id="hero-cta-reg">
-                <i class="fa-solid fa-rocket"></i> Get Started Free (No Card Needed)
-            </a>
-            {% endif %}
-            <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" id="hero-cta-demo">
-                <i class="fa-solid fa-play"></i> Explore Live Demo
-            </a>
-            <button type="button" class="btn-hero-secondary" id="hero-cta-video" onclick="openPromoVideoModal()">
-                <i class="fa-solid fa-circle-play"></i> Watch Video
-            </button>
-        </div>
-
-        <!-- Animated Stats Counters -->
         <div class="stats-grid reveal">
             <div class="stat-card" data-tilt>
                 <div class="counter-value" data-counter data-target="10" data-suffix="M+" data-duration="2000">10M+</div>
-                <div class="stat-label">Rows Processed</div>
+                <div class="stat-label">Rows processed</div>
             </div>
             <div class="stat-card" data-tilt>
                 <div class="counter-value" data-counter data-target="3" data-prefix="&lt;" data-suffix="s" data-duration="2000">&lt;3s</div>
-                <div class="stat-label">Typical Query Response</div>
+                <div class="stat-label">Typical query response</div>
             </div>
             <div class="stat-card" data-tilt>
                 <div class="counter-value" data-counter data-target="256" data-suffix="-bit" data-duration="1500">256-bit</div>
-                <div class="stat-label">AES Encryption</div>
+                <div class="stat-label">AES encryption</div>
             </div>
             <div class="stat-card" data-tilt>
                 <div class="counter-value" data-counter data-target="97.9" data-suffix="%" data-decimals="1" data-duration="2000">97.9%</div>
@@ -96,34 +144,33 @@
             </div>
         </div>
 
-        <!-- Trust Bar -->
         <div class="hero-trust-bar reveal">
             <div class="trust-item">
-                <i class="fa-solid fa-shield-halved" style="color: var(--accent-green);"></i>
+                <i class="fa-solid fa-file-shield" aria-hidden="true"></i>
                 <div>
-                    <div class="trust-item-title">Bank-Grade Security</div>
-                    <div class="trust-item-sub">AES-256 Field SQL Encryption</div>
+                    <div class="trust-item-title">Private by design</div>
+                    <div class="trust-item-sub">Encrypted data at rest</div>
                 </div>
             </div>
             <div class="trust-item">
-                <i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i>
+                <i class="fa-solid fa-language" aria-hidden="true"></i>
                 <div>
-                    <div class="trust-item-title">Fast AI Query Engine</div>
-                    <div class="trust-item-sub">{{ site_config.TYPICAL_RESPONSE_TIME_LABEL }}</div>
-                </div>
-            </div>
-            <div class="trust-item">
-                <i class="fa-solid fa-server" style="color: var(--accent-purple);"></i>
-                <div>
-                    <div class="trust-item-title">10M+ Rows Scale</div>
-                    <div class="trust-item-sub">Streaming Chunk Ingestion</div>
-                </div>
-            </div>
-            <div class="trust-item">
-                <i class="fa-solid fa-microphone" style="color: var(--accent-amber);"></i>
-                <div>
-                    <div class="trust-item-title">Bilingual Voice AI</div>
+                    <div class="trust-item-title">Ask naturally</div>
                     <div class="trust-item-sub">English & Roman Urdu</div>
+                </div>
+            </div>
+            <div class="trust-item">
+                <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+                <div>
+                    <div class="trust-item-title">Inspect the result</div>
+                    <div class="trust-item-sub">Tables, charts, and summaries</div>
+                </div>
+            </div>
+            <div class="trust-item">
+                <i class="fa-solid fa-file-export" aria-hidden="true"></i>
+                <div>
+                    <div class="trust-item-title">Take it with you</div>
+                    <div class="trust-item-sub">CSV, Excel, PDF, Word, and PPT</div>
                 </div>
             </div>
         </div>
@@ -137,49 +184,31 @@
 </div>
 
 <!-- ===== FEATURE HIGHLIGHTS (PREVIEW) ===== -->
-<section class="landing-section" id="features-preview">
+<section class="landing-section home-workflow-section" id="features-preview">
     <div class="container">
         <div class="section-header reveal">
-            <div class="section-badge"><i class="fa-solid fa-sparkles"></i> Enterprise Platform Capabilities</div>
-            <h2 class="section-title">Built for <span class="gradient-text">Scalability, Security, & Speed</span></h2>
-            <p class="section-subtitle">Everything you need to transform raw datasets into actionable intelligence — powered by AI.</p>
+            <div class="section-badge">A practical analysis workflow</div>
+            <h2 class="section-title">From spreadsheet to <span class="gradient-text">decision, without SQL.</span></h2>
+            <p class="section-subtitle">Bring a file, ask a specific question, then inspect and export a result you can share.</p>
         </div>
 
-        <div class="feature-grid stagger-children">
+        <div class="feature-grid home-feature-grid stagger-children">
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper"><i class="fa-solid fa-database"></i></div>
-                <h3 class="feature-card-title">10M+ Enterprise Scale</h3>
-                <p class="feature-card-desc">High-performance streaming chunking and dynamic memory downcasting process multi-gigabyte files effortlessly with zero memory bottlenecks.</p>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-table" aria-hidden="true"></i></div>
+                <h3 class="feature-card-title">Start with your spreadsheet</h3>
+                <p class="feature-card-desc">Upload CSV or Excel data and work with files up to 10M+ rows using streaming ingestion.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);"><i class="fa-solid fa-lock"></i></div>
-                <h3 class="feature-card-title">AES-256 Field Encryption</h3>
-                <p class="feature-card-desc">Bank-grade Fernet encryption at rest protects sensitive dataset columns in SQL Server, decrypting transparently for authorized users only.</p>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i></div>
+                <h3 class="feature-card-title">Ask what you need to know</h3>
+                <p class="feature-card-desc">Try “Which product line grew fastest month over month?” Ask in English or Roman Urdu.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4, #0e7490);"><i class="fa-solid fa-file-powerpoint"></i></div>
-                <h3 class="feature-card-title">Fast Exports</h3>
-                <p class="feature-card-desc">Generate PowerPoint presentations (PPTX), executive PDFs, formatted Excel, and CSV files — {{ site_config.EXPORT_TYPICAL_TIME }}.</p>
-            </div>
-
-            <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #047857);"><i class="fa-solid fa-microphone"></i></div>
-                <h3 class="feature-card-title">Voice & Bilingual Querying</h3>
-                <p class="feature-card-desc">Ask questions via voice or text in natural English or Roman Urdu. Instant phonetic normalization parses queries seamlessly.</p>
-            </div>
-
-            <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-diagram-project"></i></div>
-                <h3 class="feature-card-title">Multi-Dataset Cross Analysis</h3>
-                <p class="feature-card-desc">Perform instant INNER JOIN matching, dataset merging, and cross-dataset metrics discovery across multiple uploaded files.</p>
-            </div>
-
-            <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ef4444, #b91c1c);"><i class="fa-solid fa-chart-line"></i></div>
-                <h3 class="feature-card-title">Auto Charts & AI Profiling</h3>
-                <p class="feature-card-desc">AI automatically selects suitable chart types, renders statistical distributions, and surfaces actionable executive takeaways.</p>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-file-export" aria-hidden="true"></i></div>
+                <h3 class="feature-card-title">Check the result and export</h3>
+                <p class="feature-card-desc">Review the table and relevant chart, then create PDF, Word, PowerPoint, Excel, or CSV reports — {{ site_config.EXPORT_TYPICAL_TIME }}.</p>
             </div>
         </div>
 
@@ -192,28 +221,28 @@
 </section>
 
 <!-- ===== CTA BANNER ===== -->
-<section class="landing-section" style="padding: 60px 0;">
+<section class="landing-section home-cta-section">
     <div class="container">
-        <div class="reveal" style="background: var(--gradient-primary); border-radius: var(--radius-2xl); padding: 48px; text-align: center; box-shadow: 0 20px 50px rgba(59, 130, 246, 0.3); position: relative; overflow: hidden;">
-            <div style="position: absolute; top: -50%; right: -20%; width: 400px; height: 400px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
-            <div style="position: absolute; bottom: -30%; left: -10%; width: 300px; height: 300px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
-            <h2 style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 16px; position: relative;">
-                Ready to Transform Your Data Analysis?
-            </h2>
-            <p style="font-size: 16px; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 28px; position: relative;">
-                Join the {{ site_config.PROJECTS_COMPLETED }} projects completed with AI Data Analyst Pro to analyze 10M+ rows, generate instant reports, and make data-driven decisions faster.
-            </p>
-            <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; position: relative;">
+        <div class="home-final-cta reveal">
+            <div class="home-final-cta-copy">
+                <span class="preview-eyebrow">START WITH ONE FILE</span>
+                <h2>Have a spreadsheet you need to understand?</h2>
+                <p>
+                    Join {{ site_config.PROJECTS_COMPLETED }} completed analyses. Ask a question about your data,
+                    inspect the result, and export a report when it is ready.
+                </p>
+            </div>
+            <div class="home-final-cta-actions">
                 {% if is_logged_in %}
-                <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-secondary" style="background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: #fff;">
-                    <i class="fa-solid fa-gauge"></i> Open Dashboard
+                <a href="{{ url_for('frontend.dashboard') }}" class="btn-hero-primary">
+                    <i class="fa-solid fa-table-columns" aria-hidden="true"></i> Open your workspace
                 </a>
                 {% else %}
-                <a href="{{ url_for('auth.register') }}" style="background: #fff; color: #0f172a; font-weight: 700; padding: 14px 32px; border-radius: var(--radius-md); font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
-                    <i class="fa-solid fa-rocket"></i> Start Free Trial
+                <a href="{{ url_for('auth.register') }}" class="btn-hero-primary home-final-cta-primary">
+                    <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Start free
                 </a>
-                <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" style="border-color: rgba(255,255,255,0.3); color: #fff;">
-                    <i class="fa-solid fa-play"></i> Watch Demo
+                <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary">
+                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i> See a sample
                 </a>
                 {% endif %}
             </div>
