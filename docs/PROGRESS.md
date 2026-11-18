@@ -46,6 +46,9 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 ### Completed
 
 - Upload size group passed. In the isolated QA server, the free test account uploaded a 600,018-byte CSV successfully; an exactly 1 MiB request returned HTTP 400 with `upgrade_required=true`. The >500 MiB server-side guard returned HTTP 400 for a simulated stream reporting 500 MiB + 1 byte, without allocating a large file. Added focused regression tests for 1 MiB - 1 byte, exactly 1 MiB, and >500 MiB; **3 passed**.
+- Ask AI group passed using five authenticated HTTP questions with a mocked analysis result (no live AI calls): region sales → bar, monthly trend → line, product ranking → horizontal bar, units/revenue relationship → scatter, and order status → pie. Each result had non-empty, length-matched labels/values and the chat HTML included its interactive chart container/spec.
+- Root cause found while testing: SQLite table discovery used only SQL Server `INFORMATION_SCHEMA`, so uploaded SQLite datasets were incorrectly reported as missing in `/chat`. Added `sqlite_master` discovery and regression coverage.
+- Chart generation also overrode suitable chart selections: grouped trends/regions were forced to pie charts, and two-numeric-column relationships became bar charts of unrelated averages. Specs now follow the chart selector for grouped results and use paired numeric values for scatter points. SQLite and chart regression tests: **8 passed**.
 - Fixed an SQLite schema gap: existing `Users` tables now receive missing subscription columns during initialization. A regression test verifies the columns are added without losing the existing user row.
 - Found a second OTP resend failure mode: database errors during rate-limit checks or token persistence were silently ignored, allowing sends to bypass the rate limit or present a code that could not be verified. Resend now fails closed, persists the replacement token and invalidates the old token in one transaction before sending, and logs persistence failures. Added tests for normal resend, failed rate-limit lookup, and failed token persistence.
 - Replaced silent catches for dashboard metric/notification queries and related auth side effects with server-side logging. Malformed notification metadata now logs a warning rather than silently disappearing.
@@ -56,10 +59,10 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 ### Incomplete / not verified
 
 - The existing Selenium suite stalled (the full run stopped after 13 tests; a targeted run also hung). It was stopped rather than reported as passing. The browser request-context link-crawl helper also failed with a browser-protocol `Storage.getCookies` error, so link checks used direct HTTP smoke requests instead.
-- The isolated browser session did not complete OTP verification, signed-in dashboard access, upload size/payment gates, Ask AI/chart generation, exports, payment approval/rejection, profile/company/logo, review/audit/settings interactions, or admin operational flows.
+- The isolated HTTP QA did not yet verify exports, payment approval/rejection, profile/company/logo, review/audit/settings interactions, admin operational flows, or the remaining authenticated forms. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
 - Mobile widths, theme contrast, and the redesigned UI have not been tested; the redesign has not started because Phase 3 is not green.
 - Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
 
 ### Next
 
-Continue with group 2: exercise five varied Ask AI questions against isolated test data, verify chart behavior for chart-suitable result shapes, and fix any confirmed root cause before proceeding to exports.
+Continue with group 3: verify CSV, Excel, PDF, Word, and PowerPoint exports from an isolated uploaded dataset, fixing confirmed failures before payment flow checks.

@@ -547,10 +547,13 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
         sub_df = df_clean[[x_col, y_col]].dropna().head(25)
         labels = sub_df[x_col].astype(str).tolist()
         values = [float(v) if pd.notnull(v) else 0.0 for v in pd.to_numeric(sub_df[y_col], errors="coerce").fillna(0).tolist()]
-        if len(labels) <= 10:
-            override_chart_type = "pie"
-        else:
-            override_chart_type = "horizontal_bar"
+        try:
+            from visualization.chart_selector import select_chart
+            override_chart_type = select_chart(df_clean) or chart_type
+        except Exception:
+            override_chart_type = chart_type or (
+                "pie" if len(labels) <= 10 else "horizontal_bar"
+            )
 
     # Case B: Single Row Aggregated Metric (e.g. Total_Orders: 335, Total_COD: 15000)
     elif len(df_clean) == 1 and numeric_cols:
@@ -559,7 +562,16 @@ def generate_interactive_chart_spec(df: pd.DataFrame, chart_type: str = "bar") -
         values = [float(df_clean[c].iloc[0]) if pd.notnull(df_clean[c].iloc[0]) else 0.0 for c in ordered_metric_cols]
         override_chart_type = "bar"
 
-    # Case C: Multi-row records (e.g. raw orders or customer lists)
+    # Case C: Two or more numeric measures without a categorical dimension are
+    # a relationship, not a bar chart of their unrelated averages.
+    elif len(numeric_cols) >= 2 and not cat_cols:
+        x_col, y_col = [c for c in df_clean.columns if c in numeric_cols][:2]
+        scatter_df = df_clean[[x_col, y_col]].dropna().head(30)
+        labels = pd.to_numeric(scatter_df[x_col], errors="coerce").fillna(0).tolist()
+        values = pd.to_numeric(scatter_df[y_col], errors="coerce").fillna(0).tolist()
+        override_chart_type = "scatter"
+
+    # Case D: Multi-row records (e.g. raw orders or customer lists)
     else:
         address_col = next((c for c in df_clean.columns if any(kw in str(c).lower() for kw in ["address", "location", "consignee_address", "street"])), None)
         parsed_area_counts = None

@@ -48,3 +48,21 @@ def test_sqlite_init_adds_subscription_columns_to_existing_users(tmp_path):
         "SuspensionReason",
     }.issubset(columns)
     assert user == ("free", None, None, None)
+
+
+def test_existing_base_table_discovery_supports_sqlite(monkeypatch, tmp_path):
+    db_path = tmp_path / "tables.sqlite"
+    conn = sqlite3.connect(db_path)
+    conn.execute("CREATE TABLE qa_sales (id INTEGER PRIMARY KEY)")
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr(
+        connection,
+        "get_connection",
+        lambda: connection.SQLiteConnectionAdapter(str(db_path)),
+    )
+
+    tables = connection.get_existing_base_tables(use_cache=False)
+
+    assert "qa_sales" in tables
+    assert "sqlite_sequence" not in tables

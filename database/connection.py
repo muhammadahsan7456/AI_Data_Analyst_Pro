@@ -1236,11 +1236,34 @@ def get_existing_base_tables(use_cache: bool = True) -> set:
     except Exception:
         pass
 
+    conn = None
     try:
-        tbl_df = run_query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
-        tables = set(tbl_df['TABLE_NAME'].str.lower().tolist()) if (tbl_df is not None and not tbl_df.empty) else set()
+        conn = get_connection()
+        if isinstance(conn, SQLiteConnectionAdapter):
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                )
+                tables = {str(row[0]).lower() for row in cursor.fetchall()}
+            finally:
+                cursor.close()
+        else:
+            tbl_df = run_query(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
+                "WHERE TABLE_TYPE = 'BASE TABLE'"
+            )
+            tables = (
+                set(tbl_df["TABLE_NAME"].str.lower().tolist())
+                if tbl_df is not None and not tbl_df.empty
+                else set()
+            )
     except Exception:
         tables = set()
+    finally:
+        if conn is not None:
+            conn.close()
 
     try:
         from utils.cache import system_cache
