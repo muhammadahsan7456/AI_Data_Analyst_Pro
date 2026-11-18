@@ -62,7 +62,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
 
     <!-- Landing Page CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v9">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v10">
 
     {% block extra_css %}{% endblock %}
 
@@ -268,8 +268,8 @@
     <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
 
     <!-- The decorative Three.js background and vanilla-tilt are not needed by the home
-         page's lightweight SVG preview. Load them only on pages that use those effects;
-         animations.js remains shared for counters, reveals, and typed text. -->
+         page's SVG preview or the auth forms. animations.js remains shared for counters,
+         reveals, and typed text. -->
     <script>
         (function loadDeferredHeavyScripts() {
             function loadScript(src, onload) {
@@ -280,7 +280,7 @@
                 document.body.appendChild(s);
             }
             function start() {
-                if (!document.querySelector('.home-analyst-hero')) {
+                if (!document.querySelector('.home-analyst-hero, .auth-luxury-page')) {
                     loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
                     loadScript('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js');
                 }

@@ -107,4 +107,13 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ### Next
 
-Group 4: redesign and test the login, registration, OTP, and forgot-password pages.
+### Group 4 — Authentication pages
+
+- Added a quieter, theme-aware form treatment with a subtle grid, defined borders, restrained focus states, and consistent control sizing. Updated OTP digit inputs, reset-password controls, and the OTP animation overlay; the overlay now defines its own theme accent because it renders outside the auth-page wrapper.
+- Verified login, registration, forgot-password, and reset-password routes in Playwright at 360, 390, and 768 px in both light and dark themes (24 route/theme/viewport combinations). Cards and visible controls remained within the viewport, with no horizontal page overflow. Login password visibility toggle worked; no browser console or page errors occurred. The pages no longer load Three.js or vanilla-tilt.
+- OTP requires a pending session and the unauthenticated route redirects to login. OTP styling is implemented, but was not rendered through the live route because creating the session would require entering the email/OTP flow; no email was sent during QA. Reset-password page itself rendered on the isolated server.
+- Preserved the pre-existing signup template changes and unrelated OAuth stylesheet hunk; neither is part of this group.
+
+### Next
+
+Group 5: redesign the dashboard shell and KPI cards, then verify both themes and responsive layouts before committing.
