@@ -64,14 +64,16 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - Review creation previously attempted its audit-log insert before the review transaction committed, causing SQLite `database is locked` warnings. The audit write now occurs after the primary transaction commits. Database/query tests: **8 passed** (Python 3.12 reports sqlite datetime-adapter deprecation warnings; assertions pass).
 - Profile/public-page group passed over authenticated and anonymous HTTP sessions. `/auth/profile` saved a company name on a new profile and updated it on a second save; a PNG company logo was stored, rendered, and fetched with HTTP 200. `/docs`, `/faq`, `/about`, and `/help` all returned HTTP 200 and rendered the public landing shell anonymously and the dashboard sidebar for the logged-in user.
 - Fixed the profile insert/update blocker: the previous `IF EXISTS ... BEGIN/END` T-SQL upsert was invalid in SQLite. The profile route now performs a portable existence check and calls separate parameterized insert/update queries. Added a regression test for both query paths; targeted database tests: **9 passed**.
+- Theme/responsive group passed in Playwright on the isolated server. Login, signup, OTP verification, and forgot-password pages had no horizontal overflow at 360, 390, or 768 px in either theme. Dashboard also had no overflow at those widths; its mobile sidebar opened and closed through the backdrop at each width. Theme buttons changed and persisted the selected theme. Representative dashboard text and search-placeholder contrast measured at least **7.24:1**; auth form placeholder contrast measured at least **6.84:1** in dark mode and **9.9:1** in light mode.
+- Fixed auth form placeholder contrast: the landing shell did not define placeholder colors, so browsers used low-contrast defaults. Auth placeholders now use the existing theme variables with full opacity, and the landing stylesheet URL version was bumped so clients receive the fix. Rechecked the served v2 stylesheet and all auth pages; no browser console or page errors occurred.
 
 ### Incomplete / not verified
 
 - The existing Selenium suite stalled (the full run stopped after 13 tests; a targeted run also hung). It was stopped rather than reported as passing. The browser request-context link-crawl helper also failed with a browser-protocol `Storage.getCookies` error, so link checks used direct HTTP smoke requests instead.
 - The remaining authenticated user forms and other profile/security settings were not included in the profile/public-page group. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
-- Mobile widths, theme contrast, and the redesigned UI have not been tested; the redesign has not started because Phase 3 is not green.
+- Theme contrast and mobile widths for auth/dashboard pages passed; the UI redesign has not started because the internal-link crawl remains incomplete.
 - Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
 
 ### Next
 
-Continue with group 7: verify light/dark theme rendering and responsive auth/dashboard layouts at 360, 390, and 768 px. No UI redesign has started.
+Continue with group 8: crawl internal links and check for 404/server errors. Do not start the UI redesign until the crawl and final regression are green.
