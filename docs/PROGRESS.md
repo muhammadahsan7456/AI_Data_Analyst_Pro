@@ -62,14 +62,16 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - Admin/login/pages group passed through the isolated HTTP server. Super Admin password + mocked OTP sign-in succeeded; `/admin/dashboard`, `/admin/users`, `/admin/payments`, `/admin/audit-logs`, `/admin/settings`, `/admin/subscribers`, `/admin/contact-messages`, and `/admin/reviews` all returned HTTP 200. Review create, hide/show (confirmed on `/testimonials`), edit, and delete all persisted correctly.
 - Fixed the dashboard and users-page SQL failures: SQLite translation now handles nested `TOP 1`, `DATEADD` with bound date parameters, and SQL Server `FORMAT(..., 'yyyy-MM')`; the user search query uses a correlated scalar subquery instead of SQL Server-only `OUTER APPLY`. Added SQLite `PaymentSettings` schema/defaults with blank account details for isolated QA.
 - Review creation previously attempted its audit-log insert before the review transaction committed, causing SQLite `database is locked` warnings. The audit write now occurs after the primary transaction commits. Database/query tests: **8 passed** (Python 3.12 reports sqlite datetime-adapter deprecation warnings; assertions pass).
+- Profile/public-page group passed over authenticated and anonymous HTTP sessions. `/auth/profile` saved a company name on a new profile and updated it on a second save; a PNG company logo was stored, rendered, and fetched with HTTP 200. `/docs`, `/faq`, `/about`, and `/help` all returned HTTP 200 and rendered the public landing shell anonymously and the dashboard sidebar for the logged-in user.
+- Fixed the profile insert/update blocker: the previous `IF EXISTS ... BEGIN/END` T-SQL upsert was invalid in SQLite. The profile route now performs a portable existence check and calls separate parameterized insert/update queries. Added a regression test for both query paths; targeted database tests: **9 passed**.
 
 ### Incomplete / not verified
 
 - The existing Selenium suite stalled (the full run stopped after 13 tests; a targeted run also hung). It was stopped rather than reported as passing. The browser request-context link-crawl helper also failed with a browser-protocol `Storage.getCookies` error, so link checks used direct HTTP smoke requests instead.
-- The isolated HTTP QA did not yet verify profile/company/logo or the remaining authenticated user forms. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
+- The remaining authenticated user forms and other profile/security settings were not included in the profile/public-page group. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
 - Mobile widths, theme contrast, and the redesigned UI have not been tested; the redesign has not started because Phase 3 is not green.
 - Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
 
 ### Next
 
-Continue with group 6: verify profile company-name/logo updates and docs/FAQ/About/Help layouts for logged-in and anonymous users.
+Continue with group 7: verify light/dark theme rendering and responsive auth/dashboard layouts at 360, 390, and 768 px. No UI redesign has started.

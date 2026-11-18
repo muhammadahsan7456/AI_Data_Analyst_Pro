@@ -200,3 +200,50 @@ def test_sqlite_adapter_supports_admin_dashboard_monthly_trends(tmp_path):
 
     assert revenue == [("2024-01", 1499.0)]
     assert signups == [("2024-01", 1)]
+
+
+def test_sqlite_user_profile_queries_insert_and_update(tmp_path):
+    conn = connection.SQLiteConnectionAdapter(str(tmp_path / "profile.sqlite"))
+    connection.init_sqlite_db(conn)
+    cursor = conn.cursor()
+    initial_values = (
+        9,
+        "Initial bio",
+        "Analyst",
+        "Initial Company",
+        "Data",
+        "Analyst",
+        "",
+        "",
+        "",
+        "",
+        "UTC",
+        "en",
+    )
+    cursor.execute(queries.insert_user_profile_details(), initial_values)
+    cursor.execute(
+        queries.update_user_profile_details(),
+        (
+            "Updated bio",
+            "Senior Analyst",
+            "Updated Company",
+            "Research",
+            "Lead",
+            "",
+            "",
+            "",
+            "",
+            "UTC",
+            "en",
+            9,
+        ),
+    )
+    cursor.execute(
+        "SELECT Bio, Occupation, Company FROM UserProfiles WHERE UserID = ?",
+        (9,),
+    )
+    profile = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    assert profile == ("Updated bio", "Senior Analyst", "Updated Company")

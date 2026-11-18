@@ -50,6 +50,8 @@ from database.queries import (
     increment_failed_login,
     reset_failed_login,
     get_user_profile,
+    update_user_profile_details,
+    insert_user_profile_details,
     upsert_user_profile,
     set_user_company_on_signup,
     get_user_settings,
@@ -1504,13 +1506,21 @@ def profile():
                 if avatar_path:
                     cursor.execute(update_user_avatar(), (avatar_path, user_id))
 
-                cursor.execute(
-                    upsert_user_profile(),
-                    (
-                        user_id, bio, occupation, company, department, designation, website, linkedin, github, portfolio, timezone, language, user_id,
-                        user_id, bio, occupation, company, department, designation, website, linkedin, github, portfolio, timezone, language
-                    )
+                profile_values = (
+                    bio, occupation, company, department, designation, website, linkedin,
+                    github, portfolio, timezone, language
                 )
+                cursor.execute("SELECT 1 FROM UserProfiles WHERE UserID = ?", (user_id,))
+                if cursor.fetchone():
+                    cursor.execute(
+                        update_user_profile_details(),
+                        (*profile_values, user_id),
+                    )
+                else:
+                    cursor.execute(
+                        insert_user_profile_details(),
+                        (user_id, *profile_values),
+                    )
 
             session["user_name"] = full_name
             log_audit_event("PROFILE_UPDATE", "User profile updated.", user_id=user_id)

@@ -115,6 +115,21 @@ def get_user_profile():
     """
 
 
+def update_user_profile_details():
+    return """
+    UPDATE UserProfiles
+    SET Bio = ?, Occupation = ?, Company = ?, Department = ?, Designation = ?, Website = ?, LinkedIn = ?, GitHub = ?, Portfolio = ?, Timezone = ?, Language = ?, UpdatedAt = GETDATE()
+    WHERE UserID = ?
+    """
+
+
+def insert_user_profile_details():
+    return """
+    INSERT INTO UserProfiles (UserID, Bio, Occupation, Company, Department, Designation, Website, LinkedIn, GitHub, Portfolio, Timezone, Language, UpdatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+    """
+
+
 def set_user_company_on_signup():
     return """
     IF EXISTS (SELECT 1 FROM UserProfiles WHERE UserID = ?)
