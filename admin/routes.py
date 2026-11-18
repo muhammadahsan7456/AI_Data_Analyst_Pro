@@ -1681,12 +1681,14 @@ def save_review():
         with get_db_cursor(commit=True) as cursor:
             if review_id:
                 cursor.execute(update_review(), (name, role, text, rating, display_order, review_id))
-                log_audit_event("ADMIN_REVIEW_UPDATED", f"Updated review #{review_id} ({name})", user_id=admin_id)
-                flash(f"Review by '{name}' updated successfully.", "success")
             else:
                 cursor.execute(create_review(), (name, role, text, rating, 1, display_order))
-                log_audit_event("ADMIN_REVIEW_CREATED", f"Created new review by {name}", user_id=admin_id)
-                flash(f"Review by '{name}' added successfully and is now live on the public Reviews page.", "success")
+        if review_id:
+            log_audit_event("ADMIN_REVIEW_UPDATED", f"Updated review #{review_id} ({name})", user_id=admin_id)
+            flash(f"Review by '{name}' updated successfully.", "success")
+        else:
+            log_audit_event("ADMIN_REVIEW_CREATED", f"Created new review by {name}", user_id=admin_id)
+            flash(f"Review by '{name}' added successfully and is now live on the public Reviews page.", "success")
     except Exception as e:
         print("Save Review Error:", e)
         flash(f"Failed to save review: {str(e)}", "error")

@@ -78,6 +78,15 @@ def adapt_tsql_for_sqlite(query: str) -> str:
     s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
     s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
     s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
+    s = re.sub(
+        r"\(\s*SELECT\s+TOP\s+\(?(\d+)\)?\s+(.*?)\s+ORDER\s+BY\s+([^)]*)\)",
+        lambda match: (
+            f"(SELECT {match.group(2)} ORDER BY {match.group(3).strip()} "
+            f"LIMIT {match.group(1)})"
+        ),
+        s,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
 
     # Transform SELECT TOP N ... -> SELECT ... LIMIT N
     top_match = re.search(r"\bSELECT\s+TOP\s+\(?(\d+)\)?\s+", s, flags=re.IGNORECASE)
@@ -91,6 +100,21 @@ def adapt_tsql_for_sqlite(query: str) -> str:
                 s = s[:-1].strip() + f" LIMIT {limit_val};"
             else:
                 s = s + f" LIMIT {limit_val}"
+
+    s = re.sub(
+        r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(\?|[A-Za-z_][\w.]*)\s*\)",
+        lambda match: (
+            f"DATEADD('{match.group(1)}', {match.group(2)}, {match.group(3)})"
+        ),
+        s,
+        flags=re.IGNORECASE,
+    )
+    s = re.sub(
+        r"FORMAT\s*\(\s*([A-Za-z_][\w.]*)\s*,\s*'yyyy-MM'\s*\)",
+        r"strftime('%Y-%m', \1)",
+        s,
+        flags=re.IGNORECASE,
+    )
 
     s = re.sub(
         r"\bOFFSET\s+(\d+)\s+ROWS?\s+FETCH\s+NEXT\s+(\d+)\s+ROWS?\s+ONLY\b",
@@ -470,6 +494,20 @@ def init_sqlite_db(conn):
             IsEnabled INTEGER NOT NULL DEFAULT 0,
             UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''',
+        '''CREATE TABLE IF NOT EXISTS PaymentSettings (
+            SettingID INTEGER PRIMARY KEY AUTOINCREMENT,
+            PlanName TEXT NOT NULL DEFAULT 'Pro Plan',
+            PlanPriceLabel TEXT NOT NULL DEFAULT 'PKR 1,499 / month',
+            AccountTitle TEXT NOT NULL DEFAULT '',
+            BankName TEXT,
+            AccountNumber TEXT,
+            IBAN TEXT,
+            JazzCashNumber TEXT,
+            EasypaisaNumber TEXT,
+            SadaPayNumber TEXT,
+            Instructions TEXT,
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
         '''CREATE TABLE IF NOT EXISTS NewsletterSubscribers (
             SubscriberID INTEGER PRIMARY KEY AUTOINCREMENT,
             Email TEXT NOT NULL UNIQUE,
@@ -552,6 +590,17 @@ def init_sqlite_db(conn):
             cursor.execute(t)
         except Exception as e:
             print("SQLite Table Creation Notice:", e)
+
+    cursor.execute("PRAGMA table_info(PaymentSettings)")
+    payment_settings_cols = {row[1] for row in cursor.fetchall()}
+    if "SadaPayNumber" not in payment_settings_cols:
+        cursor.execute("ALTER TABLE PaymentSettings ADD COLUMN SadaPayNumber TEXT")
+    cursor.execute("SELECT COUNT(*) FROM PaymentSettings")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO PaymentSettings (PlanName, PlanPriceLabel, AccountTitle) "
+            "VALUES ('Pro Plan', 'PKR 1,499 / month', '')"
+        )
 
     cursor.execute("PRAGMA table_info(Users)")
     user_cols = {row[1] for row in cursor.fetchall()}

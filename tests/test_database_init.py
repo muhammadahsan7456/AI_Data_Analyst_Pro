@@ -1,8 +1,10 @@
+from datetime import datetime
 import sqlite3
 
 import pytest
 
 import database.connection as connection
+import database.queries as queries
 
 
 def test_failed_db_connection_does_not_mark_initialization_complete(monkeypatch):
@@ -93,6 +95,9 @@ def test_sqlite_init_adds_payment_review_columns_and_site_announcement(tmp_path)
     announcement_exists = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'SiteAnnouncement'"
     ).fetchone()
+    payment_settings = conn.execute(
+        "SELECT PlanName, PlanPriceLabel, AccountTitle FROM PaymentSettings"
+    ).fetchone()
     conn.close()
 
     assert {
@@ -104,6 +109,7 @@ def test_sqlite_init_adds_payment_review_columns_and_site_announcement(tmp_path)
     }.issubset(payment_columns)
     assert payment == ("New", None, None, None)
     assert announcement_exists == (1,)
+    assert payment_settings == ("Pro Plan", "PKR 1,499 / month", "")
 
 
 def test_sqlite_adapter_translates_offset_fetch_pagination(tmp_path):
@@ -136,3 +142,61 @@ def test_sqlite_adapter_dateadd_clamps_month_end(tmp_path):
     conn.close()
 
     assert result == "2024-02-29"
+
+
+def test_sqlite_adapter_handles_nested_top_for_admin_users(tmp_path):
+    conn = connection.SQLiteConnectionAdapter(str(tmp_path / "admin-users.sqlite"))
+    cursor = conn.cursor()
+    cursor.execute(
+        "CREATE TABLE Users (UserID INTEGER, FirstName TEXT, LastName TEXT, Username TEXT, "
+        "FullName TEXT, Email TEXT, PhoneNumber TEXT, Country TEXT, City TEXT, ProfileImage TEXT, "
+        "IsActive INTEGER, IsVerified INTEGER, Role TEXT, CreatedAt TEXT, SubscriptionStatus TEXT, "
+        "SubscriptionEndDate TEXT)"
+    )
+    cursor.execute(
+        "CREATE TABLE AuditLogs (UserID INTEGER, IPAddress TEXT, CreatedAt TEXT)"
+    )
+    cursor.execute(
+        "INSERT INTO Users (UserID, FullName, Email, IsActive, IsVerified, Role, CreatedAt, "
+        "SubscriptionStatus) VALUES (1, 'QA Admin View', 'qa@example.invalid', 1, 1, "
+        "'Analyst', '2024-01-15', 'free')"
+    )
+    cursor.execute(
+        "INSERT INTO AuditLogs (UserID, IPAddress, CreatedAt) VALUES (1, '192.0.2.1', '2024-01-15')"
+    )
+
+    cursor.execute(queries.get_all_users_admin(limit=5))
+    recent_rows = cursor.fetchall()
+    cursor.execute(queries.search_users_admin(page=1, per_page=5))
+    paginated_rows = cursor.fetchall()
+    cursor.execute(queries.count_users_admin())
+    total_users = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+
+    assert len(recent_rows) == 1
+    assert recent_rows[0][14] == "192.0.2.1"
+    assert len(paginated_rows) == 1
+    assert paginated_rows[0][14] == "192.0.2.1"
+    assert total_users == 1
+
+
+def test_sqlite_adapter_supports_admin_dashboard_monthly_trends(tmp_path):
+    conn = connection.SQLiteConnectionAdapter(str(tmp_path / "admin-trends.sqlite"))
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE Payments (Status TEXT, PaymentDate TEXT, Amount REAL)")
+    cursor.execute("INSERT INTO Payments VALUES ('Completed', '2024-01-15 12:00:00', 1499)")
+    cursor.execute("CREATE TABLE Users (CreatedAt TEXT)")
+    cursor.execute("INSERT INTO Users VALUES ('2024-01-15 12:00:00')")
+    start = datetime(2024, 1, 1)
+    end = datetime(2024, 1, 31)
+
+    cursor.execute(queries.get_monthly_revenue_trend(), (start, end))
+    revenue = cursor.fetchall()
+    cursor.execute(queries.get_monthly_signups_trend(), (start, end))
+    signups = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    assert revenue == [("2024-01", 1499.0)]
+    assert signups == [("2024-01", 1)]
