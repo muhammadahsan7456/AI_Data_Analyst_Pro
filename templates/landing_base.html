@@ -62,7 +62,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
 
     <!-- Landing Page CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v6">
 
     {% block extra_css %}{% endblock %}
 
@@ -97,27 +97,30 @@
     <!-- Animated Background Canvas -->
     <canvas id="hero-3d-canvas" class="hero-bg-canvas"></canvas>
 
-    <!-- Glassmorphic Navbar -->
+    <!-- Public Navigation -->
     <header class="site-header" id="site-header">
         <div class="container">
             <nav class="nav-inner">
                 <a href="{{ url_for('frontend.home') }}" class="brand-logo" id="brand-logo">
                     <div class="brand-icon-box">
-                        <i class="fa-solid fa-brain"></i>
+                        <i class="fa-solid fa-chart-line"></i>
                     </div>
                     <span>{{ site_config.BRAND_NAME }}</span>
                 </a>
 
-                <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="toggleMobileNav()"></div>
+                <div class="mobile-nav-overlay" id="mobile-nav-overlay" aria-hidden="true" onclick="toggleMobileNav(false)"></div>
 
                 <ul class="nav-links" id="nav-menu">
                     <li class="nav-drawer-header">
-                        <button class="nav-drawer-close" onclick="toggleMobileNav()" aria-label="Close Menu">
+                        <button class="nav-drawer-close" type="button" onclick="toggleMobileNav(false)" aria-label="Close Menu">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </li>
                     {% if not is_logged_in %}
                     <li class="nav-mobile-signin-item"><a href="{{ url_for('auth.login') }}" class="nav-link-item">Sign In</a></li>
+                    <li class="nav-mobile-register-item"><a href="{{ url_for('auth.register') }}" class="nav-link-item">Register</a></li>
+                    {% else %}
+                    <li class="nav-mobile-dashboard-item"><a href="{{ url_for('frontend.dashboard') }}" class="nav-link-item">Dashboard</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('frontend.home') }}" class="nav-link-item {% if request.endpoint == 'frontend.home' %}active{% endif %}">Home</a></li>
                     <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.features_page' %}active{% endif %}">Features</a></li>
@@ -142,7 +145,7 @@
                     <a href="{{ url_for('auth.register') }}" class="btn-nav-register" id="nav-register-btn">Register</a>
                     {% endif %}
 
-                    <button class="mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle Navigation">
+                    <button class="mobile-toggle" type="button" onclick="toggleMobileNav()" aria-label="Toggle Navigation" aria-controls="nav-menu" aria-expanded="false">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                 </div>
@@ -179,19 +182,18 @@
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </div>
 
-    <!-- Premium Footer -->
-    <!-- Premium Luxury Footer -->
+    <!-- Site Footer -->
     <footer class="site-footer">
         <div class="container">
             <div class="footer-grid">
                 <div class="footer-brand-col">
                     <a href="{{ url_for('frontend.home') }}" class="footer-brand">
-                        <div class="brand-icon-box"><i class="fa-solid fa-brain"></i></div>
+                        <div class="brand-icon-box"><i class="fa-solid fa-chart-line"></i></div>
                         <span>{{ site_config.BRAND_NAME }}</span>
                     </a>
-                    <p class="footer-desc">Enterprise-grade AI data analysis platform with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice querying, and automated executive reports.</p>
+                    <p class="footer-desc">Upload CSV or Excel files, ask questions in plain language, inspect charts, and export reports.</p>
                     <div class="footer-enterprise-badge">
-                        <span class="pulse-dot"></span> Production-Ready v2.5 Enterprise
+                        <span class="pulse-dot" aria-hidden="true"></span> CSV · Excel · PDF · Word · PowerPoint exports
                     </div>
                     <div class="footer-social">
                         <a href="https://www.linkedin.com/in/muhammad-ahsan-125b03252/" target="_blank" rel="noopener" class="footer-social-link" aria-label="LinkedIn" title="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
@@ -232,7 +234,7 @@
 
                 <div class="footer-newsletter-col">
                     <h4>Stay Updated</h4>
-                    <p>Get enterprise updates, new AI analytical features, and quarterly briefings.</p>
+                    <p>Get release notes and practical examples for working with your data.</p>
                     <form class="footer-newsletter-form" onsubmit="handleSubscribe(event)">
                         <input type="email" id="newsletter-email-input" placeholder="corporate@company.com" required autocomplete="email">
                         <button type="submit" id="newsletter-submit-btn" title="Subscribe"><i class="fa-solid fa-paper-plane"></i></button>
@@ -242,7 +244,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2026 AI Data Analyst Pro. All rights reserved. Enterprise AI Intelligence Platform.</p>
+                <p>&copy; 2026 AI Data Analyst Pro. Built for questions about your data.</p>
                 <div class="footer-bottom-links">
                     <a href="{{ url_for('frontend.privacy') }}">Privacy</a>
                     <span class="footer-dot">•</span>
@@ -296,7 +298,7 @@
                 // (confirmed live: "initTypedText is not defined"). Dispatching this event
                 // once animations.js has actually finished loading gives those callers a
                 // real signal to wait on instead of assuming a fixed load order.
-                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=2', function () {
+                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=3', function () {
                     window.dispatchEvent(new Event('animationsEngineReady'));
                 });
             }
@@ -311,11 +313,44 @@
     {% block extra_js %}{% endblock %}
 
     <script>
-        function toggleMobileNav() {
-            document.getElementById('nav-menu').classList.toggle('mobile-open');
-            document.getElementById('mobile-nav-overlay').classList.toggle('mobile-open');
-            document.body.classList.toggle('mobile-nav-locked');
+        function toggleMobileNav(forceOpen) {
+            const nav = document.getElementById('nav-menu');
+            const overlay = document.getElementById('mobile-nav-overlay');
+            const toggle = document.querySelector('.mobile-toggle');
+            if (!nav || !overlay) return;
+
+            const wasOpen = nav.classList.contains('mobile-open');
+            const shouldOpen = typeof forceOpen === 'boolean'
+                ? forceOpen
+                : !wasOpen;
+            nav.classList.toggle('mobile-open', shouldOpen);
+            overlay.classList.toggle('mobile-open', shouldOpen);
+            document.body.classList.toggle('mobile-nav-locked', shouldOpen);
+            if (toggle) toggle.setAttribute('aria-expanded', String(shouldOpen));
+            if (shouldOpen) {
+                const close = nav.querySelector('.nav-drawer-close');
+                if (close) close.focus();
+            } else if (wasOpen && toggle) {
+                toggle.focus();
+            }
         }
+
+        document.addEventListener('keydown', function (event) {
+            const nav = document.getElementById('nav-menu');
+            if (event.key === 'Escape' && nav && nav.classList.contains('mobile-open')) {
+                toggleMobileNav(false);
+                const toggle = document.querySelector('.mobile-toggle');
+                if (toggle) toggle.focus();
+            }
+        });
+
+        document.querySelectorAll('#nav-menu a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                const nav = document.getElementById('nav-menu');
+                if (nav && nav.classList.contains('mobile-open')) toggleMobileNav(false);
+            });
+        });
+
         function handleSubscribe(e) {
             e.preventDefault();
             const btn = document.getElementById('newsletter-submit-btn');

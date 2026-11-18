@@ -88,4 +88,13 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ### Next
 
-Group 2: redesign and test the public header, footer, and mobile navigation, preserving existing route, element, and JavaScript contracts.
+### Group 2 — Public header, footer, and mobile navigation
+
+- Reworked the public header/footer with theme variables, clearer focus states, and a compact mobile drawer. Added mobile drawer entries for Register and Dashboard while hiding the wide header CTAs at mobile widths, so those destinations remain accessible without clipping.
+- Playwright checked the anonymous public shell at 360, 390, 768, 1024, and 1440 px in both themes. No document/header overflow or overlap was detected. Footer description/link contrast measured **9.42:1** in light mode and **11.17:1** in dark mode.
+- Verified the mobile drawer opens with synchronized `aria-expanded`, overlay, and body-lock state; Escape closes it and restores focus; clicking the overlay closes it; and the drawer Register link loads `/auth/register`. No page errors were observed during these checks.
+- Authenticated header rendering was not rechecked in this group; the browser QA session was anonymous. The existing dashboard destination remains available through the added authenticated drawer item.
+
+### Next
+
+Group 3: redesign the home page hero and sections, then test responsive layout and interactions before moving to auth pages.
