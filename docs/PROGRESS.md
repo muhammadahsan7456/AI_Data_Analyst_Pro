@@ -105,8 +105,6 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - The demo and registration CTAs returned HTTP 200. The video modal opened and closed correctly; its media request was deliberately aborted during QA to avoid downloading the large video. Authenticated home-page rendering was not rechecked.
 - Kept the shared counters, reveals, and typed-text animation while skipping Three.js and vanilla-tilt downloads on the redesigned home page. Browser request inspection confirmed neither heavy CDN library was requested, the local animation engine initialized, and the typed example continued to render.
 
-### Next
-
 ### Group 4 — Authentication pages
 
 - Added a quieter, theme-aware form treatment with a subtle grid, defined borders, restrained focus states, and consistent control sizing. Updated OTP digit inputs, reset-password controls, and the OTP animation overlay; the overlay now defines its own theme accent because it renders outside the auth-page wrapper.
@@ -114,6 +112,14 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - OTP requires a pending session and the unauthenticated route redirects to login. OTP styling is implemented, but was not rendered through the live route because creating the session would require entering the email/OTP flow; no email was sent during QA. Reset-password page itself rendered on the isolated server.
 - Preserved the pre-existing signup template changes and unrelated OAuth stylesheet hunk; neither is part of this group.
 
+### Group 5 — Dashboard shell and KPI cards
+
+- Replaced the generic dashboard heading with a concrete workspace summary; added a low-contrast graph-paper canvas, a calmer sidebar active state, a cleaned-up smart-search panel, and six compact KPI cards with supporting descriptions. Payment and privacy notices now use theme variables rather than hardcoded gradients and colors.
+- Kept existing dashboard metric classes and smart-search IDs, and added styling classes only. Jinja parsing passed for `dashboard.html` and `base.html`.
+- Playwright checked the dashboard shell/KPI layout using a local fixture with the actual app stylesheet at 360, 390, 768, 1024, and 1440 px in both themes. There was no horizontal overflow; KPI layout was two columns through tablet and three on desktop. Text contrast measured 14.75:1/13.24:1 for KPI values, 4.95:1/6.50:1 for captions, and 4.89:1/5.82:1 for pending status (light/dark). No browser errors were observed.
+- The protected `/dashboard` route correctly redirected to login in the isolated server because no authenticated QA account was available in this browser session. Therefore the live, data-backed dashboard was not rendered; no email was sent and no database records were changed.
+- Preserved the pre-existing `.env.example`, `docker-compose.yml`, signup template, and OAuth stylesheet changes; they are outside these groups.
+
 ### Next
 
-Group 5: redesign the dashboard shell and KPI cards, then verify both themes and responsive layouts before committing.
+Group 6: redesign the chat page, then verify the key chat interactions and responsive layouts.
