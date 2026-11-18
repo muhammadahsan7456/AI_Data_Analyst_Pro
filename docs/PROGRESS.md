@@ -49,6 +49,7 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - Ask AI group passed using five authenticated HTTP questions with a mocked analysis result (no live AI calls): region sales → bar, monthly trend → line, product ranking → horizontal bar, units/revenue relationship → scatter, and order status → pie. Each result had non-empty, length-matched labels/values and the chat HTML included its interactive chart container/spec.
 - Root cause found while testing: SQLite table discovery used only SQL Server `INFORMATION_SCHEMA`, so uploaded SQLite datasets were incorrectly reported as missing in `/chat`. Added `sqlite_master` discovery and regression coverage.
 - Chart generation also overrode suitable chart selections: grouped trends/regions were forced to pie charts, and two-numeric-column relationships became bar charts of unrelated averages. Specs now follow the chart selector for grouped results and use paired numeric values for scatter points. SQLite and chart regression tests: **8 passed**.
+- Export group passed over authenticated HTTP from the isolated 120-row test dataset. CSV (**5,686 bytes**, expected headers and 120 data rows), Excel (**9,780 bytes**, valid ZIP with workbook XML), PDF (**115,462 bytes**, PDF signature/EOF), Word (**128,219 bytes**, valid ZIP with document XML), and PowerPoint (**136,163 bytes**, valid ZIP with presentation XML) all returned HTTP 200 with the expected MIME type and valid file structure.
 - Fixed an SQLite schema gap: existing `Users` tables now receive missing subscription columns during initialization. A regression test verifies the columns are added without losing the existing user row.
 - Found a second OTP resend failure mode: database errors during rate-limit checks or token persistence were silently ignored, allowing sends to bypass the rate limit or present a code that could not be verified. Resend now fails closed, persists the replacement token and invalidates the old token in one transaction before sending, and logs persistence failures. Added tests for normal resend, failed rate-limit lookup, and failed token persistence.
 - Replaced silent catches for dashboard metric/notification queries and related auth side effects with server-side logging. Malformed notification metadata now logs a warning rather than silently disappearing.
@@ -59,10 +60,10 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 ### Incomplete / not verified
 
 - The existing Selenium suite stalled (the full run stopped after 13 tests; a targeted run also hung). It was stopped rather than reported as passing. The browser request-context link-crawl helper also failed with a browser-protocol `Storage.getCookies` error, so link checks used direct HTTP smoke requests instead.
-- The isolated HTTP QA did not yet verify exports, payment approval/rejection, profile/company/logo, review/audit/settings interactions, admin operational flows, or the remaining authenticated forms. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
+- The isolated HTTP QA did not yet verify payment approval/rejection, profile/company/logo, review/audit/settings interactions, admin operational flows, or the remaining authenticated forms. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
 - Mobile widths, theme contrast, and the redesigned UI have not been tested; the redesign has not started because Phase 3 is not green.
 - Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
 
 ### Next
 
-Continue with group 3: verify CSV, Excel, PDF, Word, and PowerPoint exports from an isolated uploaded dataset, fixing confirmed failures before payment flow checks.
+Continue with group 4: submit payment proof and exercise admin approve/reject paths, including SadaPay, EasyPaisa, and NayaPay selection, before moving on to admin login/reviews.
