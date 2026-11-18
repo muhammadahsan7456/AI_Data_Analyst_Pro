@@ -168,5 +168,42 @@ Tests: `tests/test_google_oauth.py` (9 tests, real auth blueprint on a temp SQLi
 
 Not verifiable here: a real Google round-trip and the SQL Server execution of the new statements (both need the deployed app).
 
-### Next
-R-Phase 3: monochrome design system.
+## R-Phase 3 — Black-and-white design system
+
+**Status:** Core pass committed; remaining items listed below.
+
+- Tokens (`static/css/style.css`, `landing.css`, `admin/base_admin.html`) and a last-loaded `static/css/mono.css`: type scale, surfaces, buttons, forms, focus rings, tables, badges, alerts, nav, icon tiles, mobile drawer, `prefers-reduced-motion`, print. Light/dark via `data-theme` (`static/js/theme.js`).
+- Self-hosted Inter and JetBrains Mono (`static/fonts/`, SIL OFL, `static/css/fonts.css`); Outfit/Space Grotesk aliased to Inter so no template change was needed.
+- Gradients and decorative orbs removed; ~244 emoji removed from templates, Python and JS (Font Awesome icons in toasts, theme toggle, flashes).
+- Charts monochrome: Plotly specs (`visualization/chart_generator.py`, `visualization/charts.py`), Chart.js defaults.
+- Copy corrected: "AES-256" → Fernet (AES-128-CBC + HMAC-SHA256) in 17 files; homepage "10M+ rows / 256-bit / 97.9% uptime" stats replaced with verifiable facts (1 MB free, 500 MB Pro, 7 formats, 2 languages).
+- `utils/encryption.py`: no longer generates a key and appends it to `.env` at runtime; a missing/invalid `DATASET_ENCRYPTION_KEY` disables encryption with an error log instead of producing ciphertext nobody can decrypt.
+- Checks: `node --check` on every `static/js/*.js`; `compileall`; screenshots at 1440 and 360 for public, portal and admin pages showed no horizontal overflow.
+
+Remaining: inline gradients in `auth/signup.html`, `pricing_page.html`, `features.html`; `auth/email_service.py` email colours; full re-audit of `dashboard.html` and `dataset_*`.
+
+## R-Phase 6 — Ask AI accuracy and guardrails (started early)
+
+QA battery (`execute_multi_concept_analysis`, the same call `/chat` makes) on a 6,000-row sales CSV, each answer compared with pandas on the source file. No OpenRouter key in QA, so only the deterministic layers ran.
+
+| | Before | After |
+|---|---|---|
+| In-scope answers correct | 8 / 17 | 17 / 17 |
+| Off-topic refused | 6 / 10 | 10 / 10 |
+| Missing column / value reported honestly | 0 / 2 | 2 / 2 |
+
+Root causes (`ai/gemini.py` unless noted):
+1. When neither the pattern engine nor the LLM produced SQL, the code ran `SELECT TOP 50 *` and showed those rows as the answer. Same after failed repairs. Now a plain "couldn't match that question to your columns" message.
+2. The LLM's own "unrelated to the dataset" verdict was replaced with `SELECT TOP 50 *`. Now it is a refusal.
+3. "How many records are there?" returned 10 rows; pure count now checked before the plan engine.
+4. "total shipping cost by region" silently summed `UnitPrice`. Now: "There is no 'shipping cost' column", with the real numeric columns listed.
+5. Grouped comparisons ("compare profit of North and South") returned numbers without the group labels.
+6. "monthly sales trend" returned the raw Sales column; now grouped by month of the date column.
+7. Close misspellings of column names ("totl sales by regon") now corrected before planning.
+8. Guardrail: Roman Urdu particles ("me", "se", "ka", "do") counted as data words, so most off-topic sentences passed; "who is the top customer" was refused. Rewritten: off-topic subjects (weather/mausam, crypto, movies, news, recipes…) refused unless a column is named; data questions accepted on column names, dataset values, or analytic words (incl. kitne, zyada, batao, dikhao).
+9. `ai/schema_intelligence.py`: labels like "Customer 0369" were classified numeric (all non-digits stripped), so they were offered as metrics.
+10. QA-only (`database/connection.py`, SQLite adapter): nested `SELECT TOP` subqueries, `TRY_CAST`, `NVARCHAR(MAX)`, `CAST(.. AS DATE)`, `YEAR()/MONTH()` were not translated, which had hidden bugs 1–9 behind SQL errors. Production SQL Server is unaffected by this adapter.
+
+Server hard timeout: `/chat` already caps the pipeline at 25 s (`ASK_AI_TIMEOUT_SECONDS`) and returns a clear message.
+Tests: `tests/test_ask_ai_guardrails.py` (30). Non-Selenium suite: 69 passed.
+Not verified: the LLM path (needs `OPENROUTER_API_KEY`) and these queries on SQL Server.

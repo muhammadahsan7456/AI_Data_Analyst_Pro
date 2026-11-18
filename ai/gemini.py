@@ -51,7 +51,11 @@ if api_key:
         client = None
 
 
-UNRELATED_MESSAGE = "I’m designed to analyze your uploaded dataset. Please ask a question related to the available data, such as customer records, companies, locations, dates, counts, trends, or other dataset fields."
+UNRELATED_MESSAGE = "I'm designed to analyze your uploaded dataset only. Please ask me a question about your data (for example totals, trends, comparisons, or top items) and I'll answer it."
+
+# Shown when no layer could turn a data question into a query. Previously the code fell
+# back to "SELECT TOP 50 *" and presented those rows as if they answered the question.
+NOT_UNDERSTOOD_MESSAGE = "I couldn't match that question to the columns in this dataset. Try naming a column or value, for example \"total {metric} by {group}\"."
 
 # Sentinel prefix used the same way as UNRELATED_MESSAGE: fast_pattern_sql_generator()
 # returns it in place of real SQL when the query plan flagged something in the question
@@ -132,16 +136,16 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
         total_nulls = sum(null_counts.values())
         if total_nulls == 0:
             return (
-                f"### 🔍 Missing Values Audit\n\n"
+                f"### Missing Values Audit\n\n"
                 f"**Direct Answer**: **No missing values detected.** All **{len(null_counts)} columns** have **0 missing values** (100% data integrity).\n\n"
                 f"| Audit Status | Columns Audited | Total Missing Values | Data Completeness |\n"
                 f"| :--- | :--- | :--- | :--- |\n"
-                f"| ✅ **Passed** | **{len(null_counts)}** | **0** | **100.0%** |"
+                f"| **Passed** | **{len(null_counts)}** | **0** | **100.0%** |"
             ), None
         else:
             rows_str = "\n".join([f"- **{c}**: `{cnt:,}` missing values" for c, cnt in null_counts.items() if cnt > 0])
             return (
-                f"### ⚠️ Missing Values Audit\n\n"
+                f"### Missing Values Audit\n\n"
                 f"**Direct Answer**: Found **{total_nulls:,} missing values** across audited columns:\n\n{rows_str}"
             ), None
 
@@ -149,15 +153,15 @@ def generate_data_business_summary(table_name: str, df: pd.DataFrame, question: 
     if any(kw in q_low for kw in ["duplicate customer id", "duplicate customer ids", "duplicate ids", "duplicate records", "duplicates", "duplicate entries"]):
         if df.empty or (len(df) == 1 and str(df.iloc[0, 0]) in ("0", "None", "")):
             return (
-                "### 🔍 Duplicate Records Audit\n\n"
+                "### Duplicate Records Audit\n\n"
                 "**Direct Answer**: **No duplicate records found.** All record identifiers in the dataset are **100% unique**.\n\n"
                 "| Audit Status | Unique Records | Duplicate IDs | Integrity Status |\n"
                 "| :--- | :--- | :--- | :--- |\n"
-                "| ✅ **Passed** | **Unique** | **0** | **100.0% Clean** |"
+                "| **Passed** | **Unique** | **0** | **100.0% Clean** |"
             ), None
         else:
             return (
-                f"### ⚠️ Duplicate Records Audit\n\n"
+                f"### Duplicate Records Audit\n\n"
                 f"**Direct Answer**: Found **{len(df):,} duplicate records** in the dataset.\n\n"
                 f"Top duplicates are displayed in the results table below."
             ), None
@@ -220,16 +224,16 @@ Write a comprehensive, professional, executive-ready analytical response in clea
 Adapt your analysis to whatever domain this dataset represents (Sales, Finance, HR, Employees, Operations, Logistics, Healthcare, E-Commerce, etc.).
 
 REQUIRED STRUCTURE:
-### 🎯 Direct Answer
+### Direct Answer
 State the exact, direct answer to the user's question upfront in 1-2 bold, definitive sentences. Highlight the exact metric, number, ranking, or entity asked for.
 
-### 📊 In-Depth Analytical Findings & Key Metrics
+### In-Depth Analytical Findings & Key Metrics
 Provide 3 to 5 structured bullet points detailing:
 - Exact numbers, totals, averages, percentages, and proportions with **bold values**.
 - Top performers, categories, segments, or distributions visible in the data.
 - Meaningful comparisons, ratios, or trends.
 
-### 💡 Strategic Business Takeaway & Recommendations
+### Strategic Business Takeaway & Recommendations
 Provide 1-2 concrete, domain-specific actionable business recommendations based directly on these numbers.
 
 STRICT GUIDELINES:
@@ -264,12 +268,12 @@ STRICT GUIDELINES:
         except (ValueError, TypeError):
             val_fmt = str(val)
         return (
-            f"### 🎯 Direct Answer\n\n"
+            f"### Direct Answer\n\n"
             f"The **{col_name}** is **{val_fmt}**.\n\n"
             f"| Metric Name | Value |\n"
             f"| :--- | :--- |\n"
-            f"| 📊 **{col_name}** | **{val_fmt}** |\n\n"
-            f"### 💡 Key Takeaway\n\n"
+            f"| **{col_name}** | **{val_fmt}** |\n\n"
+            f"### Key Takeaway\n\n"
             f"This metric was aggregated directly across the matching records in dataset `[{table_name}]`."
         ), None
 
@@ -278,7 +282,7 @@ STRICT GUIDELINES:
     
     # Direct answer sentence
     summary_parts.append(
-        f"### 🎯 Direct Answer\n\n"
+        f"### Direct Answer\n\n"
         f"Retrieved **{total_rows:,} matching records** across **{total_cols} attributes** from dataset `[{table_name}]` answering *\"{question}\"*."
     )
 
@@ -308,10 +312,10 @@ STRICT GUIDELINES:
             findings.append(f"- **{nc} Metrics**: Total = **{col_sum:,.2f}** | Average = **{col_avg:,.2f}** | Peak = **{col_max:,.2f}**")
 
     if findings:
-        summary_parts.append("### 📊 In-Depth Analytical Findings & Key Metrics\n\n" + "\n".join(findings))
+        summary_parts.append("### In-Depth Analytical Findings & Key Metrics\n\n" + "\n".join(findings))
 
     summary_parts.append(
-        f"### 💡 Strategic Business Takeaway & Recommendations\n\n"
+        f"### Strategic Business Takeaway & Recommendations\n\n"
         f"- **Data-Driven Optimization**: Prioritize highest-performing segments identified in this query to maximize operational efficiency and return on investment.\n"
         f"- **Continuous Monitoring**: Track key indicators in dataset `[{table_name}]` regularly to detect shifting patterns early."
     )
@@ -359,7 +363,7 @@ def normalize_speech_phonetics(question: str) -> str:
     return q
 
 
-def is_out_of_domain_question(question: str, columns_list: list) -> bool:
+def is_out_of_domain_question(question: str, columns_list: list, table_name_hint: str = None) -> bool:
     """
     Strict Domain Guardrail Classifier.
     Ensures AI refuses to answer general knowledge, coding, weather, political, or chat questions,
@@ -395,8 +399,15 @@ def is_out_of_domain_question(question: str, columns_list: list) -> bool:
         r"\bwho won\b", r"\bpopulation of\b", r"\bwhat is quantum\b", r"\bexplain physics\b",
         r"\bexplain chemistry\b", r"\bexplain biology\b", r"\bwhat is ai\b", r"\bwhat is machine learning\b"
     ]
+    # "who is the top customer", "what is the highest profit": these phrasings start like
+    # general-knowledge questions but ask about the data. Allow them when they name a column
+    # of this dataset or a ranking/aggregation word.
+    _names_col_early = any(re.search(r"\b" + re.escape(str(c).lower()) + r"s?\b", q_lower) for c in (columns_list or []) if len(str(c)) >= 3)
+    _data_rank_words = re.search(r"\b(top|highest|lowest|best|worst|most|least|total|sum|count|average|avg|maximum|minimum|records?|rows?)\b", q_lower)
     for pattern in general_patterns:
         if re.search(pattern, q_lower):
+            if _names_col_early and _data_rank_words:
+                continue
             return True
 
     # 3. General Software Development & Coding Triggers
@@ -409,35 +420,62 @@ def is_out_of_domain_question(question: str, columns_list: list) -> bool:
         if re.search(pattern, q_lower):
             return True
 
-    # 4. Check for Dataset Relevance: Must match at least one dataset concept, column name, or entity search
-    dataset_keywords = {
-        "show", "get", "fetch", "give", "display", "list", "count", "total", "sum",
-        "average", "avg", "mean", "median", "max", "maximum", "min", "minimum",
-        "highest", "lowest", "top", "bottom", "first", "last", "records", "rows",
-        "ross", "raws", "rose", "roes", "recs", "ricord",
-        "data", "dataset", "table", "summary", "chart", "graph", "trend", "distribution",
-        "category", "column", "value", "where", "filter", "group", "sort", "order",
-        "ka", "ki", "ke", "ko", "se", "me", "main", "mujha", "mujhe", "chaya", "chahiye",
-        "city", "country", "state", "name", "customer", "product", "sales", "details", "just",
-        "dikhao", "dikhaye", "dikhayein", "batao", "batayein", "la", "do", "karo", "delivered",
-        "deliverd", "pending", "cancelled", "id", "code", "serial", "number"
+    # 3b. Other clearly off-topic subjects (weather, prices of things outside the file,
+    # entertainment, advice). Roman Urdu included. A question that ALSO names a column of
+    # this dataset is still allowed through (e.g. a dataset with a "Weather" column).
+    off_topic_patterns = [
+        r"\bweather\b", r"\bmausam\b", r"\btemperature (?:in|of|today|tomorrow)\b", r"\bforecast for\b",
+        r"\bbitcoin\b", r"\bcrypto(?:currency)?\b", r"\bstock price\b", r"\bgold (?:rate|price)\b", r"\bdollar rate\b",
+        r"\bmovie\b", r"\bfilm\b", r"\bsong\b", r"\bnetflix\b", r"\bcricket score\b", r"\bmatch score\b",
+        r"\bnews\b", r"\brecipe\b", r"\btranslate\b", r"\brecommend (?:a|me|some)\b", r"\bsuggest (?:a|me) (?:movie|book|song|place)\b",
+        r"\bexplain (?:quantum|physics|chemistry|biology|relativity|history|philosophy)\b", r"\bquantum\b",
+        r"\bwho invented\b", r"\bwhen did\b.*\b(?:war|independence|die|born)\b", r"\bhow (?:do|can) i (?:cook|lose weight|learn)\b",
+        r"\bdebug\b", r"\bsql injection\b", r"\bchatgpt\b", r"\bopenai\b", r"\bjoke\b", r"\bpoem\b", r"\bstory\b",
+    ]
+    col_words = set()
+    for col in columns_list:
+        for part in re.split(r"[^a-z0-9]+", re.sub(r"([a-z])([A-Z])", r"\1 \2", str(col)).lower()):
+            if len(part) >= 3:
+                col_words.add(part)
+    words = set(re.findall(r"\b[a-z0-9_-]+\b", q_lower))
+    names_a_column = bool(words & col_words) or any(str(c).lower() in q_lower for c in columns_list if len(str(c)) >= 3)
+    names_full_column = any(re.search(r"\b" + re.escape(str(c).lower()) + r"\b", q_lower) for c in columns_list if len(str(c)) >= 3)
+    if not names_full_column:
+        for pattern in off_topic_patterns:
+            if re.search(pattern, q_lower):
+                return True
+
+    # 4. Dataset relevance: the question must reference this dataset (a column, a value
+    # that exists in it) or carry clear analytical intent. Short grammatical particles
+    # ("me", "se", "ka", "do") were previously counted as data keywords, which let almost
+    # any Roman Urdu sentence through; they are no longer evidence on their own.
+    if names_a_column:
+        return False
+
+    analytic_keywords = {
+        "show", "list", "count", "total", "sum", "average", "avg", "mean", "median", "max", "maximum",
+        "min", "minimum", "highest", "lowest", "top", "bottom", "first", "last", "records", "rows", "row",
+        "ross", "raws", "recs", "data", "dataset", "table", "summary", "chart", "graph", "plot", "trend",
+        "distribution", "breakdown", "column", "columns", "values", "filter", "group", "sort", "compare",
+        "comparison", "percentage", "percent", "share", "growth", "monthly", "yearly", "weekly", "daily",
+        "orders", "order", "entries", "duplicates", "missing", "null", "nulls", "unique", "distinct",
+        "kitne", "kitni", "kitna", "zyada", "ziada", "kam", "sab", "dikhao", "dikhaye", "batao", "batayein",
+        "jama", "ausat", "mahina", "saal", "fetch", "display", "give", "find", "which", "how", "many", "much",
     }
-
-    words = set(re.findall(r"\b[A-Za-z0-9_-]+\b", q_lower))
-    
-    # Check if any word matches dataset table column names
-    col_names = {str(col).lower() for col in columns_list}
-    if words.intersection(col_names):
+    if words & analytic_keywords:
         return False
 
-    # Check if any word matches general analytical dataset keywords
-    if words.intersection(dataset_keywords):
-        return False
-
-    # Allow entity searches (e.g. 'Saint Helena', 'Masonberg', 'Eritrea')
-    entity = extract_entity_phrase(question_norm)
-    if entity and len(entity) >= 2:
-        return False
+    # A proper noun that is actually a value in this dataset (e.g. a city or product name).
+    try:
+        from ai.value_matcher import get_column_vocabulary
+        vocab = get_column_vocabulary(table_name_hint) if table_name_hint else {}
+        for vals in (vocab or {}).values():
+            for v in vals:
+                v_l = str(v).lower()
+                if len(v_l) >= 3 and re.search(r"\b" + re.escape(v_l) + r"\b", q_lower):
+                    return False
+    except Exception:
+        pass
 
     return True
 
@@ -501,6 +539,110 @@ def extract_entity_phrase(question: str) -> str:
     return " ".join(words).strip()
 
 
+_PURE_COUNT_PATTERNS = [
+    r"^\s*(?:what\s+is\s+the\s+)?(?:total\s+)?(?:count|number)\s+(?:of\s+)?(?:records|rows|data|entries|all\s+records)\s*\??\s*$",
+    r"^\s*(?:total\s+)?(?:records|rows|data|entries)\s+(?:count|kitne\s+hain|kitni\s+hain)\s*\??\s*$",
+    r"^\s*(?:how\s+many|kitne|kitni)\s+(?:total\s+)?(?:records|rows|data|entries)\s*(?:are\s+there|are\s+in\s+(?:this|the)\s+(?:dataset|file|table)|hain|hai)?\s*\??\s*$",
+]
+_GENERIC_QUALIFIERS = {
+    "total", "average", "avg", "sum", "max", "maximum", "min", "minimum", "highest", "lowest", "the", "of",
+    "per", "unit", "net", "gross", "overall", "mean", "median", "my", "our", "all", "each", "and", "by", "in",
+}
+_MEASURE_WORDS = r"(?:cost|costs|fee|fees|charges?|tax|taxes|discount|commission|amount|revenue|salary|salaries|income|expenses?|margin|rating|score|weight)"
+_TIME_GRAIN = [
+    (r"\b(?:monthly|by\s+month|per\s+month|each\s+month|month\s*wise|month\s+by\s+month|mahana|har\s+mahine)\b", "month"),
+    (r"\b(?:yearly|annual|by\s+year|per\s+year|each\s+year|year\s*wise|saalana|har\s+saal)\b", "year"),
+]
+
+
+def _numeric_and_date_columns(table_name: str, columns_list: list):
+    try:
+        from ai.schema_intelligence import get_dataset_schema_intelligence
+        from ai.metric_resolver import get_real_numeric_columns
+        si = get_dataset_schema_intelligence(table_name)
+        nums = list(get_real_numeric_columns(si) or [])
+        dates = list(si.get("date_columns") or [])
+        if isinstance(si.get("date_columns"), dict):
+            dates = list(si["date_columns"].keys())
+        return nums, dates
+    except Exception:
+        return [], []
+
+
+def _early_patterns(q_lower: str, table_name: str, safe_tbl: str, columns_list: list):
+    """Deterministic answers for shapes the plan engine mishandled (see docs/PROGRESS.md)."""
+    if any(re.match(p, q_lower) for p in _PURE_COUNT_PATTERNS):
+        return f"SELECT COUNT(*) AS [Total_Records] FROM {safe_tbl};", ()
+
+    col_text = " ".join(re.sub(r"([a-z])([A-Z])", r"\1 \2", str(c)).replace("_", " ").lower() for c in columns_list)
+    # "shipping cost", "delivery fee": a specific measure that no column carries. Answering
+    # with some other numeric column (e.g. UnitPrice) would be a confident wrong answer.
+    for m in re.finditer(r"\b([a-z]+)\s+(" + _MEASURE_WORDS + r")\b", q_lower):
+        qual, measure = m.group(1), m.group(2)
+        phrase = f"{qual} {measure}"
+        if qual in _GENERIC_QUALIFIERS or phrase in col_text or qual in col_text:
+            continue
+        if re.search(r"\b" + re.escape(measure.rstrip("s")) , col_text):
+            # A column with the measure word exists but not for this qualifier.
+            pass
+        nums, _ = _numeric_and_date_columns(table_name, columns_list)
+        listed = ", ".join(nums[:6]) if nums else ", ".join(columns_list[:6])
+        return DATA_NOT_FOUND_PREFIX + f"There is no '{phrase}' column in this dataset. Numeric columns available: {listed}.", ()
+
+    # Monthly / yearly trend of a metric: group by the dataset's date column.
+    for pat, grain in _TIME_GRAIN:
+        if re.search(pat, q_lower):
+            nums, dates = _numeric_and_date_columns(table_name, columns_list)
+            if not dates:
+                break
+            try:
+                from ai.metric_resolver import resolve_metric_column
+                metric, _ = resolve_metric_column(q_lower, nums)
+            except Exception:
+                metric = None
+            date_col = sanitize_identifier(dates[0])
+            fmt = "yyyy-MM" if grain == "month" else "yyyy"
+            period = f"FORMAT(TRY_CAST({date_col} AS DATE), '{fmt}')"
+            label = "Month" if grain == "month" else "Year"
+            if metric:
+                safe_expr = f"TRY_CAST(REPLACE(CAST({sanitize_identifier(metric)} AS NVARCHAR(MAX)), ',', '') AS FLOAT)"
+                agg = "AVG" if re.search(r"\b(?:average|avg|mean|ausat)\b", q_lower) else "SUM"
+                name = f"{'Average' if agg == 'AVG' else 'Total'}_{metric}"
+                return (f"SELECT {period} AS [{label}], {agg}({safe_expr}) AS [{name}] FROM {safe_tbl} "
+                        f"WHERE TRY_CAST({date_col} AS DATE) IS NOT NULL GROUP BY {period} ORDER BY [{label}] ASC;"), ()
+            if re.search(r"\b(?:orders?|records?|rows?|count|kitne)\b", q_lower):
+                return (f"SELECT {period} AS [{label}], COUNT(*) AS [Record_Count] FROM {safe_tbl} "
+                        f"WHERE TRY_CAST({date_col} AS DATE) IS NOT NULL GROUP BY {period} ORDER BY [{label}] ASC;"), ()
+            break
+    return None
+
+
+_SPELL_VOCAB = {
+    "total", "average", "count", "sales", "region", "profit", "revenue", "quantity", "price", "orders",
+    "customer", "customers", "product", "products", "monthly", "highest", "lowest", "compare", "category",
+}
+
+
+def correct_question_typos(question: str, columns_list: list) -> str:
+    """Fix close misspellings of column names and common analysis words ("totl sales by regon")."""
+    import difflib
+    vocab = set(_SPELL_VOCAB)
+    for c in columns_list:
+        for part in re.split(r"[^A-Za-z0-9]+", re.sub(r"([a-z])([A-Z])", r"\1 \2", str(c))):
+            if len(part) >= 4:
+                vocab.add(part.lower())
+    out = []
+    for tok in re.split(r"(\W+)", question):
+        low = tok.lower()
+        if len(low) >= 4 and low.isalpha() and low not in vocab:
+            m = difflib.get_close_matches(low, vocab, n=1, cutoff=0.8)
+            if m and abs(len(m[0]) - len(low)) <= 2:
+                out.append(m[0])
+                continue
+        out.append(tok)
+    return "".join(out)
+
+
 def fast_pattern_sql_generator(question: str, table_name: str, columns_list: list):
     """
     Sub-second (0.001s) Local T-SQL Rule Engine with intelligent pattern matching,
@@ -513,6 +655,11 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     safe_tbl = sanitize_identifier(table_name)
     primary_pk_col = find_primary_key_column(columns_list)
     safe_pk = sanitize_identifier(primary_pk_col) if primary_pk_col else ""
+
+    # Priority -1: questions the plan engine has been seen to get wrong.
+    early = _early_patterns(q_lower, table_name, safe_tbl, columns_list)
+    if early is not None:
+        return early
 
     # Priority 0: Structured Query Plan Engine Resolution (0.001s Local Execution)
     if parse_question_to_query_plan:
@@ -543,6 +690,12 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
                         else:
                             select_items.append(f"[{sc}]")
 
+                # Every GROUP BY column must be in the output, otherwise grouped numbers come
+                # back without the labels that say which group each one belongs to.
+                for g in plan.get("group_by", []):
+                    g_plain = g if (g.startswith("[") or "(" in g or g.strip().upper().startswith("CASE")) else f"[{g}]"
+                    if g_plain.startswith("[") and not any(g_plain == it or it.startswith(g_plain + " ") for it in select_items):
+                        select_items.append(g_plain)
                 select_clause = ", ".join(select_items) if select_items else "*"
                 top_clause = f"TOP ({plan['limit']}) " if plan.get("limit") else ""
                 plan_params = []
@@ -894,6 +1047,23 @@ def extract_sample_data_text(table_name: str) -> str:
     return ""
 
 
+def _not_understood_message(columns_list: list) -> str:
+    numeric = [c for c in columns_list if re.search(r"(?i)sales|amount|price|revenue|profit|cost|total|qty|quantity|value", str(c))]
+    groups = [c for c in columns_list if re.search(r"(?i)region|city|country|category|product|status|type|segment|department", str(c))]
+    metric = numeric[0] if numeric else (columns_list[1] if len(columns_list) > 1 else "value")
+    group = groups[0] if groups else (columns_list[0] if columns_list else "category")
+    return NOT_UNDERSTOOD_MESSAGE.format(metric=metric, group=group)
+
+
+def _not_understood_result(columns_list: list, start_time: float) -> dict:
+    return {
+        "success": False, "is_out_of_domain": False, "is_data_not_found": True, "is_fast_pattern": False,
+        "sql": None, "df": pd.DataFrame(), "rows_returned": 0,
+        "execution_time_ms": round((time.time() - start_time) * 1000, 2),
+        "confidence": 0.0, "retries": 0, "error": _not_understood_message(columns_list),
+    }
+
+
 def generate_sql(question: str, table_name: str, columns_list: list, preferred_model: str = None) -> tuple:
     """
     Generate T-SQL query using Fast Local Pattern Engine or OpenRouter AI API with caching.
@@ -930,9 +1100,12 @@ def generate_sql(question: str, table_name: str, columns_list: list, preferred_m
     raw_response, model_used = ask_gemini(prompt, preferred_model=preferred_model)
     cleaned_sql = clean_sql_response(raw_response)
 
-    if not cleaned_sql or cleaned_sql == UNRELATED_MESSAGE:
-        cleaned_sql = f"SELECT TOP 50 * FROM [{table_name}];"
-        model_used = None
+    if cleaned_sql == UNRELATED_MESSAGE or (raw_response and UNRELATED_MESSAGE[:40] in raw_response):
+        # The model itself judged the question unrelated to the dataset: refuse, do not
+        # silently run a SELECT * and present the rows as an answer.
+        return UNRELATED_MESSAGE, (), False, model_used
+    if not cleaned_sql:
+        return DATA_NOT_FOUND_PREFIX + _not_understood_message(columns_list), (), False, model_used
 
     if system_cache and cleaned_sql:
         system_cache.set(cache_key, (cleaned_sql, ()), ttl=1800)
@@ -980,9 +1153,10 @@ def execute_sql_with_retry(question: str, table_name: str, columns_list: list, m
     which model is asked if/when that deterministic path can't handle the question).
     """
     start_time = time.time()
+    question = correct_question_typos(question, columns_list)
 
     # Enforce strict domain guardrails
-    if is_out_of_domain_question(question, columns_list):
+    if is_out_of_domain_question(question, columns_list, table_name_hint=table_name):
         return {
             "success": False,
             "is_out_of_domain": True,
@@ -1029,8 +1203,7 @@ def execute_sql_with_retry(question: str, table_name: str, columns_list: list, m
         }
 
     if not sql:
-        sql = f"SELECT TOP 50 * FROM [{table_name}];"
-        params = ()
+        return _not_understood_result(columns_list, start_time)
 
     retry_count = 0
     last_error = ""
@@ -1085,7 +1258,7 @@ def execute_sql_with_retry(question: str, table_name: str, columns_list: list, m
                     model_used = fix_model_used
                 params = ()
                 if not sql:
-                    sql = f"SELECT TOP 50 * FROM [{table_name}];"
+                    break
             else:
                 break
 

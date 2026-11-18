@@ -24,6 +24,48 @@ except ImportError:
     pyodbc = None
 
 
+def _tsql_top_to_limit(s: str) -> str:
+    """
+    Rewrite every `SELECT [DISTINCT] TOP (n)` (outer query or any nested subquery) as
+    `SELECT [DISTINCT] ... LIMIT n` placed at the end of that query's own parenthesis scope.
+    Processes the last occurrence first so nested subqueries are handled before the
+    queries that contain them. QA/dev SQLite only.
+    """
+    pat = re.compile(r"\bSELECT\s+(DISTINCT\s+)?TOP\s*\(?\s*(\d+)\s*\)?\s+", re.IGNORECASE)
+    for _ in range(20):
+        matches = list(pat.finditer(s))
+        if not matches:
+            break
+        m = matches[-1]
+        n = m.group(2)
+        start = m.end()
+        depth = 0
+        end = len(s)
+        i = start
+        in_str = False
+        while i < len(s):
+            ch = s[i]
+            if ch == "'":
+                in_str = not in_str
+            elif not in_str:
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    if depth == 0:
+                        end = i
+                        break
+                    depth -= 1
+                elif ch == ";" and depth == 0:
+                    end = i
+                    break
+            i += 1
+        body = s[start:end].rstrip()
+        if not re.search(r"\bLIMIT\s+\d+\s*$", body, re.IGNORECASE):
+            body = f"{body} LIMIT {n}"
+        s = s[:m.start()] + "SELECT " + (m.group(1) or "") + body + s[end:]
+    return s
+
+
 def adapt_tsql_for_sqlite(query: str) -> str:
     """
     Safely transform Microsoft T-SQL syntax to SQLite syntax.
@@ -78,28 +120,7 @@ def adapt_tsql_for_sqlite(query: str) -> str:
     s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
     s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
     s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
-    s = re.sub(
-        r"\(\s*SELECT\s+TOP\s+\(?(\d+)\)?\s+(.*?)\s+ORDER\s+BY\s+([^)]*)\)",
-        lambda match: (
-            f"(SELECT {match.group(2)} ORDER BY {match.group(3).strip()} "
-            f"LIMIT {match.group(1)})"
-        ),
-        s,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
-
-    # Transform SELECT TOP N ... -> SELECT ... LIMIT N
-    top_match = re.search(r"\bSELECT\s+TOP\s+\(?(\d+)\)?\s+", s, flags=re.IGNORECASE)
-    if top_match:
-        limit_val = top_match.group(1)
-        # Remove SELECT TOP N
-        s = re.sub(r"\bSELECT\s+TOP\s+\(?\d+\)?\s+", "SELECT ", s, count=1, flags=re.IGNORECASE).strip()
-        # Append LIMIT N before trailing semicolon or at end
-        if not re.search(r"\bLIMIT\s+\d+\b", s, re.IGNORECASE):
-            if s.endswith(";"):
-                s = s[:-1].strip() + f" LIMIT {limit_val};"
-            else:
-                s = s + f" LIMIT {limit_val}"
+    s = _tsql_top_to_limit(s)
 
     s = re.sub(
         r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(\?|[A-Za-z_][\w.]*)\s*\)",
@@ -115,6 +136,16 @@ def adapt_tsql_for_sqlite(query: str) -> str:
         s,
         flags=re.IGNORECASE,
     )
+
+    # Type/function names the Ask AI SQL builders emit for SQL Server (QA/dev SQLite only).
+    s = re.sub(r"\bTRY_CAST\s*\(", "CAST(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCAST\s*\(\s*(\[[^\]]+\]|[A-Za-z_][\w.]*)\s+AS\s+DATE\s*\)", r"date(\1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bTRY_CONVERT\s*\(\s*(?:FLOAT|DECIMAL\s*\(\s*\d+\s*,\s*\d+\s*\)|INT|BIGINT)\s*,", "CAST(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bN?VARCHAR\s*\(\s*(?:MAX|\d+)\s*\)", "TEXT", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bLEN\s*\(", "length(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bYEAR\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%Y', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bMONTH\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%m', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"FORMAT\s*\(\s*([^,()]+(?:\([^()]*\))?)\s*,\s*'yyyy-MM'\s*\)", r"strftime('%Y-%m', \1)", s, flags=re.IGNORECASE)
 
     s = re.sub(
         r"\bOFFSET\s+(\d+)\s+ROWS?\s+FETCH\s+NEXT\s+(\d+)\s+ROWS?\s+ONLY\b",
