@@ -23,7 +23,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <!-- Font Awesome -->
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
@@ -40,9 +41,9 @@
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
             --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --accent-blue: #3b82f6;
-            --gradient-admin: linear-gradient(135deg, #ef4444 0%, #8b5cf6 50%, #3b82f6 100%);
+            --accent-purple: #737373;
+            --accent-blue: #737373;
+            --gradient-admin: linear-gradient(135deg, #ef4444 0%, #737373 50%, #737373 100%);
             --shadow-admin: 0 20px 50px -10px rgba(239, 68, 68, 0.35);
         }
 
@@ -55,8 +56,8 @@
             --text-secondary: #334155;
             --text-muted: #64748b;
             --accent-red: #dc2626;
-            --accent-purple: #7c3aed;
-            --accent-blue: #2563eb;
+            --accent-purple: #737373;
+            --accent-blue: #737373;
             --shadow-admin: 0 20px 40px -10px rgba(220, 38, 38, 0.2);
         }
 
@@ -100,7 +101,7 @@
             width: 400px;
             height: 400px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(0,0,0,0) 70%);
+            background: radial-gradient(circle, rgba(128, 128, 128, 0.25) 0%, rgba(0,0,0,0) 70%);
             filter: blur(70px);
             z-index: 0;
             animation: float-glow 10s infinite alternate-reverse ease-in-out;
@@ -263,6 +264,8 @@
             z-index: 20;
         }
     </style>
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261118">
 </head>
 <body>
 
@@ -321,7 +324,7 @@
         </form>
 
         <div class="admin-footer-notice">
-            <i class="fa-solid fa-circle-check" style="color: var(--accent-red);"></i> 1-Hour Inactivity Expiration & AES-256 Security Logged.
+            <i class="fa-solid fa-circle-check" style="color: var(--accent-red);"></i> 1-Hour Inactivity Expiration & Security Logged.
         </div>
     </div>
 

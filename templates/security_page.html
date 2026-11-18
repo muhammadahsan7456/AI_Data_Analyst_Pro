@@ -1,8 +1,8 @@
 {% extends "landing_base.html" %}
 
 {% block seo_meta %}
-<title>Enterprise Security — AI Data Analyst Pro | AES-256 Encryption & Data Protection</title>
-<meta name="description" content="AI Data Analyst Pro provides bank-grade security: AES-256 field encryption at rest, 1-hour inactivity timeouts, row-level user data isolation, and automated audit logging.">
+<title>Enterprise Security — AI Data Analyst Pro | Field-level encryption & Data Protection</title>
+<meta name="description" content="AI Data Analyst Pro provides bank-grade security: field-level encryption at rest, 1-hour inactivity timeouts, row-level user data isolation, and automated audit logging.">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
 
@@ -37,8 +37,8 @@
             <div class="security-card reveal">
                 <div class="security-icon icon-cyan"><i class="fa-solid fa-key"></i></div>
                 <div>
-                    <h3 class="security-card-title">AES-256 Field Encryption at Rest</h3>
-                    <p class="security-card-desc">String and text columns are encrypted using Fernet AES-256 ciphers before database storage, shielding customer records from direct SQL inspection even by database administrators.</p>
+                    <h3 class="security-card-title">Field-level encryption at Rest</h3>
+                    <p class="security-card-desc">String and text columns are encrypted using Fernet (AES-128-CBC with HMAC-SHA256) before database storage, shielding customer records from direct SQL inspection even by database administrators.</p>
                 </div>
             </div>
             <div class="security-card reveal">

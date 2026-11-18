@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Create Enterprise Account — AI Data Analyst Pro | Register Free</title>
-<meta name="description" content="Create your free enterprise AI Data Analyst Pro account. Process 10M+ rows with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated PPTX/PDF reports, and AES-256 encryption.">
+<meta name="description" content="Create your free enterprise AI Data Analyst Pro account. Process 10M+ rows with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated PPTX/PDF reports, and field-level encryption.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -128,7 +128,7 @@
             <div style="margin-bottom: 20px; background: rgba(245, 158, 11, 0.1); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; gap: 12px;">
                 <i class="fa-solid fa-envelope-circle-check" style="font-size: 20px; color: var(--accent-gold);"></i>
                 <div style="font-size: 13px; color: var(--text-primary); line-height: 1.5;">
-                    <strong style="color: var(--accent-gold);">📧 Email OTP Verification:</strong> A 6-digit security verification code will be sent to your email address upon registration.
+                    <strong style="color: var(--accent-gold);">Email OTP Verification:</strong> A 6-digit security verification code will be sent to your email address upon registration.
                 </div>
             </div>
 
@@ -203,12 +203,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!isValid) {
             el.style.borderColor = "#ef4444";
             fb.style.color = "#ef4444";
-            fb.textContent = "❌ " + msg;
+            fb.textContent = "" + msg;
             fb.style.display = "block";
         } else {
             el.style.borderColor = "#10b981";
             fb.style.color = "#10b981";
-            fb.textContent = "✓ Valid";
+            fb.textContent = "Valid";
             fb.style.display = "block";
         }
     }
@@ -265,7 +265,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 txt.textContent = "Medium password — add special characters";
             } else {
                 bar.style.backgroundColor = "#10b981";
-                txt.textContent = "Strong enterprise password ✓";
+                txt.textContent = "Strong enterprise password ";
             }
         }
 

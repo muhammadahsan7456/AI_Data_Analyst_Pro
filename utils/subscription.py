@@ -80,7 +80,7 @@ def get_user_subscription_info(user_id: int) -> dict:
             show_banner = False
             if has_pending:
                 banner_type = "info"
-                banner_message = "⏳ PAYMENT PROOF UNDER REVIEW: Your Pro Plan upgrade payment proof (PKR 1,499) is currently under Super Admin review. 500 MB access will be unlocked upon approval!"
+                banner_message = "PAYMENT PROOF UNDER REVIEW: Your Pro Plan upgrade payment proof (PKR 1,499) is currently under Super Admin review. 500 MB access will be unlocked upon approval!"
                 show_banner = True
 
             return {
@@ -152,19 +152,19 @@ def get_user_subscription_info(user_id: int) -> dict:
 
         if has_pending and calc_status != "active":
             banner_type = "info"
-            banner_message = "⏳ PAYMENT PROOF UNDER REVIEW: Your payment receipt proof (PKR 1,499) has been uploaded and is currently under Super Admin review. Account access will be activated immediately upon approval!"
+            banner_message = "PAYMENT PROOF UNDER REVIEW: Your payment receipt proof (PKR 1,499) has been uploaded and is currently under Super Admin review. Account access will be activated immediately upon approval!"
             show_banner = True
         elif calc_status == "suspended":
             banner_type = "danger"
-            banner_message = "🛑 ACCOUNT SUSPENDED: Your Pro access has been suspended due to unpaid subscription renewal (PKR 1,499). Please upload your payment receipt below for immediate reactivation."
+            banner_message = "ACCOUNT SUSPENDED: Your Pro access has been suspended due to unpaid subscription renewal (PKR 1,499). Please upload your payment receipt below for immediate reactivation."
             show_banner = True
         elif calc_status == "expired":
             banner_type = "danger"
-            banner_message = f"🚨 ANNOUNCEMENT: Your Pro 30-day subscription expired on {end_date_str}! Please upload your PKR 1,499 payment receipt to renew 500 MB access."
+            banner_message = f"ANNOUNCEMENT: Your Pro 30-day subscription expired on {end_date_str}! Please upload your PKR 1,499 payment receipt to renew 500 MB access."
             show_banner = True
         elif calc_status == "expiring_soon":
             banner_type = "warning"
-            banner_message = f"⚠️ ANNOUNCEMENT: Your Pro subscription plan ends in {days_left} day(s) on {end_date_str}! Please renew your PKR 1,499 plan to avoid service interruption."
+            banner_message = f"ANNOUNCEMENT: Your Pro subscription plan ends in {days_left} day(s) on {end_date_str}! Please renew your PKR 1,499 plan to avoid service interruption."
             show_banner = True
 
         # "expiring_soon" is still within the paid 30-day window (days_left is 1-5, not

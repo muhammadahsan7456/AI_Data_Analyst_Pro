@@ -24,7 +24,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <!-- Font Awesome -->
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
@@ -40,6 +41,8 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20261015_v7">
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261118">
 </head>
 <body>
 
@@ -161,7 +164,7 @@
                 {% endif %}
 
                 <button class="theme-toggle-btn" id="theme-toggle" style="width: 100%; justify-content: center;">
-                    <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+                    <span id="theme-icon"><i class="fa-solid fa-moon" aria-hidden="true"></i></span> <span id="theme-text">Dark Mode</span>
                 </button>
             </div>
         </aside>
@@ -182,7 +185,7 @@
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <a href="{{ url_for('frontend.renew_subscription') }}" class="btn btn-sm" style="background: #ffffff; color: #0f172a; font-weight: 700; border: none; padding: 8px 16px; border-radius: 20px; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                        💳 Renew / Upload Receipt Proof
+                        Renew / Upload Receipt Proof
                     </a>
                 </div>
             </div>
@@ -215,7 +218,7 @@
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="toast toast-{{ category }}" style="margin-bottom: 20px;">
-                            <span>{% if category == 'error' %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
+                            <i class="fa-solid {% if category == 'error' %}fa-circle-exclamation{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}" aria-hidden="true"></i>
                             {# No |safe here: flash messages interpolate user-supplied values
                                (email addresses, dataset names, DB error text), and rendering
                                them raw let an attacker inject live HTML. The few messages that

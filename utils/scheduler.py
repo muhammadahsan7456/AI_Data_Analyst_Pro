@@ -75,10 +75,10 @@ def process_due_scheduled_reports():
             df = run_query(f"SELECT TOP 500 * FROM {sanitize_identifier(tbl_name)};")
 
             if df is not None and not df.empty and recipient_email:
-                subject = f"📊 Scheduled {frequency} {report_type}: {ds_name}"
+                subject = f"Scheduled {frequency} {report_type}: {ds_name}"
                 body = f"""
                 <div style="font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; border-radius: 8px;">
-                    <h2 style="color: #38bdf8;">📊 {frequency} Executive AI Report</h2>
+                    <h2 style="color: #38bdf8;">{frequency} Executive AI Report</h2>
                     <p><b>Dataset:</b> {ds_name}</p>
                     <p><b>Report Type:</b> {report_type}</p>
                     <p><b>Key Finding:</b> {insights_list[0] if insights_list else 'Data volume stable.'}</p>
@@ -204,7 +204,7 @@ def process_proactive_insights_scan():
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(
                         create_ai_notification(),
-                        (user_id, "proactive_insight", f"📊 Insight: {metric_direction}", insight_text, None)
+                        (user_id, "proactive_insight", f"Insight: {metric_direction}", insight_text, None)
                     )
         except Exception as err:
             print(f"[SCHEDULER ENGINE] Insight scan error (dataset #{dataset_id}):", err)

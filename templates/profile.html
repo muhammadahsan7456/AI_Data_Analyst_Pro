@@ -61,7 +61,7 @@
 
     <!-- Right Content Card -->
     <div class="table-card">
-        <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">✏ Edit Profile Details</h2>
+        <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">Edit Profile Details</h2>
 
         <form method="POST" action="{{ url_for('auth.profile') }}" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- Profile Photo Upload with Live Preview & Strict Image Validation -->
@@ -149,7 +149,7 @@
         <hr style="margin: 32px 0; border: none; border-top: 1px solid var(--border-color);">
 
         <!-- Change Password Section -->
-        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--accent-red);">🔒 Change Password</h3>
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--accent-red);">Change Password</h3>
         
         <form method="POST" action="{{ url_for('auth.change_password') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const fileExt = "." + file.name.split(".").pop().toLowerCase();
 
             if (!validTypes.includes(file.type) && !validExts.includes(fileExt)) {
-                errorHint.textContent = "❌ Invalid file! Only images (.jpg, .jpeg, .png, .webp, .gif, .svg) are allowed for profile picture.";
+                errorHint.textContent = "Invalid file! Only images (.jpg, .jpeg, .png, .webp, .gif, .svg) are allowed for profile picture.";
                 errorHint.style.display = "block";
                 avatarInput.value = "";
                 return;

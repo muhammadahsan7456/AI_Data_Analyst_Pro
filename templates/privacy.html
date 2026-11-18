@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Privacy Policy — AI Data Analyst Pro | Enterprise Data Governance</title>
-<meta name="description" content="Enterprise Data Privacy & Security Policy for AI Data Analyst Pro. Local SQL Server tenant isolation, zero data reselling, and AES-256 field encryption.">
+<meta name="description" content="Enterprise Data Privacy & Security Policy for AI Data Analyst Pro. Local SQL Server tenant isolation, zero data reselling, and field-level encryption.">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
 
@@ -28,7 +28,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
             <div>
                 <span class="badge badge-success" style="font-size: 12px; margin-bottom: 8px;">Compliance & Governance v2026.1</span>
-                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 4px 0 8px 0;">🔒 Enterprise Data Privacy & Security Policy</h1>
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 4px 0 8px 0;">Enterprise Data Privacy & Security Policy</h1>
                 <p style="color: var(--text-secondary); font-size: 14px; margin: 0; max-width: 700px; line-height: 1.6;">
                     Learn how <strong>AI Data Analyst Pro</strong> secures your enterprise datasets, enforces local Microsoft SQL Server tenant isolation, and protects user privacy.
                 </p>
@@ -91,7 +91,7 @@
                 <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
                     All uploaded datasets are converted into dedicated, parameterized table structures inside Microsoft SQL Server:
                 </p>
-                <div style="background: var(--bg-primary); padding: 14px 18px; border-radius: 8px; border-left: 4px solid #38bdf8; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                <div style="background: var(--bg-primary); padding: 14px 18px; border-radius: 8px; border-left: 4px solid #737373; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
                     <strong>Multi-Tenant Schema Isolation:</strong> Each uploaded dataset is assigned a unique identifier string (e.g. <code>Sales_Data_U6_T1786650</code>). All T-SQL queries enforce strict user scoping (<code>WHERE user_id = @user_id</code>), ensuring complete data boundary isolation across accounts.
                 </div>
             </div>
@@ -156,7 +156,7 @@
             <!-- Section 6 -->
             <div id="priv-6" class="table-card glass-card" style="padding: 28px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color);">
                 <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-user-check" style="color: #38bdf8;"></i> 6. User Rights (GDPR & CCPA Compliance)
+                    <i class="fa-solid fa-user-check" style="color: #737373;"></i> 6. User Rights (GDPR & CCPA Compliance)
                 </h3>
                 <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
                     Under applicable data protection regulations (including GDPR and CCPA), you hold the following explicit rights:

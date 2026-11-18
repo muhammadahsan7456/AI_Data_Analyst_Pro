@@ -51,7 +51,7 @@ def summarize_dataset(df: pd.DataFrame) -> str:
     Format business summary into a clean readable string.
     """
     summary = generate_business_summary(df)
-    output = ["========================================", "📊 BUSINESS SUMMARY", "========================================"]
+    output = ["========================================", "BUSINESS SUMMARY", "========================================"]
     for key, value in summary.items():
         output.append(f"{key:<22}: {value}")
     return "\n".join(output)
@@ -91,8 +91,8 @@ def format_ai_explanation(text: str) -> str:
         header_text_clean = re.sub(r"^[#\s]+", "", header_line).strip()
 
         # Check section type
-        if "📊" in header_line or "Data Scope" in header_text_clean or "Executive Query Summary" in header_text_clean:
-            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).replace("📊", "").strip()
+        if "Data Scope" in header_text_clean or "Executive Query Summary" in header_text_clean:
+            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).strip()
             clean_body = "<br>".join([re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", l) for l in body_lines])
             formatted_blocks.append(f"""
             <div style="background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.2); border-left: 4px solid var(--accent-blue); padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 16px; box-shadow: var(--shadow-sm);">
@@ -103,8 +103,8 @@ def format_ai_explanation(text: str) -> str:
             </div>
             """)
 
-        elif "📝" in header_line or "Record Synthesis" in header_text_clean or "Key Findings" in header_text_clean or "Multi-Concept" in header_text_clean:
-            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).replace("📝", "").strip()
+        elif "Record Synthesis" in header_text_clean or "Key Findings" in header_text_clean or "Multi-Concept" in header_text_clean:
+            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).strip()
             bullet_html = ""
             for l in body_lines:
                 clean_l = re.sub(r"^[•\-\s]+", "", l)
@@ -124,8 +124,8 @@ def format_ai_explanation(text: str) -> str:
             </div>
             """)
 
-        elif "🔍" in header_line or "Dimensions" in header_text_clean or "Category" in header_text_clean or "Distribution" in header_text_clean:
-            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).replace("🔍", "").strip()
+        elif "Dimensions" in header_text_clean or "Category" in header_text_clean or "Distribution" in header_text_clean:
+            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).strip()
             bullet_html = ""
             for l in body_lines:
                 clean_l = re.sub(r"^[•\-\s]+", "", l)
@@ -145,8 +145,8 @@ def format_ai_explanation(text: str) -> str:
             </div>
             """)
 
-        elif "📈" in header_line or "Metrics" in header_text_clean or "Totals" in header_text_clean or "Count" in header_text_clean:
-            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).replace("📈", "").strip()
+        elif "Metrics" in header_text_clean or "Totals" in header_text_clean or "Count" in header_text_clean:
+            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).strip()
             metric_pills = ""
             for l in body_lines:
                 clean_l = re.sub(r"^[•\-\s]+", "", l)
@@ -166,8 +166,8 @@ def format_ai_explanation(text: str) -> str:
             </div>
             """)
 
-        elif "💡" in header_line or "Insight" in header_text_clean or "Takeaway" in header_text_clean or "Recommendation" in header_text_clean:
-            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).replace("💡", "").strip()
+        elif "Insight" in header_text_clean or "Takeaway" in header_text_clean or "Recommendation" in header_text_clean:
+            clean_head = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", header_text_clean).strip()
             clean_body = "<br>".join([re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", l) for l in body_lines])
             formatted_blocks.append(f"""
             <div style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.25); border-left: 4px solid var(--accent-amber); padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 16px;">

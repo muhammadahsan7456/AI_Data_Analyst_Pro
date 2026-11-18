@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="table-card" style="max-width: 800px; margin-bottom: 32px;">
-    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">🧹 Data Cleaning Configuration</h3>
+    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Data Cleaning Configuration</h3>
     
     <form method="POST" action="{{ url_for('frontend.clean_dataset_view', dataset_id=dataset[0]) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="margin-bottom: 20px;">

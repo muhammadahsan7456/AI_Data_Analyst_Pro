@@ -419,11 +419,11 @@ def phrase_why_investigation(finding: dict) -> str:
         )
 
     fallback_text = (
-        f"### 🎯 Direct Answer\n\n"
+        f"### Direct Answer\n\n"
         f"**{metric}** {direction}d by **{pct}%** comparing {cur_period} to {prev_period} "
         f"({finding['previous_total']:,.0f} → {finding['current_total']:,.0f}).\n\n"
         + (
-            "### 📊 Top Contributing Factors\n\n" + "\n".join(contributor_lines)
+            "### Top Contributing Factors\n\n" + "\n".join(contributor_lines)
             if contributor_lines else
             "No single segment clearly explains this change - it looks spread broadly across the dataset."
         )

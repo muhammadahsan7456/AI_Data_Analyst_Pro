@@ -7,7 +7,7 @@
 {% block content %}
 <div class="table-card">
     <div class="table-header-bar">
-        <h2 class="table-title">👥 All Registered Users ({{ users|length }})</h2>
+        <h2 class="table-title">All Registered Users ({{ users|length }})</h2>
     </div>
 
     {% if users %}
@@ -36,13 +36,13 @@
                     <td>{{ u[5] }}</td>
                     <td>
                         {% if u[11] == 'Admin' %}
-                        <span class="badge badge-info" style="background: rgba(124, 58, 237, 0.15); color: var(--accent-purple); border: 1px solid var(--accent-purple);">👑 Admin</span>
+                        <span class="badge badge-info" style="background: rgba(128, 128, 128, 0.15); color: var(--accent-purple); border: 1px solid var(--accent-purple);">Admin</span>
                         {% elif u[11] == 'Manager' %}
-                        <span class="badge badge-info" style="background: rgba(37, 99, 235, 0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue);">💼 Manager</span>
+                        <span class="badge badge-info" style="background: rgba(128, 128, 128, 0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue);">Manager</span>
                         {% elif u[11] == 'Analyst' %}
-                        <span class="badge badge-info" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green);">📊 Analyst</span>
+                        <span class="badge badge-info" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green);">Analyst</span>
                         {% else %}
-                        <span class="badge badge-info" style="background: rgba(100, 116, 139, 0.15); color: var(--text-secondary); border: 1px solid var(--border-color);">👁️ Viewer</span>
+                        <span class="badge badge-info" style="background: rgba(100, 116, 139, 0.15); color: var(--text-secondary); border: 1px solid var(--border-color);">Viewer</span>
                         {% endif %}
                     </td>
                     <td>

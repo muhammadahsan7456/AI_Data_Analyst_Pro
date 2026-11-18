@@ -47,7 +47,7 @@
             </div>
             <div class="pipeline-step-card active-step">
                 <div class="pipeline-num">Stage 03</div>
-                <div class="pipeline-title"><i class="fa-solid fa-key" style="color: var(--accent-purple);"></i> AES-256 Decrypt</div>
+                <div class="pipeline-title"><i class="fa-solid fa-key" style="color: var(--accent-purple);"></i> Fernet Decrypt</div>
             </div>
             <div class="pipeline-step-card active-step">
                 <div class="pipeline-num">Stage 04</div>
@@ -105,9 +105,9 @@
                 <div class="sandbox-ai-takeaway-box" id="sandbox-takeaway">
                     <div class="sandbox-ai-takeaway-header"><i class="fa-solid fa-brain"></i> AI Executive Business Takeaways</div>
                     <div id="sandbox-takeaway-text">
-                        📊 <strong>Data Scope</strong>: Retrieved top 10 records sorted by primary serial column [Sr] ASC.<br>
-                        💡 <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 60% of initial booking volume.<br>
-                        📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory allocation in primary logistics hubs.
+                        <strong>Data Scope</strong>: Retrieved top 10 records sorted by primary serial column [Sr] ASC.<br>
+                        <strong>Key Insight</strong>: Origin dispatch hub <strong>KHI (Karachi)</strong> represents 60% of initial booking volume.<br>
+                        <strong>Strategic Action</strong>: Maintain optimal warehouse inventory allocation in primary logistics hubs.
                     </div>
                 </div>
             </div>
@@ -166,36 +166,36 @@ function runSandbox(type, btn) {
                    <tr><td>3</td><td>772846926757</td><td>#7200</td><td>KHI</td><td>SKT</td><td>900 PKR</td></tr>
                    <tr><td>4</td><td>772846926810</td><td>#7250</td><td>LHR</td><td>ISB</td><td>1,450 PKR</td></tr>
                    <tr><td>5</td><td>772846926942</td><td>#7310</td><td>KHI</td><td>PEW</td><td>2,100 PKR</td></tr>`,
-            insight: '📊 <strong>Data Scope</strong>: Retrieved top 5 records sorted by [Sr] ASC.<br>💡 <strong>Key Insight</strong>: <strong>KHI (Karachi)</strong> represents 80% of these 5 bookings (4 of 5 rows).<br>📈 <strong>Strategic Action</strong>: Maintain optimal warehouse inventory in primary hubs.'
+            insight: '<strong>Data Scope</strong>: Retrieved top 5 records sorted by [Sr] ASC.<br><strong>Key Insight</strong>: <strong>KHI (Karachi)</strong> represents 80% of these 5 bookings (4 of 5 rows).<br><strong>Strategic Action</strong>: Maintain optimal warehouse inventory in primary hubs.'
         },
         count: {
             sql: 'SELECT COUNT(*) AS [TotalRecords] FROM [Sales_Orders];',
             rows: '<tr><td colspan="6" style="text-align:center; padding:20px;"><strong>TotalRecords: 10,000,000 Rows</strong> (Multi-Gigabyte Dataset Scale)</td></tr>',
-            insight: '📊 <strong>Aggregation</strong>: Evaluated 10,000,000 records using streaming chunking.<br>💡 <strong>Key Insight</strong>: Enterprise database handles multi-gigabyte queries effortlessly.<br>📈 <strong>Strategic Action</strong>: Deploy automated batch reporting for large-scale analytics.'
+            insight: '<strong>Aggregation</strong>: Evaluated 10,000,000 records using streaming chunking.<br><strong>Key Insight</strong>: Enterprise database handles multi-gigabyte queries effortlessly.<br><strong>Strategic Action</strong>: Deploy automated batch reporting for large-scale analytics.'
         },
         last: {
             sql: 'SELECT TOP 3 * FROM [Sales_Orders] ORDER BY [Sr] DESC;',
             rows: `<tr><td>10000000</td><td>772846999999</td><td>#99999</td><td>LHR</td><td>ISB</td><td>5,500 PKR</td></tr>
                    <tr><td>9999999</td><td>772846999998</td><td>#99998</td><td>KHI</td><td>PEW</td><td>4,200 PKR</td></tr>
                    <tr><td>9999998</td><td>772846999997</td><td>#99997</td><td>MUX</td><td>SKT</td><td>3,100 PKR</td></tr>`,
-            insight: '📊 <strong>Recent Entries</strong>: Retrieved latest 3 bookings ordered by [Sr] DESC.<br>💡 <strong>Key Insight</strong>: High-value orders demonstrate active surge in Northern logistics.<br>📈 <strong>Strategic Action</strong>: Monitor high-value transit shipments for delivery confirmation.'
+            insight: '<strong>Recent Entries</strong>: Retrieved latest 3 bookings ordered by [Sr] DESC.<br><strong>Key Insight</strong>: High-value orders demonstrate active surge in Northern logistics.<br><strong>Strategic Action</strong>: Monitor high-value transit shipments for delivery confirmation.'
         },
         revenue: {
             sql: "SELECT SUM([COD_Value]) AS [Total_Revenue], AVG([COD_Value]) AS [Avg_Order] FROM [Sales_Orders];",
             rows: '<tr><td colspan="3"><strong>Total_Revenue:</strong> 9,540,200,000 PKR</td><td colspan="3"><strong>Avg_Order:</strong> 954 PKR</td></tr>',
-            insight: '📊 <strong>Financial Metrics</strong>: Aggregated total COD revenues across 10M records.<br>💡 <strong>Key Insight</strong>: Average order value is stable at <strong>954 PKR</strong> per transaction.<br>📈 <strong>Strategic Action</strong>: Incentivize bundled checkout orders to drive AOV above 1,200 PKR.'
+            insight: '<strong>Financial Metrics</strong>: Aggregated total COD revenues across 10M records.<br><strong>Key Insight</strong>: Average order value is stable at <strong>954 PKR</strong> per transaction.<br><strong>Strategic Action</strong>: Incentivize bundled checkout orders to drive AOV above 1,200 PKR.'
         },
         join: {
             sql: "SELECT TOP 2 A.Consignment, A.COD_Value, B.Status FROM [Jan_Sales] A INNER JOIN [Feb_Sales] B ON A.Consignment = B.Consignment;",
             rows: `<tr><td>772846926672</td><td>999 PKR</td><td>Delivered</td><td>KHI</td><td>ATT</td><td>Matched</td></tr>
                    <tr><td>772846926616</td><td>900 PKR</td><td>In Transit</td><td>KHI</td><td>NFZ</td><td>Matched</td></tr>`,
-            insight: '📊 <strong>Multi-Dataset Join</strong>: Blended Jan & Feb Sales using INNER JOIN on Consignment ID.<br>💡 <strong>Key Insight</strong>: 100% record match across top consignments with live delivery status.<br>📈 <strong>Strategic Action</strong>: Automate cross-month customer reconciliation reports.'
+            insight: '<strong>Multi-Dataset Join</strong>: Blended Jan & Feb Sales using INNER JOIN on Consignment ID.<br><strong>Key Insight</strong>: 100% record match across top consignments with live delivery status.<br><strong>Strategic Action</strong>: Automate cross-month customer reconciliation reports.'
         },
         urdu: {
             sql: "SELECT TOP 2 * FROM [Sales_Orders] WHERE [Origin] = 'KHI' AND [Destination] = 'ATT';",
             rows: `<tr><td>1</td><td>772846926672</td><td>#7114</td><td>KHI</td><td>ATT</td><td>999 PKR</td></tr>
                    <tr><td>104</td><td>772846927811</td><td>#8020</td><td>KHI</td><td>ATT</td><td>1,250 PKR</td></tr>`,
-            insight: '🎙️ <strong>Voice Prompt</strong>: Auto-parsed Roman Urdu voice input into T-SQL filter.<br>💡 <strong>Key Insight</strong>: Successfully filtered shipments from Karachi to Attock.<br>📈 <strong>Strategic Action</strong>: Enable hands-free mobile voice analytics for field managers.'
+            insight: '<strong>Voice Prompt</strong>: Auto-parsed Roman Urdu voice input into T-SQL filter.<br><strong>Key Insight</strong>: Successfully filtered shipments from Karachi to Attock.<br><strong>Strategic Action</strong>: Enable hands-free mobile voice analytics for field managers.'
         }
     };
 

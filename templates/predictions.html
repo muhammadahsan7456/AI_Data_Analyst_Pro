@@ -71,9 +71,9 @@
                     <div style="font-size: 12px; color: var(--text-muted);">Expected Trend Growth</div>
                     <div style="font-size: 20px; font-weight: 700; color: {% if result.pct_growth is defined and result.pct_growth and result.pct_growth >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
                         {% if result.pct_growth is defined and result.pct_growth and result.pct_growth >= 0 %}
-                            📈 +{{ result.pct_growth }}%
+                            +{{ result.pct_growth }}%
                         {% else %}
-                            📉 {{ result.pct_growth if result.pct_growth is defined else 0 }}%
+                            {{ result.pct_growth if result.pct_growth is defined else 0 }}%
                         {% endif %}
                     </div>
                 </div>

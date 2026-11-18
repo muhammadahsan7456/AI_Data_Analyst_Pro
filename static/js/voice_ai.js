@@ -30,7 +30,7 @@
             isListening = true;
             finalTranscript = "";
             updateMicUI(true);
-            showToast("🎤 Listening... Speak your complete question.", "info");
+            showToast("Listening... Speak your complete question.", "info");
         };
 
         rec.onresult = function (event) {
@@ -98,15 +98,15 @@
         switch (code) {
             case "not-allowed":
             case "service-not-allowed":
-                return "🎤 Microphone access is blocked. Click the lock/site-info icon in your browser's address bar, allow Microphone access, then try again.";
+                return "Microphone access is blocked. Click the lock/site-info icon in your browser's address bar, allow Microphone access, then try again.";
             case "audio-capture":
-                return "🎤 No microphone was found. Please connect a microphone and try again.";
+                return "No microphone was found. Please connect a microphone and try again.";
             case "network":
-                return "🎤 Voice recognition needs an internet connection. Please check your connection and try again.";
+                return "Voice recognition needs an internet connection. Please check your connection and try again.";
             case "aborted":
-                return "🎤 Voice input was stopped.";
+                return "Voice input was stopped.";
             default:
-                return "🎤 Voice recognition couldn't start (" + code + "). You can still type your question instead.";
+                return "Voice recognition couldn't start (" + code + "). You can still type your question instead.";
         }
     }
 
@@ -161,7 +161,7 @@
         const questionInput = document.getElementById("question-input") || document.getElementById("chat-prompt-input");
         if (questionInput) {
             questionInput.value = transcript;
-            showToast("✨ Voice Captured: '" + transcript + "'", "success");
+            showToast("Voice Captured: '" + transcript + "'", "success");
             executeVoiceQueryAJAX(transcript);
         }
     }
@@ -172,7 +172,7 @@
         const datasetId = datasetSelect ? datasetSelect.value : null;
 
         if (window.showLoading) {
-            window.showLoading("⚡ AI Executing Query Locally...");
+            window.showLoading("AI Executing Query Locally...");
         }
 
         fetch("/chat?ajax=1", {
@@ -214,9 +214,9 @@
             if (data.success) {
                 let html = `
                     <div style="display: flex; gap: 12px; margin-top: 24px; margin-bottom: 24px; flex-wrap: wrap;">
-                        <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">⚡ Execution Time: <strong>${data.execution_time_ms} ms</strong></div>
-                        <div class="badge badge-success" style="font-size: 13px; padding: 6px 12px;">🎯 Confidence Score: <strong>${Math.round(data.confidence * 100)}%</strong></div>
-                        <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">📊 Rows Returned: <strong>${data.rows_returned}</strong></div>
+                        <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">Execution Time: <strong>${data.execution_time_ms} ms</strong></div>
+                        <div class="badge badge-success" style="font-size: 13px; padding: 6px 12px;">Confidence Score: <strong>${Math.round(data.confidence * 100)}%</strong></div>
+                        <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">Rows Returned: <strong>${data.rows_returned}</strong></div>
                     </div>
                 `;
 
@@ -275,34 +275,34 @@
                                     <i class="fa-solid fa-sliders"></i> Switch Chart Format:
                                 </span>
                                 <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid #38bdf8; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                    🍕 Pie Chart (Gol)
+                                    Pie Chart (Gol)
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="donut" onclick="selectVisualChartMode('donut', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    🍩 Donut Ring
+                                    Donut Ring
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="bar" onclick="selectVisualChartMode('bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    📊 Vertical Bar
+                                    Vertical Bar
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="horizontal_bar" onclick="selectVisualChartMode('horizontal_bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    📈 Horizontal Bar
+                                    Horizontal Bar
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="line" onclick="selectVisualChartMode('line', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    📉 Line Chart (Trend)
+                                    Line Chart (Trend)
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="area" onclick="selectVisualChartMode('area', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    🌊 Area Chart
+                                    Area Chart
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="scatter" onclick="selectVisualChartMode('scatter', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    🎯 Scatter Plot
+                                    Scatter Plot
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="heatmap" onclick="selectVisualChartMode('heatmap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    🔥 Heatmap
+                                    Heatmap
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="treemap" onclick="selectVisualChartMode('treemap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    🧱 Treemap
+                                    Treemap
                                 </button>
                                 <button type="button" class="chart-mode-btn" data-mode="funnel" onclick="selectVisualChartMode('funnel', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.7); color: #cbd5e1; cursor: pointer; transition: all 0.2s ease;">
-                                    🔻 Funnel Flow
+                                    Funnel Flow
                                 </button>
                             </div>
 
@@ -328,7 +328,7 @@
                     speakText(data.tts_speech);
                 }
             } else {
-                showToast("⚠️ " + (data.error || "Query execution failed."), "error");
+                showToast("" + (data.error || "Query execution failed."), "error");
             }
         })
         .catch(err => {
@@ -464,8 +464,8 @@ function formatAIExplanationJS(text) {
         let head = lines[0];
         let bodyLines = lines.slice(1);
 
-        if (head.includes("📊") || head.includes("Data Scope")) {
-            let cleanHead = head.replace(/[\*\#📊]/g, "").replace(/Data Scope & Executive Overview:?/g, "").replace(/Data Scope & Business Purpose:?/g, "").trim();
+        if (head.includes("Data Scope")) {
+            let cleanHead = head.replace(/[\*\#]/g, "").replace(/Data Scope & Executive Overview:?/g, "").replace(/Data Scope & Business Purpose:?/g, "").trim();
             let cleanBody = bodyLines.map(l => l.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')).join("<br>");
             let fullText = (cleanHead ? cleanHead + " " : "") + cleanBody;
             html += `
@@ -476,8 +476,8 @@ function formatAIExplanationJS(text) {
                     <div style="font-size: 14px; color: var(--text-primary); line-height: 1.6;">${fullText}</div>
                 </div>
             `;
-        } else if (head.includes("📝") || head.includes("Record Synthesis") || head.includes("Key Findings")) {
-            let cleanHead = head.replace(/[\*\#📝]/g, "").replace(/Detailed Record Synthesis & Key Findings:?/g, "").trim();
+        } else if (head.includes("Record Synthesis") || head.includes("Key Findings")) {
+            let cleanHead = head.replace(/[\*\#]/g, "").replace(/Detailed Record Synthesis & Key Findings:?/g, "").trim();
             let bullets = bodyLines.map(l => {
                 let cleanL = l.replace(/^[•\-\s]+/, "").replace(/\*\*(.*?)\*\*/g, '<strong style="color: #6366f1;">$1</strong>');
                 return `
@@ -496,8 +496,8 @@ function formatAIExplanationJS(text) {
                     ${bullets}
                 </div>
             `;
-        } else if (head.includes("🔍") || head.includes("Dimensions")) {
-            let cleanHead = head.replace(/[\*\#🔍]/g, "").replace(/Category Breakdown & Top Performers:?/g, "").replace(/Key Dimensions & Sample Values:?/g, "").trim();
+        } else if (head.includes("Dimensions")) {
+            let cleanHead = head.replace(/[\*\#]/g, "").replace(/Category Breakdown & Top Performers:?/g, "").replace(/Key Dimensions & Sample Values:?/g, "").trim();
             let bullets = bodyLines.map(l => {
                 let cleanL = l.replace(/^[•\-\s]+/, "").replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-purple);">$1</strong>');
                 return `
@@ -516,8 +516,8 @@ function formatAIExplanationJS(text) {
                     ${bullets}
                 </div>
             `;
-        } else if (head.includes("📈") || head.includes("Metrics")) {
-            let cleanHead = head.replace(/[\*\#📈]/g, "").replace(/Aggregated Financial & Operational Metrics:?/g, "").replace(/Aggregated Business Metrics:?/g, "").trim();
+        } else if (head.includes("Metrics")) {
+            let cleanHead = head.replace(/[\*\#]/g, "").replace(/Aggregated Financial & Operational Metrics:?/g, "").replace(/Aggregated Business Metrics:?/g, "").trim();
             let pills = bodyLines.map(l => {
                 let cleanL = l.replace(/^[•\-\s]+/, "").replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-green);">$1</strong>');
                 return `
@@ -536,8 +536,8 @@ function formatAIExplanationJS(text) {
                     ${pills}
                 </div>
             `;
-        } else if (head.includes("💡") || head.includes("Insight")) {
-            let cleanHead = head.replace(/[\*\#💡]/g, "").replace(/Operational Insight:?/g, "").trim();
+        } else if (head.includes("Insight")) {
+            let cleanHead = head.replace(/[\*\#]/g, "").replace(/Operational Insight:?/g, "").trim();
             let cleanBody = bodyLines.map(l => l.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')).join("<br>");
             let fullText = (cleanHead ? cleanHead + " " : "") + cleanBody;
             html += `

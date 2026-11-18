@@ -47,7 +47,7 @@
 
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 {% if selected_dataset %}
-                <span class="badge badge-info" style="font-size: 13px; padding: 8px 14px; background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent-blue);">
+                <span class="badge badge-info" style="font-size: 13px; padding: 8px 14px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--accent-blue);">
                     <i class="fa-solid fa-file-csv" style="color: var(--accent-blue);"></i> Selected: <strong>{{ selected_dataset[2] }}</strong>
                 </span>
                 <span class="badge badge-success" style="font-size: 13px; padding: 8px 14px;">
@@ -294,22 +294,22 @@
 
         <!-- Interactive Quick Capability Prompt Chips -->
         <div style="margin-bottom: 16px; background: var(--bg-primary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-            <strong style="font-size: 13px; color: var(--accent-blue); display: block; margin-bottom: 8px;">🚀 Quick AI Cross Analysis Prompts (Click to Use):</strong>
+            <strong style="font-size: 13px; color: var(--accent-blue); display: block; margin-bottom: 8px;">Quick AI Cross Analysis Prompts (Click to Use):</strong>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                <button type="button" class="btn btn-sm" style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid #38bdf8; font-size: 12px; border-radius: 20px;" onclick="setMultiPrompt('Find matching customer orders between both files')">
-                    🔗 Matching Records Discovery ("Find matching customer orders between both files")
+                <button type="button" class="btn btn-sm" style="background: rgba(128, 128, 128, 0.15); color: #737373; border: 1px solid #737373; font-size: 12px; border-radius: 20px;" onclick="setMultiPrompt('Find matching customer orders between both files')">
+                    Matching Records Discovery ("Find matching customer orders between both files")
                 </button>
-                <button type="button" class="btn btn-sm" style="background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid #a855f7; font-size: 12px; border-radius: 20px;" onclick="setMultiPrompt('Compare total sales and records between both datasets')">
-                    📊 Cross-Dataset Metrics Comparison ("Compare total sales and records between both datasets")
+                <button type="button" class="btn btn-sm" style="background: rgba(128, 128, 128, 0.15); color: #737373; border: 1px solid #737373; font-size: 12px; border-radius: 20px;" onclick="setMultiPrompt('Compare total sales and records between both datasets')">
+                    Cross-Dataset Metrics Comparison ("Compare total sales and records between both datasets")
                 </button>
                 <button type="button" class="btn btn-sm" style="background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid #34d399; font-size: 12px; border-radius: 20px;" onclick="setMultiPrompt('Merge both files records into one sheet')">
-                    📑 Data Blending & Merging ("Merge both files records into one sheet")
+                    Data Blending & Merging ("Merge both files records into one sheet")
                 </button>
             </div>
         </div>
 
         <div style="margin-bottom: 20px;">
-            <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;">💬 Enter Cross-Dataset Prompt / Join Query:</label>
+            <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;">Enter Cross-Dataset Prompt / Join Query:</label>
             <input type="text" id="multi-query-input" placeholder="e.g. Join datasets on customer_id, Compare revenue between tables, Find matching rows..." style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none;">
         </div>
 
@@ -372,16 +372,16 @@ function runMultiDatasetAnalysis() {
         if (window.hideLoading) window.hideLoading();
         if (data.success) {
             resBox.innerHTML = `
-                <div style="margin-bottom: 12px; color: var(--accent-green); font-weight: bold;">✅ ${data.explanation}</div>
+                <div style="margin-bottom: 12px; color: var(--accent-green); font-weight: bold;">${data.explanation}</div>
                 <div class="table-container">${data.result_html}</div>
             `;
         } else {
-            resBox.innerHTML = `<div style="color: var(--accent-red);">❌ Error: ${data.error}</div>`;
+            resBox.innerHTML = `<div style="color: var(--accent-red);">Error: ${data.error}</div>`;
         }
     })
     .catch(err => {
         if (window.hideLoading) window.hideLoading();
-        resBox.innerHTML = `<div style="color: var(--accent-red);">❌ Server Error: ${err}</div>`;
+        resBox.innerHTML = `<div style="color: var(--accent-red);">Server Error: ${err}</div>`;
     });
 }
 </script>
@@ -449,29 +449,28 @@ function renderInteractivePlotlyChart(spec, targetMode) {
     // a dark canvas (light gray/white) would go unreadable the moment the canvas turns
     // white in light mode.
     const isDarkTheme = (document.documentElement.getAttribute("data-theme") || "dark") === "dark";
+    // Monochrome, grayscale-first chart theme (matches static/css/mono.css).
     const chartTheme = isDarkTheme ? {
-        paper: "#0b0f19", plot: "#0b0f19", titleFont: "#f8fafc",
-        axisTitle: "#94a3b8", axisTick: "#cbd5e1", grid: "#1e293b", zeroline: "#334155",
-        legend: "#cbd5e1", barText: "#38bdf8", barLine: "rgba(255,255,255,0.2)",
-        sliceLine: "#0b0f19", scatterText: "#ffffff"
+        paper: "#141414", plot: "#141414", titleFont: "#fafafa",
+        axisTitle: "#a3a3a3", axisTick: "#d4d4d4", grid: "#262626", zeroline: "#3a3a3a",
+        legend: "#d4d4d4", barText: "#d4d4d4", barLine: "rgba(255,255,255,0.15)",
+        sliceLine: "#141414", scatterText: "#fafafa", ink: "#fafafa",
+        hoverBg: "#fafafa", hoverText: "#0a0a0a", fill: "rgba(250,250,250,0.10)"
     } : {
-        paper: "#f8fafc", plot: "#f8fafc", titleFont: "#0f172a",
-        axisTitle: "#334155", axisTick: "#1e293b", grid: "#e2e8f0", zeroline: "#cbd5e1",
-        legend: "#1e293b", barText: "#1d4ed8", barLine: "rgba(15,23,42,0.15)",
-        sliceLine: "#f8fafc", scatterText: "#0f172a"
+        paper: "#ffffff", plot: "#ffffff", titleFont: "#0a0a0a",
+        axisTitle: "#525252", axisTick: "#404040", grid: "#ededed", zeroline: "#d4d4d4",
+        legend: "#404040", barText: "#404040", barLine: "rgba(0,0,0,0.12)",
+        sliceLine: "#ffffff", scatterText: "#0a0a0a", ink: "#0a0a0a",
+        hoverBg: "#0a0a0a", hoverText: "#ffffff", fill: "rgba(10,10,10,0.06)"
     };
 
     const labels = spec.labels;
     const values = spec.values;
-    // A rich, distinct palette so charts stay visually engaging even with many categories.
-    // Indexed with modulo everywhere it's used (colorAt()) so it cycles cleanly instead of
-    // running out and leaving later bars/slices with no color (which Plotly renders black).
-    const colors = [
-        "#38bdf8", "#a855f7", "#34d399", "#fbbf24", "#f43f5e",
-        "#818cf8", "#2dd4bf", "#4ade80", "#e879f9", "#fb923c",
-        "#60a5fa", "#c084fc", "#22d3ee", "#facc15", "#f87171",
-        "#a3e635", "#f472b6", "#2dd4bf", "#93c5fd", "#fdba74"
-    ];
+    // Grayscale ramp ordered for contrast between neighbours (dark, light, mid...), so
+    // categories stay distinguishable without hue. Single-series bars use ink only.
+    const colors = isDarkTheme
+        ? ["#fafafa", "#737373", "#d4d4d4", "#525252", "#a3a3a3", "#404040", "#e5e5e5", "#8a8a8a"]
+        : ["#0a0a0a", "#a3a3a3", "#404040", "#d4d4d4", "#262626", "#737373", "#525252", "#bdbdbd"];
     function colorAt(i) { return colors[i % colors.length]; }
     function colorsFor(n) { return Array.from({ length: n }, (_, i) => colorAt(i)); }
 
@@ -508,15 +507,15 @@ function renderInteractivePlotlyChart(spec, targetMode) {
     const layout = {
         title: {
             text: humanTitle,
-            font: { color: chartTheme.titleFont, size: 16, family: "Segoe UI, sans-serif" }
+            font: { color: chartTheme.titleFont, size: 16, family: "Inter, system-ui, sans-serif" }
         },
         paper_bgcolor: chartTheme.paper,
         plot_bgcolor: chartTheme.plot,
         margin: mode === "horizontal_bar" ? { l: 120, r: 40, t: 50, b: 50 } : { l: 60, r: 30, t: 50, b: (labels && labels.length > 10 ? 90 : 60) },
         hoverlabel: {
-            bgcolor: "#1e293b",
-            bordercolor: "#38bdf8",
-            font: { color: "#ffffff", size: 13, family: "Segoe UI" }
+            bgcolor: chartTheme.hoverBg,
+            bordercolor: chartTheme.hoverBg,
+            font: { color: chartTheme.hoverText, size: 13, family: "Inter, system-ui, sans-serif" }
         },
         xaxis: {
             title: { text: humanXCol, font: { color: chartTheme.axisTitle, size: 12 } },
@@ -557,7 +556,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             textinfo: "label+value+percent",
             hovertext: richHoverText,
             hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{label}</b><br>Value: <b>%{value:,.2f}</b><br>Percentage: <b>%{percent}</b><extra></extra>",
-            textfont: { color: "#ffffff", size: 12 }
+            textfont: { size: 12 }
         }];
     } else if (mode === "line" || mode === "area") {
         plotlyData = [{
@@ -570,9 +569,9 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             texttemplate: valueTickFormat,
             textfont: { color: chartTheme.barText, size: 10 },
             fill: mode === "area" ? "tozeroy" : "none",
-            fillcolor: mode === "area" ? "rgba(56, 189, 248, 0.2)" : undefined,
-            line: { color: "#38bdf8", width: 3, shape: "spline" },
-            marker: { color: "#a855f7", size: 8 },
+            fillcolor: mode === "area" ? chartTheme.fill : undefined,
+            line: { color: chartTheme.ink, width: 2, shape: "spline" },
+            marker: { color: chartTheme.ink, size: 6 },
             hovertext: richHoverText,
             hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : ("<b>%{x}</b><br>" + (humanYCol || "Value") + ": <b>%{y:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>")
         }];
@@ -587,7 +586,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             texttemplate: valueTickFormatX,
             textfont: { color: chartTheme.barText, size: 10 },
             marker: {
-                color: colorsFor(values.length),
+                color: chartTheme.ink,
                 line: { color: chartTheme.barLine, width: 1 },
                 cornerradius: 6
             },
@@ -606,7 +605,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             textfont: { color: chartTheme.scatterText, size: 10 },
             marker: {
                 color: values,
-                colorscale: "Viridis",
+                colorscale: "Greys",
                 size: 12,
                 showscale: true
             },
@@ -619,7 +618,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             x: spec.matrix_cols,
             y: spec.matrix_cols,
             type: "heatmap",
-            colorscale: "Viridis",
+            colorscale: "Greys",
             hovertemplate: "<b>Col 1:</b> %{x}<br><b>Col 2:</b> %{y}<br><b>Correlation:</b> %{z:.2f}<extra></extra>"
         }];
     } else if (mode === "heatmap") {
@@ -628,7 +627,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             x: labels,
             y: [humanYCol || "Value"],
             type: "heatmap",
-            colorscale: "Viridis",
+            colorscale: "Greys",
             hovertemplate: "<b>%{x}</b><br>" + (humanYCol || "Value") + ": <b>%{z:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>",
             showscale: true
         }];
@@ -669,7 +668,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             textposition: "outside",
             textfont: { color: chartTheme.barText, size: 10 },
             marker: {
-                color: colorsFor(values.length),
+                color: chartTheme.ink,
                 line: { color: chartTheme.barLine, width: 1 },
                 cornerradius: 6
             },

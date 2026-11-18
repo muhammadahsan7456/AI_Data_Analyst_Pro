@@ -11,11 +11,12 @@ except Exception:
 import pandas as pd
 import numpy as np
 
-# Professional Modern SaaS Color Palette
+# Monochrome, grayscale-first palette (exports and the downloadable chart image).
+# Ordered for contrast between neighbours; readable on white and on near-black.
 COLOR_PALETTE = [
-    "#38bdf8", "#a855f7", "#34d399", "#fbbf24",
-    "#f43f5e", "#818cf8", "#2dd4bf", "#4ade80",
-    "#c084fc", "#f472b6", "#fb923c", "#60a5fa"
+    "#171717", "#a3a3a3", "#525252", "#d4d4d4",
+    "#262626", "#737373", "#404040", "#bdbdbd",
+    "#0a0a0a", "#8a8a8a", "#5e5e5e", "#c7c7c7"
 ]
 
 MAX_CHART_POINTS = 5000
@@ -25,10 +26,10 @@ def setup_style(dark: bool = True):
     if not plt:
         return
     plt.close('all')
-    fig_bg = "#0b0f19" if dark else "#ffffff"
-    ax_bg = "#111827" if dark else "#f8fafc"
-    text_color = "#f3f4f6" if dark else "#0f172a"
-    grid_color = "#1f2937" if dark else "#e2e8f0"
+    fig_bg = "#0a0a0a" if dark else "#ffffff"
+    ax_bg = "#141414" if dark else "#ffffff"
+    text_color = "#fafafa" if dark else "#0a0a0a"
+    grid_color = "#262626" if dark else "#e5e5e5"
 
     plt.rcParams.update({
         'font.family': 'sans-serif',
@@ -40,7 +41,7 @@ def setup_style(dark: bool = True):
         'axes.linewidth': 1.2,
         'axes.labelcolor': text_color,
         'axes.titlesize': 15,
-        'axes.titlecolor': '#38bdf8' if dark else '#0284c7',
+        'axes.titlecolor': text_color,
         'axes.titleweight': 'bold',
         'axes.labelsize': 11,
         'axes.labelweight': 'bold',
@@ -192,7 +193,7 @@ def create_bar_chart(dataframe: pd.DataFrame):
                 h = bar.get_height()
                 ax.annotate(f"{h:,.0f}", xy=(bar.get_x() + bar.get_width() / 2, h),
                             xytext=(0, 6), textcoords="offset points", ha='center', va='bottom',
-                            color='#38bdf8', fontweight='bold', fontsize=10)
+                            color=plt.rcParams.get('axes.labelcolor', '#0a0a0a'), fontweight='bold', fontsize=10)
             plt.xticks(rotation=25, ha="right", fontsize=10)
             plt.tight_layout()
             return fig
@@ -241,7 +242,7 @@ def create_bar_chart(dataframe: pd.DataFrame):
         h = bar.get_height()
         ax.annotate(f"{h:,.0f}" if h >= 10 else f"{h:,.1f}", xy=(bar.get_x() + bar.get_width() / 2, h),
                     xytext=(0, 6), textcoords="offset points", ha='center', va='bottom',
-                    color='#38bdf8', fontweight='bold', fontsize=10)
+                    color=plt.rcParams.get('axes.labelcolor', '#0a0a0a'), fontweight='bold', fontsize=10)
     plt.xticks(rotation=25, ha="right", fontsize=10)
     plt.tight_layout()
     return fig
@@ -460,7 +461,7 @@ def create_heatmap(dataframe: pd.DataFrame):
             # Informative fallback chart figure
             fig, ax = plt.subplots(figsize=(8, 4))
             ax.text(0.5, 0.5, "Heatmap requires at least 2 numerical\nor 2 categorical columns for matrix correlation.",
-                    ha='center', va='center', color='#38bdf8', fontsize=12, fontweight='bold')
+                    ha='center', va='center', color=plt.rcParams.get('axes.labelcolor', '#0a0a0a'), fontsize=12, fontweight='bold')
             ax.axis('off')
             plt.tight_layout()
             return fig

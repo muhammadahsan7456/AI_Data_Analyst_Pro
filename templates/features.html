@@ -2,8 +2,8 @@
 
 {% block seo_meta %}
 <title>Features — AI Data Analyst Pro | Enterprise AI Analytics Platform Capabilities</title>
-<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
-<meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, AES-256 Encryption, Multi-Dataset Join, PowerPoint Export, Data Visualization">
+<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, field-level encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
+<meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, Field-level encryption, Multi-Dataset Join, PowerPoint Export, Data Visualization">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
 
@@ -62,13 +62,13 @@
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);"><i class="fa-solid fa-lock"></i></div>
-                <h3 class="feature-card-title">AES-256 Field Encryption at Rest</h3>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #737373, #737373);"><i class="fa-solid fa-lock"></i></div>
+                <h3 class="feature-card-title">Field-level encryption at Rest</h3>
                 <p class="feature-card-desc">Bank-grade Fernet encryption protects all sensitive text/string columns stored in SQL Server tables. Authorized user sessions decrypt data transparently in real-time.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4, #0e7490);"><i class="fa-solid fa-bolt"></i></div>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #737373, #737373);"><i class="fa-solid fa-bolt"></i></div>
                 <h3 class="feature-card-title">Fast Local T-SQL Pattern Engine</h3>
                 <p class="feature-card-desc">Many common data requests are answered by a local T-SQL pattern engine in milliseconds, without an external AI call, avoiding network delays.</p>
             </div>
@@ -92,19 +92,19 @@
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ec4899, #be185d);"><i class="fa-solid fa-file-powerpoint"></i></div>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #737373, #737373);"><i class="fa-solid fa-file-powerpoint"></i></div>
                 <h3 class="feature-card-title">1-Click Executive Report Exports</h3>
                 <p class="feature-card-desc">Generate professional PowerPoint (PPTX), PDF, Word (DOCX), Excel (XLSX), CSV, and SVG chart exports — {{ site_config.EXPORT_TYPICAL_TIME }} — with AI executive takeaways included.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #14b8a6, #0f766e);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #737373, #737373);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                 <h3 class="feature-card-title">AI Forecasting & Predictions</h3>
                 <p class="feature-card-desc">Generate automated time-series forecasts and AI-driven business predictions from your dataset columns with confidence intervals and trend analysis.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #a855f7, #7e22ce);"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #737373, #7e22ce);"><i class="fa-solid fa-shield-halved"></i></div>
                 <h3 class="feature-card-title">Row-Level Data Isolation</h3>
                 <p class="feature-card-desc">Strict SQL Server UserID filtering isolates every uploaded dataset and query result to its owner. Zero cross-tenant data leakage guaranteed.</p>
             </div>
@@ -129,12 +129,12 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;" class="stagger-children">
             {% set formats = [
                 ('CSV (.csv)', 'fa-file-csv', '#10b981'),
-                ('TSV (.tsv)', 'fa-table-cells', '#06b6d4'),
+                ('TSV (.tsv)', 'fa-table-cells', '#737373'),
                 ('Excel (.xlsx)', 'fa-file-excel', '#059669'),
                 ('Excel (.xls)', 'fa-file-circle-plus', '#d97706'),
-                ('JSON (.json)', 'fa-file-code', '#8b5cf6'),
-                ('XML (.xml)', 'fa-code', '#a855f7'),
-                ('Parquet', 'fa-database', '#3b82f6'),
+                ('JSON (.json)', 'fa-file-code', '#737373'),
+                ('XML (.xml)', 'fa-code', '#737373'),
+                ('Parquet', 'fa-database', '#737373'),
                 ('Feather', 'fa-feather-pointed', '#f59e0b'),
                 ('Text (.txt)', 'fa-file-lines', '#ef4444')
             ] %}

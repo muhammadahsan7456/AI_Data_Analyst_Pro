@@ -38,7 +38,7 @@ def generate_executive_report_html(table_name: str, company_name: str = "Enterpr
         </div>
         """
     if not anomalies_html:
-        anomalies_html = "<div style='color: #10b981; font-weight: 700;'>✅ No high-severity data anomalies detected.</div>"
+        anomalies_html = "<div style='color: #10b981; font-weight: 700;'>No high-severity data anomalies detected.</div>"
 
     forecast_html = ""
     if forecast.get("success"):
@@ -72,16 +72,16 @@ def generate_executive_report_html(table_name: str, company_name: str = "Enterpr
             </div>
         </div>
 
-        <div class="section-title">📊 Dataset Quality & Hygiene Summary</div>
+        <div class="section-title">Dataset Quality & Hygiene Summary</div>
         <p>Total Rows: <strong>{health['total_rows']:,}</strong> | Total Columns: <strong>{health['total_columns']}</strong> | Missing Cells: <strong>{health['null_percentage']}%</strong> | Duplicates: <strong>{health['duplicate_percentage']}%</strong></p>
 
-        <div class="section-title">⚠️ Risk & Anomaly Alerts</div>
+        <div class="section-title">Risk & Anomaly Alerts</div>
         {anomalies_html}
 
-        <div class="section-title">📈 30-90 Day Predictive Trend Forecast</div>
+        <div class="section-title">30-90 Day Predictive Trend Forecast</div>
         {forecast_html}
 
-        <div class="section-title">📋 Dataset Sample Preview</div>
+        <div class="section-title">Dataset Sample Preview</div>
         {rows_html}
 
         <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 11px; color: #94a3b8; text-align: center;">

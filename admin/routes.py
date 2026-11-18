@@ -267,7 +267,7 @@ def admin_verify_otp():
             except Exception as e:
                 print("Create Admin Session Error:", e)
             log_audit_event("ADMIN_LOGIN_SUCCESS", f"Super Admin '{pending.get('full_name')}' logged into Executive Console (2FA verified)", user_id=user_id)
-            flash(f"👑 Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
+            flash(f"Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
             return redirect(pending.get("next") or url_for("admin.dashboard"))
         else:
             attempts += 1
@@ -282,7 +282,7 @@ def admin_verify_otp():
 
             pending["attempts"] = attempts
             session["pending_admin_otp"] = pending
-            flash(f"❌ Invalid verification code. {remaining} attempt(s) remaining.", "error")
+            flash(f"Invalid verification code. {remaining} attempt(s) remaining.", "error")
 
     return render_template("admin/verify_otp.html", email=pending.get("email"))
 
@@ -312,7 +312,7 @@ def admin_logout():
         for k in ["user_id", "user_name", "user_email", "user_role", "last_activity", "session_token"]:
             session.pop(k, None)
 
-    flash("👋 Super Admin logged out successfully.", "info")
+    flash("Super Admin logged out successfully.", "info")
     return redirect(url_for("admin.admin_login"))
 
 
@@ -1354,9 +1354,9 @@ def trigger_backup_now():
     backup_path = run_database_backup()
     if backup_path:
         log_audit_event("ADMIN_MANUAL_BACKUP", f"Manual database backup created: {backup_path}", user_id=admin_id)
-        flash(f"✅ Database backup created successfully: {backup_path}", "success")
+        flash(f"Database backup created successfully: {backup_path}", "success")
     else:
-        flash("❌ Database backup failed. Check server logs for details.", "error")
+        flash("Database backup failed. Check server logs for details.", "error")
     return redirect(url_for("admin.settings"))
 
 
@@ -1398,7 +1398,7 @@ def change_admin_password():
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(update_user_password(), (new_hash, admin_id))
         log_audit_event("ADMIN_PASSWORD_CHANGE", "Super Admin password changed from Executive Console settings.", user_id=admin_id)
-        flash("🔐 Super Admin password updated successfully.", "success")
+        flash("Super Admin password updated successfully.", "success")
     except Exception as e:
         print("Admin Change Password Error:", e)
         flash(f"Failed to update password: {str(e)}", "error")

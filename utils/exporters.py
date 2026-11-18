@@ -155,7 +155,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     elements.append(Spacer(1, 8))
 
     if insights:
-        elements.append(Paragraph("🤖 Key AI Insights & Business Recommendations", h2_style))
+        elements.append(Paragraph("Key AI Insights & Business Recommendations", h2_style))
         for insight in insights:
             elements.append(Paragraph(f"• {insight}", body_style))
         elements.append(Spacer(1, 8))
@@ -163,7 +163,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     if chart_file_path:
         full_chart_path = os.path.join("static", chart_file_path) if not chart_file_path.startswith("static") else chart_file_path
         if os.path.exists(full_chart_path):
-            elements.append(Paragraph("📈 Visual Analysis", h2_style))
+            elements.append(Paragraph("Visual Analysis", h2_style))
             img = RLImage(full_chart_path, width=500, height=220)
             elements.append(img)
             elements.append(Spacer(1, 10))
@@ -171,7 +171,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     # Fast Table preview limit (up to 300 rows)
     max_pdf_rows = 300
     df_pdf = df.head(max_pdf_rows)
-    record_note = f"📋 Query Records View (Showing Top {len(df_pdf):,} of {len(df):,} Matching Rows)" if len(df) > max_pdf_rows else f"📋 Complete Records View ({len(df):,} Matching Rows)"
+    record_note = f"Query Records View (Showing Top {len(df_pdf):,} of {len(df):,} Matching Rows)" if len(df) > max_pdf_rows else f"Complete Records View ({len(df):,} Matching Rows)"
     elements.append(Paragraph(record_note, h2_style))
 
     cols_to_render = df_pdf.columns[:8]
@@ -283,7 +283,7 @@ def export_invoice_to_pdf(payment: dict) -> bytes:
         [
             [Paragraph("DESCRIPTION / PLAN TIER", hdr_style), Paragraph("BILLING PERIOD", hdr_style),
              Paragraph("PAYMENT METHOD", hdr_style), Paragraph("AMOUNT", hdr_style)],
-            [Paragraph(f"<b>{payment.get('plan_name', '')}</b><br/><font color='#64748b' size=7>Includes 10M+ Streaming Chunking, AES-256 Field Encryption at Rest &amp; Sub-Second Exports</font>", cell_style),
+            [Paragraph(f"<b>{payment.get('plan_name', '')}</b><br/><font color='#64748b' size=7>Includes 10M+ Streaming Chunking, Field-level encryption at Rest &amp; Sub-Second Exports</font>", cell_style),
              Paragraph("30-Day Monthly Cycle", cell_muted_style),
              Paragraph(str(payment.get("payment_method", "")), cell_muted_style),
              Paragraph(f"<b>{currency} {amount:,.2f}</b>", cell_style)]
@@ -426,7 +426,7 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
             tx_hdr2 = slide2.shapes.add_textbox(Inches(0.8), Inches(0.6), Inches(11.7), Inches(1))
             p_hdr2 = tx_hdr2.text_frame.paragraphs[0]
-            p_hdr2.text = "🤖 AI Key Business Insights & Recommendations"
+            p_hdr2.text = "AI Key Business Insights & Recommendations"
             p_hdr2.font.bold = True
             p_hdr2.font.size = Pt(24)
             p_hdr2.font.color.rgb = RGBColor(56, 189, 248)
@@ -453,7 +453,7 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
                 tx_c = slide_c.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.8))
                 p_c = tx_c.text_frame.paragraphs[0]
-                p_c.text = "📈 Executive Visual Analytics Chart"
+                p_c.text = "Executive Visual Analytics Chart"
                 p_c.font.bold = True
                 p_c.font.size = Pt(24)
                 p_c.font.color.rgb = RGBColor(56, 189, 248)
@@ -480,7 +480,7 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
                 tx_t = slide_tbl.shapes.add_textbox(Inches(0.8), Inches(0.4), Inches(11.7), Inches(0.8))
                 p_t = tx_t.text_frame.paragraphs[0]
-                p_t.text = f"📋 Dataset Records View (Slide {slide_num} of {total_slides} | Rows {chunk_start+1}-{chunk_start+len(chunk_df)} of {total_records:,})"
+                p_t.text = f"Dataset Records View (Slide {slide_num} of {total_slides} | Rows {chunk_start+1}-{chunk_start+len(chunk_df)} of {total_records:,})"
                 p_t.font.bold = True
                 p_t.font.size = Pt(22)
                 p_t.font.color.rgb = RGBColor(56, 189, 248)

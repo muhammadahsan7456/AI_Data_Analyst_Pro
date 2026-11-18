@@ -465,7 +465,7 @@ def signup():
 
             log_audit_event("SIGNUP_OTP_EMAIL", f"6-digit email verification code sent to {email}", user_id=new_user_id)
 
-            flash(Markup(f"🔐 Account details updated! A 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
+            flash(Markup(f"Account details updated! A 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
             return redirect(url_for("auth.verify_otp"))
 
@@ -528,7 +528,7 @@ def verify_otp():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(mark_email_token_used(), (expected_code,))
             session.pop("pending_otp", None)
-            flash("❌ Maximum verification attempts exceeded (5 failed attempts). Verification code invalidated. Please request a new code.", "error")
+            flash("Maximum verification attempts exceeded (5 failed attempts). Verification code invalidated. Please request a new code.", "error")
             return redirect(url_for("auth.login"))
 
         if input_code == expected_code:
@@ -543,10 +543,10 @@ def verify_otp():
 
                 session["toast"] = {
                     "type": "success",
-                    "title": f"👋 Hello {full_name}!",
+                    "title": f"Hello {full_name}!",
                     "message": "Your email address has been verified successfully. You can now log in."
                 }
-                flash(f"👋 Hello {escape(full_name)}! Your email has been verified successfully.", "success")
+                flash(f"Hello {escape(full_name)}! Your email has been verified successfully.", "success")
                 return redirect(url_for("auth.login"))
             except Exception:
                 logger.exception("OTP verification failed for user_id=%s.", user_id)
@@ -567,10 +567,10 @@ def verify_otp():
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(mark_email_token_used(), (expected_code,))
                 session.pop("pending_otp", None)
-                flash("❌ Maximum verification attempts exceeded. Please request a new verification code.", "error")
+                flash("Maximum verification attempts exceeded. Please request a new verification code.", "error")
                 return redirect(url_for("auth.login"))
             else:
-                flash(f"❌ Invalid verification code. {remaining} attempt(s) remaining.", "error")
+                flash(f"Invalid verification code. {remaining} attempt(s) remaining.", "error")
 
     return render_template("verify_otp.html", pending_otp=pending)
 
@@ -630,7 +630,7 @@ def resend_otp():
         return redirect(url_for("auth.verify_otp"))
 
     log_audit_event("RESEND_OTP_EMAIL", f"New Email OTP sent to {email}", user_id=user_id)
-    flash(Markup(f"📧 A new 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
+    flash(Markup(f"A new 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
     return redirect(url_for("auth.verify_otp"))
 
@@ -685,7 +685,7 @@ def verify_email(token):
 
         log_audit_event("VERIFY_EMAIL", "Email verified successfully.", user_id=user_id)
         trigger_ai_event(user_id, build_email_verified_card(user_name))
-        flash("🎉 Your email address has been verified successfully! You can now log in.", "success")
+        flash("Your email address has been verified successfully! You can now log in.", "success")
     except Exception:
         logger.exception("Email verification failed for user_id=%s.", user_id)
         flash("We could not verify your email right now. Please try again.", "error")
@@ -1104,7 +1104,7 @@ def login():
         if not is_active:
             log_login_attempt(user_id, "Suspended")
             trigger_ai_event(user_id, build_account_locked_card())
-            flash("❌ Your account has been suspended by the administrator. Please contact support.", "error")
+            flash("Your account has been suspended by the administrator. Please contact support.", "error")
             return render_template("login.html")
 
         # Check Account Lockout
@@ -1191,7 +1191,7 @@ def login():
         # Set Login Toast
         session["toast"] = {
             "type": "success",
-            "title": f"👋 Hello {user_display_name}!",
+            "title": f"Hello {user_display_name}!",
             "message": "You have successfully logged in."
         }
 
@@ -1231,7 +1231,7 @@ def login():
                 build_welcome_back_card(user_id, user_display_name)
             )
 
-        flash(f"👋 Hello {escape(user_display_name)}! You have successfully logged in.", "success")
+        flash(f"Hello {escape(user_display_name)}! You have successfully logged in.", "success")
 
         # Payment-gated accounts go straight to their gate screen, not wherever "next"
         # or the dashboard would otherwise send them - login_required would redirect
@@ -1380,7 +1380,7 @@ def reset_password(token=""):
         if attempts >= 5:
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(mark_reset_token_used(), (otp_code,))
-            flash("❌ Maximum verification attempts exceeded. Password reset code invalidated.", "error")
+            flash("Maximum verification attempts exceeded. Password reset code invalidated.", "error")
             return redirect(url_for("auth.forgot_password"))
 
         # Fetch user name for toast
@@ -1700,11 +1700,11 @@ def logout():
     session["pending_ai_card"] = farewell_card
     session["toast"] = {
         "type": "success",
-        "title": f"👋 Goodbye {user_name}!",
+        "title": f"Goodbye {user_name}!",
         "message": "You have successfully logged out."
     }
 
-    flash(f"👋 Goodbye {escape(user_name)}! You have successfully logged out.", "info")
+    flash(f"Goodbye {escape(user_name)}! You have successfully logged out.", "info")
     return redirect(url_for("auth.login"))
 
 

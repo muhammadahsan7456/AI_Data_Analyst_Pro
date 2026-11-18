@@ -17,7 +17,7 @@
     {% block seo_meta %}
     <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
     <meta name="description" content="Transform datasets up to 10M+ rows into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
-    <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics">
+    <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, Field-level Data Encryption, 10M Rows Analytics">
     <link rel="canonical" href="{{ request.url }}">
     {% endblock %}
 
@@ -48,7 +48,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <!-- Font Awesome (preconnect first: the stylesheet itself then pulls ~280KB of icon
          webfonts from the same origin, so paying the TLS handshake up front saves ~400ms) -->
@@ -87,10 +88,12 @@
         "price": "1499.00",
         "priceCurrency": "PKR"
       },
-      "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and AES-256 encryption."
+      "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and field-level encryption."
     }
     </script>
     {% endblock %}
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261118">
 </head>
 <body class="landing-body">
 
@@ -163,7 +166,7 @@
             <div class="flash-banner-container">
                 {% for category, message in messages %}
                 <div class="flash-banner flash-banner-{{ 'error' if category in ['error', 'danger'] else category }}">
-                    <span>{% if category in ['error', 'danger'] %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
+                    <i class="fa-solid {% if category in ['error', 'danger'] %}fa-circle-exclamation{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}" aria-hidden="true"></i>
                     {# No |safe here - see the matching note in base.html. Flash text carries
                        user-supplied values and must be escaped; intentional markup arrives
                        as a Markup() object, which Jinja renders unescaped on its own. #}
@@ -228,7 +231,7 @@
                     <ul>
                         <li><a href="{{ url_for('frontend.privacy') }}"><i class="fa-solid fa-angle-right"></i> Privacy Policy</a></li>
                         <li><a href="{{ url_for('frontend.terms') }}"><i class="fa-solid fa-angle-right"></i> Terms of Service</a></li>
-                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> AES-256 Protocol</a></li>
+                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> Encryption at rest</a></li>
                     </ul>
                 </div>
 

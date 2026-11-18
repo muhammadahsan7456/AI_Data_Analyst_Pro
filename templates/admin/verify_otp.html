@@ -20,7 +20,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
@@ -35,8 +36,8 @@
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
             --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --gradient-admin: linear-gradient(135deg, #ef4444 0%, #8b5cf6 50%, #3b82f6 100%);
+            --accent-purple: #737373;
+            --gradient-admin: linear-gradient(135deg, #ef4444 0%, #737373 50%, #737373 100%);
             --shadow-admin: 0 20px 50px -10px rgba(239, 68, 68, 0.35);
         }
         [data-theme="light"] {
@@ -48,7 +49,7 @@
             --text-secondary: #334155;
             --text-muted: #64748b;
             --accent-red: #dc2626;
-            --accent-purple: #7c3aed;
+            --accent-purple: #737373;
             --shadow-admin: 0 20px 40px -10px rgba(220, 38, 38, 0.2);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -99,6 +100,8 @@
         .otp-footer { margin-top: 20px; font-size: 12px; color: var(--text-muted); }
         .otp-footer a { color: var(--accent-red); text-decoration: none; font-weight: 600; }
     </style>
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261118">
 </head>
 <body>
     <div class="otp-card">

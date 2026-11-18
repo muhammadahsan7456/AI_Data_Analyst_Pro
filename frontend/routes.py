@@ -463,7 +463,7 @@ def dashboard():
             cursor.execute("SELECT TOP 1 Status, PaymentDate FROM Payments WHERE UserID = ? ORDER BY PaymentDate DESC", (user_id,))
             p_row = cursor.fetchone()
             if p_row and p_row[0] in ['Pending', 'Pending_Review']:
-                pending_payment_notice = "⏳ Payment Proof Verification Pending: Your payment receipt proof (PKR 1,499) has been received and is currently under Super Admin review. Account access will be extended automatically upon verification!"
+                pending_payment_notice = "Payment Proof Verification Pending: Your payment receipt proof (PKR 1,499) has been received and is currently under Super Admin review. Account access will be extended automatically upon verification!"
 
         # Renewal notice only displays if subscription requires renewal AND no pending payment is under review
         if not pending_payment_notice and sub_meta.get("show_banner"):
@@ -937,7 +937,7 @@ def chat():
                 query_count_today = cursor.fetchone()[0] or 0
 
             if query_count_today >= daily_limit:
-                limit_msg = f"⚠️ Daily AI query limit reached ({daily_limit}/day). Please try again after 24 hours, or contact support to increase your limit."
+                limit_msg = f"Daily AI query limit reached ({daily_limit}/day). Please try again after 24 hours, or contact support to increase your limit."
                 if is_ajax:
                     return jsonify({"success": False, "error": limit_msg})
                 return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, error=limit_msg)

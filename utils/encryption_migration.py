@@ -12,7 +12,7 @@ from utils.encryption import encrypt_dataframe
 def migrate_and_encrypt_existing_tables():
     """
     Scans all existing dataset tables in SQL Server/SQLite, detects unencrypted string columns,
-    and retroactively encrypts all existing rows with AES-256 Fernet Encryption at rest.
+    and retroactively encrypts all existing rows with Fernet encryption (AES-128 + HMAC-SHA256) at rest.
     """
     from database.connection import get_connection, sanitize_identifier
     conn = get_connection()

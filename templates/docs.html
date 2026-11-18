@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Platform Documentation & Architecture Guide — AI Data Analyst Pro</title>
-<meta name="description" content="Technical documentation for AI Data Analyst Pro: 10M+ row dataset ingestion, SQL querying with responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice AI, automated PPTX/PDF exports, and AES-256 encryption.">
+<meta name="description" content="Technical documentation for AI Data Analyst Pro: 10M+ row dataset ingestion, SQL querying with responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice AI, automated PPTX/PDF exports, and field-level encryption.">
 <meta name="keywords" content="AI Data Analyst Docs, SQL Architecture, Voice AI Querying, Automated PowerPoint Export, Parquet CSV Parsing">
 <link rel="canonical" href="{{ request.url }}">
 {% endblock %}
@@ -113,21 +113,21 @@
                 <!-- Section 2 -->
                 <div id="doc-voice" class="feature-card" style="padding: 36px;">
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
-                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: linear-gradient(135deg, #a855f7, #6366f1);"><i class="fa-solid fa-microphone-lines"></i></div>
+                        <div class="feature-icon-wrapper" style="margin-bottom: 0; background: linear-gradient(135deg, #737373, #737373);"><i class="fa-solid fa-microphone-lines"></i></div>
                         <div>
                             <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">2. Voice AI & Natural Language Querying</h2>
                             <span style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">English & Roman Urdu Speech Normalization</span>
                         </div>
                     </div>
                     <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
-                        Ask analytical questions using your voice or keyboard. The voice engine normalizes spoken typos (e.g., <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu phonetic phrases like <em>"sab se zyada revenue" ➔ MAX(revenue)</em>) and executes optimized T-SQL in {{ site_config.TYPICAL_RESPONSE_TIME }}.
+                        Ask analytical questions using your voice or keyboard. The voice engine normalizes spoken typos (e.g., <em>"top 5 ross" "top 5 rows"</em> or Urdu phonetic phrases like <em>"sab se zyada revenue" MAX(revenue)</em>) and executes optimized T-SQL in {{ site_config.TYPICAL_RESPONSE_TIME }}.
                     </p>
                     <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
                         <strong style="color: #ffffff; display: block; margin-bottom: 8px;">Query Syntax & Natural Language Examples:</strong>
                         <ul style="padding-left: 20px;">
-                            <li><code>"Show top 10 customers by total sales"</code> ➔ Fast GROUP BY aggregation</li>
-                            <li><code>"What is the average transaction amount in 2026?"</code> ➔ Fast AVG with date filter</li>
-                            <li><code>"Which product category has the lowest margin?"</code> ➔ ORDER BY ASC with margin calculation</li>
+                            <li><code>"Show top 10 customers by total sales"</code> Fast GROUP BY aggregation</li>
+                            <li><code>"What is the average transaction amount in 2026?"</code> Fast AVG with date filter</li>
+                            <li><code>"Which product category has the lowest margin?"</code> ORDER BY ASC with margin calculation</li>
                         </ul>
                     </div>
                 </div>

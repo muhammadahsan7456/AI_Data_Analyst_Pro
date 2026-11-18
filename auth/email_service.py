@@ -238,7 +238,7 @@ AI Data Analyst Pro Security Team
                                     <td align="center" style="background-color: #fef2f2; border: 2px dashed #f87171; border-radius: 12px; padding: 24px;">
                                         <div style="font-size: 12px; font-weight: 700; color: #991b1b; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Your Security Code</div>
                                         <div style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #dc2626; margin: 4px 0;">{otp_code}</div>
-                                        <div style="font-size: 12px; color: #991b1b; margin-top: 8px;">⏰ Expires in <strong>10 minutes</strong></div>
+                                        <div style="font-size: 12px; color: #991b1b; margin-top: 8px;">Expires in <strong>10 minutes</strong></div>
                                     </td>
                                 </tr>
                             </table>
@@ -336,7 +336,7 @@ AI Data Analyst Pro Security Team
                                     <td align="center" style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px;">
                                         <div style="font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Your 6-Digit Verification Code</div>
                                         <div style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #2563eb; margin: 4px 0;">{otp_code}</div>
-                                        <div style="font-size: 12px; color: #64748b; margin-top: 8px;">⏰ Code expires in <strong>10 minutes</strong></div>
+                                        <div style="font-size: 12px; color: #64748b; margin-top: 8px;">Code expires in <strong>10 minutes</strong></div>
                                     </td>
                                 </tr>
                             </table>
@@ -441,7 +441,7 @@ AI Data Analyst Pro Security Team
                                     <td align="center" style="background-color: #fef2f2; border: 2px dashed #f87171; border-radius: 12px; padding: 24px;">
                                         <div style="font-size: 12px; font-weight: 700; color: #991b1b; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Your 6-Digit Password Reset Code</div>
                                         <div style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #dc2626; margin: 4px 0;">{otp_code}</div>
-                                        <div style="font-size: 12px; color: #991b1b; margin-top: 8px;">⏰ Code expires in <strong>10 minutes</strong></div>
+                                        <div style="font-size: 12px; color: #991b1b; margin-top: 8px;">Code expires in <strong>10 minutes</strong></div>
                                     </td>
                                 </tr>
                             </table>
@@ -787,12 +787,12 @@ AI Data Analyst Pro Support Team
 
                             <!-- Feature Card Box -->
                             <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 28px;">
-                                <div style="font-size: 14px; font-weight: 700; color: #38bdf8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">⚡ What You Get As A Subscriber:</div>
+                                <div style="font-size: 14px; font-weight: 700; color: #38bdf8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">What You Get As A Subscriber:</div>
                                 <ul style="margin: 0; padding-left: 20px; color: #e2e8f0; font-size: 14px; line-height: 1.8;">
                                     <li><strong>10M+ Scale Performance Tips:</strong> Fast query strategies.</li>
                                     <li><strong>Bilingual Voice AI Updates:</strong> Urdu & English voice query engine news.</li>
                                     <li><strong>Automated Export Blueprints:</strong> Executive PowerPoint & PDF guides.</li>
-                                    <li><strong>Security Advisories:</strong> AES-256 field encryption & compliance insights.</li>
+                                    <li><strong>Security Advisories:</strong> field-level encryption & compliance insights.</li>
                                 </ul>
                             </div>
 

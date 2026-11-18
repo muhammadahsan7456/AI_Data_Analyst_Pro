@@ -31,7 +31,7 @@
         var iconSpan = document.getElementById("theme-icon");
         var textSpan = document.getElementById("theme-text");
         if (iconSpan && textSpan) {
-            iconSpan.textContent = isDark ? "☀️" : "🌙";
+            iconSpan.innerHTML = isDark ? '<i class="fa-solid fa-sun" aria-hidden="true"></i>' : '<i class="fa-solid fa-moon" aria-hidden="true"></i>';
             textSpan.textContent = isDark ? "Light Mode" : "Dark Mode";
         }
 
