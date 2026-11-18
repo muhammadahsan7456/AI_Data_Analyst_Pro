@@ -20,6 +20,8 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
       - DATASET_ENCRYPTION_KEY=${DATASET_ENCRYPTION_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     volumes:
       - upload_data:/app/static/uploads
     depends_on:
@@ -27,12 +29,11 @@ services:
     restart: always
 
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: sql_server_db
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=${DB_PASSWORD}
-      - MSSQL_PID=Developer
     volumes:
       - sqlserver_data:/var/opt/mssql
     restart: always
