@@ -9,7 +9,10 @@ def admin_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        admin_id = session.get("admin_user_id") or (session.get("user_id") if session.get("user_role") in ["SuperAdmin", "Admin"] else None)
+        # Only the admin console's own password + emailed-OTP sign-in sets admin_user_id.
+        # A normal portal session (password or Google) for an admin account must not open
+        # the console without that second factor.
+        admin_id = session.get("admin_user_id")
         if not admin_id:
             flash("Super Admin authentication required to access executive console.", "warning")
             return redirect(url_for("admin.admin_login", next=request.url))

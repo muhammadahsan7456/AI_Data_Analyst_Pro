@@ -743,312 +743,334 @@ def resend_verification():
 # ==========================================
 # GOOGLE OAUTH 2.0 AUTHENTICATION
 # ==========================================
+# Root causes fixed here (see docs/PROGRESS.md, Phase 2):
+#   1. New Google users always failed: upsert_user_profile()/upsert_user_settings() were
+#      called with 11/6 parameters for statements that have 25/13 markers, so the driver
+#      raised and the whole sign-up transaction rolled back.
+#   2. Existing users always failed on SQL Server: the inline T-SQL inserted into columns
+#      that do not exist (UserProfiles.CreatedAt, UserSettings.ExportFormat/DefaultChart/
+#      DefaultDashboard). SQL Server rejects unknown columns at compile time, even inside
+#      an IF NOT EXISTS branch that would not run.
+#   3. Visitors on www.<domain> got their OAuth state cookie on the www host while Google
+#      returned them to the apex callback, so the state check always failed.
+#   4. email_verified was never checked, and an unverified password account with the same
+#      email was silently merged (its old password kept working).
+_GOOGLE_DOMAIN = "aidataanalystpro.co.uk"
+_GOOGLE_GENERIC_ERROR = (
+    "We couldn't sign you in with Google right now. Please try again, or use your "
+    "email and password."
+)
+
+
+def _public_base_url():
+    """The canonical public origin (scheme + host) the OAuth flow must run on."""
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
+    if configured.startswith(("http://", "https://")):
+        return configured
+    host = (request.host or "").split(":")[0].lower()
+    if host == _GOOGLE_DOMAIN or host.endswith("." + _GOOGLE_DOMAIN):
+        return f"https://{_GOOGLE_DOMAIN}"
+    proto = (request.headers.get("X-Forwarded-Proto") or request.scheme or "http").split(",")[0].strip()
+    return f"{proto}://{request.host}"
+
+
 def _get_google_redirect_uri():
-    if "aidataanalystpro.co.uk" in request.host:
-        return "https://aidataanalystpro.co.uk/auth/google/callback"
-    proto = request.headers.get("X-Forwarded-Proto") or request.scheme
-    if proto == "https":
-        return url_for("auth.google_callback", _external=True, _scheme="https")
-    return url_for("auth.google_callback", _external=True)
+    explicit = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+    if explicit:
+        return explicit
+    return _public_base_url() + url_for("auth.google_callback")
+
+
+def _google_config():
+    return (
+        os.getenv("GOOGLE_CLIENT_ID", "").strip(),
+        os.getenv("GOOGLE_CLIENT_SECRET", "").strip(),
+    )
+
+
+def _ensure_google_user_rows(cursor, user_id, picture):
+    """Create the UserProfiles/UserSettings rows if missing, portably (SQL Server + SQLite)."""
+    # COUNT(*) always returns a row, so this is unambiguous on both SQL Server and the
+    # SQLite QA adapter (whose fetchone() can echo the last inserted id on an empty result).
+    cursor.execute("SELECT COUNT(*) FROM UserProfiles WHERE UserID = ?", (user_id,))
+    if not cursor.fetchone()[0]:
+        cursor.execute(
+            "INSERT INTO UserProfiles (UserID, ProfileImage) VALUES (?, ?)",
+            (user_id, picture),
+        )
+    cursor.execute("SELECT COUNT(*) FROM UserSettings WHERE UserID = ?", (user_id,))
+    if not cursor.fetchone()[0]:
+        cursor.execute(
+            "INSERT INTO UserSettings (UserID, Theme, DateFormat, DefaultExportFormat, "
+            "ChartPreference, DashboardPreference) VALUES (?, 'dark', 'YYYY-MM-DD', 'csv', 'bar', 'standard')",
+            (user_id,),
+        )
+
+
+def _start_google_session(user_id, display_name, username, email, role, avatar):
+    session.clear()
+    session["user_id"] = user_id
+    session["user_name"] = display_name
+    session["username"] = username
+    session["full_name"] = display_name
+    session["profile_image"] = avatar
+    session["user_email"] = email
+    session["user_role"] = role or "Analyst"
+    session["login_time"] = datetime.now().isoformat()
+    session["last_activity"] = time.time()
+    session.permanent = True
+    session_token = generate_secure_token()
+    session["session_token"] = session_token
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                create_user_session(),
+                (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500]),
+            )
+    except Exception:
+        logger.exception("Could not persist Google sign-in session for user_id=%s.", user_id)
+
+
+def _post_login_redirect(user_id):
+    from auth.decorators import get_user_access_status
+    try:
+        allowed, gate_status, _ = get_user_access_status(user_id)
+    except Exception:
+        logger.exception("Could not read access status after Google sign-in for user_id=%s.", user_id)
+        allowed, gate_status = True, None
+    if not allowed:
+        if gate_status == "pending_approval":
+            return redirect(url_for("frontend.waiting_approval"))
+        return redirect(url_for("frontend.renew_subscription"))
+    return redirect(url_for("frontend.dashboard"))
+
+
+def _pkce_pair():
+    import base64
+    import hashlib
+    verifier = secrets.token_urlsafe(64)[:96]
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+    return verifier, challenge
 
 
 @auth_bp.route("/google")
 @auth_bp.route("/google/login")
 def google_login():
-    """
-    Redirects user to Google's official OAuth 2.0 authorization screen.
-    """
+    """Redirect to Google's OAuth 2.0 consent screen (authorization code + PKCE)."""
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))
 
-    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-
+    client_id, client_secret = _google_config()
     if not client_id or not client_secret:
-        flash(
-            Markup(
-                "⚙️ <strong>Google Sign-In Setup:</strong> To enable one-click Google authentication, "
-                "please add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your <code>.env</code> file. "
-                "In the meantime, you can sign in or register with email and password."
-            ),
-            "warning"
-        )
+        logger.error("Google sign-in requested but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are not configured.")
+        flash("Google sign-in is not available right now. Please sign in with your email and password.", "warning")
         return redirect(url_for("auth.login"))
 
+    # The state cookie must live on the same host Google sends the user back to.
+    base = _public_base_url()
+    canonical_host = urllib.parse.urlsplit(base).netloc.lower()
+    if canonical_host and canonical_host != (request.host or "").lower():
+        return redirect(base + url_for("auth.google_login"))
+
     state = secrets.token_urlsafe(32)
+    verifier, challenge = _pkce_pair()
     session["google_oauth_state"] = state
-    redirect_uri = _get_google_redirect_uri()
+    session["google_oauth_verifier"] = verifier
+    session["google_oauth_started"] = time.time()
 
     params = {
         "client_id": client_id,
-        "redirect_uri": redirect_uri,
+        "redirect_uri": _get_google_redirect_uri(),
         "response_type": "code",
         "scope": "openid email profile",
         "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
         "access_type": "online",
-        "prompt": "select_account"
+        "prompt": "select_account",
     }
-    google_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
-    return redirect(google_url)
+    return redirect("https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params))
 
 
 @auth_bp.route("/google/callback")
 def google_callback():
-    """
-    Handles Google OAuth 2.0 callback, exchanges code for token,
-    and signs in or registers the user directly.
-    """
+    """Exchange the code, verify the Google identity, then sign in, link, or create the user."""
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))
 
+    saved_state = session.pop("google_oauth_state", None)
+    verifier = session.pop("google_oauth_verifier", None)
+    started = session.pop("google_oauth_started", None)
+
     error = request.args.get("error")
     if error:
-        flash(f"Google authentication was cancelled or failed ({escape(error)}).", "error")
+        if error == "access_denied":
+            flash("Google sign-in was cancelled.", "info")
+        else:
+            logger.warning("Google OAuth returned error=%s", error[:64])
+            flash(_GOOGLE_GENERIC_ERROR, "error")
         return redirect(url_for("auth.login"))
 
-    code = request.args.get("code")
     state = request.args.get("state")
-    saved_state = session.pop("google_oauth_state", None)
-
-    if not state or state != saved_state:
-        flash("Invalid OAuth state validation. Please try again.", "error")
+    code = request.args.get("code")
+    if not state or not saved_state or not secrets.compare_digest(state, saved_state):
+        logger.warning("Google OAuth state mismatch (cookie present=%s).", bool(saved_state))
+        flash("Your Google sign-in session expired. Please click Continue with Google again.", "warning")
         return redirect(url_for("auth.login"))
-
+    if started and time.time() - float(started) > 600:
+        flash("Your Google sign-in session expired. Please click Continue with Google again.", "warning")
+        return redirect(url_for("auth.login"))
     if not code:
-        flash("Authorization code missing from Google.", "error")
+        flash(_GOOGLE_GENERIC_ERROR, "error")
         return redirect(url_for("auth.login"))
 
-    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-    redirect_uri = _get_google_redirect_uri()
+    client_id, client_secret = _google_config()
+    if not client_id or not client_secret:
+        flash("Google sign-in is not available right now. Please sign in with your email and password.", "warning")
+        return redirect(url_for("auth.login"))
 
     try:
-        # 1. Exchange authorization code for tokens
+        token_payload = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": _get_google_redirect_uri(),
+        }
+        if verifier:
+            token_payload["code_verifier"] = verifier
         token_resp = requests.post(
             "https://oauth2.googleapis.com/token",
-            data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": redirect_uri
-            },
+            data=token_payload,
             headers={"Accept": "application/json"},
-            timeout=10
+            timeout=10,
         )
-
         if token_resp.status_code != 200:
-            print("Google token exchange error:", token_resp.status_code, token_resp.text, flush=True)
-            flash("Failed to authenticate with Google. Please check your credentials.", "error")
+            try:
+                err = (token_resp.json() or {}).get("error", "unknown")
+            except ValueError:
+                err = "non-json"
+            logger.error("Google token exchange failed: HTTP %s error=%s", token_resp.status_code, err)
+            flash(_GOOGLE_GENERIC_ERROR, "error")
             return redirect(url_for("auth.login"))
 
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
+        access_token = (token_resp.json() or {}).get("access_token")
         if not access_token:
-            flash("Google returned an invalid access token.", "error")
+            logger.error("Google token response had no access_token.")
+            flash(_GOOGLE_GENERIC_ERROR, "error")
             return redirect(url_for("auth.login"))
 
-        # 2. Retrieve verified user profile from Google
         profile_resp = requests.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
+            "https://openidconnect.googleapis.com/v1/userinfo",
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=10
+            timeout=10,
         )
-
         if profile_resp.status_code != 200:
-            flash("Could not retrieve profile info from Google.", "error")
+            logger.error("Google userinfo failed: HTTP %s", profile_resp.status_code)
+            flash(_GOOGLE_GENERIC_ERROR, "error")
             return redirect(url_for("auth.login"))
+        profile_data = profile_resp.json() or {}
+    except (requests.RequestException, ValueError):
+        logger.exception("Google OAuth network/JSON error.")
+        flash(_GOOGLE_GENERIC_ERROR, "error")
+        return redirect(url_for("auth.login"))
 
-        profile_data = profile_resp.json()
-        email = (profile_data.get("email") or "").strip().lower()
-        if not email:
-            flash("Google account did not provide an email address.", "error")
-            return redirect(url_for("auth.login"))
+    email = (profile_data.get("email") or "").strip().lower()
+    email_verified = profile_data.get("email_verified") in (True, "true", "True", 1)
+    if not email:
+        flash("Your Google account did not share an email address, so we can't sign you in with it.", "error")
+        return redirect(url_for("auth.login"))
+    if not email_verified:
+        flash("Your Google email address is not verified. Please verify it with Google, or sign in with email and password.", "error")
+        return redirect(url_for("auth.login"))
 
-        full_name = profile_data.get("name") or profile_data.get("given_name") or email.split("@")[0]
-        picture = profile_data.get("picture") or None
+    full_name = (profile_data.get("name") or profile_data.get("given_name") or email.split("@")[0]).strip()[:150]
+    picture = profile_data.get("picture") or None
 
-        # 3. Check if user already exists in DB
+    try:
         with get_db_cursor() as cursor:
             cursor.execute(get_user_by_email(), (email,))
             existing_user = cursor.fetchone()
 
         if existing_user:
-            user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active, is_verified, role, failed_attempts, lockout_until, created_at = existing_user
+            (user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active,
+             is_verified, role, failed_attempts, lockout_until, created_at) = existing_user
 
             if not is_active:
                 log_login_attempt(user_id, "Suspended")
-                trigger_ai_event(user_id, build_account_locked_card())
-                flash("❌ Your account has been suspended by the administrator. Please contact support.", "error")
+                flash("Your account has been suspended by the administrator. Please contact support.", "error")
                 return redirect(url_for("auth.login"))
 
-            # Since email is verified by Google Identity, ensure IsVerified is True and reset any failed attempts
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(verify_user_email(), (user_id,))
+                if not is_verified:
+                    # The address was never proven by whoever registered it. Google has now
+                    # proven it belongs to this person, so retire the unproven password:
+                    # whoever set it can no longer use it. The owner can set a new one via
+                    # Forgot password.
+                    cursor.execute(update_user_password(), (hash_password(secrets.token_urlsafe(32)), user_id))
+                    cursor.execute(verify_user_email(), (user_id,))
                 cursor.execute(reset_failed_login(), (user_id,))
                 if picture and not pimg:
                     cursor.execute(update_user_avatar(), (picture, user_id))
+                _ensure_google_user_rows(cursor, user_id, picture)
 
-                # Ensure UserProfiles record exists
-                cursor.execute("""
-                    IF NOT EXISTS (SELECT 1 FROM UserProfiles WHERE UserID = ?)
-                    BEGIN
-                        INSERT INTO UserProfiles (UserID, ProfileImage, CreatedAt)
-                        VALUES (?, ?, GETDATE())
-                    END
-                """, (user_id, user_id, picture))
-
-                # Ensure UserSettings record exists
-                cursor.execute("""
-                    IF NOT EXISTS (SELECT 1 FROM UserSettings WHERE UserID = ?)
-                    BEGIN
-                        INSERT INTO UserSettings (UserID, Theme, DateFormat, ExportFormat, DefaultChart, DefaultDashboard)
-                        VALUES (?, 'dark', 'YYYY-MM-DD', 'csv', 'bar', 'standard')
-                    END
-                """, (user_id, user_id))
-
-            user_display_name = fnm or full_name
-            user_avatar = pimg or picture
-            user_role = role or "Analyst"
-
-            # Set enterprise session
-            session.clear()
-            session["user_id"] = user_id
-            session["user_name"] = user_display_name
-            session["username"] = un
-            session["full_name"] = user_display_name
-            session["profile_image"] = user_avatar
-            session["user_email"] = em
-            session["user_role"] = user_role
-            session["login_time"] = datetime.now().isoformat()
-            session["last_activity"] = time.time()
-            session.permanent = True
-
-            session_token = generate_secure_token()
-            session["session_token"] = session_token
-            try:
-                with get_db_cursor(commit=True) as cursor:
-                    cursor.execute(
-                        create_user_session(),
-                        (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
-                    )
-            except Exception as sess_err:
-                print("Google session persistence notice:", sess_err)
-
-            # Persist to LoginHistory and AuditLogs
+            display_name = fnm or full_name
+            _start_google_session(user_id, display_name, un, em, role, pimg or picture)
             log_login_attempt(user_id, "Success")
-            log_audit_event("LOGIN_GOOGLE", f"User {user_display_name} ({em}) signed in securely via Google OAuth 2.0.", user_id=user_id)
-
-            # Dispatch AI notification (persists to AINotifications table)
-            trigger_ai_event(user_id, build_welcome_back_card(user_id, user_display_name))
-
-            session["toast"] = {
-                "type": "success",
-                "title": f"👋 Welcome back, {user_display_name}!",
-                "message": "Signed in successfully via Google."
-            }
-            flash(f"👋 Welcome back, {escape(user_display_name)}!", "success")
-            return redirect(url_for("frontend.dashboard"))
-
-        else:
-            # 4. New user: Register directly via Google OAuth
-            base_username = re.sub(r"[^a-zA-Z0-9_]", "", email.split("@")[0])[:25] or "user"
-            candidate = base_username
-            with get_db_cursor() as cursor:
-                for _ in range(20):
-                    cursor.execute(get_user_by_username(), (candidate,))
-                    if not cursor.fetchone():
-                        break
-                    candidate = f"{base_username}{secrets.randbelow(9000) + 1000}"
-                else:
-                    candidate = f"{base_username}{secrets.token_hex(4)}"
-            username = candidate
-
-            rand_pwd = secrets.token_urlsafe(32)
-            pwd_hash = hash_password(rand_pwd)
-
-            parts = full_name.split(None, 1)
-            first_name = parts[0]
-            last_name = parts[1] if len(parts) > 1 else ""
-
-            with get_db_cursor(commit=True) as cursor:
-                # Insert into Users
-                cursor.execute(create_user(), (
-                    first_name,
-                    last_name,
-                    username,
-                    full_name,
-                    email,
-                    "",  # phone
-                    "",  # country
-                    "",  # city
-                    pwd_hash
-                ))
-                new_user_id = cursor.fetchone()[0]
-
-                # Pre-verify since Google email is authentic
-                cursor.execute(verify_user_email(), (new_user_id,))
-                cursor.execute("UPDATE Users SET SubscriptionStatus = 'free' WHERE UserID = ?", (new_user_id,))
-
-                # Set avatar if available from Google
-                if picture:
-                    cursor.execute(update_user_avatar(), (picture, new_user_id))
-
-                # Insert default UserProfiles record
-                cursor.execute(upsert_user_profile(), (new_user_id, None, None, None, None, None, None, None, None, None, picture))
-
-                # Insert default UserSettings record (dark luxury theme, CSV, standard dashboard)
-                cursor.execute(upsert_user_settings(), (new_user_id, "dark", "YYYY-MM-DD", "csv", "bar", "standard"))
-
-            # Set enterprise session
-            session.clear()
-            session["user_id"] = new_user_id
-            session["user_name"] = full_name
-            session["username"] = username
-            session["full_name"] = full_name
-            session["profile_image"] = picture
-            session["user_email"] = email
-            session["user_role"] = "Analyst"
-            session["login_time"] = datetime.now().isoformat()
-            session["last_activity"] = time.time()
-            session.permanent = True
-
-            session_token = generate_secure_token()
-            session["session_token"] = session_token
+            log_audit_event(
+                "LOGIN_GOOGLE" if is_verified else "LINK_GOOGLE_VERIFIED",
+                f"Signed in via Google ({em}).",
+                user_id=user_id,
+            )
             try:
-                with get_db_cursor(commit=True) as cursor:
-                    cursor.execute(
-                        create_user_session(),
-                        (new_user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
-                    )
-            except Exception as sess_err:
-                print("Google session persistence notice:", sess_err)
+                trigger_ai_event(user_id, build_welcome_back_card(user_id, display_name))
+            except Exception:
+                logger.exception("Welcome card failed after Google sign-in.")
+            flash(f"Welcome back, {escape(display_name)}.", "success")
+            return _post_login_redirect(user_id)
 
-            # Persist to LoginHistory and AuditLogs
-            log_login_attempt(new_user_id, "Success")
-            log_audit_event("SIGNUP_GOOGLE", f"New user {full_name} ({email}) registered securely via Google OAuth 2.0 with verified email.", user_id=new_user_id)
+        # New user: free tier, verified, no OTP and no payment step.
+        base_username = re.sub(r"[^a-zA-Z0-9_]", "", email.split("@")[0])[:25] or "user"
+        candidate = base_username
+        with get_db_cursor() as cursor:
+            for _ in range(20):
+                cursor.execute(get_user_by_username(), (candidate,))
+                if not cursor.fetchone():
+                    break
+                candidate = f"{base_username}{secrets.randbelow(9000) + 1000}"
+            else:
+                candidate = f"{base_username}{secrets.token_hex(4)}"
+        username = candidate
 
-            # Dispatch AI notification (persists to AINotifications table)
-            trigger_ai_event(new_user_id, build_email_verified_card(full_name))
+        parts = full_name.split(None, 1)
+        first_name = parts[0] if parts else username
+        last_name = parts[1] if len(parts) > 1 else ""
 
-            # Send welcome login notification email asynchronously
-            try:
-                client_info = parse_client_device(request.headers.get("User-Agent", ""))
-                email_service.send_login_notification_email(email, full_name, datetime.now().strftime("%Y-%m-%d %H:%M UTC"), client_info["device"])
-            except Exception as notify_err:
-                print("Google signup email notification notice:", notify_err)
-
-            session["toast"] = {
-                "type": "success",
-                "title": f"🎉 Welcome {full_name}!",
-                "message": "Your enterprise account has been created via Google."
-            }
-            flash(f"🎉 Welcome to AI Data Analyst Pro, {escape(full_name)}! Your account is active.", "success")
-            return redirect(url_for("frontend.dashboard"))
-
-    except Exception as e:
-        flash(f"Google authentication error: {str(e)}", "error")
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(create_user(), (
+                first_name, last_name, username, full_name, email, "", "", "",
+                hash_password(secrets.token_urlsafe(32)),
+            ))
+            new_user_id = cursor.fetchone()[0]
+            cursor.execute(verify_user_email(), (new_user_id,))
+            cursor.execute("UPDATE Users SET SubscriptionStatus = 'free' WHERE UserID = ?", (new_user_id,))
+            if picture:
+                cursor.execute(update_user_avatar(), (picture, new_user_id))
+            _ensure_google_user_rows(cursor, new_user_id, picture)
+    except Exception:
+        logger.exception("Google sign-in database step failed.")
+        flash(_GOOGLE_GENERIC_ERROR, "error")
         return redirect(url_for("auth.login"))
+
+    _start_google_session(new_user_id, full_name, username, email, "Analyst", picture)
+    log_login_attempt(new_user_id, "Success")
+    log_audit_event("SIGNUP_GOOGLE", f"New account created via Google ({email}).", user_id=new_user_id)
+    try:
+        trigger_ai_event(new_user_id, build_email_verified_card(full_name))
+    except Exception:
+        logger.exception("Welcome card failed after Google sign-up.")
+    flash(f"Welcome to AI Data Analyst Pro, {escape(full_name)}. Your free account is ready.", "success")
+    return _post_login_redirect(new_user_id)
 
 
 # ==========================================
@@ -1221,8 +1243,10 @@ def login():
                 return redirect(url_for("frontend.waiting_approval"))
             return redirect(url_for("frontend.renew_subscription"))
 
-        next_page = request.args.get("next")
-        if next_page:
+        next_page = request.args.get("next") or ""
+        # Only same-site relative paths: an absolute or protocol-relative "next" would
+        # turn the login page into an open redirect.
+        if next_page.startswith("/") and not next_page.startswith("//") and "\\" not in next_page:
             return redirect(next_page)
         return redirect(url_for("frontend.dashboard"))
 

@@ -1,11 +1,10 @@
 """
-Docker/container WSGI entry point for AI Data Analyst Pro (see Dockerfile's CMD).
+Production WSGI entry point for AI Data Analyst Pro (python wsgi.py).
 
-The actual production deployment (EC2 + nginx + systemd) runs run.py directly,
-not this file - binding to 0.0.0.0 here is correct for a container, where
-run.py's 127.0.0.1-only binding (and the trusted_proxy config that assumes a
-reverse proxy on that same loopback) would not be reachable from outside the
-container at all.
+On the VM it binds 127.0.0.1 behind Nginx and trusts that one local proxy hop for
+X-Forwarded-* headers. In Docker (/.dockerenv present) it binds 0.0.0.0 as before.
+Set BIND_HOST to override. Run exactly ONE process: the app owns a scheduler thread
+and in-process upload jobs.
 """
 
 import os
@@ -29,11 +28,23 @@ if __name__ == "__main__":
     try:
         from waitress import serve
         port = int(os.getenv("PORT", 5000))
-        print(f"🚀 Launching Enterprise Production Waitress WSGI Server on http://0.0.0.0:{port} ...")
-        # Thread/connection settings kept in sync with run.py's tuning (see that file's
-        # comment for the full reasoning) - threads=8 here was stale and would under-serve
-        # concurrent requests compared to the entry point actually used in production.
-        serve(app, host="0.0.0.0", port=port, threads=32, connection_limit=300, channel_timeout=120)
+        # Outside a container this process sits behind Nginx on the same VM, so it binds
+        # to loopback only and trusts exactly that one proxy hop for X-Forwarded-For/
+        # -Proto/-Host. Without this, Waitress strips those headers: every login/audit IP
+        # was recorded as 127.0.0.1 and request.scheme was "http" even on HTTPS. Inside
+        # Docker (unchanged) it keeps binding 0.0.0.0. BIND_HOST overrides either default.
+        in_container = os.path.exists("/.dockerenv")
+        host = os.getenv("BIND_HOST", "").strip() or ("0.0.0.0" if in_container else "127.0.0.1")
+        options = dict(threads=32, connection_limit=300, channel_timeout=120)
+        if host in ("127.0.0.1", "localhost"):
+            options.update(
+                trusted_proxy="127.0.0.1",
+                trusted_proxy_count=1,
+                trusted_proxy_headers={"x-forwarded-for", "x-forwarded-proto", "x-forwarded-host"},
+                clear_untrusted_proxy_headers=True,
+            )
+        print(f"Launching Waitress on http://{host}:{port} ...")
+        serve(app, host=host, port=port, **options)
     except ImportError:
-        print("⚠️ Waitress WSGI server not installed. Falling back to default Flask server...")
-        app.run(host="0.0.0.0", port=5000, debug=False)
+        print("Waitress is not installed. Falling back to Flask's server (debug off)...")
+        app.run(host="127.0.0.1", port=int(os.getenv("PORT", 5000)), debug=False)

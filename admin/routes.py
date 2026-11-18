@@ -96,7 +96,7 @@ def admin_login():
     Dedicated Super Admin Authentication Gateway.
     Separated from standard user authentication portal.
     """
-    if session.get("admin_user_id") or (session.get("user_id") and session.get("user_role") in ["SuperAdmin", "Admin"]):
+    if session.get("admin_user_id"):
         return redirect(url_for("admin.dashboard"))
 
     if request.method == "POST":
