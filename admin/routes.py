@@ -747,11 +747,8 @@ def delete_user(user_id):
                         cursor.execute(f"IF OBJECT_ID('{t_candidate}', 'U') IS NOT NULL DROP TABLE [{t_candidate}]")
                     except Exception:
                         pass
-                    try:
-                        from utils import dataset_vault
-                        dataset_vault.drop(t_candidate)
-                    except Exception:
-                        pass
+                    from utils import dataset_vault
+                    dataset_vault.drop(t_candidate, cursor=cursor)
 
             # 2. Delete child records to satisfy Foreign Key constraints
             try:

@@ -246,3 +246,16 @@ Evidence (QA, SQLite, this sandbox):
 Free gate: 1.09 MB CSV refused for Free (400, `upgrade_required`). Uploads above `UPLOAD_ASYNC_THRESHOLD_MB` (8 MB) run as background jobs with real progress.
 
 Copy: unverified "10M+ rows/records" claims replaced with "up to 500 MB"; encryption copy now describes AES-256-GCM per-dataset keys.
+
+## R-Phase 4 — Responsive and theme matrix (re-run)
+
+456 screenshots: 38 pages (public, portal, admin) × 360/390/768/1024/1440/1920 × light/dark, logged in as a QA user and the Super Admin. Result: 0 pages with horizontal overflow; the only console errors are on the deliberate `/nope-404` check (12). Fixed from review:
+- Portal top bar on phones wrapped the notification bell under the menu button; now one row.
+- Decorative amber/yellow (dataset names, icons, theme toggle) rendered in colour; now ink. Status colours (success/danger) kept.
+- Dashboard privacy panel said "raw dataset records are never transmitted externally". Not true: when the AI model is needed it receives the question, column names and up to 3 sample rows. Copy corrected.
+- CSS cache-buster bumped (`mono.css?v=20261119`).
+
+## R-Phase 7 (part) — Security
+- `/dataset/delete/<id>` deleted on a plain GET, so a link on another site could delete a dataset (SameSite=Lax still sends cookies on top-level GET). Now: POST with CSRF token deletes; GET only redirects to the dashboard with a message. Route name/URL unchanged. Verified: GET → not deleted; POST without token → not deleted; POST with token → dataset, table, ciphertext and key removed.
+- Vault cleanup on delete used a second connection while the delete transaction held locks; ciphertext was left behind on SQLite. Fixed: user delete removes it after commit; admin user-delete removes it inside the same transaction.
+- Production must set `FORCE_SECURE_COOKIES=true` (Secure cookie + HSTS header are already wired to it).

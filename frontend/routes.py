@@ -1874,10 +1874,15 @@ def edit_dataset(dataset_id):
 # ==========================================
 # DELETE DATASET (USER ISOLATED)
 # ==========================================
-@frontend.route("/dataset/delete/<int:dataset_id>")
+@frontend.route("/dataset/delete/<int:dataset_id>", methods=["GET", "POST"])
 @login_required
 def delete_dataset(dataset_id):
     user_id = session.get("user_id")
+    # Deleting is destructive, so it only happens on a POST (CSRF-checked by Flask-WTF).
+    # A GET (old bookmark or a link from another site) no longer deletes anything.
+    if request.method != "POST":
+        flash("To delete a dataset, use the Delete button on your dashboard.", "info")
+        return redirect(url_for("frontend.dashboard"))
     try:
         with get_db_cursor() as cursor:
             cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
@@ -1901,14 +1906,16 @@ def delete_dataset(dataset_id):
                     cursor.execute(f"IF OBJECT_ID('{table_name}', 'U') IS NOT NULL DROP TABLE {sanitize_identifier(table_name)}")
                 except Exception as drop_err:
                     print("Drop Table Warning:", drop_err)
-                try:
-                    from utils import dataset_vault
-                    dataset_vault.drop(table_name)
-                except Exception:
-                    pass
 
             # 3. Delete metadata record from Datasets table
             cursor.execute(delete_dataset_record(user_id=user_id), (dataset_id,))
+
+        # 4. Remove the encrypted rows and key. Done after the transaction above has
+        # committed: the vault uses its own connection, which would otherwise wait on
+        # this transaction's locks.
+        if is_safe_identifier(table_name):
+            from utils import dataset_vault
+            dataset_vault.drop(table_name)
 
         system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
         log_audit_event("DELETE_DATASET", f"Deleted dataset #{dataset_id} ({table_name})", user_id=user_id)

@@ -376,9 +376,13 @@ table tr:hover td { background: var(--mono-hover); }
 [style*="color: var(--accent-red)"] {
     color: var(--mono-danger) !important;
 }
-[style*="color: #f59e0b"], [style*="color: #fbbf24"], [style*="color: #d97706"], [style*="color: var(--accent-amber)"] {
-    color: var(--mono-warning) !important;
+/* Amber/yellow was used decoratively (icons, headings, dataset names); in a black-and-white
+   system it reads as ink. Real warnings use the alert/badge classes, which keep --mono-warning. */
+[style*="color: #f59e0b"], [style*="color: #fbbf24"], [style*="color: #d97706"], [style*="color: var(--accent-amber)"],
+[style*="color: var(--accent-yellow)"], [style*="color:#f59e0b"], [style*="color:#fbbf24"] {
+    color: var(--mono-text) !important;
 }
+.btn-theme-toggle i, .theme-toggle-btn i, #themeToggle i, [data-theme-toggle] i { color: inherit !important; }
 
 /* Inline backgrounds (tinted panels) -> subtle neutral surface. */
 [style*="background: rgba("], [style*="background-color: rgba("], [style*="background:rgba("],
@@ -522,4 +526,15 @@ table tr:hover td { background: var(--mono-hover); }
     .admin-user-pill { display: none !important; }
     .btn-nav-login, .btn-nav-register { min-height: 40px; padding: 0 12px !important; }
     .admin-page-title, .top-header h1 { font-size: 1.125rem !important; line-height: 1.25; }
+}
+
+/* Portal top bar on phones: keep menu, title and bell on one row instead of wrapping the
+   bell under the menu button. */
+@media (max-width: 768px) {
+    .top-bar { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: flex-start !important; justify-content: space-between !important; gap: 10px !important; }
+    .top-bar > div:first-child { flex: 1 1 auto; min-width: 0; align-items: flex-start !important; }
+    .top-bar > div:last-child { flex: 0 0 auto; }
+    .top-bar .page-header { min-width: 0; }
+    .top-bar .page-header h1 { font-size: 20px !important; line-height: 1.2; overflow-wrap: anywhere; }
+    .top-bar .page-header p { font-size: 13px !important; }
 }

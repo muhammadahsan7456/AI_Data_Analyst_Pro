@@ -275,8 +275,20 @@ def append_rows(table_name: str, df: pd.DataFrame) -> int:
     return written
 
 
-def drop(table_name: str):
-    """Remove a dataset's encrypted rows and key (when the dataset is deleted)."""
+def drop(table_name: str, cursor=None):
+    """Remove a dataset's encrypted rows and key (when the dataset is deleted).
+
+    Pass the caller's open cursor to delete inside its transaction; without one, a
+    separate connection is used (call it only after the caller's transaction committed,
+    or it can wait on that transaction's locks)."""
+    if cursor is not None:
+        ensure_schema()
+        cursor.execute(f"DELETE FROM {VAULT_TABLE} WHERE LOWER(TableName) = ?", (_norm(table_name),))
+        cursor.execute(f"DELETE FROM {META_TABLE} WHERE LOWER(TableName) = ?", (_norm(table_name),))
+        with _meta_lock:
+            _meta_cache.pop(_norm(table_name), None)
+        invalidate(table_name)
+        return
     try:
         ensure_schema()
         conn = _conn()
