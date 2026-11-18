@@ -1634,3 +1634,291 @@ body {
         letter-spacing: 0.04em;
     }
 }
+
+.chat-workspace {
+    --chat-grid-line: color-mix(in srgb, var(--border-color) 24%, transparent);
+    padding: clamp(16px, 2.4vw, 28px);
+    border-top: 2px solid var(--accent-blue);
+    background-image:
+        linear-gradient(var(--chat-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--chat-grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: -1px -1px;
+}
+
+.chat-workspace form {
+    display: grid;
+    gap: 18px;
+}
+
+.chat-dataset-bar,
+.chat-dataset-selection,
+.chat-prompt-toolbar,
+.chat-question-heading,
+.chat-suggestions {
+    display: flex;
+    align-items: center;
+}
+
+.chat-dataset-bar {
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-dataset-selection {
+    min-width: min(100%, 340px);
+    flex: 1 1 420px;
+    gap: 12px;
+}
+
+.chat-dataset-icon {
+    color: var(--accent-blue);
+    font-size: 18px;
+}
+
+.chat-dataset-field {
+    display: grid;
+    flex: 1;
+    gap: 6px;
+    min-width: 0;
+}
+
+.chat-dataset-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.chat-dataset-select,
+.chat-prompt-input {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+.chat-dataset-select {
+    min-height: 42px;
+    padding: 9px 12px;
+}
+
+.chat-question-heading {
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.chat-question-label {
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.chat-prompt-input {
+    min-height: 104px;
+    padding: 14px 16px;
+    resize: vertical;
+    line-height: 1.55;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.chat-dataset-select:focus-visible,
+.chat-prompt-input:focus-visible,
+.chat-suggestion:focus-visible,
+.chart-mode-btn:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
+    outline-offset: 2px;
+    border-color: var(--accent-blue);
+}
+
+.chat-prompt-toolbar {
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.chat-suggestions {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chat-suggestions-label {
+    margin-right: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.chat-suggestion {
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.chat-suggestion:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.chat-submit {
+    min-height: 40px;
+    padding-inline: 18px;
+}
+
+.chat-empty-state,
+.chat-guardrail-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-yellow);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.chat-empty-state {
+    margin-bottom: 18px;
+    padding: 14px;
+}
+
+.chat-empty-state > i,
+.chat-guardrail-title {
+    color: var(--accent-yellow);
+}
+
+.chat-guardrail-card {
+    display: block;
+    margin-bottom: 18px;
+    padding: 16px;
+}
+
+.chat-guardrail-title {
+    margin-bottom: 6px;
+    font-size: 15px;
+}
+
+.chat-result-card {
+    margin-bottom: 18px;
+    padding: clamp(16px, 2vw, 24px);
+}
+
+.chat-result-card h3 {
+    color: var(--text-primary);
+}
+
+.chat-explanation-card {
+    border-left: 3px solid var(--accent-cyan);
+}
+
+.chat-chart-card {
+    border-top: 2px solid var(--accent-blue);
+}
+
+.chat-chart-card > div:first-child {
+    border-bottom-color: var(--border-color);
+}
+
+.chat-chart-card > div:first-child h3 {
+    color: var(--accent-blue) !important;
+}
+
+.chat-chart-badge {
+    background: var(--accent-green);
+    color: var(--bg-surface);
+}
+
+.chart-type-switcher-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+}
+
+.chart-mode-btn {
+    min-height: 34px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.chart-mode-btn:hover:not(:disabled) {
+    border-color: var(--accent-blue);
+}
+
+.chart-mode-btn.active {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue);
+    color: var(--bg-surface);
+}
+
+.chart-mode-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.chat-chart-viewport {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+}
+
+#interactive-plotly-chart {
+    min-height: 360px !important;
+}
+
+@media (max-width: 600px) {
+    .chat-workspace form {
+        gap: 14px;
+    }
+
+    .chat-dataset-bar > div:last-child {
+        width: 100%;
+    }
+
+    .chat-prompt-toolbar {
+        align-items: stretch;
+    }
+
+    .chat-submit {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .chat-result-card > div:first-child {
+        align-items: flex-start !important;
+    }
+
+    .chat-chart-viewport {
+        padding: 6px;
+    }
+
+    #interactive-plotly-chart {
+        min-height: 300px !important;
+    }
+}

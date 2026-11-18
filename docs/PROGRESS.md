@@ -77,7 +77,7 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ## Phase 4 — UI redesign
 
-**Status:** In progress; group 1 complete.
+**Status:** In progress; groups 1–5 complete, group 6 in progress.
 
 ### Group 1 — Shared tokens and typography
 
@@ -120,6 +120,12 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - The protected `/dashboard` route correctly redirected to login in the isolated server because no authenticated QA account was available in this browser session. Therefore the live, data-backed dashboard was not rendered; no email was sent and no database records were changed.
 - Preserved the pre-existing `.env.example`, `docker-compose.yml`, signup template, and OAuth stylesheet changes; they are outside these groups.
 
+### Group 6 — Chat workspace
+
+- Refined the question-first chat copy and added theme-aware styling for the dataset selector, prompt, suggestions, results, and chart controls. Removed the chart switcher's inline blue/purple gradient and replaced emoji labels with plain text; the existing IDs, class hooks, form names, handlers, and routes remain intact. Bumped the shared stylesheet cache version.
+- The updated shared stylesheet returned HTTP 200 from the local QA server. A Playwright CSS fixture using that stylesheet passed no-overflow checks at 360, 390, 768, and 1440 px in both themes; active chart-control text contrast measured 4.95:1 in light mode and 5.61:1 in dark mode.
+- The live `/chat` route redirected to sign-in, so the authenticated chat page and its actual voice, suggestion, chart-switch, and export interactions were not exercised in this group. Do not mark the group complete until those interactions can be tested in an isolated authenticated QA session.
+
 ### Next
 
-Group 6: redesign the chat page, then verify the key chat interactions and responsive layouts.
+Finish Group 6 interaction verification using an isolated authenticated Playwright session, then continue to Group 7.
