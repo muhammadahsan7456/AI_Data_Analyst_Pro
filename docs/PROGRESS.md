@@ -41,7 +41,7 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 
 ## Phase 3 — Full QA sweep
 
-**Status:** In progress; core targeted checks pass, but full authenticated/browser QA is incomplete. Phase 4 is gated.
+**Status:** Groups 1–8 and final non-Selenium regressions complete. Selenium remains unverified; external integrations and some authenticated settings remain out of scope. Phase 4 is unblocked.
 
 ### Completed
 
@@ -67,14 +67,14 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 - Theme/responsive group passed in Playwright on the isolated server. Login, signup, OTP verification, and forgot-password pages had no horizontal overflow at 360, 390, or 768 px in either theme. Dashboard also had no overflow at those widths; its mobile sidebar opened and closed through the backdrop at each width. Theme buttons changed and persisted the selected theme. Representative dashboard text and search-placeholder contrast measured at least **7.24:1**; auth form placeholder contrast measured at least **6.84:1** in dark mode and **9.9:1** in light mode.
 - Fixed auth form placeholder contrast: the landing shell did not define placeholder colors, so browsers used low-contrast defaults. Auth placeholders now use the existing theme variables with full opacity, and the landing stylesheet URL version was bumped so clients receive the fix. Rechecked the served v2 stylesheet and all auth pages; no application page errors were seen in the dashboard/auth navigation smoke.
 - Internal-link group passed in Playwright against the isolated server. Logged-in and anonymous crawls visited **28** and **25** unique internal paths respectively; no 404, 5xx, or navigation failures occurred. The unauthenticated OTP route redirected to login as expected, and gated routes redirected to the dashboard/login. A VS Code BrowserView preload exception appeared while rendering `robots.txt`; it was from the host browser preload, not application code.
+- Final regression passed: **30 non-Selenium tests passed** across upload limits, email service, database initialization, chart generation, and auth/email flows. `compileall` passed. An accidental `pytest tests -q` invocation also collected Selenium-based files; all 7 failures were `ERR_CONNECTION_REFUSED` against the suite's default `127.0.0.1:5000` (the isolated app runs on `5051`). That Selenium invocation is not being repeated or treated as an application regression.
 
 ### Incomplete / not verified
 
-- The existing Selenium suite stalled (the full run stopped after 13 tests; a targeted run also hung). It was stopped rather than reported as passing. A browser request-context helper had a `Storage.getCookies` protocol error, but the replacement Playwright page-navigation crawl completed successfully.
+- Selenium-based browser tests remain unverified; a prior run stalled, and the accidental broad pytest invocation targeted the default port rather than the isolated QA server. A browser request-context helper had a `Storage.getCookies` protocol error, but the replacement Playwright page-navigation crawl completed successfully.
 - The remaining authenticated user forms and other profile/security settings were not included in the profile/public-page group. Ask AI was exercised with deterministic mocks only; real provider responses/model behavior remain unverified.
-- Theme contrast and mobile widths for auth/dashboard pages passed; the UI redesign has not started because the internal-link crawl remains incomplete.
 - Production email delivery, proxy/cookie behavior, production logs, production database target, old production ciphertext compatibility, and live AI/payment integrations remain unverified. Do not use the local configured SQL Server for QA writes.
 
 ### Next
 
-Phase 3 groups 1–8 are complete. Run the final targeted regression and compile checks, stop the isolated QA server, and remove temporary QA assets. Do not start the UI redesign until those checks pass.
+Phase 3 groups 1–8, final targeted tests, compile check, and QA cleanup are complete. Start Phase 4 with the shared theme tokens/typography, then public shell and home page; test after each page group.
