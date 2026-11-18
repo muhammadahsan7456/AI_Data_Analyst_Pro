@@ -23,6 +23,13 @@ from flask import Flask, session, g, request, redirect, url_for, flash
 
 load_dotenv()
 
+_secret_key = os.getenv("SECRET_KEY", "").strip()
+if not _secret_key:
+    raise RuntimeError(
+        "SECRET_KEY is required. Configure one stable value shared by every "
+        "application process before starting the server."
+    )
+
 from database.connection import init_db, get_db_cursor
 from database.queries import get_user_by_id, get_user_settings
 from frontend.routes import frontend
@@ -30,29 +37,17 @@ from auth import auth_bp
 from admin import admin_bp
 import site_config
 
-# Auto-initialize database tables and background scheduler thread on launch
-try:
-    init_db()
-    from utils.scheduler import start_scheduler
-    start_scheduler()
-except Exception as err:
-    print("Database & Scheduler init notice:", err)
+# Do not serve requests after database initialization fails; doing so creates a
+# healthy-looking process whose authenticated routes all fail at request time.
+init_db()
+from utils.scheduler import start_scheduler
+start_scheduler()
 
 from datetime import timedelta
 
 app = Flask(__name__)
 
 # Configure Secret Key for Sessions & 1-Hour Permanent Lifetime
-_secret_key = os.getenv("SECRET_KEY", "").strip()
-if not _secret_key:
-    import secrets as _secrets
-    _secret_key = _secrets.token_hex(32)
-    print(
-        "[SECURITY WARNING] SECRET_KEY is not set in .env - generated a random "
-        "one-time key for this process instead. All existing sessions are now "
-        "invalid and will not survive a restart. Set SECRET_KEY in .env for "
-        "stable, production-safe sessions."
-    )
 app.secret_key = _secret_key
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 

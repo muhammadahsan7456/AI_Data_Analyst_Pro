@@ -1,6 +1,7 @@
 import re
 import secrets
 import bcrypt
+from datetime import datetime
 from flask import request, session
 
 from database.connection import get_db_cursor
@@ -31,6 +32,17 @@ def verify_password(plaintext_password: str, hashed_password: str) -> bool:
         )
     except Exception:
         return False
+
+
+def is_lockout_active(lockout_until) -> bool:
+    if not lockout_until:
+        return False
+    lockout_dt = (
+        datetime.fromisoformat(lockout_until)
+        if isinstance(lockout_until, str)
+        else lockout_until
+    )
+    return datetime.now() < lockout_dt
 
 
 def generate_secure_token() -> str:

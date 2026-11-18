@@ -3,6 +3,8 @@ import sys
 import re
 import sqlite3
 import time
+import calendar
+from datetime import date, datetime, timedelta
 import pandas as pd
 from contextlib import contextmanager
 from dotenv import load_dotenv
@@ -32,6 +34,23 @@ def adapt_tsql_for_sqlite(query: str) -> str:
 
     s = query.strip()
 
+    def replace_dateadd_date_cast(match):
+        unit = match.group(1).lower()
+        amount = match.group(2).strip()
+        base = match.group(3).strip()
+        if base.upper() == "GETDATE()":
+            base_expr = "date('now')"
+        else:
+            base_expr = f"date({base})"
+        return f"DATEADD('{unit}', {amount}, {base_expr})"
+
+    s = re.sub(
+        r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*CAST\s*\(\s*(GETDATE\(\)|[A-Za-z_][\w.]*)\s+AS\s+DATE\s*\)\s*\)",
+        replace_dateadd_date_cast,
+        s,
+        flags=re.IGNORECASE,
+    )
+
     def replace_dateadd(match):
         unit = match.group(1).lower()
         num = match.group(2).strip()
@@ -59,6 +78,15 @@ def adapt_tsql_for_sqlite(query: str) -> str:
     s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
     s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
     s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
+    s = re.sub(
+        r"\(\s*SELECT\s+TOP\s+\(?(\d+)\)?\s+(.*?)\s+ORDER\s+BY\s+([^)]*)\)",
+        lambda match: (
+            f"(SELECT {match.group(2)} ORDER BY {match.group(3).strip()} "
+            f"LIMIT {match.group(1)})"
+        ),
+        s,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
 
     # Transform SELECT TOP N ... -> SELECT ... LIMIT N
     top_match = re.search(r"\bSELECT\s+TOP\s+\(?(\d+)\)?\s+", s, flags=re.IGNORECASE)
@@ -73,7 +101,65 @@ def adapt_tsql_for_sqlite(query: str) -> str:
             else:
                 s = s + f" LIMIT {limit_val}"
 
+    s = re.sub(
+        r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(\?|[A-Za-z_][\w.]*)\s*\)",
+        lambda match: (
+            f"DATEADD('{match.group(1)}', {match.group(2)}, {match.group(3)})"
+        ),
+        s,
+        flags=re.IGNORECASE,
+    )
+    s = re.sub(
+        r"FORMAT\s*\(\s*([A-Za-z_][\w.]*)\s*,\s*'yyyy-MM'\s*\)",
+        r"strftime('%Y-%m', \1)",
+        s,
+        flags=re.IGNORECASE,
+    )
+
+    s = re.sub(
+        r"\bOFFSET\s+(\d+)\s+ROWS?\s+FETCH\s+NEXT\s+(\d+)\s+ROWS?\s+ONLY\b",
+        lambda match: f"LIMIT {match.group(2)} OFFSET {match.group(1)}",
+        s,
+        flags=re.IGNORECASE,
+    )
+
     return s
+
+
+def _sqlite_dateadd(unit, amount, value):
+    if value is None:
+        return None
+
+    unit = str(unit).lower()
+    amount = int(amount)
+    date_only = isinstance(value, date) and not isinstance(value, datetime)
+    if not date_only and isinstance(value, str):
+        value = value.strip()
+        date_only = len(value) == 10
+    base = value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+
+    if unit in ("month", "months", "mm", "m"):
+        month_index = base.year * 12 + base.month - 1 + amount
+        year, month = divmod(month_index, 12)
+        month += 1
+        day = min(base.day, calendar.monthrange(year, month)[1])
+        result = base.replace(year=year, month=month, day=day)
+    elif unit in ("year", "years", "yy", "yyyy"):
+        year = base.year + amount
+        day = min(base.day, calendar.monthrange(year, base.month)[1])
+        result = base.replace(year=year, day=day)
+    elif unit in ("day", "days", "dd", "d"):
+        result = base + timedelta(days=amount)
+    elif unit in ("hour", "hours", "hh"):
+        result = base + timedelta(hours=amount)
+    elif unit in ("minute", "minutes", "mi", "n"):
+        result = base + timedelta(minutes=amount)
+    elif unit in ("second", "seconds", "ss", "s"):
+        result = base + timedelta(seconds=amount)
+    else:
+        raise ValueError(f"Unsupported DATEADD unit: {unit}")
+
+    return result.date().isoformat() if date_only else result.isoformat(sep=" ")
 
 
 class SQLiteCursorAdapter:
@@ -121,6 +207,7 @@ class SQLiteConnectionAdapter:
             db_path = os.path.join(os.path.dirname(__file__), "AI_Data_Analyst_Pro_cloud.db")
         self.db_path = db_path
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.conn.create_function("DATEADD", 3, _sqlite_dateadd)
         try:
             self.conn.execute("PRAGMA synchronous = OFF;")
             self.conn.execute("PRAGMA journal_mode = WAL;")
@@ -265,6 +352,10 @@ def init_sqlite_db(conn):
             Role TEXT NOT NULL DEFAULT 'Analyst',
             FailedLoginAttempts INTEGER DEFAULT 0,
             LockoutUntil TEXT,
+            SubscriptionStatus TEXT DEFAULT 'free',
+            SubscriptionEndDate TEXT,
+            SuspendedAt TEXT,
+            SuspensionReason TEXT,
             CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UpdatedAt TEXT
         )''',
@@ -390,7 +481,32 @@ def init_sqlite_db(conn):
             Status TEXT NOT NULL DEFAULT 'Pending',
             PlanName TEXT DEFAULT 'Pro Plan (PKR 1,499/mo)',
             ScreenshotPath TEXT NULL,
-            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            PaymentDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PaymentType TEXT NOT NULL DEFAULT 'New',
+            RejectionReason TEXT,
+            ReviewedBy INTEGER,
+            ReviewedAt TEXT
+        )''',
+        '''CREATE TABLE IF NOT EXISTS SiteAnnouncement (
+            AnnouncementID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Title TEXT NOT NULL DEFAULT 'Platform Announcement',
+            Message TEXT NOT NULL DEFAULT '',
+            IsEnabled INTEGER NOT NULL DEFAULT 0,
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''',
+        '''CREATE TABLE IF NOT EXISTS PaymentSettings (
+            SettingID INTEGER PRIMARY KEY AUTOINCREMENT,
+            PlanName TEXT NOT NULL DEFAULT 'Pro Plan',
+            PlanPriceLabel TEXT NOT NULL DEFAULT 'PKR 1,499 / month',
+            AccountTitle TEXT NOT NULL DEFAULT '',
+            BankName TEXT,
+            AccountNumber TEXT,
+            IBAN TEXT,
+            JazzCashNumber TEXT,
+            EasypaisaNumber TEXT,
+            SadaPayNumber TEXT,
+            Instructions TEXT,
+            UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''',
         '''CREATE TABLE IF NOT EXISTS NewsletterSubscribers (
             SubscriberID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -475,13 +591,39 @@ def init_sqlite_db(conn):
         except Exception as e:
             print("SQLite Table Creation Notice:", e)
 
-    try:
-        cursor.execute("PRAGMA table_info(Payments)")
-        p_cols = [r[1] for r in cursor.fetchall()]
-        if "ScreenshotPath" not in p_cols:
-            cursor.execute("ALTER TABLE Payments ADD COLUMN ScreenshotPath TEXT NULL")
-    except Exception:
-        pass
+    cursor.execute("PRAGMA table_info(PaymentSettings)")
+    payment_settings_cols = {row[1] for row in cursor.fetchall()}
+    if "SadaPayNumber" not in payment_settings_cols:
+        cursor.execute("ALTER TABLE PaymentSettings ADD COLUMN SadaPayNumber TEXT")
+    cursor.execute("SELECT COUNT(*) FROM PaymentSettings")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO PaymentSettings (PlanName, PlanPriceLabel, AccountTitle) "
+            "VALUES ('Pro Plan', 'PKR 1,499 / month', '')"
+        )
+
+    cursor.execute("PRAGMA table_info(Users)")
+    user_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("SubscriptionStatus", "TEXT DEFAULT 'free'"),
+        ("SubscriptionEndDate", "TEXT"),
+        ("SuspendedAt", "TEXT"),
+        ("SuspensionReason", "TEXT"),
+    ):
+        if column not in user_cols:
+            cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {definition}")
+
+    cursor.execute("PRAGMA table_info(Payments)")
+    payment_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("ScreenshotPath", "TEXT"),
+        ("PaymentType", "TEXT NOT NULL DEFAULT 'New'"),
+        ("RejectionReason", "TEXT"),
+        ("ReviewedBy", "INTEGER"),
+        ("ReviewedAt", "TEXT"),
+    ):
+        if column not in payment_cols:
+            cursor.execute(f"ALTER TABLE Payments ADD COLUMN {column} {definition}")
 
     conn.commit()
 
@@ -495,15 +637,23 @@ def init_db():
     global _db_initialized
     if _db_initialized:
         return
-    _db_initialized = True
 
     conn = get_connection()
     if isinstance(conn, SQLiteConnectionAdapter):
         init_sqlite_db(conn)
         validate_smtp_config()
+        _db_initialized = True
         return
 
     query = """
+    IF OBJECT_ID('dbo.SchemaMigrations', 'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.SchemaMigrations (
+            MigrationID NVARCHAR(100) NOT NULL PRIMARY KEY,
+            AppliedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+        );
+    END;
+
     IF OBJECT_ID('Users', 'U') IS NULL
     BEGIN
         CREATE TABLE Users (
@@ -1003,31 +1153,22 @@ def init_db():
         UPDATE PaymentSettings SET SadaPayNumber = EasypaisaNumber WHERE SadaPayNumber IS NULL OR SadaPayNumber = '';
     END;
 
-    -- These ran on EVERY server start and actively corrupted free-tier accounts back
-    -- toward fake Pro access - found live during this pass's mandatory upload-gate
-    -- regression check (a freshly created account with no payment history showed up as a
-    -- Pro user with 500 MB access). A NULL SubscriptionEndDate is the CORRECT, by-design
-    -- state for a free-forever account (see utils.subscription.get_user_subscription_info:
-    -- 'free'/'basic'/'trial' status never even looks at the end date) - it is not missing
-    -- data to backfill. Likewise, a NULL status should resolve to 'free' (this app's
-    -- actual default tier), not 'active'.
-    --
-    -- Order matters here: the one-time mis-defaulted-account correction MUST run before
-    -- the "fill in a missing end date for genuinely active accounts" statement below - it
-    -- identifies mis-defaulted accounts specifically by SubscriptionStatus='active' AND
-    -- SubscriptionEndDate IS NULL (a real approval always sets a real end date, per
-    -- database.queries.activate_user_new_subscription / extend_user_subscription_one_month,
-    -- so a NULL end date on an 'active' row is only possible via the mis-default, never a
-    -- real payment). Running the end-date backfill first would silently give those exact
-    -- rows a fake end date and make them invisible to this WHERE clause, as happened in
-    -- this fix's own first (buggy) draft - caught and corrected in this same pass.
-    UPDATE Users SET SubscriptionStatus = 'free'
-    WHERE SubscriptionStatus = 'active' AND SubscriptionEndDate IS NULL
-      AND Role NOT IN ('SuperAdmin', 'Admin');
+    IF NOT EXISTS (
+        SELECT 1 FROM dbo.SchemaMigrations
+        WHERE MigrationID = '20261118_subscription_data_repair'
+    )
+    BEGIN
+        UPDATE Users SET SubscriptionStatus = 'free'
+        WHERE SubscriptionStatus = 'active' AND SubscriptionEndDate IS NULL
+          AND Role NOT IN ('SuperAdmin', 'Admin');
 
-    UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE()))
-    WHERE SubscriptionEndDate IS NULL AND SubscriptionStatus IN ('active', 'expiring_soon');
-    UPDATE Users SET SubscriptionStatus = 'free' WHERE SubscriptionStatus IS NULL;
+        UPDATE Users SET SubscriptionEndDate = DATEADD(day, 30, ISNULL(CreatedAt, GETDATE()))
+        WHERE SubscriptionEndDate IS NULL AND SubscriptionStatus IN ('active', 'expiring_soon');
+        UPDATE Users SET SubscriptionStatus = 'free' WHERE SubscriptionStatus IS NULL;
+
+        INSERT INTO dbo.SchemaMigrations (MigrationID)
+        VALUES ('20261118_subscription_data_repair');
+    END;
 
     -- CREATE HIGH PERFORMANCE NON-CLUSTERED INDEXES
     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Datasets_UserID_UploadDate' AND object_id = OBJECT_ID('Datasets'))
@@ -1074,16 +1215,14 @@ def init_db():
         CREATE NONCLUSTERED INDEX IX_AuditLogs_UserID_CreatedAt ON AuditLogs(UserID, CreatedAt DESC) INCLUDE (IPAddress);
     END;
     """
-    try:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(query)
-    except Exception as err:
-        print("Init DB Notice:", err)
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(query)
 
     validate_smtp_config()
 
     # Table value encryption disabled to ensure 100% C-speed SQL filtering and query compatibility for Ask AI
     pass
+    _db_initialized = True
 
 
 def validate_smtp_config():
@@ -1224,11 +1363,34 @@ def get_existing_base_tables(use_cache: bool = True) -> set:
     except Exception:
         pass
 
+    conn = None
     try:
-        tbl_df = run_query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
-        tables = set(tbl_df['TABLE_NAME'].str.lower().tolist()) if (tbl_df is not None and not tbl_df.empty) else set()
+        conn = get_connection()
+        if isinstance(conn, SQLiteConnectionAdapter):
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                )
+                tables = {str(row[0]).lower() for row in cursor.fetchall()}
+            finally:
+                cursor.close()
+        else:
+            tbl_df = run_query(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
+                "WHERE TABLE_TYPE = 'BASE TABLE'"
+            )
+            tables = (
+                set(tbl_df["TABLE_NAME"].str.lower().tolist())
+                if tbl_df is not None and not tbl_df.empty
+                else set()
+            )
     except Exception:
         tables = set()
+    finally:
+        if conn is not None:
+            conn.close()
 
     try:
         from utils.cache import system_cache

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block title %}Ask Voice AI Data Analyst | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Voice AI Data Analyst Hub{% endblock %}
-{% block header_subtitle %}Ask questions by voice or text. AI automatically detects target datasets, runs T-SQL locally, speaks the response, and generates charts.{% endblock %}
+{% block header_title %}Ask your data{% endblock %}
+{% block header_subtitle %}Choose a dataset, ask a question in plain language, and review the result or chart.{% endblock %}
 
 {% block content %}
 
@@ -22,23 +22,23 @@
 <div id="ai-speech-text" data-speech="{{ tts_speech }}" style="display: none;"></div>
 {% endif %}
 
-<div class="table-card glass-card">
+<div class="table-card glass-card chat-workspace">
     <form method="POST" action="{{ url_for('frontend.chat') }}" id="chat-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <!-- Dataset Selector & Multi-Dataset Hub Bar -->
         {% if user_datasets %}
-        <div style="margin-bottom: 20px; background: var(--bg-primary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 280px;">
-                <i class="fa-solid fa-database" style="color: var(--accent-blue); font-size: 22px;"></i>
-                <div style="flex: 1;">
-                    <label for="dataset_id" style="font-weight: 700; font-size: 13px; color: var(--text-primary); display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span>📂 Target Dataset (Auto Smart Selection Active):</span>
+        <div class="chat-dataset-bar">
+            <div class="chat-dataset-selection">
+                <i class="fa-solid fa-database chat-dataset-icon" aria-hidden="true"></i>
+                <div class="chat-dataset-field">
+                    <label for="dataset_id" class="chat-dataset-label">
+                        <span>Target dataset</span>
                         <span class="badge badge-info" style="font-size: 11px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Match</span>
                     </label>
-                    <select name="dataset_id" id="dataset_id" onchange="this.form.submit()" style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; font-weight: 600;">
+                    <select name="dataset_id" id="dataset_id" class="chat-dataset-select" onchange="this.form.submit()">
                         {% for ds in user_datasets %}
                         <option value="{{ ds[0] }}" {% if selected_dataset and selected_dataset[0] == ds[0] %}selected{% endif %}>
-                            📊 {{ ds[1] }} (File: {{ ds[2] }} | {{ "{:,}".format(ds[3]) }} rows | {{ ds[4] }} cols)
+                            {{ ds[1] }} ({{ ds[2] }} | {{ "{:,}".format(ds[3]) }} rows | {{ ds[4] }} columns)
                         </option>
                         {% endfor %}
                     </select>
@@ -48,7 +48,7 @@
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 {% if selected_dataset %}
                 <span class="badge badge-info" style="font-size: 13px; padding: 8px 14px; background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent-blue);">
-                    <i class="fa-solid fa-file-csv" style="color: var(--accent-blue);"></i> Active: <strong>{{ selected_dataset[2] }}</strong>
+                    <i class="fa-solid fa-file-csv" style="color: var(--accent-blue);"></i> Selected: <strong>{{ selected_dataset[2] }}</strong>
                 </span>
                 <span class="badge badge-success" style="font-size: 13px; padding: 8px 14px;">
                     <i class="fa-solid fa-table-cells"></i> <strong>{{ "{:,}".format(selected_dataset[3]) }}</strong> Records
@@ -60,30 +60,30 @@
             </div>
         </div>
         {% else %}
-        <div style="margin-bottom: 20px; background: rgba(239, 68, 68, 0.1); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 14px; display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
-            <span>No datasets found in your account. Please <a href="{{ url_for('frontend.upload') }}" style="color: var(--accent-blue); font-weight: bold; text-decoration: underline;">upload a dataset</a> first.</span>
+        <div class="chat-empty-state">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>No datasets yet. <a href="{{ url_for('frontend.upload') }}">Upload a file</a> to start asking questions.</span>
         </div>
         {% endif %}
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
-            <label for="question-input" style="font-weight: 700; font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
-                💬 Ask Question by Voice or Typing:
+        <div class="chat-question-heading">
+            <label for="question-input" class="chat-question-label">
+                Ask a question
             </label>
-            <button type="button" class="btn btn-voice-mic" id="mic-btn" style="padding: 10px 22px; font-size: 15px; font-weight: 700; border-radius: 50px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; border: none; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); display: inline-flex; align-items: center; gap: 10px; cursor: pointer; transition: var(--transition-fast);">
-                <i class="fa-solid fa-microphone-lines" style="font-size: 18px;"></i>
-                <span>Click to Speak (Voice AI)</span>
+            <button type="button" class="btn btn-voice-mic chat-voice-btn" id="mic-btn">
+                <i class="fa-solid fa-microphone-lines" aria-hidden="true"></i>
+                <span>Speak</span>
             </button>
         </div>
         
-        <textarea name="question" id="question-input" rows="3" required placeholder="Speak or type (e.g. 'Show top 10 customers', 'Sort descending', 'Highest revenue', 'Generate chart')..." style="width: 100%; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 15px; outline: none; margin-bottom: 16px;">{% if question %}{{ question }}{% endif %}</textarea>
+        <textarea name="question" id="question-input" class="chat-prompt-input" rows="3" required placeholder="For example: Which 10 customers had the highest revenue? Show monthly sales by region.">{% if question %}{{ question }}{% endif %}</textarea>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-right: 4px;">⚡ Smart Dataset Suggestions:</span>
+        <div class="chat-prompt-toolbar">
+            <div class="chat-suggestions">
+                <span class="chat-suggestions-label">Try a question</span>
                 {% if dynamic_suggestions %}
                     {% for label, prompt_text in dynamic_suggestions %}
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" onclick="submitSuggestedQuery('{{ prompt_text }}')" title="{{ prompt_text }}">
+                    <span class="badge badge-info chat-suggestion" onclick="submitSuggestedQuery('{{ prompt_text }}')" title="{{ prompt_text }}">
                         {{ label }}
                     </span>
                     {% endfor %}
@@ -91,14 +91,14 @@
                     <!-- Dataset-tailored suggestions (ai.analytics.generate_dynamic_dataset_suggestions)
                          should always be populated once a dataset is selected - this is only a
                          neutral, dataset-agnostic safety net in case that ever isn't available. -->
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show total records')">📋 Show Total Records</span>
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Show top 10 rows from dataset')">🔍 Top 10 Rows</span>
-                    <span class="badge badge-info" style="cursor: pointer; padding: 6px 14px; font-size: 12px; border-radius: 20px;" onclick="submitSuggestedQuery('Generate best interactive chart for dataset')">📊 Auto Chart</span>
+                    <span class="badge badge-info chat-suggestion" onclick="submitSuggestedQuery('Show total records')">Show total records</span>
+                    <span class="badge badge-info chat-suggestion" onclick="submitSuggestedQuery('Show top 10 rows from dataset')">Show the first 10 rows</span>
+                    <span class="badge badge-info chat-suggestion" onclick="submitSuggestedQuery('Generate best interactive chart for dataset')">Suggest a chart</span>
                 {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary" {% if not user_datasets %}disabled{% endif %} id="btn-ask-ai">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI Assistant
+            <button type="submit" class="btn btn-primary chat-submit" {% if not user_datasets %}disabled{% endif %} id="btn-ask-ai">
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Ask
             </button>
         </div>
     </form>
@@ -124,25 +124,25 @@
 <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
     {% if execution_time_ms is defined and execution_time_ms is not none %}
     <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">
-        ⚡ Execution Time: <strong>{{ execution_time_ms }} ms</strong>
+        Execution time: <strong>{{ execution_time_ms }} ms</strong>
     </div>
     {% endif %}
 
     {% if confidence is defined and confidence is not none and not is_out_of_domain %}
     <div class="badge badge-success" style="font-size: 13px; padding: 6px 12px;">
-        🎯 Confidence Score: <strong>{{ ((confidence or 0) * 100)|int }}%</strong>
+        Confidence: <strong>{{ ((confidence or 0) * 100)|int }}%</strong>
     </div>
     {% endif %}
 
     {% if rows_returned is defined and rows_returned is not none %}
     <div class="badge badge-info" style="font-size: 13px; padding: 6px 12px;">
-        📊 Rows Returned: <strong>{{ rows_returned }}</strong>
+        Rows returned: <strong>{{ rows_returned }}</strong>
     </div>
     {% endif %}
 
     {% if retries is defined and retries and retries > 0 %}
     <div class="badge badge-warning" style="font-size: 13px; padding: 6px 12px;">
-        🔄 Self-Corrections: <strong>{{ retries }}</strong>
+        Query retries: <strong>{{ retries }}</strong>
     </div>
     {% endif %}
 </div>
@@ -150,17 +150,17 @@
 
 {% if is_out_of_domain %}
 <!-- Domain Guardrail Protection Card (Feature 4) -->
-<div class="table-card" style="border-left: 4px solid var(--accent-amber); background-color: #fffbeb;">
-    <h3 style="color: #b45309; font-size: 18px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+<div class="table-card chat-guardrail-card">
+    <h3 class="chat-guardrail-title">
         <i class="fa-solid fa-shield-halved"></i> AI Context Guardrail
     </h3>
-    <p style="color: #92400e; font-size: 16px; font-weight: 600;">{{ error }}</p>
+    <p class="chat-guardrail-message">{{ error }}</p>
 </div>
 {% endif %}
 
 {% if result %}
 <!-- Results Table -->
-<div class="table-card">
+<div class="table-card chat-result-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h3 style="font-size: 16px; font-weight: 700;">
             <i class="fa-solid fa-table"></i> Query Results
@@ -179,12 +179,12 @@
 
 {% if explanation %}
 <!-- AI Business Explanation Box (Executive Card Layout) -->
-<div class="table-card" style="border-top: 4px solid var(--accent-blue); background: var(--bg-surface); padding: 24px; box-shadow: var(--shadow-md);">
+<div class="table-card chat-result-card chat-explanation-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
         <h3 style="font-size: 18px; font-weight: 800; color: var(--accent-blue); display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Executive AI Summary & Business Insights
+            <i class="fa-solid fa-list-check"></i> What this result means
         </h3>
-        <span class="badge badge-info" style="font-size: 11px; padding: 4px 10px;">PRO ANALYSIS ENGINE</span>
+        <span class="badge badge-info" style="font-size: 11px; padding: 4px 10px;">Analysis summary</span>
     </div>
     
     <div class="ai-explanation-content">
@@ -195,14 +195,14 @@
 
 {% if chart or chart_spec %}
 <!-- Enhanced Generated Chart Section with User-Controlled Controls -->
-<div class="table-card glass-card" style="border-top: 4px solid var(--accent-purple); background: var(--bg-surface); padding: 24px; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); margin-top: 24px;">
+<div class="table-card chat-result-card chat-chart-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
         <h3 style="font-size: 18px; font-weight: 800; color: var(--accent-purple); display: flex; align-items: center; gap: 10px; margin: 0;">
-            <i class="fa-solid fa-chart-column" style="font-size: 20px;"></i> Executive AI Interactive Analytics & Chart Visualization
+            <i class="fa-solid fa-chart-column" style="font-size: 20px;"></i> Chart from this query
         </h3>
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <span class="badge badge-success" style="font-size: 11px; padding: 6px 12px; background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Hover Data Active
+            <span class="badge badge-success chat-chart-badge">
+                <i class="fa-solid fa-arrow-pointer"></i> Interactive chart
             </span>
             <a href="{{ url_for('frontend.download_chart') }}" class="btn btn-secondary btn-sm" style="font-size: 12px; font-weight: 700; padding: 6px 14px;">
                 <i class="fa-solid fa-download"></i> Download HD Chart
@@ -211,44 +211,44 @@
     </div>
 
     <!-- Visual Tableau-Grade Clickable Chart Type Switcher Bar -->
-    <div class="chart-type-switcher-bar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 14px; background: var(--bg-primary); border-radius: 12px; border: 1px solid var(--border-color); align-items: center;">
+    <div class="chart-type-switcher-bar">
         <span style="font-size: 12px; font-weight: 800; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-sliders"></i> Switch Chart Format:
         </span>
-        <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--accent-blue); background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-            🍕 Pie Chart (Gol)
+        <button type="button" class="chart-mode-btn active" data-mode="pie" onclick="selectVisualChartMode('pie', this)">
+            Pie
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="donut" onclick="selectVisualChartMode('donut', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            🍩 Donut Ring
+        <button type="button" class="chart-mode-btn" data-mode="donut" onclick="selectVisualChartMode('donut', this)">
+            Donut
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="bar" onclick="selectVisualChartMode('bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            📊 Vertical Bar
+        <button type="button" class="chart-mode-btn" data-mode="bar" onclick="selectVisualChartMode('bar', this)">
+            Bar
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="horizontal_bar" onclick="selectVisualChartMode('horizontal_bar', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            📈 Horizontal Bar
+        <button type="button" class="chart-mode-btn" data-mode="horizontal_bar" onclick="selectVisualChartMode('horizontal_bar', this)">
+            Horizontal bar
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="line" onclick="selectVisualChartMode('line', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            📉 Line Chart (Trend)
+        <button type="button" class="chart-mode-btn" data-mode="line" onclick="selectVisualChartMode('line', this)">
+            Line
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="area" onclick="selectVisualChartMode('area', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            🌊 Area Chart
+        <button type="button" class="chart-mode-btn" data-mode="area" onclick="selectVisualChartMode('area', this)">
+            Area
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="scatter" onclick="selectVisualChartMode('scatter', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            🎯 Scatter Plot
+        <button type="button" class="chart-mode-btn" data-mode="scatter" onclick="selectVisualChartMode('scatter', this)">
+            Scatter
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="heatmap" onclick="selectVisualChartMode('heatmap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            🔥 Heatmap
+        <button type="button" class="chart-mode-btn" data-mode="heatmap" onclick="selectVisualChartMode('heatmap', this)">
+            Heatmap
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="treemap" onclick="selectVisualChartMode('treemap', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            🧱 Treemap
+        <button type="button" class="chart-mode-btn" data-mode="treemap" onclick="selectVisualChartMode('treemap', this)">
+            Treemap
         </button>
-        <button type="button" class="chart-mode-btn" data-mode="funnel" onclick="selectVisualChartMode('funnel', this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
-            🔻 Funnel Flow
+        <button type="button" class="chart-mode-btn" data-mode="funnel" onclick="selectVisualChartMode('funnel', this)">
+            Funnel
         </button>
     </div>
 
     <!-- 1. Interactive Plotly Canvas Container (Real Hover Tooltips, Zoom, Pan, Values) -->
-    <div style="background: var(--bg-primary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: inset 0 2px 10px rgba(0,0,0,0.15);">
+    <div class="chat-chart-viewport">
         <div id="interactive-plotly-chart" style="width: 100%; height: 460px; min-height: 400px; display: block;"></div>
         <!-- Fallback Static PNG Image (Hidden by default when interactive canvas renders).
              chart can legitimately be None here even when chart_spec is set - the
@@ -723,14 +723,8 @@ function syncActiveChartButton(mode) {
     const targetMode = mode || "bar";
     document.querySelectorAll(".chart-mode-btn").forEach(b => {
         if (b.dataset.mode === targetMode) {
-            b.style.background = "linear-gradient(135deg, #2563eb, #7c3aed)";
-            b.style.color = "#ffffff";
-            b.style.borderColor = "var(--accent-blue)";
             b.classList.add("active");
         } else if (!b.disabled) {
-            b.style.background = "var(--bg-surface)";
-            b.style.color = "var(--text-secondary)";
-            b.style.borderColor = "var(--border-color)";
             b.classList.remove("active");
         }
     });

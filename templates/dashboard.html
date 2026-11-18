@@ -1,91 +1,95 @@
 {% extends "base.html" %}
 
 {% block title %}Enterprise Dashboard | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Enterprise Analytics & Data Control Center{% endblock %}
-{% block header_subtitle %}Real-time overview of uploaded datasets, AI query history, voice assistant activity, and storage usage.{% endblock %}
+{% block header_title %}Your data workspace{% endblock %}
+{% block header_subtitle %}Datasets, questions, and analysis at a glance.{% endblock %}
 
 {% block content %}
 
 {% if pending_payment_notice %}
-<div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 14px; padding: 16px 22px; margin-bottom: 20px; color: #60a5fa; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);">
+<div class="dashboard-notice dashboard-notice--pending">
     <div>
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 16px; margin-right: 8px;"></i> {{ pending_payment_notice }}
+        <i class="fa-solid fa-clock" aria-hidden="true"></i> {{ pending_payment_notice }}
     </div>
-    <span style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); color: #93c5fd; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap;">
-        ⚡ PENDING APPROVAL
-    </span>
+    <span class="dashboard-notice__status">Pending approval</span>
 </div>
 {% endif %}
 
 {% if subscription_renewal_notice %}
-<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; color: #fbbf24; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+<div class="dashboard-notice dashboard-notice--renewal">
     <div>
         <i class="fa-solid fa-clock-rotate-left"></i> {{ subscription_renewal_notice }}
     </div>
-    <a href="{{ url_for('frontend.renew_subscription') }}" style="background: #f59e0b; color: #000000; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap;">
+    <a href="{{ url_for('frontend.renew_subscription') }}" class="dashboard-notice__action">
         Renew Pro Plan (PKR 1,499/mo) <i class="fa-solid fa-arrow-right"></i>
     </a>
 </div>
 {% endif %}
 
 <!-- Real-Time Smart Search Modal Trigger Bar (Feature 10) -->
-<div class="glass-card" style="margin-bottom: 24px; padding: 16px 20px; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; position: relative; z-index: 100;">
-    <i class="fa-solid fa-bolt-lightning" style="font-size: 20px; color: var(--accent-amber);"></i>
+<div class="glass-card dashboard-search-panel">
+    <i class="fa-solid fa-magnifying-glass dashboard-search-panel__mark" aria-hidden="true"></i>
     <div style="flex: 1; position: relative;">
-        <input type="text" id="smart-search-input" placeholder="🔍 Search datasets by name, filename, or tag..." style="width: 100%; padding: 12px 16px 12px 40px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box;">
-        <i class="fa-solid fa-magnifying-glass" id="smart-search-icon" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
+        <input type="text" id="smart-search-input" class="dashboard-search-input" aria-label="Search datasets by name, filename, or tag" placeholder="Search datasets by name, filename, or tag">
+        <i class="fa-solid fa-magnifying-glass" id="smart-search-icon" aria-hidden="true"></i>
         <div id="smart-search-results" class="glass-card" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 999; max-height: 350px; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); padding: 12px;"></div>
     </div>
 </div>
 
 <!-- Metric Cards Grid -->
-<div class="cards-grid">
-    <div class="metric-card">
+<div class="cards-grid dashboard-kpi-grid">
+    <div class="metric-card dashboard-kpi-card dashboard-kpi-card--datasets">
         <div class="metric-header">
             <span class="metric-title">Total Datasets</span>
-            <div class="metric-icon"><i class="fa-solid fa-database"></i></div>
+            <div class="metric-icon" aria-hidden="true"><i class="fa-solid fa-database"></i></div>
         </div>
         <div class="metric-value">{{ total_datasets }}</div>
+        <div class="metric-caption">Files in your workspace</div>
     </div>
 
-    <div class="metric-card">
+    <div class="metric-card dashboard-kpi-card dashboard-kpi-card--rows">
         <div class="metric-header">
             <span class="metric-title">Total Rows</span>
-            <div class="metric-icon"><i class="fa-solid fa-table-cells"></i></div>
+            <div class="metric-icon" aria-hidden="true"><i class="fa-solid fa-table-cells"></i></div>
         </div>
         <div class="metric-value">{{ "{:,}".format(total_rows) }}</div>
+        <div class="metric-caption">Across stored datasets</div>
     </div>
 
-    <div class="metric-card">
+    <div class="metric-card dashboard-kpi-card dashboard-kpi-card--queries">
         <div class="metric-header">
             <span class="metric-title">Queries Executed</span>
-            <div class="metric-icon"><i class="fa-solid fa-terminal"></i></div>
+            <div class="metric-icon" aria-hidden="true"><i class="fa-solid fa-terminal"></i></div>
         </div>
         <div class="metric-value">{{ total_queries }}</div>
+        <div class="metric-caption">Questions sent to AI</div>
     </div>
 
-    <div class="metric-card">
+    <div class="metric-card dashboard-kpi-card dashboard-kpi-card--storage">
         <div class="metric-header">
             <span class="metric-title">Storage Allocated</span>
-            <div class="metric-icon"><i class="fa-solid fa-hard-drive"></i></div>
+            <div class="metric-icon" aria-hidden="true"><i class="fa-solid fa-hard-drive"></i></div>
         </div>
         <div class="metric-value">{{ storage_display }}</div>
+        <div class="metric-caption">Used by uploaded files</div>
     </div>
 
-    <div class="metric-card">
+    <div class="metric-card dashboard-kpi-card dashboard-kpi-card--charts">
         <div class="metric-header">
             <span class="metric-title">Charts Generated</span>
-            <div class="metric-icon"><i class="fa-solid fa-chart-pie"></i></div>
+            <div class="metric-icon" aria-hidden="true"><i class="fa-solid fa-chart-pie"></i></div>
         </div>
         <div class="metric-value">{{ charts_generated }}</div>
+        <div class="metric-caption">Created from analyses</div>
     </div>
 
-    <div class="metric-card">
+    <div class="metric-card dashboard-kpi-card dashboard-kpi-card--voice">
         <div class="metric-header">
             <span class="metric-title">Voice AI Status</span>
-            <div class="metric-icon" style="color: var(--accent-green); background-color: #d1fae5;"><i class="fa-solid fa-microphone"></i></div>
+            <div class="metric-icon" aria-hidden="true"><i class="fa-solid fa-microphone"></i></div>
         </div>
-        <div class="metric-value" style="font-size: 20px; color: var(--accent-green);">Active</div>
+        <div class="metric-value">Active</div>
+        <div class="metric-caption">Available in this workspace</div>
     </div>
 </div>
 
@@ -113,12 +117,12 @@
 </div>
 
 <!-- AI Data Privacy Banner -->
-<div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(37, 99, 235, 0.1)); border: 1px solid var(--accent-green); padding: 16px 20px; border-radius: var(--radius-lg); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 24px; color: var(--accent-green);"><i class="fa-solid fa-user-shield"></i></span>
+<div class="dashboard-privacy-panel">
+    <div class="dashboard-privacy-panel__content">
+        <span class="dashboard-privacy-panel__icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
         <div>
-            <strong style="font-size: 14px; color: var(--text-primary);">🛡️ AI Data Protection Active</strong>
-            <div style="font-size: 12px; color: var(--text-secondary);">SQL generated and executed locally. Raw dataset records are never transmitted externally. PII masking enabled.</div>
+            <strong class="dashboard-privacy-panel__title">Data protection active</strong>
+            <div class="dashboard-privacy-panel__description">SQL generated and executed locally. Raw dataset records are never transmitted externally. PII masking enabled.</div>
         </div>
     </div>
     <a href="{{ url_for('frontend.settings_enterprise') }}" class="btn btn-secondary btn-sm">
@@ -127,7 +131,7 @@
 </div>
 
 <!-- Quick Action Shortcuts -->
-<div style="display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap;">
+<div class="dashboard-quick-actions">
     {% if session.get('user_role') in ['Admin', 'Manager', 'Analyst'] %}
     <a href="{{ url_for('frontend.upload') }}" class="btn btn-primary">
         <i class="fa-solid fa-cloud-arrow-up"></i> Dataset Upload
@@ -143,14 +147,14 @@
 
 <!-- Most Frequent Queries Widget -->
 {% if most_asked_queries %}
-<div class="table-card" style="margin-bottom: 32px;">
+<div class="table-card dashboard-query-card">
     <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-fire" style="color: var(--accent-red);"></i> Most Frequent AI Queries
+        <i class="fa-solid fa-chart-line" style="color: var(--accent-blue);"></i> Most Frequent AI Queries
     </h3>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="dashboard-query-list">
         {% for qlog in most_asked_queries %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-primary); border-radius: var(--radius-sm);">
-            <span style="font-weight: 500; font-size: 14px;">💬 "{{ qlog[0] }}"</span>
+        <div class="dashboard-query-row">
+            <span class="dashboard-query-text">"{{ qlog[0] }}"</span>
             <span class="badge badge-info">{{ qlog[1] }} times asked</span>
         </div>
         {% endfor %}

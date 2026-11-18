@@ -224,7 +224,18 @@ def submit_payment_proof():
         from werkzeug.utils import secure_filename
         data = request.form if request.form else (request.get_json(silent=True) or {})
         email = (data.get("email") or "").strip().lower()
-        method = (data.get("payment_method") or "Easypaisa").strip()
+        submitted_method = (data.get("payment_method") or "EasyPaisa").strip()
+        payment_methods = {
+            "easypaisa": "EasyPaisa",
+            "nayapay": "NayaPay",
+            "sadapay": "SadaPay",
+        }
+        method = payment_methods.get(submitted_method.casefold())
+        if not method:
+            return jsonify({
+                "success": False,
+                "message": "Select EasyPaisa, NayaPay, or SadaPay as the payment method.",
+            }), 400
         txn_id = (data.get("transaction_id") or "").strip()
 
         if not email:
@@ -356,50 +367,59 @@ def dashboard():
             cursor.execute(get_total_datasets(user_id=user_id))
             res = cursor.fetchone()
             if res: total_datasets = res[0] or 0
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard dataset count query failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_total_rows(user_id=user_id))
             res = cursor.fetchone()
             if res: total_rows = res[0] or 0
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard row count query failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_total_queries(user_id=user_id))
             res = cursor.fetchone()
             if res: total_queries = res[0] or 0
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard query count failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_total_charts_generated(user_id=user_id))
             res = cursor.fetchone()
             if res: charts_generated = res[0] or 0
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard chart count failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_latest_dataset(user_id=user_id))
             latest_dataset = cursor.fetchone()
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard latest dataset query failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_top_dataset_by_rows(user_id=user_id))
             top_dataset = cursor.fetchone()
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard largest-row dataset query failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_largest_dataset_by_size(user_id=user_id))
             largest_dataset = cursor.fetchone()
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard largest-file dataset query failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_most_asked_queries(user_id=user_id, limit=4))
             most_asked_queries = cursor.fetchall()
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard popular queries fetch failed for user_id=%s.", user_id)
 
         try:
             cursor.execute(get_recently_opened_datasets(user_id=user_id, limit=4))
             recent_datasets = cursor.fetchall()
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Dashboard recent datasets fetch failed for user_id=%s.", user_id)
 
         try:
             params = []
@@ -420,8 +440,8 @@ def dashboard():
 
             cursor.execute(query_str, tuple(params) if params else ())
             all_datasets = cursor.fetchall()
-        except Exception as query_err:
-            print("Dashboard Query Error:", query_err)
+        except Exception:
+            current_app.logger.exception("Dashboard dataset query failed for user_id=%s.", user_id)
 
     total_storage_kb = sum(ds[6] for ds in all_datasets if len(ds) > 6 and ds[6])
     storage_display = format_bytes(total_storage_kb * 1024)
@@ -448,8 +468,8 @@ def dashboard():
         # Renewal notice only displays if subscription requires renewal AND no pending payment is under review
         if not pending_payment_notice and sub_meta.get("show_banner"):
             renewal_notice = sub_meta.get("banner_message")
-    except Exception as ren_err:
-        print("Renewal Calculation Notice:", ren_err)
+    except Exception:
+        current_app.logger.exception("Dashboard subscription notice calculation failed for user_id=%s.", user_id)
 
     context = dict(
         total_datasets=total_datasets,
@@ -2421,7 +2441,8 @@ def api_ai_assistant_current():
                 r = cursor.fetchone()
                 if r:
                     unread_cnt = int(r[0])
-        except Exception: pass
+        except Exception:
+            current_app.logger.exception("Unread AI notification count failed for user_id=%s.", user_id)
 
     return jsonify({"card": card, "unread_count": unread_cnt})
 
@@ -2442,8 +2463,13 @@ def api_ai_notifications():
             for r in rows:
                 meta = {}
                 if r[5]:
-                    try: meta = json.loads(r[5])
-                    except Exception: pass
+                    try:
+                        meta = json.loads(r[5])
+                    except (TypeError, ValueError):
+                        current_app.logger.warning(
+                            "Ignoring malformed AI notification metadata for notification_id=%s.",
+                            r[0],
+                        )
 
                 notifications.append({
                     "id": r[0],
@@ -2454,8 +2480,8 @@ def api_ai_notifications():
                     "is_read": bool(r[6]),
                     "created_at": r[7].strftime("%b %d, %Y %I:%M %p") if r[7] else ""
                 })
-    except Exception as err:
-        print("Error fetching notifications:", err)
+    except Exception:
+        current_app.logger.exception("AI notifications fetch failed for user_id=%s.", user_id)
 
     return jsonify({"notifications": notifications})
 

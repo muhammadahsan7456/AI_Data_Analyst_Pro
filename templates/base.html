@@ -39,7 +39,7 @@
     {% block extra_css %}{% endblock %}
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20261011_v1">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20261015_v7">
 </head>
 <body>
 
@@ -170,7 +170,7 @@
         <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content {% if request.endpoint == 'frontend.dashboard' %}dashboard-workspace{% endif %}">
             {% if is_logged_in and subscription_info and subscription_info.show_banner %}
             <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}linear-gradient(135deg, #7f1d1d, #b91c1c){% else %}linear-gradient(135deg, #7c2d12, #c2410c){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}#f87171{% else %}#fb923c{% endif %};">
                 <div style="display: flex; align-items: center; gap: 12px;">

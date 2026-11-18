@@ -423,7 +423,9 @@ onDomReady(() => {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 // Close mobile nav if open
                 const nav = document.getElementById('nav-menu');
-                if (nav) nav.classList.remove('mobile-open');
+                if (nav && nav.classList.contains('mobile-open') && typeof window.toggleMobileNav === 'function') {
+                    window.toggleMobileNav(false);
+                }
             }
         });
     });

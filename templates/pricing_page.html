@@ -129,7 +129,7 @@
         <div style="text-align: center; margin-bottom: 20px;">
             <span class="payment-modal-badge">⚡ INSTANT LOCAL PAYMENT ACCESS</span>
             <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 10px 0 6px;">Pro Plan — PKR 1,499 / month</h2>
-            <p style="font-size: 13px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Transfer via <strong>Easypaisa</strong>, <strong>Nayapay</strong>, or <strong>SadaPay</strong>. Send payment screenshot on WhatsApp with your email for instant activation!</p>
+            <p style="font-size: 13px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Transfer via <strong>EasyPaisa</strong>, <strong>NayaPay</strong>, or <strong>SadaPay</strong>. Send payment screenshot on WhatsApp with your email for instant activation!</p>
         </div>
         <div class="payment-methods-grid">
             <div class="method-card">
@@ -140,10 +140,10 @@
                 </div>
             </div>
             <div class="method-card">
-                <div class="method-header"><span class="method-badge nayapay-badge"><i class="fa-solid fa-wallet"></i> Nayapay</span><span style="font-size: 11px; color: var(--accent-cyan); font-weight: 700;">Active</span></div>
+                <div class="method-header"><span class="method-badge nayapay-badge"><i class="fa-solid fa-wallet"></i> NayaPay</span><span style="font-size: 11px; color: var(--accent-cyan); font-weight: 700;">Active</span></div>
                 <div class="method-body">
                     <div class="method-title">Account Holder: <strong>Muhammad Ahsan</strong></div>
-                    <div class="method-number-box"><span class="num-text">03053107456</span><button type="button" class="btn-copy" onclick="copyNum('03053107456','Nayapay')"><i class="fa-regular fa-copy"></i> Copy</button></div>
+                    <div class="method-number-box"><span class="num-text">03053107456</span><button type="button" class="btn-copy" onclick="copyNum('03053107456','NayaPay')"><i class="fa-regular fa-copy"></i> Copy</button></div>
                 </div>
             </div>
             <div class="method-card">
@@ -155,7 +155,7 @@
             </div>
         </div>
         <div class="verification-steps-box">
-            <div class="v-step-item"><span class="v-step-num">1</span><div><strong>Transfer Amount</strong>: Send PKR 1,499 to Easypaisa/Nayapay/SadaPay <code>03053107456</code>.</div></div>
+            <div class="v-step-item"><span class="v-step-num">1</span><div><strong>Transfer Amount</strong>: Send PKR 1,499 to EasyPaisa/NayaPay/SadaPay <code>03053107456</code>.</div></div>
             <div class="v-step-item"><span class="v-step-num">2</span><div><strong>Take Screenshot</strong>: Save your payment confirmation receipt.</div></div>
             <div class="v-step-item"><span class="v-step-num">3</span><div><strong>Send Proof</strong>: Send screenshot & registered email to WhatsApp <code>03053107456</code> or use the form below.</div></div>
         </div>
@@ -166,9 +166,10 @@
         </div>
         <div class="payment-divider"><span>OR SUBMIT PROOF ONLINE</span></div>
         <form id="payment-proof-form" onsubmit="handlePaymentProof(event)" style="margin-top: 16px;">
+            <input type="hidden" id="payment-proof-csrf-token" name="csrf_token" value="{{ csrf_token() }}">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Email Address</label><input type="email" id="proof-email" required placeholder="you@email.com" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
-                <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method</label><select id="proof-method" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"><option value="Easypaisa">Easypaisa</option><option value="Nayapay">Nayapay</option><option value="SadaPay">SadaPay</option></select></div>
+                <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method</label><select id="proof-method" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"><option value="EasyPaisa">EasyPaisa</option><option value="NayaPay">NayaPay</option><option value="SadaPay">SadaPay</option></select></div>
             </div>
             <div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:700;color:var(--accent-blue);display:flex;align-items:center;gap:6px;margin-bottom:4px;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payment Screenshot (Required)</label><input type="file" id="proof-screenshot" accept="image/*" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px dashed rgba(59,130,246,0.5);font-size:12px;box-sizing:border-box;cursor:pointer;color:var(--text-secondary);"></div>
             <div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px;">Transaction ID (Optional)</label><input type="text" id="proof-txnid" placeholder="TRX-XXXXXXX" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
@@ -197,6 +198,7 @@ function handlePaymentProof(e) {
     e.preventDefault();
     const btn=document.getElementById('btn-submit-proof');
     const fd=new FormData();
+    fd.append('csrf_token',document.getElementById('payment-proof-csrf-token').value);
     fd.append('email',document.getElementById('proof-email').value);
     fd.append('payment_method',document.getElementById('proof-method').value);
     fd.append('transaction_id',document.getElementById('proof-txnid').value);
@@ -207,7 +209,7 @@ function handlePaymentProof(e) {
         btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit';
         if(d.success){alert('✨ Payment screenshot uploaded! Admin will verify shortly.'); closePaymentModal();}
         else alert(d.message||'Error. Please try again.');
-    }).catch(()=>{btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit'; alert('Recorded! Also send proof on WhatsApp 03053107456.'); closePaymentModal();});
+    }).catch(()=>{btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit'; alert('Could not submit your payment proof. Please try again or send it on WhatsApp 03053107456.');});
 }
 window.addEventListener('click',(e)=>{if(e.target===document.getElementById('paymentModal'))closePaymentModal();});
 {% if open_payment_modal %}window.addEventListener('DOMContentLoaded',()=>openPaymentModal());{% endif %}

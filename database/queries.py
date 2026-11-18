@@ -115,6 +115,21 @@ def get_user_profile():
     """
 
 
+def update_user_profile_details():
+    return """
+    UPDATE UserProfiles
+    SET Bio = ?, Occupation = ?, Company = ?, Department = ?, Designation = ?, Website = ?, LinkedIn = ?, GitHub = ?, Portfolio = ?, Timezone = ?, Language = ?, UpdatedAt = GETDATE()
+    WHERE UserID = ?
+    """
+
+
+def insert_user_profile_details():
+    return """
+    INSERT INTO UserProfiles (UserID, Bio, Occupation, Company, Department, Designation, Website, LinkedIn, GitHub, Portfolio, Timezone, Language, UpdatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+    """
+
+
 def set_user_company_on_signup():
     return """
     IF EXISTS (SELECT 1 FROM UserProfiles WHERE UserID = ?)
@@ -777,11 +792,6 @@ def get_users_admin_filter_params(search_query=None, role_filter=None, status_fi
 
 _USERS_ADMIN_BASE_SELECT = """
     FROM Users U
-    OUTER APPLY (
-        SELECT TOP 1 IPAddress FROM AuditLogs
-        WHERE UserID = U.UserID AND IPAddress IS NOT NULL
-        ORDER BY CreatedAt DESC
-    ) LastIP
 """
 
 
@@ -797,7 +807,9 @@ def search_users_admin(search_query=None, role_filter=None, status_filter=None, 
     offset = max(0, (int(page) - 1) * int(per_page))
     return f"""
     SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
-           ISNULL(LastIP.IPAddress, '127.0.0.1') AS LastIPAddress,
+           ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs
+                   WHERE UserID = U.UserID AND IPAddress IS NOT NULL
+                   ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress,
            ISNULL(U.SubscriptionStatus, 'active') AS SubscriptionStatus,
            U.SubscriptionEndDate
     {_USERS_ADMIN_BASE_SELECT}

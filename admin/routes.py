@@ -1,6 +1,7 @@
 import time
 import secrets
 import math
+import logging
 from datetime import datetime, timedelta
 from flask import render_template, request, redirect, url_for, flash, session, Response
 from markupsafe import escape
@@ -52,8 +53,10 @@ from database.queries import (
     get_user_by_id,
     update_user_password
 )
-from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength
+from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength, is_lockout_active
 from utils.helpers import format_12hr_datetime
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_site_announcement():
@@ -127,13 +130,14 @@ def admin_login():
         # highest-value target on the whole site.
         if lockout_until:
             try:
-                lockout_dt = datetime.fromisoformat(str(lockout_until)) if isinstance(lockout_until, str) else lockout_until
-                if datetime.now() < lockout_dt:
+                if is_lockout_active(lockout_until):
                     log_audit_event("ADMIN_LOGIN_LOCKED", f"Login blocked (account locked) for {email}")
                     flash("Account temporarily locked due to multiple failed login attempts. Please try again in a few minutes.", "error")
                     return render_template("admin/login.html")
-            except Exception:
-                pass
+            except (TypeError, ValueError, OverflowError):
+                logger.exception("Could not evaluate admin login lockout for user_id=%s.", user_id)
+                flash("We could not verify your account's sign-in status. Please try again later.", "error")
+                return render_template("admin/login.html")
 
         if not verify_password(password, pwd_hash):
             with get_db_cursor(commit=True) as cursor:
@@ -1085,6 +1089,8 @@ def update_payment_status(payment_id):
                 new_end_date = cursor.fetchone()[0]
 
             start_label = datetime.now().strftime("%d %b %Y")
+            if isinstance(new_end_date, str):
+                    new_end_date = datetime.fromisoformat(new_end_date)
             end_label = new_end_date.strftime("%d %b %Y") if new_end_date else "N/A"
 
             if u_email:
@@ -1675,12 +1681,14 @@ def save_review():
         with get_db_cursor(commit=True) as cursor:
             if review_id:
                 cursor.execute(update_review(), (name, role, text, rating, display_order, review_id))
-                log_audit_event("ADMIN_REVIEW_UPDATED", f"Updated review #{review_id} ({name})", user_id=admin_id)
-                flash(f"Review by '{name}' updated successfully.", "success")
             else:
                 cursor.execute(create_review(), (name, role, text, rating, 1, display_order))
-                log_audit_event("ADMIN_REVIEW_CREATED", f"Created new review by {name}", user_id=admin_id)
-                flash(f"Review by '{name}' added successfully and is now live on the public Reviews page.", "success")
+        if review_id:
+            log_audit_event("ADMIN_REVIEW_UPDATED", f"Updated review #{review_id} ({name})", user_id=admin_id)
+            flash(f"Review by '{name}' updated successfully.", "success")
+        else:
+            log_audit_event("ADMIN_REVIEW_CREATED", f"Created new review by {name}", user_id=admin_id)
+            flash(f"Review by '{name}' added successfully and is now live on the public Reviews page.", "success")
     except Exception as e:
         print("Save Review Error:", e)
         flash(f"Failed to save review: {str(e)}", "error")

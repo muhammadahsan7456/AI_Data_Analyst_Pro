@@ -1,6 +1,7 @@
 import os
 import smtplib
 import threading
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -9,6 +10,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # Embedded (CID) rather than linked by URL: a <img src="http://127.0.0.1:...">  would
 # render as a broken image for every recipient, since that address isn't reachable from
@@ -102,11 +105,15 @@ class EmailService:
         return True
 
     def _send_email(self, to_email: str, subject: str, html_body: str, plain_text: str = None, list_unsubscribe: str = None) -> bool:
-        cfg = self._get_config()
-        if not self._is_configured():
-            print("\n[SMTP NOTICE] Real Gmail credentials missing in .env.")
-            print(f"[SMTP NOTICE] Sending to: {to_email} | Subject: '{subject}'\n")
-            return True
+        try:
+            cfg = self._get_config()
+        except (TypeError, ValueError) as err:
+            logger.error("Invalid SMTP configuration (%s).", type(err).__name__)
+            return False
+
+        if not cfg["user"] or not cfg["password"]:
+            logger.error("SMTP credentials are not configured; transactional email was not sent.")
+            return False
 
         if not plain_text:
             plain_text = "Please view this email in an HTML-compatible email client."
@@ -147,10 +154,9 @@ class EmailService:
         except Exception as logo_err:
             print("[SMTP NOTICE] Could not attach logo image:", logo_err)
 
-        ports_to_try = [465, 587] if cfg["port"] == 465 else [cfg["port"], 465, 587]
+        ports_to_try = list(dict.fromkeys([465, 587] if cfg["port"] == 465 else [cfg["port"], 465, 587]))
         for port in ports_to_try:
             try:
-                print(f"[SMTP] Rapid dispatching connection to {cfg['server']}:{port}...")
                 if port == 465:
                     with smtplib.SMTP_SSL(cfg["server"], port, timeout=4) as smtp:
                         smtp.login(cfg["user"], cfg["password"])
@@ -162,10 +168,15 @@ class EmailService:
                         smtp.ehlo()
                         smtp.login(cfg["user"], cfg["password"])
                         smtp.sendmail(cfg["from_email"], [to_email], msg.as_string())
-                print(f"[SMTP SUCCESS] Security Email delivered to Primary Inbox: {to_email} via port {port}")
+                logger.info("SMTP delivery succeeded via port %s.", port)
                 return True
             except Exception as e:
-                print(f"[SMTP NOTICE] Port {port} failed: {e}")
+                logger.warning(
+                    "SMTP delivery failed on port %s (%s): %s",
+                    port,
+                    type(e).__name__,
+                    e,
+                )
                 continue
 
         return False
