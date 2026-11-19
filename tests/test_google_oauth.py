@@ -216,3 +216,43 @@ def test_portal_session_of_superadmin_does_not_open_admin_console(monkeypatch):
         s["user_role"] = "SuperAdmin"
     r = client.get("/admin/dashboard")
     assert r.status_code == 302 and "/admin/login" in r.headers["Location"]
+
+
+def test_missing_client_config_shows_friendly_message(app, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    client = app.test_client()
+    r = client.get("/auth/google", base_url="https://aidataanalystpro.co.uk")
+    assert r.status_code == 302 and r.headers["Location"].endswith("/auth/login")
+    with client.session_transaction(base_url="https://aidataanalystpro.co.uk") as s:
+        flashes = [m for _, m in s.get("_flashes", [])]
+    assert any("Google sign-in is not available right now" in m for m in flashes)
+
+
+def test_new_google_user_needs_no_otp_and_no_payment(app, monkeypatch):
+    _mock_google(monkeypatch, {"email": "fresh@example.com", "email_verified": True, "name": "Fresh"})
+    client = app.test_client()
+    _, q = _start(client)
+    r = client.get(f"/auth/google/callback?state={q['state'][0]}&code=abc", base_url="https://aidataanalystpro.co.uk")
+    assert r.headers["Location"].endswith("/dashboard")
+    with client.session_transaction(base_url="https://aidataanalystpro.co.uk") as s:
+        assert "pending_otp" not in s
+    with app.db_cursor() as c:
+        c.execute("SELECT COUNT(*) FROM Payments P JOIN Users U ON U.UserID = P.UserID WHERE U.Email = ?", ("fresh@example.com",))
+        assert c.fetchone()[0] == 0
+        c.execute("SELECT COUNT(*) FROM EmailVerificationTokens T JOIN Users U ON U.UserID = T.UserID WHERE U.Email = ?", ("fresh@example.com",))
+        assert c.fetchone()[0] == 0
+
+
+def test_redirect_uri_without_public_base_url_uses_request_origin(app, monkeypatch):
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
+    client = app.test_client()
+    r = client.get("/auth/google", base_url="https://aidataanalystpro.co.uk")
+    q = parse_qs(urlparse(r.headers["Location"]).query)
+    assert q["redirect_uri"] == ["https://aidataanalystpro.co.uk/auth/google/callback"]
+
+
+def test_explicit_google_redirect_uri_overrides(app, monkeypatch):
+    monkeypatch.setenv("GOOGLE_REDIRECT_URI", "https://aidataanalystpro.co.uk/auth/google/callback")
+    client = app.test_client()
+    _, q = _start(client)
+    assert q["redirect_uri"] == ["https://aidataanalystpro.co.uk/auth/google/callback"]
