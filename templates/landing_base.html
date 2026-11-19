@@ -18,13 +18,13 @@
     <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
     <meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
     <meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, Encrypted Dataset Storage, Large Dataset Analytics">
-    <link rel="canonical" href="{{ request.url }}">
+    <link rel="canonical" href="{{ canonical_url }}">
     {% endblock %}
 
     <!-- Open Graph -->
     {% block og_meta %}
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:url" content="{{ canonical_url }}">
     <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
     <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
     <meta property="og:image" content="{{ public_root }}static/images/og-preview.png">

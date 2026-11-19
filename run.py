@@ -270,6 +270,7 @@ def inject_user_context():
         site_config=site_config,
         support_email=site_config.support_email(),
         public_root=public_base_url() + "/",
+        canonical_url=public_base_url() + request.path,
     )
 
 

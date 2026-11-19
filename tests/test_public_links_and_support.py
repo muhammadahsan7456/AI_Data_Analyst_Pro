@@ -163,3 +163,12 @@ def test_no_hardcoded_support_address_variants_left():
     assert [l for l in out.stdout.splitlines() if "tests/" not in l] == [
         l for l in out.stdout.splitlines() if l.startswith("site_config.py:")
     ]
+
+
+def test_templates_do_not_build_absolute_urls_from_the_request_host():
+    offenders = []
+    for path in (REPO / "templates").rglob("*.html"):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if re.search(r"request\.(url_root|host_url|url|host)\b", text):
+            offenders.append(str(path.relative_to(REPO)))
+    assert offenders == []

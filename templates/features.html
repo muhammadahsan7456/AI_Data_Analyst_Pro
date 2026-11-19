@@ -4,7 +4,7 @@
 <title>Features — AI Data Analyst Pro | Enterprise AI Analytics Platform Capabilities</title>
 <meta name="description" content="Explore all features of AI Data Analyst Pro: datasets up to 500 MB, encrypted dataset storage, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
 <meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, Encrypted dataset storage, Multi-Dataset Join, PowerPoint Export, Data Visualization">
-<link rel="canonical" href="{{ request.url }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block schema_json %}
@@ -18,7 +18,7 @@
     "@type": "BreadcrumbList",
     "itemListElement": [
       {"@type": "ListItem", "position": 1, "name": "Home", "item": "{{ public_root }}"},
-      {"@type": "ListItem", "position": 2, "name": "Features", "item": "{{ request.url }}"}
+      {"@type": "ListItem", "position": 2, "name": "Features", "item": "{{ canonical_url }}"}
     ]
   }
 }
