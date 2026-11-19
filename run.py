@@ -49,6 +49,24 @@ app = Flask(__name__)
 
 # Configure Secret Key for Sessions & 1-Hour Permanent Lifetime
 app.secret_key = _secret_key
+
+# Reverse-proxy trust. wsgi.py (Waitress behind Nginx on the same VM) already trusts the
+# one loopback hop. For any other server, set TRUSTED_PROXY_COUNT to the number of proxies
+# in front of the app (normally 1) so X-Forwarded-For/-Proto/-Host are honoured; left
+# unset, those headers are ignored because any client could forge them.
+try:
+    _proxy_count = int(os.getenv("TRUSTED_PROXY_COUNT", "0").strip() or 0)
+except ValueError:
+    _proxy_count = 0
+if _proxy_count > 0:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_proxy_count, x_proto=_proxy_count,
+                            x_host=_proxy_count, x_port=_proxy_count)
+
+# Loud startup warning when emailed links would point at localhost / the wrong host.
+import logging as _logging
+from utils.public_url import check_public_base_url_config
+check_public_base_url_config(_logging.getLogger("startup"))
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
 # Hard request-body ceiling. Set a few MB above the 500 MB file-size limit the upload
@@ -223,6 +241,7 @@ def load_user_context():
 
 
 from utils.subscription import get_user_subscription_info
+from utils.public_url import public_base_url
 
 # Global Context Processor for Templates
 @app.context_processor
@@ -248,7 +267,9 @@ def inject_user_context():
         max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "500")),
         subscription_info=sub_info,
         pending_payments_count=pending_payments_count,
-        site_config=site_config
+        site_config=site_config,
+        support_email=site_config.support_email(),
+        public_root=public_base_url() + "/",
     )
 
 
@@ -378,7 +399,7 @@ if __name__ == "__main__":
         # the correct, narrow fix for this deployment shape, not a blanket "trust
         # everyone" that would reopen the spoofing hole.
         # threads=16 meant only 16 requests could be in flight at once - and most request
-        # time here is spent waiting on RDS or an external AI API call, not on CPU work, so
+        # time here is spent waiting on SQL Server or an external AI API call, not on CPU work, so
         # a handful of concurrently slow requests (a multi-second AI query, a large upload)
         # could already exhaust the pool and leave the next visitor queued behind them, even
         # with no CPU pressure at all. Raised to a level suited for I/O-bound work on a

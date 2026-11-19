@@ -21,7 +21,10 @@ logger = logging.getLogger(__name__)
 # client, with no external request at all.
 LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "favicon.png")
 LOGO_CID = "aidataanalystpro_logo"
-PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+# Links are built at send time from utils.public_url (PUBLIC_BASE_URL first), never from
+# a module-level localhost default.
+from utils.public_url import public_base_url
+from site_config import support_email
 
 
 class EmailService:
@@ -50,7 +53,7 @@ class EmailService:
         # instead of the verified sender gets silently rejected by the provider - this is
         # exactly what broke Super Admin OTP delivery after switching from Gmail SMTP (where
         # login and verified sender happened to be identical, masking the bug) to Brevo.
-        mail_from = (os.getenv("MAIL_FROM") or os.getenv("SMTP_FROM_EMAIL") or user or "noreply@aidataanlystpro.com").strip()
+        mail_from = (os.getenv("MAIL_FROM") or os.getenv("SMTP_FROM_EMAIL") or user or "noreply@aidataanalystpro.co.uk").strip()
         from_name = os.getenv("MAIL_FROM_NAME", "AI Data Analyst Pro").strip()
 
         return {
@@ -719,7 +722,7 @@ AI Data Analyst Pro Support Team
                             </div>
 
                             <p style="font-size: 13px; color: #737373; line-height: 1.5; margin: 0;">
-                                If you have any questions regarding your billing receipt, please contact priority enterprise support at support@aidataanalystpro.com.
+                                If you have any questions regarding your billing receipt, please contact support at {support_email()}.
                             </p>
                         </td>
                     </tr>
@@ -798,7 +801,7 @@ AI Data Analyst Pro Support Team
 
                             <!-- CTA Button -->
                             <div style="text-align: center; margin: 32px 0;">
-                                <a href="{PUBLIC_BASE_URL}/" target="_blank" style="background: #0a0a0a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
+                                <a href="{public_base_url()}/" target="_blank" style="background: #0a0a0a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
                                     Explore AI Data Platform &rarr;
                                 </a>
                             </div>
@@ -924,7 +927,7 @@ AI Data Analyst Pro Support Team
                 </td></tr>
             </table>
             <div style="text-align: center;">
-                <a href="{PUBLIC_BASE_URL}/auth/login" style="background: #0a0a0a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
+                <a href="{public_base_url()}/auth/login" style="background: #0a0a0a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
             </div>
         """
         html_body = self._wrap_branded_email("Approved", "#10b981", "Your Dashboard is Active!", body)

@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from site_config import support_email
 
 
 def export_to_csv(df: pd.DataFrame) -> bytes:
@@ -270,7 +271,7 @@ def export_invoice_to_pdf(payment: dict) -> bytes:
         Paragraph("ISSUED BY", section_label_style),
         Paragraph("AI Data Analyst Pro Inc.", name_style),
         Paragraph("Enterprise Billing &amp; Security Operations", detail_style),
-        Paragraph("support@aidataanalystpro.com", detail_style),
+        Paragraph(support_email(), detail_style),
     ]
     info_table = Table([[billed_to, issued_by]], colWidths=[270, 270])
     info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))

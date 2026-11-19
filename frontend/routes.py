@@ -2273,7 +2273,8 @@ def sitemap_xml():
         ("/privacy", "0.5", "yearly"),
         ("/terms", "0.5", "yearly"),
     ]
-    base_url = request.url_root.rstrip("/")
+    from utils.public_url import public_base_url
+    base_url = public_base_url()
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     for path, priority, freq in pages:
@@ -2284,7 +2285,8 @@ def sitemap_xml():
 
 @frontend.route("/robots.txt")
 def robots_txt():
-    base_url = request.url_root.rstrip("/")
+    from utils.public_url import public_base_url
+    base_url = public_base_url()
     txt = f"""User-agent: *
 Allow: /
 Disallow: /dashboard
@@ -3157,7 +3159,8 @@ def subscribe_newsletter():
             from auth.email_service import EmailService
             serializer = URLSafeTimedSerializer(current_app.secret_key)
             token = serializer.dumps(email, salt="newsletter-unsubscribe")
-            unsubscribe_url = url_for("frontend.unsubscribe_newsletter", token=token, _external=True)
+            from utils.public_url import external_url
+            unsubscribe_url = external_url("frontend.unsubscribe_newsletter", token=token)
 
             email_service = EmailService()
             email_service.send_newsletter_subscription_email(to_email=email, unsubscribe_url=unsubscribe_url)

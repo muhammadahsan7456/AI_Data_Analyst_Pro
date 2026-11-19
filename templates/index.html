@@ -4,15 +4,15 @@
 <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
 <meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
 <meta name="keywords" content="AI data analyst, ask questions about CSV, Excel data analysis, Roman Urdu data questions, PowerPoint export, encrypted datasets">
-<link rel="canonical" href="{{ request.url_root }}">
+<link rel="canonical" href="{{ public_root }}">
 {% endblock %}
 
 {% block og_meta %}
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.url_root }}">
+<meta property="og:url" content="{{ public_root }}">
 <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
 <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
-<meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
+<meta property="og:image" content="{{ public_root }}static/images/og-preview.png">
 <meta property="og:site_name" content="AI Data Analyst Pro">
 {% endblock %}
 
@@ -34,8 +34,8 @@
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "AI Data Analyst Pro",
-  "url": "{{ request.url_root }}",
-  "logo": "{{ request.url_root }}static/favicon.png",
+  "url": "{{ public_root }}",
+  "logo": "{{ public_root }}static/favicon.png",
   "contactPoint": { "@type": "ContactPoint", "telephone": "+92-305-3107456", "contactType": "sales" }
 }
 </script>

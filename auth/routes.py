@@ -38,6 +38,7 @@ from auth.decorators import login_required, admin_required, manager_required
 from auth.email_service import EmailService
 
 from database.connection import get_db_cursor
+from utils.public_url import public_base_url, external_url
 from database.queries import (
     get_user_by_email,
     get_user_by_username,
@@ -752,10 +753,11 @@ def resend_verification():
 #      DefaultDashboard). SQL Server rejects unknown columns at compile time, even inside
 #      an IF NOT EXISTS branch that would not run.
 #   3. Visitors on www.<domain> got their OAuth state cookie on the www host while Google
-#      returned them to the apex callback, so the state check always failed.
+#      returned them to the apex callback, so the state check always failed. google_login
+#      now bounces to the PUBLIC_BASE_URL host before setting state (R-Phase 8: the
+#      hardcoded domain was replaced by PUBLIC_BASE_URL via utils.public_url).
 #   4. email_verified was never checked, and an unverified password account with the same
 #      email was silently merged (its old password kept working).
-_GOOGLE_DOMAIN = "aidataanalystpro.co.uk"
 _GOOGLE_GENERIC_ERROR = (
     "We couldn't sign you in with Google right now. Please try again, or use your "
     "email and password."
@@ -763,15 +765,13 @@ _GOOGLE_GENERIC_ERROR = (
 
 
 def _public_base_url():
-    """The canonical public origin (scheme + host) the OAuth flow must run on."""
-    configured = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
-    if configured.startswith(("http://", "https://")):
-        return configured
-    host = (request.host or "").split(":")[0].lower()
-    if host == _GOOGLE_DOMAIN or host.endswith("." + _GOOGLE_DOMAIN):
-        return f"https://{_GOOGLE_DOMAIN}"
-    proto = (request.headers.get("X-Forwarded-Proto") or request.scheme or "http").split(",")[0].strip()
-    return f"{proto}://{request.host}"
+    """The canonical public origin (scheme + host) the OAuth flow must run on.
+
+    PUBLIC_BASE_URL first; otherwise the request origin as seen through the trusted
+    proxy hop (utils.public_url). Untrusted X-Forwarded-* headers are not read here,
+    and no domain is hardcoded: production sets PUBLIC_BASE_URL.
+    """
+    return public_base_url()
 
 
 def _get_google_redirect_uri():
@@ -1275,7 +1275,7 @@ def forgot_password():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(create_password_reset_token(), (user_id, otp_code))
 
-            reset_link = url_for("auth.reset_password", token=otp_code, _external=True)
+            reset_link = external_url("auth.reset_password", token=otp_code)
             # Sent synchronously so a real send failure is captured in the audit log (the
             # same silent-failure pattern fixed elsewhere in this pass) - but UNLIKE the
             # registration/login OTP fixes, the user-facing flash below deliberately stays

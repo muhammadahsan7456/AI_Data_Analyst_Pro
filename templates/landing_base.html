@@ -27,7 +27,7 @@
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
     <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
-    <meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
+    <meta property="og:image" content="{{ public_root }}static/images/og-preview.png">
     <meta property="og:site_name" content="AI Data Analyst Pro">
     {% endblock %}
 
@@ -36,7 +36,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AI Data Analyst Pro — Enterprise AI Analytics">
     <meta name="twitter:description" content="Transform datasets into insights with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, voice querying, and automated exports.">
-    <meta name="twitter:image" content="{{ request.url_root }}static/images/og-preview.png">
+    <meta name="twitter:image" content="{{ public_root }}static/images/og-preview.png">
     {% endblock %}
 
     <!-- Favicon -->
@@ -223,6 +223,7 @@
                         <li><a href="{{ url_for('frontend.faq_page') }}"><i class="fa-solid fa-angle-right"></i> FAQ</a></li>
                         <li><a href="{{ url_for('frontend.about') }}"><i class="fa-solid fa-angle-right"></i> About Us</a></li>
                         <li><a href="{{ url_for('frontend.contact') }}"><i class="fa-solid fa-angle-right"></i> Contact</a></li>
+                        <li><a href="mailto:{{ support_email }}" id="footer-support-email" style="overflow-wrap: anywhere;"><i class="fa-solid fa-angle-right"></i> {{ support_email }}</a></li>
                     </ul>
                 </div>
 
