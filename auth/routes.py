@@ -64,8 +64,9 @@ from database.queries import (
     increment_email_token_attempt,
     mark_email_token_used,
     create_password_reset_token,
-    get_password_reset_token,
-    increment_reset_token_attempt,
+    invalidate_user_reset_tokens,
+    get_active_password_reset_token,
+    record_failed_reset_attempt,
     mark_reset_token_used,
     check_resend_rate_limit,
     get_user_login_history,
@@ -1281,10 +1282,18 @@ def forgot_password():
             full_name = user[4] or user[3]
             otp_code = f"{secrets.randbelow(900000) + 100000}"
 
+            # Only a keyed digest of the code is stored (same scheme as the email/admin
+            # OTPs), and a new request retires any older live code for this account.
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_password_reset_token(), (user_id, otp_code))
+                cursor.execute(invalidate_user_reset_tokens(), (user_id,))
+                cursor.execute(
+                    create_password_reset_token(),
+                    (user_id, otp_digest(RESET_CODE_PURPOSE, user_id, otp_code)),
+                )
 
-            reset_link = external_url("auth.reset_password", token=otp_code)
+            # The link never carries the code itself (it would end up in browser history
+            # and proxy logs); the page asks for the code that is in the email body.
+            reset_link = external_url("auth.reset_password", token="verify")
             # Sent synchronously so a real send failure is captured in the audit log (the
             # same silent-failure pattern fixed elsewhere in this pass) - but UNLIKE the
             # registration/login OTP fixes, the user-facing flash below deliberately stays
@@ -1306,10 +1315,75 @@ def forgot_password():
         # only when it matched (the previous behavior) let anyone enumerate registered
         # accounts just by watching which redirect target came back, and the email was
         # never actually usable to prefill anything anyway (only a 6-digit OTP is).
+        # Remembered for every submitted address (existing or not) purely to prefill the
+        # email field on the next page - doing it unconditionally keeps it non-enumerating.
+        session["reset_email"] = email
         flash("If an account exists with this email, a password reset code has been sent.", "info")
         return redirect(url_for("auth.reset_password", token="verify"))
 
     return render_template("forgot_password.html")
+
+
+# ==========================================
+# PASSWORD RESET CODE CHECK (shared by both steps)
+# ==========================================
+RESET_CODE_PURPOSE = "password-reset"
+RESET_CODE_MAX_ATTEMPTS = 5
+RESET_CODE_GENERIC_ERROR = (
+    "Invalid or expired code for this email. Check the code, or request a new one."
+)
+
+
+def _check_reset_code(email, otp_code):
+    """
+    Validates a password reset code for ONE account (looked up by email, never by the code
+    alone). Returns (token_id, user_id) on success, None otherwise.
+
+    - The stored token is an HMAC digest bound to the user; comparison is constant-time.
+    - Every wrong code increments PasswordResetTokens.Attempts in the database; the 5th
+      wrong code invalidates the code (IsUsed = 1), so the counter cannot be reset by
+      replaying a cookie or opening a new browser.
+    - Callers show one generic message for every failure (unknown email, no live code,
+      wrong code, code burned) so the response never reveals whether an account exists.
+    """
+    email = (email or "").strip().lower()
+    otp_code = (otp_code or "").strip()
+    if not email or not re.fullmatch(r"[0-9]{6}", otp_code):
+        return None
+
+    with get_db_cursor() as cursor:
+        cursor.execute(get_user_by_email(), (email,))
+        user = cursor.fetchone()
+    if not user:
+        # Same work as a real check, so timing doesn't separate unknown emails.
+        otp_matches(otp_digest(RESET_CODE_PURPOSE, 0, "000000"), RESET_CODE_PURPOSE, 0, otp_code)
+        return None
+
+    user_id = user[0]
+    with get_db_cursor() as cursor:
+        cursor.execute(get_active_password_reset_token(), (user_id,))
+        tok = cursor.fetchone()
+    if not tok:
+        otp_matches(otp_digest(RESET_CODE_PURPOSE, user_id, "000000"), RESET_CODE_PURPOSE, user_id, otp_code)
+        return None
+
+    token_id, stored_digest, attempts = tok[0], tok[2], int(tok[5] or 0)
+    if attempts >= RESET_CODE_MAX_ATTEMPTS:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(mark_reset_token_used(), (token_id,))
+        return None
+
+    if otp_matches(stored_digest, RESET_CODE_PURPOSE, user_id, otp_code):
+        return token_id, user_id
+
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(record_failed_reset_attempt(), (token_id,))
+    except Exception:
+        logger.exception("Could not record failed password reset attempt.")
+    if attempts + 1 >= RESET_CODE_MAX_ATTEMPTS:
+        log_audit_event("PASSWORD_RESET_CODE_LOCKED", "Reset code invalidated after 5 wrong attempts.", user_id=user_id)
+    return None
 
 
 # ==========================================
@@ -1318,34 +1392,15 @@ def forgot_password():
 @auth_bp.route("/reset-password/verify-code", methods=["POST"])
 def reset_password_verify_code():
     """
-    Checks a reset code's validity (exists, unused, unexpired, under the attempt limit)
-    without consuming it or changing anything - lets the reset-password page only reveal
-    the new-password fields once the code is actually confirmed, instead of asking for the
-    code and the new password in the same breath. The real reset_password() POST below
-    still independently re-validates the code before touching the database; this endpoint
-    existing doesn't weaken that, it just gives the page something to check against first.
+    Checks a reset code for the given email without consuming it, so the page only reveals
+    the new-password fields once the code is confirmed. A wrong code here counts toward the
+    same 5-attempt limit as the final submit. reset_password() re-validates independently.
     """
-    otp_code = request.form.get("otp_code", "").strip()
-
-    with get_db_cursor() as cursor:
-        cursor.execute(get_password_reset_token(), (otp_code,))
-        tok_data = cursor.fetchone()
-
-    if not tok_data:
-        try:
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(increment_reset_token_attempt(), (otp_code,))
-        except Exception:
-            pass
-        return jsonify({"valid": False, "message": "Invalid or expired password reset code."})
-
-    attempts = tok_data[5] if len(tok_data) > 5 else 0
-    if attempts >= 5:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(mark_reset_token_used(), (otp_code,))
-        return jsonify({"valid": False, "message": "Maximum verification attempts exceeded. Please request a new code."})
-
-    return jsonify({"valid": True})
+    email = request.form.get("email", "")
+    otp_code = request.form.get("otp_code", "")
+    if _check_reset_code(email, otp_code):
+        return jsonify({"valid": True})
+    return jsonify({"valid": False, "message": RESET_CODE_GENERIC_ERROR})
 
 
 # ==========================================
@@ -1355,42 +1410,26 @@ def reset_password_verify_code():
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token=""):
     if request.method == "POST":
-        input_token = request.form.get("token", token).strip()
-        otp_code = request.form.get("otp_code", "").strip() or input_token
+        email = request.form.get("email", "").strip().lower()
+        otp_code = request.form.get("otp_code", "").strip()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
         if password != confirm_password:
             flash("Passwords do not match.", "error")
-            return render_template("reset_password.html", token=token, otp_code=otp_code)
+            return render_template("reset_password.html", token=token, reset_email=email)
 
         is_strong, msg = validate_password_strength(password)
         if not is_strong:
             flash(msg, "error")
-            return render_template("reset_password.html", token=token, otp_code=otp_code)
+            return render_template("reset_password.html", token=token, reset_email=email)
 
-        with get_db_cursor() as cursor:
-            cursor.execute(get_password_reset_token(), (otp_code,))
-            tok_data = cursor.fetchone()
+        checked = _check_reset_code(email, otp_code)
+        if not checked:
+            flash(RESET_CODE_GENERIC_ERROR, "error")
+            return render_template("reset_password.html", token=token, reset_email=email)
 
-        if not tok_data:
-            # Check if token exists but failed attempts exceeded or expired
-            try:
-                with get_db_cursor(commit=True) as cursor:
-                    cursor.execute(increment_reset_token_attempt(), (otp_code,))
-            except Exception:
-                logger.exception("Could not record failed password reset attempt.")
-            flash("Invalid or expired password reset code.", "error")
-            return render_template("reset_password.html", token=token, otp_code=otp_code)
-
-        user_id = tok_data[1]
-        attempts = tok_data[5] if len(tok_data) > 5 else 0
-
-        if attempts >= 5:
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(mark_reset_token_used(), (otp_code,))
-            flash("Maximum verification attempts exceeded. Password reset code invalidated.", "error")
-            return redirect(url_for("auth.forgot_password"))
+        token_id, user_id = checked
 
         # Fetch user name for toast
         user_name = "User"
@@ -1406,8 +1445,9 @@ def reset_password(token=""):
         try:
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(update_user_password(), (new_hash, user_id))
-                cursor.execute(mark_reset_token_used(), (otp_code,))
+                cursor.execute(mark_reset_token_used(), (token_id,))
 
+            session.pop("reset_email", None)
             log_audit_event("PASSWORD_RESET_SUCCESS", "Password reset successfully via 6-digit OTP.", user_id=user_id)
             trigger_ai_event(user_id, build_password_changed_card())
 
@@ -1427,7 +1467,7 @@ def reset_password(token=""):
             logger.exception("Password reset failed for user_id=%s.", user_id)
             flash("We could not reset your password right now. Please try again.", "error")
 
-    return render_template("reset_password.html", token=token)
+    return render_template("reset_password.html", token=token, reset_email=session.get("reset_email", ""))
 
 
 # ==========================================

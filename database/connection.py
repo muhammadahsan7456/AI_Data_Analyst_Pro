@@ -400,6 +400,10 @@ def init_sqlite_db(conn):
             Role TEXT NOT NULL DEFAULT 'Analyst',
             FailedLoginAttempts INTEGER DEFAULT 0,
             LockoutUntil TEXT,
+            AdminOtpHash TEXT,
+            AdminOtpIssuedAt TEXT,
+            AdminOtpFailedAttempts INTEGER NOT NULL DEFAULT 0,
+            AdminOtpLockoutUntil TEXT,
             SubscriptionStatus TEXT DEFAULT 'free',
             SubscriptionEndDate TEXT,
             SuspendedAt TEXT,
@@ -659,9 +663,25 @@ def init_sqlite_db(conn):
         ("SubscriptionEndDate", "TEXT"),
         ("SuspendedAt", "TEXT"),
         ("SuspensionReason", "TEXT"),
+        # R-Phase 8: Super Admin email-OTP state kept server-side (attempt counter,
+        # 15-minute lockout, digest of the live code) so a replayed cookie can't reset it.
+        ("AdminOtpHash", "TEXT"),
+        ("AdminOtpIssuedAt", "TEXT"),
+        ("AdminOtpFailedAttempts", "INTEGER NOT NULL DEFAULT 0"),
+        ("AdminOtpLockoutUntil", "TEXT"),
     ):
         if column not in user_cols:
             cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {definition}")
+
+    # Older QA databases predate the reset-code attempt counter.
+    cursor.execute("PRAGMA table_info(PasswordResetTokens)")
+    reset_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("Attempts", "INTEGER NOT NULL DEFAULT 0"),
+        ("UsedAt", "TEXT"),
+    ):
+        if column not in reset_cols:
+            cursor.execute(f"ALTER TABLE PasswordResetTokens ADD COLUMN {column} {definition}")
 
     # Same columns SQL Server's init adds to Datasets; without them the scheduler's
     # proactive-insights scan failed every tick with "no such column: D.InsightsEnabled".
@@ -1108,6 +1128,27 @@ def init_db():
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'SuspensionReason')
     BEGIN
         ALTER TABLE Users ADD SuspensionReason NVARCHAR(500) NULL;
+    END;
+
+    -- R-Phase 8: Super Admin email-OTP state, server-side (see admin/routes.py).
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpHash')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpHash NVARCHAR(128) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpIssuedAt')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpIssuedAt DATETIME2 NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpFailedAttempts')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpFailedAttempts INT NOT NULL DEFAULT 0;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpLockoutUntil')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpLockoutUntil DATETIME2 NULL;
     END;
 
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PaymentType')

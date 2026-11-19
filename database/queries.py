@@ -219,25 +219,42 @@ def mark_email_token_used():
 
 
 def create_password_reset_token():
+    # Token holds a keyed HMAC digest of the 6-digit code (auth.security.otp_digest with
+    # purpose "password-reset" bound to the UserID), never the code itself.
     return """
-    INSERT INTO PasswordResetTokens (UserID, Token, ExpiresAt, IsUsed, CreatedAt)
-    VALUES (?, ?, DATEADD(MINUTE, 10, GETDATE()), 0, GETDATE())
+    INSERT INTO PasswordResetTokens (UserID, Token, ExpiresAt, IsUsed, Attempts, CreatedAt)
+    VALUES (?, ?, DATEADD(MINUTE, 10, GETDATE()), 0, 0, GETDATE())
     """
 
 
-def get_password_reset_token():
-    return """
-    SELECT TokenID, UserID, Token, ExpiresAt, IsUsed, ISNULL(Attempts, 0) AS Attempts
-    FROM PasswordResetTokens
-    WHERE Token = ? AND IsUsed = 0 AND ExpiresAt > GETDATE()
-    """
-
-
-def increment_reset_token_attempt():
+def invalidate_user_reset_tokens():
+    """A new reset request retires every older unused code for that user, so only one
+    code (with its own 5-attempt budget) is ever live per account."""
     return """
     UPDATE PasswordResetTokens
-    SET Attempts = ISNULL(Attempts, 0) + 1
-    WHERE Token = ?
+    SET IsUsed = 1, UsedAt = GETDATE()
+    WHERE UserID = ? AND IsUsed = 0
+    """
+
+
+def get_active_password_reset_token():
+    """Newest live reset code for one user (looked up by the account's email, never by
+    the code alone)."""
+    return """
+    SELECT TOP 1 TokenID, UserID, Token, ExpiresAt, IsUsed, ISNULL(Attempts, 0) AS Attempts
+    FROM PasswordResetTokens
+    WHERE UserID = ? AND IsUsed = 0 AND ExpiresAt > GETDATE()
+    ORDER BY TokenID DESC
+    """
+
+
+def record_failed_reset_attempt():
+    """Server-side wrong-code counter; the 5th wrong code invalidates the code."""
+    return """
+    UPDATE PasswordResetTokens
+    SET Attempts = ISNULL(Attempts, 0) + 1,
+        IsUsed = CASE WHEN ISNULL(Attempts, 0) + 1 >= 5 THEN 1 ELSE IsUsed END
+    WHERE TokenID = ?
     """
 
 
@@ -245,7 +262,62 @@ def mark_reset_token_used():
     return """
     UPDATE PasswordResetTokens
     SET IsUsed = 1, UsedAt = GETDATE()
-    WHERE Token = ?
+    WHERE TokenID = ?
+    """
+
+
+# ==========================================
+# SUPER ADMIN EMAIL-OTP STATE (server-side)
+# ==========================================
+# Stored on the admin's Users row so the wrong-code counter and the 15-minute lockout
+# cannot be reset by replaying an older session cookie.
+
+def get_admin_otp_state():
+    return """
+    SELECT AdminOtpHash, AdminOtpIssuedAt, ISNULL(AdminOtpFailedAttempts, 0), AdminOtpLockoutUntil
+    FROM Users
+    WHERE UserID = ?
+    """
+
+
+def set_admin_otp_challenge():
+    return """
+    UPDATE Users
+    SET AdminOtpHash = ?, AdminOtpIssuedAt = ?
+    WHERE UserID = ?
+    """
+
+
+def increment_admin_otp_failures():
+    return """
+    UPDATE Users
+    SET AdminOtpFailedAttempts = ISNULL(AdminOtpFailedAttempts, 0) + 1
+    WHERE UserID = ?
+    """
+
+
+def lock_admin_otp():
+    return """
+    UPDATE Users
+    SET AdminOtpLockoutUntil = ?, AdminOtpHash = NULL, AdminOtpIssuedAt = NULL
+    WHERE UserID = ?
+    """
+
+
+def clear_admin_otp_state():
+    return """
+    UPDATE Users
+    SET AdminOtpHash = NULL, AdminOtpIssuedAt = NULL,
+        AdminOtpFailedAttempts = 0, AdminOtpLockoutUntil = NULL
+    WHERE UserID = ?
+    """
+
+
+def clear_admin_otp_challenge():
+    return """
+    UPDATE Users
+    SET AdminOtpHash = NULL, AdminOtpIssuedAt = NULL
+    WHERE UserID = ?
     """
 
 

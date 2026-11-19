@@ -340,49 +340,7 @@ def test_forgot_password_keeps_anti_enumeration_response(monkeypatch):
     assert len(sent) == 1
 
 
-def test_admin_login_requires_and_accepts_email_otp(monkeypatch):
-    admin = (
-        99, "Root Admin", "bcrypt-hash", "SuperAdmin", True, 0, None,
-    )
-    app = Flask(__name__)
-    app.secret_key = "test-secret-key"
-    app.register_blueprint(admin_bp)
-    monkeypatch.setattr(admin_routes, "render_template", lambda *args, **kwargs: "admin page")
-    monkeypatch.setattr(admin_routes, "get_db_cursor", lambda commit=False: FakeCursor(admin))
-    monkeypatch.setattr(admin_routes, "verify_password", lambda password, password_hash: True)
-    monkeypatch.setattr(admin_routes, "log_login_attempt", lambda *args, **kwargs: None)
-    monkeypatch.setattr(admin_routes, "log_audit_event", lambda *args, **kwargs: None)
-    mailed = []
-    monkeypatch.setattr(
-        EmailService,
-        "send_admin_login_otp_email",
-        lambda self, *args, **kwargs: mailed.append(kwargs.get("otp_code") or args[2]) or True,
-    )
-    client = app.test_client()
-
-    response = client.post(
-        "/admin/login",
-        data={"email": "admin@example.com", "password": "valid-password"},
-    )
-
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/verify-otp")
-    otp_code = mailed[0]
-    assert len(otp_code) == 6 and otp_code.isdigit()
-    with client.session_transaction() as session:
-        # The emailed code must not be readable from the signed-but-unencrypted cookie.
-        assert "otp_code" not in session["pending_admin_otp"]
-        assert otp_code not in str(dict(session))
-        assert "admin_user_id" not in session
-
-    response = client.post("/admin/verify-otp", data={"otp_code": "000000" if otp_code != "000000" else "111111"})
-    with client.session_transaction() as session:
-        assert "admin_user_id" not in session
-
-    response = client.post("/admin/verify-otp", data={"otp_code": otp_code})
-
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        assert session["admin_user_id"] == 99
-        assert session["user_id"] == 99
-        assert "pending_admin_otp" not in session
+# The Super Admin email-OTP flow now keeps its code digest, counter and lockout in the
+# database, so it is tested against a real SQLite schema in
+# tests/test_reset_and_admin_otp_limits.py (cookie holds no code, wrong code refused,
+# correct code logs in, lockout, replay, expiry).

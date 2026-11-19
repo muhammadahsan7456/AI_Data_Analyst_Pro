@@ -10,6 +10,12 @@ from admin.decorators import admin_required
 from database.connection import get_db_cursor
 from utils.geoip import get_location_from_ip
 from database.queries import (
+    get_admin_otp_state,
+    set_admin_otp_challenge,
+    increment_admin_otp_failures,
+    lock_admin_otp,
+    clear_admin_otp_state,
+    clear_admin_otp_challenge,
     get_admin_kpis,
     get_all_users_admin,
     search_users_admin,
@@ -88,6 +94,73 @@ def get_user_initials(name_str, email_str):
 
 
 # ==========================================
+# SUPER ADMIN EMAIL-OTP: SERVER-SIDE STATE
+# ==========================================
+# The wrong-code counter, the 15-minute lockout and the digest of the live code all live
+# on the admin's Users row, so a replayed (older) session cookie cannot reset them; the
+# cookie only says which admin is mid-login.
+ADMIN_OTP_PURPOSE = "admin-otp"
+ADMIN_OTP_MAX_ATTEMPTS = 5
+ADMIN_OTP_LOCKOUT = timedelta(minutes=15)
+ADMIN_OTP_TTL = timedelta(minutes=10)
+
+
+def _now():
+    """Single clock for the admin OTP flow (tests patch this to move time)."""
+    return datetime.now()
+
+
+def _db_ts(dt):
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _parse_ts(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        return datetime.fromisoformat(str(value).strip())
+    except ValueError:
+        return None
+
+
+def _load_admin_otp_state(user_id):
+    with get_db_cursor() as cursor:
+        cursor.execute(get_admin_otp_state(), (user_id,))
+        row = cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "hash": row[0],
+        "issued_at": _parse_ts(row[1]),
+        "failed": int(row[2] or 0),
+        "locked_until": _parse_ts(row[3]),
+    }
+
+
+def _admin_otp_lock_message(locked_until):
+    minutes = max(1, math.ceil((locked_until - _now()).total_seconds() / 60))
+    return (
+        "For your security, verification is paused after 5 incorrect codes. "
+        f"Please wait about {minutes} minute{'s' if minutes != 1 else ''} and sign in again."
+    )
+
+
+def _admin_otp_active_lock(user_id, state):
+    """Returns the lockout end if the lock is still running. An expired lock is cleared
+    (counter back to 0) so the admin starts fresh with a new sign-in."""
+    if not state or not state["locked_until"]:
+        return None
+    if state["locked_until"] > _now():
+        return state["locked_until"]
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(clear_admin_otp_state(), (user_id,))
+    state.update({"hash": None, "issued_at": None, "failed": 0, "locked_until": None})
+    return None
+
+
+# ==========================================
 # DEDICATED SUPER ADMIN LOGIN GATEWAY
 # ==========================================
 @admin_bp.route("/login", methods=["GET", "POST"])
@@ -150,6 +223,15 @@ def admin_login():
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(reset_failed_login(), (user_id,))
 
+        # A running OTP lockout blocks issuing a new code too - otherwise knowing the
+        # password would buy a fresh set of 5 guesses per sign-in.
+        otp_state = _load_admin_otp_state(user_id)
+        locked_until = _admin_otp_active_lock(user_id, otp_state)
+        if locked_until:
+            log_audit_event("ADMIN_OTP_LOCKED", f"Sign-in blocked during OTP lockout for {email}", user_id=user_id)
+            flash(_admin_otp_lock_message(locked_until), "error")
+            return render_template("admin/login.html")
+
         # Password correct - now require a 6-digit email OTP (second factor) before
         # establishing the actual admin session, so a leaked/guessed password alone
         # can no longer grant Super Admin access.
@@ -161,6 +243,16 @@ def admin_login():
         # network issue) must stop the login attempt here with a clear error, not silently
         # redirect the admin to a code-entry page that will wait forever for a code that
         # was never actually delivered.
+        # Stored before the email goes out, so a delivered code is always checkable.
+        # The code's digest and issue time are stored server-side; the cookie holds no
+        # code, digest or attempt count. Issuing a new code does NOT reset the failure
+        # counter - only a successful verification or an expired lockout does.
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                set_admin_otp_challenge(),
+                (otp_digest(ADMIN_OTP_PURPOSE, user_id, otp_code), _db_ts(_now()), user_id),
+            )
+
         from auth.email_service import EmailService
         email_sent = EmailService().send_admin_login_otp_email(
             to_email=email,
@@ -179,9 +271,6 @@ def admin_login():
             "full_name": full_name or "Super Admin",
             "email": email,
             "role": role,
-            "otp_hash": otp_digest("admin-otp", user_id, otp_code),
-            "issued_at": datetime.now().isoformat(),
-            "attempts": 0,
             "next": request.args.get("next") or request.form.get("next")
         }
 
@@ -195,8 +284,8 @@ def admin_login():
 def admin_verify_otp():
     """
     Second-factor step of Super Admin login: verifies the 6-digit email code issued by
-    admin_login() before the actual admin session is established. Mirrors the same
-    expiry/attempt-limit pattern used for the regular signup OTP flow (auth/routes.py).
+    admin_login() before the actual admin session is established. Code digest, 10-minute
+    expiry, 5-wrong-codes counter and 15-minute lockout are all read from the database.
     """
     pending = session.get("pending_admin_otp")
     if not pending:
@@ -206,27 +295,27 @@ def admin_verify_otp():
     if request.method == "POST":
         input_code = request.form.get("otp_code", "").strip()
         user_id = pending.get("user_id")
-        expected_hash = pending.get("otp_hash")
 
-        try:
-            issued_at = datetime.fromisoformat(pending.get("issued_at"))
-            expired = (datetime.now() - issued_at).total_seconds() > 600
-        except Exception:
-            expired = True
-
-        if expired:
+        state = _load_admin_otp_state(user_id)
+        locked_until = _admin_otp_active_lock(user_id, state)
+        if locked_until:
             session.pop("pending_admin_otp", None)
+            log_audit_event("ADMIN_OTP_LOCKED", f"OTP entry refused during lockout for {pending.get('email')}", user_id=user_id)
+            flash(_admin_otp_lock_message(locked_until), "error")
+            return redirect(url_for("admin.admin_login"))
+
+        if not state or not state["hash"] or not state["issued_at"] or (_now() - state["issued_at"]) > ADMIN_OTP_TTL:
+            session.pop("pending_admin_otp", None)
+            if state and state["hash"]:
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(clear_admin_otp_challenge(), (user_id,))
             flash("Verification code expired. Please log in again to receive a new code.", "error")
             return redirect(url_for("admin.admin_login"))
 
-        attempts = pending.get("attempts", 0)
-        if attempts >= 5:
-            session.pop("pending_admin_otp", None)
-            log_audit_event("ADMIN_OTP_MAX_ATTEMPTS", f"Max OTP attempts exceeded for {pending.get('email')}")
-            flash("Maximum verification attempts exceeded. Please log in again to receive a new code.", "error")
-            return redirect(url_for("admin.admin_login"))
-
-        if otp_matches(expected_hash, "admin-otp", user_id, input_code):
+        if otp_matches(state["hash"], ADMIN_OTP_PURPOSE, user_id, input_code):
+            # Success: the code is single-use and the counter/lockout start over.
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(clear_admin_otp_state(), (user_id,))
             session.pop("pending_admin_otp", None)
             session.permanent = True
             session["admin_user_id"] = user_id
@@ -270,18 +359,21 @@ def admin_verify_otp():
             flash(f"Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
             return redirect(pending.get("next") or url_for("admin.dashboard"))
         else:
-            attempts += 1
-            remaining = 5 - attempts
-            log_audit_event("ADMIN_OTP_FAILED", f"Invalid OTP attempt for {pending.get('email')} ({remaining} remaining)")
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(increment_admin_otp_failures(), (user_id,))
+            failed = (_load_admin_otp_state(user_id) or {}).get("failed", state["failed"] + 1)
+            remaining = ADMIN_OTP_MAX_ATTEMPTS - failed
+            log_audit_event("ADMIN_OTP_FAILED", f"Invalid OTP attempt for {pending.get('email')} ({max(remaining, 0)} remaining)", user_id=user_id)
 
             if remaining <= 0:
+                locked_until = _now() + ADMIN_OTP_LOCKOUT
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(lock_admin_otp(), (_db_ts(locked_until), user_id))
                 session.pop("pending_admin_otp", None)
-                log_audit_event("ADMIN_OTP_MAX_ATTEMPTS", f"Max OTP attempts exceeded for {pending.get('email')}")
-                flash("Maximum verification attempts exceeded. Please log in again to receive a new code.", "error")
+                log_audit_event("ADMIN_OTP_MAX_ATTEMPTS", f"5 wrong OTP codes for {pending.get('email')}; locked for 15 minutes", user_id=user_id)
+                flash(_admin_otp_lock_message(locked_until), "error")
                 return redirect(url_for("admin.admin_login"))
 
-            pending["attempts"] = attempts
-            session["pending_admin_otp"] = pending
             flash(f"Invalid verification code. {remaining} attempt(s) remaining.", "error")
 
     return render_template("admin/verify_otp.html", email=pending.get("email"))
