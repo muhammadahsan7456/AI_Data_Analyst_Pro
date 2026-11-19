@@ -31,7 +31,9 @@ from auth.security import (
     log_audit_event,
     is_lockout_active,
     parse_user_agent,
-    get_client_ip
+    get_client_ip,
+    otp_digest,
+    otp_matches,
 )
 from auth.decorators import login_required, admin_required, manager_required
 
@@ -431,7 +433,7 @@ def signup():
             otp_code = f"{secrets.randbelow(900000) + 100000}"
 
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_email_verification_token(), (new_user_id, otp_code))
+                cursor.execute(create_email_verification_token(), (new_user_id, otp_digest("email-otp", new_user_id, otp_code)))
 
             # Sent synchronously so we get the REAL delivery result before putting the user
             # on a "enter your 6-digit code" screen - previously this fired on a background
@@ -450,7 +452,7 @@ def signup():
             # Store pending OTP & user details in session
             session["pending_otp"] = {
                 "user_id": new_user_id,
-                "otp_code": otp_code,
+                "otp_hash": otp_digest("email-otp", new_user_id, otp_code),
                 "email": email,
                 "phone": phone or "",
                 "first_name": first_name,
@@ -511,9 +513,15 @@ def verify_otp():
             digits = [request.form.get(f"digit{i}", "").strip() for i in range(1, 7)]
             input_code = "".join(digits)
 
-        expected_code = str(pending.get("otp_code", "")).strip()
         user_id = pending.get("user_id")
         full_name = pending.get("full_name", "User")
+        # Only a keyed digest of the code is kept (session and DB); see otp_digest().
+        expected_code = pending.get("otp_hash")
+        if not expected_code:
+            # A pending session from before this change (plain code in the cookie).
+            session.pop("pending_otp", None)
+            flash("Your verification session has expired. Please sign in again to receive a new code.", "warning")
+            return redirect(url_for("auth.login"))
 
         # Check DB attempts and expiration
         db_token = None
@@ -532,7 +540,7 @@ def verify_otp():
             flash("Maximum verification attempts exceeded (5 failed attempts). Verification code invalidated. Please request a new code.", "error")
             return redirect(url_for("auth.login"))
 
-        if input_code == expected_code:
+        if otp_matches(expected_code, "email-otp", user_id, input_code):
             try:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(verify_user_email(), (user_id,))
@@ -604,19 +612,20 @@ def resend_otp():
         return redirect(url_for("auth.verify_otp"))
 
     # Persist the new token and invalidate the old one atomically before sending it.
-    old_code = pending.get("otp_code")
+    old_code = pending.get("otp_hash")
     new_otp = f"{secrets.randbelow(900000) + 100000}"
     try:
         with get_db_cursor(commit=True) as cursor:
             if old_code:
                 cursor.execute(mark_email_token_used(), (old_code,))
-            cursor.execute(create_email_verification_token(), (user_id, new_otp))
+            cursor.execute(create_email_verification_token(), (user_id, otp_digest("email-otp", user_id, new_otp)))
     except Exception:
         logger.exception("Could not persist resent email OTP for user_id=%s.", user_id)
         flash("We could not prepare a new verification code right now. Please try again.", "error")
         return redirect(url_for("auth.verify_otp"))
 
-    pending["otp_code"] = new_otp
+    pending.pop("otp_code", None)
+    pending["otp_hash"] = otp_digest("email-otp", user_id, new_otp)
     pending["attempts"] = 0
     session["pending_otp"] = pending
 
@@ -717,7 +726,7 @@ def resend_verification():
 
         otp_code = f"{secrets.randbelow(900000) + 100000}"
         with get_db_cursor(commit=True) as cursor:
-            cursor.execute(create_email_verification_token(), (user_id, otp_code))
+            cursor.execute(create_email_verification_token(), (user_id, otp_digest("email-otp", user_id, otp_code)))
 
         email_sent = email_service.send_verification_email(email, full_name, otp_code)
         if not email_sent:
@@ -727,7 +736,7 @@ def resend_verification():
 
         session["pending_otp"] = {
             "user_id": user_id,
-            "otp_code": otp_code,
+            "otp_hash": otp_digest("email-otp", user_id, otp_code),
             "email": email,
             "full_name": full_name,
             "created_at": datetime.now().isoformat(),
@@ -1134,7 +1143,7 @@ def login():
         if not is_verified:
             otp_code = f"{secrets.randbelow(900000) + 100000}"
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_email_verification_token(), (user_id, otp_code))
+                cursor.execute(create_email_verification_token(), (user_id, otp_digest("email-otp", user_id, otp_code)))
 
             # This page doesn't claim the email was sent (it shows a "Resend Verification
             # Code" button, which goes through the checked/synchronous resend_otp route
@@ -1151,7 +1160,7 @@ def login():
 
             session["pending_otp"] = {
                 "user_id": user_id,
-                "otp_code": otp_code,
+                "otp_hash": otp_digest("email-otp", user_id, otp_code),
                 "email": em,
                 "full_name": fnm or un,
                 "created_at": datetime.now().isoformat(),

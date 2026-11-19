@@ -53,7 +53,7 @@ from database.queries import (
     get_user_by_id,
     update_user_password
 )
-from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength, is_lockout_active
+from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength, is_lockout_active, otp_digest, otp_matches
 from utils.helpers import format_12hr_datetime
 
 logger = logging.getLogger(__name__)
@@ -179,7 +179,7 @@ def admin_login():
             "full_name": full_name or "Super Admin",
             "email": email,
             "role": role,
-            "otp_code": otp_code,
+            "otp_hash": otp_digest("admin-otp", user_id, otp_code),
             "issued_at": datetime.now().isoformat(),
             "attempts": 0,
             "next": request.args.get("next") or request.form.get("next")
@@ -205,8 +205,8 @@ def admin_verify_otp():
 
     if request.method == "POST":
         input_code = request.form.get("otp_code", "").strip()
-        expected_code = str(pending.get("otp_code", "")).strip()
         user_id = pending.get("user_id")
+        expected_hash = pending.get("otp_hash")
 
         try:
             issued_at = datetime.fromisoformat(pending.get("issued_at"))
@@ -226,7 +226,7 @@ def admin_verify_otp():
             flash("Maximum verification attempts exceeded. Please log in again to receive a new code.", "error")
             return redirect(url_for("admin.admin_login"))
 
-        if input_code == expected_code:
+        if otp_matches(expected_hash, "admin-otp", user_id, input_code):
             session.pop("pending_admin_otp", None)
             session.permanent = True
             session["admin_user_id"] = user_id

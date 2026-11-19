@@ -68,6 +68,12 @@ def _client(monkeypatch, user):
     return app.test_client()
 
 
+def _digest(client, purpose, user_id, code):
+    from auth.security import otp_digest
+    with client.application.app_context():
+        return otp_digest(purpose, user_id, code)
+
+
 def _unverified_user():
     return (
         71, "Old", "Account", "oldaccount", "Old Account", "old@example.com",
@@ -92,7 +98,8 @@ def test_unverified_login_does_not_create_pending_session_when_email_fails(monke
 
 def test_unverified_login_redirects_to_code_entry_when_email_succeeds(monkeypatch):
     client = _client(monkeypatch, _unverified_user())
-    monkeypatch.setattr(auth_routes.email_service, "send_verification_email", lambda *args: True)
+    sent = []
+    monkeypatch.setattr(auth_routes.email_service, "send_verification_email", lambda *args: sent.append(args) or True)
 
     response = client.post(
         "/auth/login",
@@ -101,8 +108,11 @@ def test_unverified_login_redirects_to_code_entry_when_email_succeeds(monkeypatc
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/auth/verify-otp")
+    assert len(sent[0][2]) == 6
     with client.session_transaction() as session:
-        assert len(session["pending_otp"]["otp_code"]) == 6
+        # Only a keyed digest is in the (readable) session cookie, never the code.
+        assert "otp_code" not in session["pending_otp"]
+        assert session["pending_otp"]["otp_hash"] == _digest(client, "email-otp", 71, sent[0][2])
 
 
 def test_login_rejects_malformed_lockout_timestamp(monkeypatch):
@@ -166,7 +176,8 @@ def test_resend_verification_sends_six_digit_code_and_starts_otp_session(monkeyp
     assert len(sent) == 1
     assert len(sent[0][2]) == 6 and sent[0][2].isdigit()
     with client.session_transaction() as session:
-        assert session["pending_otp"]["otp_code"] == sent[0][2]
+        assert "otp_code" not in session["pending_otp"]
+        assert session["pending_otp"]["otp_hash"] == _digest(client, "email-otp", 71, sent[0][2])
     assert all(sent[0][2] not in message for message in audit_messages)
 
 
@@ -188,7 +199,7 @@ def test_otp_resend_fails_closed_when_rate_limit_check_fails(monkeypatch, caplog
             "user_id": 71,
             "email": "old@example.com",
             "full_name": "Old Account",
-            "otp_code": "123456",
+            "otp_hash": "previous-digest",
             "attempts": 0,
         }
 
@@ -213,7 +224,7 @@ def test_otp_resend_persists_new_code_before_sending(monkeypatch):
             "user_id": 71,
             "email": "old@example.com",
             "full_name": "Old Account",
-            "otp_code": "123456",
+            "otp_hash": "previous-digest",
             "attempts": 2,
         }
 
@@ -224,7 +235,8 @@ def test_otp_resend_persists_new_code_before_sending(monkeypatch):
     assert len(sent) == 1
     assert len(sent[0][2]) == 6 and sent[0][2].isdigit()
     with client.session_transaction() as session:
-        assert session["pending_otp"]["otp_code"] == sent[0][2]
+        assert "otp_code" not in session["pending_otp"]
+        assert session["pending_otp"]["otp_hash"] == _digest(client, "email-otp", 71, sent[0][2])
         assert session["pending_otp"]["attempts"] == 0
 
 
@@ -249,7 +261,7 @@ def test_otp_resend_does_not_send_when_token_persistence_fails(monkeypatch, capl
             "user_id": 71,
             "email": "old@example.com",
             "full_name": "Old Account",
-            "otp_code": "123456",
+            "otp_hash": "previous-digest",
             "attempts": 0,
         }
 
@@ -258,7 +270,7 @@ def test_otp_resend_does_not_send_when_token_persistence_fails(monkeypatch, capl
     assert response.status_code == 302
     assert sent == []
     with client.session_transaction() as session:
-        assert session["pending_otp"]["otp_code"] == "123456"
+        assert session["pending_otp"]["otp_hash"] == "previous-digest"
     assert "Could not persist resent email OTP" in caplog.text
 
 
@@ -340,10 +352,11 @@ def test_admin_login_requires_and_accepts_email_otp(monkeypatch):
     monkeypatch.setattr(admin_routes, "verify_password", lambda password, password_hash: True)
     monkeypatch.setattr(admin_routes, "log_login_attempt", lambda *args, **kwargs: None)
     monkeypatch.setattr(admin_routes, "log_audit_event", lambda *args, **kwargs: None)
+    mailed = []
     monkeypatch.setattr(
         EmailService,
         "send_admin_login_otp_email",
-        lambda *args, **kwargs: True,
+        lambda self, *args, **kwargs: mailed.append(kwargs.get("otp_code") or args[2]) or True,
     )
     client = app.test_client()
 
@@ -354,8 +367,16 @@ def test_admin_login_requires_and_accepts_email_otp(monkeypatch):
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/admin/verify-otp")
+    otp_code = mailed[0]
+    assert len(otp_code) == 6 and otp_code.isdigit()
     with client.session_transaction() as session:
-        otp_code = session["pending_admin_otp"]["otp_code"]
+        # The emailed code must not be readable from the signed-but-unencrypted cookie.
+        assert "otp_code" not in session["pending_admin_otp"]
+        assert otp_code not in str(dict(session))
+        assert "admin_user_id" not in session
+
+    response = client.post("/admin/verify-otp", data={"otp_code": "000000" if otp_code != "000000" else "111111"})
+    with client.session_transaction() as session:
         assert "admin_user_id" not in session
 
     response = client.post("/admin/verify-otp", data={"otp_code": otp_code})
