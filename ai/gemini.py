@@ -430,6 +430,9 @@ def is_out_of_domain_question(question: str, columns_list: list, table_name_hint
         r"\bnews\b", r"\brecipe\b", r"\btranslate\b", r"\brecommend (?:a|me|some)\b", r"\bsuggest (?:a|me) (?:movie|book|song|place)\b",
         r"\bexplain (?:quantum|physics|chemistry|biology|relativity|history|philosophy)\b", r"\bquantum\b",
         r"\bwho invented\b", r"\bwhen did\b.*\b(?:war|independence|die|born)\b", r"\bhow (?:do|can) i (?:cook|lose weight|learn)\b",
+        r"\bjavascript\b", r"\bpython\b", r"\bhtml\b", r"\bcss\b", r"\bjava\b", r"\bc\+\+", r"\bprogramming\b",
+        r"\bsyntax error\b", r"\bstack ?overflow\b", r"\bundefined (?:error|variable|is not)\b", r"\bcompil(?:e|er|ing)\b",
+        r"\bhow (?:do|can) i fix\b.*\b(?:error|bug|code|exception|crash)\b", r"\bfix (?:my|the|this|a|an) (?:code|bug|script|program)\b",
         r"\bdebug\b", r"\bsql injection\b", r"\bchatgpt\b", r"\bopenai\b", r"\bjoke\b", r"\bpoem\b", r"\bstory\b",
     ]
     col_words = set()
@@ -440,9 +443,27 @@ def is_out_of_domain_question(question: str, columns_list: list, table_name_hint
     words = set(re.findall(r"\b[a-z0-9_-]+\b", q_lower))
     names_a_column = bool(words & col_words) or any(str(c).lower() in q_lower for c in columns_list if len(str(c)) >= 3)
     names_full_column = any(re.search(r"\b" + re.escape(str(c).lower()) + r"\b", q_lower) for c in columns_list if len(str(c)) >= 3)
+    def _dataset_values():
+        try:
+            from ai.value_matcher import get_column_vocabulary
+            vocab = get_column_vocabulary(table_name_hint) if table_name_hint else {}
+            return [str(v).lower() for vals in (vocab or {}).values() for v in vals]
+        except Exception:
+            return []
+
+    def _names_dataset_value():
+        # A proper noun that is actually a value in this dataset (a city, a product).
+        return any(len(v) >= 3 and re.search(r"\b" + re.escape(v) + r"\b", q_lower) for v in _dataset_values())
+
     if not names_full_column:
         for pattern in off_topic_patterns:
-            if re.search(pattern, q_lower):
+            hit = re.search(pattern, q_lower)
+            if hit:
+                # The off-topic word is itself part of a value in this data (a product
+                # called "Python Course", a "Rainy weather" category): a data question.
+                word = hit.group(0).strip()
+                if word and any(re.search(r"\b" + re.escape(word) + r"\b", v) for v in _dataset_values()):
+                    break
                 return True
 
     # 4. Dataset relevance: the question must reference this dataset (a column, a value
@@ -466,16 +487,8 @@ def is_out_of_domain_question(question: str, columns_list: list, table_name_hint
         return False
 
     # A proper noun that is actually a value in this dataset (e.g. a city or product name).
-    try:
-        from ai.value_matcher import get_column_vocabulary
-        vocab = get_column_vocabulary(table_name_hint) if table_name_hint else {}
-        for vals in (vocab or {}).values():
-            for v in vals:
-                v_l = str(v).lower()
-                if len(v_l) >= 3 and re.search(r"\b" + re.escape(v_l) + r"\b", q_lower):
-                    return False
-    except Exception:
-        pass
+    if _names_dataset_value():
+        return False
 
     return True
 
@@ -573,6 +586,22 @@ def _early_patterns(q_lower: str, table_name: str, safe_tbl: str, columns_list: 
     """Deterministic answers for shapes the plan engine mishandled (see docs/PROGRESS.md)."""
     if any(re.match(p, q_lower) for p in _PURE_COUNT_PATTERNS):
         return f"SELECT COUNT(*) AS [Total_Records] FROM {safe_tbl};", ()
+
+    # "number of unique products", "how many distinct cities": a distinct count of one
+    # column. The plan engine answered these with a per-value COUNT(*) breakdown.
+    m = (re.search(r"\b(?:number of|count of|how many|total)\s+(?:unique|distinct|different)\s+([a-z][a-z0-9_ ]*)", q_lower)
+         or re.search(r"\b(?:unique|distinct)\s+([a-z][a-z0-9_ ]*?)\s+count\b", q_lower))
+    if m:
+        words = m.group(1).split()
+        for n in range(min(3, len(words)), 0, -1):
+            cand = "".join(words[:n])
+            stems = {cand, cand[:-1] if cand.endswith("s") else cand, cand[:-2] if cand.endswith("es") else cand,
+                     cand[:-3] + "y" if cand.endswith("ies") else cand}
+            for col in columns_list:
+                if re.sub(r"[^a-z0-9]", "", str(col).lower()) in stems:
+                    safe_col = sanitize_identifier(col)
+                    return (f"SELECT COUNT(DISTINCT {safe_col}) AS [Unique_{col}] FROM {safe_tbl} "
+                            f"WHERE {safe_col} IS NOT NULL;"), ()
 
     col_text = " ".join(re.sub(r"([a-z])([A-Z])", r"\1 \2", str(c)).replace("_", " ").lower() for c in columns_list)
     # "shipping cost", "delivery fee": a specific measure that no column carries. Answering

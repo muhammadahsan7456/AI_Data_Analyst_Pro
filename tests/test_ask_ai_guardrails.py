@@ -89,3 +89,54 @@ def test_llm_unrelated_verdict_is_a_refusal(monkeypatch):
     monkeypatch.setattr(gemini, "extract_sample_data_text", lambda t: "")
     sql, params, fast, model = gemini.generate_sql("show sales for zone alpha", "t", COLS)
     assert sql == gemini.UNRELATED_MESSAGE
+
+
+# R-Phase 8 additions -------------------------------------------------------------------
+
+@pytest.mark.parametrize("q", [
+    "what is the total profit",
+    "Can you tell me the average sales?",
+    "show me number of orders by status",
+    "which product sold the most quantity",
+    "give me sales by city please",
+    "what's the minimum profit",
+    "Karachi ki total sales kitni hai",
+    "number of unique products",
+    "how many distinct cities are there",
+])
+def test_more_data_questions_are_not_refused(q):
+    assert gemini.is_out_of_domain_question(q, COLS) is False
+
+
+@pytest.mark.parametrize("q", [
+    "how do I fix a javascript undefined error",
+    "write me a SQL tutorial for beginners",
+    "who won the cricket world cup",
+    "what will the weather be tomorrow in Karachi",
+    "aaj ki news kya hai",
+    "translate hello to french",
+    "who are you and who made you",
+    "what is my horoscope today",
+])
+def test_more_off_topic_questions_are_refused(q):
+    assert gemini.is_out_of_domain_question(q, COLS) is True
+
+
+def test_off_topic_word_that_is_a_dataset_value_is_allowed(monkeypatch):
+    import ai.value_matcher as vm
+    monkeypatch.setattr(vm, "get_column_vocabulary", lambda t: {"Product": ["Python Course", "Excel Course"]})
+    assert gemini.is_out_of_domain_question("how many python course orders", ["Item", "Qty"], "t") is False
+    # A city value in the data does not make a weather question a data question.
+    monkeypatch.setattr(vm, "get_column_vocabulary", lambda t: {"City": ["Karachi", "Lahore"]})
+    assert gemini.is_out_of_domain_question("what will the weather be tomorrow in Karachi", ["Item", "Qty"], "t") is True
+
+
+def test_unique_count_is_count_distinct():
+    sql, params = gemini._early_patterns("number of unique products", "t", "[t]", COLS)
+    assert sql.startswith("SELECT COUNT(DISTINCT [Product])") and params == ()
+    sql, _ = gemini._early_patterns("how many distinct cities are there", "t", "[t]", COLS)
+    assert "COUNT(DISTINCT [City])" in sql
+
+
+def test_refusal_message_wording():
+    assert gemini.UNRELATED_MESSAGE.startswith("I'm designed to analyze your uploaded dataset only.")
