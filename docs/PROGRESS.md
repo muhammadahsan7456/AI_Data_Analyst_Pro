@@ -259,3 +259,63 @@ Copy: unverified "10M+ rows/records" claims replaced with "up to 500 MB"; encryp
 - `/dataset/delete/<id>` deleted on a plain GET, so a link on another site could delete a dataset (SameSite=Lax still sends cookies on top-level GET). Now: POST with CSRF token deletes; GET only redirects to the dashboard with a message. Route name/URL unchanged. Verified: GET → not deleted; POST without token → not deleted; POST with token → dataset, table, ciphertext and key removed.
 - Vault cleanup on delete used a second connection while the delete transaction held locks; ciphertext was left behind on SQLite. Fixed: user delete removes it after commit; admin user-delete removes it inside the same transaction.
 - Production must set `FORCE_SECURE_COOKIES=true` (Secure cookie + HSTS header are already wired to it).
+
+## R-Phase 8 — Deploy readiness and auth hardening
+
+### Configuration
+- `PUBLIC_BASE_URL` helper (`utils/public_url.py`): emailed links, Google redirect URI and canonical/og:url tags are built from this one setting instead of the request host.
+- `SUPPORT_EMAIL`: one setting for every support address on the site; default `muhammadashan7456@gmail.com` (`site_config.py`).
+- `UPLOAD_ASYNC_THRESHOLD_MB`: default 50 (`uploads/upload_jobs.py`). QA: 487 KB file uploaded synchronously; 66.6 MB / 800k rows ran as a background job in about 5 s, and totals matched the source.
+- `DEPLOY_UPDATE.md` rewritten for the Oracle Cloud VM (Nginx, systemd, SQL Server); old cloud-host wording removed.
+- `.env.example` lists every variable the code reads.
+- SQLite QA schema: `Datasets.InsightsEnabled` / `LastInsightScanAt` added, so the insights scan no longer fails each tick.
+
+### Security
+- One-time codes out of the session cookie (5db4a1e): pending sign-in sessions and `EmailVerificationTokens` hold an HMAC-SHA256 digest keyed with `SECRET_KEY` and bound to purpose + user; constant-time compare.
+- **Password reset codes (new):**
+  - Checked against the account's email + code, never by code alone. The page asks for the email, prefilled after "Forgot password".
+  - Stored as a keyed digest (`password-reset` purpose), with a constant-time compare.
+  - Every wrong code adds 1 to `PasswordResetTokens.Attempts` in the database (SQL Server migration already existed; SQLite migration added). The 5th wrong code invalidates the code (`IsUsed = 1`).
+  - A new request retires older live codes. The reset link no longer carries the code.
+  - One generic error for unknown email, wrong code, and invalidated code.
+- **Super Admin email OTP (new):**
+  - The code digest, issue time, wrong-code counter and lockout live on the admin's `Users` row (`AdminOtpHash`, `AdminOtpIssuedAt`, `AdminOtpFailedAttempts`, `AdminOtpLockoutUntil`; SQL Server `ALTER` migrations in `init_db` + SQLite schema/migration). The cookie now holds no code, digest or counter.
+  - After 5 wrong codes, the account is locked for 15 minutes. The lock blocks code entry and stops a new code from being sent, even with the correct password.
+  - Replaying an older cookie does not reset the count, and a new code does not reset it either.
+  - A successful login or an expired lock clears the counter. The code is single-use and expires after 10 minutes.
+  - Message: "For your security, verification is paused after 5 incorrect codes. Please wait about N minutes and sign in again."
+- Tests: `tests/test_reset_and_admin_otp_limits.py` covers both fixes with 13 tests on a real temporary SQLite schema and a mocked clock. The old cookie-based admin OTP test in `test_auth_email_flows.py` was replaced by these tests.
+- Live QA (local server, SQLite, SMTP sink), password reset:
+  - Stored token is a 64-char digest.
+  - Right code with another account's email or an unknown email: refused.
+  - 5 wrong codes: DB `Attempts=5, IsUsed=1`, and the correct code is then refused.
+  - All failure messages are identical.
+  - A fresh code resets the password (302 to login); reusing that code is refused.
+- Live QA, Super Admin OTP:
+  - The cookie holds only user_id/name/email/role/next.
+  - 5th wrong code locks the account (DB `AdminOtpFailedAttempts=5`, lockout set, code cleared).
+  - The earlier cookie with the correct code: refused, and the dashboard redirects.
+  - Correct password during the lock: no code sent.
+  - After the lock time passed (simulated by editing the DB timestamp, not a real 15-minute wait), a new sign-in worked. The counter returned to 0 on success.
+
+### Ask AI guardrails
+27/27 in-scope questions correct, 20/20 off-topic questions refused, 2/2 missing columns flagged. Coding/how-to-fix questions are refused, and distinct counts are answered.
+
+### Google sign-in
+13 tests in `tests/test_google_oauth.py`.
+- Google Cloud Console redirect URI: `https://aidataanalystpro.co.uk/auth/google/callback`
+- JavaScript origin: `https://aidataanalystpro.co.uk`
+- Env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PUBLIC_BASE_URL`
+
+### Final checks (this sandbox)
+- `pytest` (excluding Selenium files `test_auth.py`, `test_demo_sandbox.py`, `test_public_pages.py`): 125 passed, 0 failed.
+- `python -m compileall -q .` (venv excluded): exit 0.
+- `node --check` on all 6 `static/**/*.js`: 0 failures.
+
+### NOT verified
+- Real Google sign-in end to end with a real Google account in the new flow.
+- Real SQL Server (the new `ALTER TABLE` migrations ran only as code review; QA ran on SQLite).
+- Real email delivery (QA used a local SMTP sink).
+- Live domain `aidataanalystpro.co.uk` with this branch deployed.
+- Theme/mobile screenshot matrix for R-Phase 8 changes (Playwright system libraries missing in this sandbox).
+- Scheduler log line `Auto-suspend error: near ".": syntax error` on SQLite: seen again in the QA server log, not investigated.
