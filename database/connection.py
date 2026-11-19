@@ -289,10 +289,10 @@ def get_connection_string():
     password = os.getenv("DB_PASSWORD", "")
 
     # ODBC Driver 18 defaults to Encrypt=yes with strict certificate validation (Driver 17
-    # defaulted to no encryption, so this is new behavior on upgrade). Managed SQL Server
-    # hosts like RDS don't present a certificate that validates against the system trust
-    # store, so without this the driver refuses the connection outright - confirmed live
-    # when deploying against RDS: every connection attempt failed until this was added.
+    # defaulted to no encryption, so this is new behavior on upgrade). A SQL Server with a
+    # self-signed certificate (the default for SQL Server on Linux on the same VM) does not
+    # validate against the system trust store, so without this the driver refuses the
+    # connection outright - every connection attempt failed until this was added.
     # The connection itself is still encrypted in transit; this only skips chain validation.
     if user and password:
         return (
@@ -495,7 +495,9 @@ def init_sqlite_db(conn):
             IsFavorite INTEGER DEFAULT 0,
             Tags TEXT,
             LastOpenedAt TEXT,
-            UploadDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            UploadDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            InsightsEnabled INTEGER NOT NULL DEFAULT 1,
+            LastInsightScanAt TEXT
         )''',
         '''CREATE TABLE IF NOT EXISTS QueryLogs (
             QueryID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -660,6 +662,17 @@ def init_sqlite_db(conn):
     ):
         if column not in user_cols:
             cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {definition}")
+
+    # Same columns SQL Server's init adds to Datasets; without them the scheduler's
+    # proactive-insights scan failed every tick with "no such column: D.InsightsEnabled".
+    cursor.execute("PRAGMA table_info(Datasets)")
+    dataset_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("InsightsEnabled", "INTEGER NOT NULL DEFAULT 1"),
+        ("LastInsightScanAt", "TEXT"),
+    ):
+        if column not in dataset_cols:
+            cursor.execute(f"ALTER TABLE Datasets ADD COLUMN {column} {definition}")
 
     cursor.execute("PRAGMA table_info(Payments)")
     payment_cols = {row[1] for row in cursor.fetchall()}
