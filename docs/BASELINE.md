@@ -2,7 +2,7 @@
 
 Date: 2026-10-16
 Branch: `fix/consistency-and-safety-update` (created from `main` @ `807cbf5`)
-Database: the real deployed RDS database (local `.env` and the production server's
+Database: the production SQL Server database of that time (local `.env` and the production server's
 `.env` point at the same instance — there is no separate staging DB for this project).
 
 ## 1. Existing automated test suite
@@ -50,7 +50,7 @@ QueryLogs:  1029
   the next check. This is a recurring, already-known characteristic of this project, not
   specific to this task.
 - This project currently has **no dedicated staging database** - the local dev environment's
-  `.env` and the production server's `.env` both connect to the same RDS instance. All test
+  `.env` and the production server's `.env` both connect to the same SQL Server instance. All test
   accounts used for verification are therefore created directly against real production data
   and must be deleted afterward every time (the established pattern used throughout this
   project's prior QA work too).
