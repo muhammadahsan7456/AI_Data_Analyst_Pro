@@ -5,6 +5,7 @@
 {% block header_subtitle %}Server-side SQL paginated data explorer for dataset {{ table_name }}{% endblock %}
 
 {% block content %}
+{% with summary_dataset_id = dataset[0] %}{% include "_dataset_summary.html" %}{% endwith %}
 <!-- Metadata Cards & Actions -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">

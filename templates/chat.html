@@ -5,6 +5,7 @@
 {% block header_subtitle %}Choose a dataset, ask a question in plain language, and review the result or chart.{% endblock %}
 
 {% block content %}
+{% if selected_dataset %}{% with summary_dataset_id = selected_dataset[0] %}{% include "_dataset_summary.html" %}{% endwith %}{% endif %}
 
 <!-- Plotly Interactive Visualization Engine CDN - loaded unconditionally on this page
      (the only page that renders charts) so it's warm and ready before the first query,

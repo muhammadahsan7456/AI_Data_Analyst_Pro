@@ -150,7 +150,7 @@
 function updateUploadCardPageSize(selectElem, datasetId) {
     const chosen = selectElem.value;
     if (chosen === "all" && datasetId) {
-        window.location.href = `/dataset/${datasetId}?per_page=all`;
+        window.location.href = `/dataset/${datasetId}?per_page=100`;
         return;
     }
     const card = selectElem.closest(".table-card");

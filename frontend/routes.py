@@ -2,6 +2,7 @@ import os
 import re
 import math
 import time
+import logging
 import threading
 from datetime import datetime
 import pandas as pd
@@ -111,6 +112,8 @@ from utils.exporters import (
 )
 from utils.helpers import format_bytes
 from utils.cache import system_cache
+
+logger = logging.getLogger(__name__)
 from auth.decorators import (
     login_required,
     role_required,
@@ -1228,6 +1231,11 @@ def chat():
         traceback.print_exc()
         explanation = f"Query executed successfully on dataset [{selected_dataset[2]}]. Displaying {len(df)} matching records."
 
+    # Typo/synonym corrections and ambiguities are stated, never applied silently.
+    _assumptions = [a for a in (ai_result.get("assumptions") or []) if a]
+    if _assumptions:
+        explanation = "**How I read your question:** " + " ".join(_assumptions) + "\n\n" + (explanation or "")
+
     # Whichever model actually answered this question (SQL generation and/or the
     # explanation may each separately fall through to the LLM, or not need it at all if
     # the fast deterministic pattern engine handled everything) - surfaced in the response
@@ -1319,6 +1327,7 @@ def chat():
             "applied_filters": applied_filters,
             "result_html": result_html,
             "explanation": format_ai_explanation(explanation),
+            "assumptions": _assumptions,
             "tts_speech": tts_speech,
             "chart": chart_path,
             "chart_spec": chart_spec,
@@ -1512,6 +1521,7 @@ def predictions():
     default_forecast_days = session.get("default_forecast_days", 30)
     forecast_days = default_forecast_days
     result = None
+    profit_loss = None
 
     if request.method == "POST":
         dataset_id = request.form.get("dataset_id", type=int)
@@ -1524,9 +1534,18 @@ def predictions():
                 selected_dataset = match
 
         table_name = selected_dataset[2]
-        df = run_query(f"SELECT TOP 10000 * FROM {sanitize_identifier(table_name)}")
+        # Whole dataset (was TOP 10000, so totals/trends silently ignored later rows).
+        df = _load_full_dataset(table_name)
 
         result = generate_forecast(df, forecast_days=forecast_days)
+        try:
+            from ai.profit_loss import analyze_profit_loss, phrase_with_llm
+            profit_loss = analyze_profit_loss(df)
+            if profit_loss.get("suitable"):
+                profit_loss["explanation_text"], profit_loss["explanation_source"] = phrase_with_llm(profit_loss["explanation"])
+        except Exception:
+            logger.exception("Profit/loss analysis failed for dataset #%s", selected_dataset[0])
+            profit_loss = {"suitable": False, "message": "The profit and loss analysis could not be completed for this dataset.", "disclaimer": ""}
         log_audit_event("PREDICTION_RUN", f"Ran forecast on dataset #{selected_dataset[0]} for {forecast_days} days.", user_id=user_id)
 
     return render_template(
@@ -1534,8 +1553,71 @@ def predictions():
         user_datasets=user_datasets,
         selected_dataset=selected_dataset,
         forecast_days=forecast_days,
-        result=result
+        result=result,
+        profit_loss=profit_loss,
     )
+
+
+def _load_full_dataset(table_name: str) -> pd.DataFrame:
+    """All rows of a dataset: decrypted from the vault in memory, or read from its table."""
+    from utils import dataset_vault
+    try:
+        if dataset_vault.is_vaulted(table_name):
+            df = dataset_vault.load_dataframe(table_name)
+            return df.drop(columns=[c for c in df.columns if c == "RecordID"], errors="ignore")
+    except Exception:
+        logger.exception("Vault load failed for %s", table_name)
+        raise
+    df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
+    return df.drop(columns=[c for c in df.columns if c == "RecordID"], errors="ignore") if df is not None else pd.DataFrame()
+
+
+def _owned_dataset_or_404(dataset_id):
+    user_id = session.get("user_id")
+    with get_db_cursor() as cursor:
+        cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
+        ds = cursor.fetchone()
+    if not ds or not is_safe_identifier(ds[2]):
+        return None
+    return ds
+
+
+@frontend.route("/api/dataset-summary/<int:dataset_id>")
+@login_required
+def api_dataset_summary(dataset_id):
+    """Short plain-language summary from computed facts (LLM only re-phrases; fallback = computed)."""
+    ds = _owned_dataset_or_404(dataset_id)
+    if not ds:
+        return jsonify({"success": False, "error": "Dataset not found."}), 404
+    key = f"ds_brief_{ds[2]}_{ds[5]}"
+    cached = system_cache.get(key) if system_cache else None
+    if cached:
+        return jsonify(cached)
+    try:
+        from ai.dataset_brief import summarize
+        out = summarize(_load_full_dataset(ds[2]))
+        payload = {"success": True, "summary": out["summary"], "source": out["source"], "facts": out["facts"]}
+    except Exception:
+        logger.exception("Dataset summary failed for #%s", dataset_id)
+        return jsonify({"success": False, "error": "The summary could not be computed for this dataset."}), 500
+    if system_cache:
+        system_cache.set(key, payload, ttl=1800)
+    return jsonify(payload)
+
+
+@frontend.route("/api/profit-loss/<int:dataset_id>")
+@login_required
+def api_profit_loss(dataset_id):
+    ds = _owned_dataset_or_404(dataset_id)
+    if not ds:
+        return jsonify({"success": False, "error": "Dataset not found."}), 404
+    from ai.profit_loss import analyze_profit_loss
+    try:
+        res = analyze_profit_loss(_load_full_dataset(ds[2]))
+    except Exception:
+        logger.exception("Profit/loss failed for #%s", dataset_id)
+        return jsonify({"success": False, "error": "The analysis could not be completed."}), 500
+    return jsonify({"success": True, **res})
 
 
 # ==========================================

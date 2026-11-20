@@ -51,7 +51,7 @@ if api_key:
         client = None
 
 
-UNRELATED_MESSAGE = "I'm designed to analyze your uploaded dataset only. Please ask me a question about your data (for example totals, trends, comparisons, or top items) and I'll answer it."
+UNRELATED_MESSAGE = "I'm designed to analyze your uploaded dataset only. Please ask a question about your data."
 
 # Shown when no layer could turn a data question into a query. Previously the code fell
 # back to "SELECT TOP 50 *" and presented those rows as if they answered the question.
@@ -649,27 +649,143 @@ def _early_patterns(q_lower: str, table_name: str, safe_tbl: str, columns_list: 
 _SPELL_VOCAB = {
     "total", "average", "count", "sales", "region", "profit", "revenue", "quantity", "price", "orders",
     "customer", "customers", "product", "products", "monthly", "highest", "lowest", "compare", "category",
+    "many", "much", "were", "order", "cancelled", "canceled", "delivered", "returned", "pending", "trend",
+    "month", "months", "yearly", "weekly", "daily", "maximum", "minimum", "number", "which", "show",
+    "status", "top", "city", "cities", "amount", "units", "sum", "least", "most", "best", "worst",
+}
+
+# Roman Urdu / Hinglish phrases that mean an analysis word (applied before spelling).
+_PHRASE_NORMALIZE = [
+    (r"\bmah?ine?y?\s+(?:ke|k|ki)\s+(?:hisab|hisaab|lehaz|lihaz)\s+se\b", "monthly"),
+    (r"\bmah[ia]n[ae]y?\s*(?:wise|wari|war)\b", "monthly"),
+    (r"\bmahana\b", "monthly"),
+    (r"\bsaal\s+(?:ke|k)\s+(?:hisab|hisaab)\s+se\b", "yearly"),
+    (r"\bsalana\b", "yearly"),
+]
+
+# Common Roman Urdu / Hinglish words: never "corrected" into a column or a value
+# ("mera" is not "Camera").
+_NEVER_CORRECT = {
+    "mera", "meri", "mere", "tera", "teri", "hamara", "hamari", "unka", "uska", "iska", "kya", "kyun",
+    "kaisa", "kaise", "kaisi", "karun", "karo", "kharab", "acha", "achha", "theek", "batao", "bataen",
+    "dikhao", "dikha", "kitne", "kitni", "kitna", "zyada", "ziada", "kam", "sab", "sabse", "wala",
+    "wali", "wale", "hain", "nahi", "nahin", "abhi", "kal", "aaj", "mausam", "please", "thanks",
+}
+_SHORT_FIXES = {"mny": "many", "hw": "how", "wer": "were", "hw": "how"}
+
+# Business synonyms: used ONLY when the dataset has no column with that name, and the
+# substitution is reported to the user as an assumption.
+_METRIC_SYNONYMS = {
+    "revenue": ("sales", "revenue", "amount", "totalsales", "total_sales", "turnover"),
+    "revnue": ("sales", "revenue", "amount"),
+    "income": ("sales", "revenue", "amount"),
+    "turnover": ("sales", "revenue", "amount"),
+    "earnings": ("profit", "netprofit", "net_profit"),
+    "margin": ("profit",),
+    "kamai": ("sales", "revenue", "amount"),
+    "munafa": ("profit",),
 }
 
 
-def correct_question_typos(question: str, columns_list: list) -> str:
-    """Fix close misspellings of column names and common analysis words ("totl sales by regon")."""
+def correct_question_with_notes(question: str, columns_list: list, table_name: str = None):
+    """
+    Typo-tolerant normalisation of a question (R-Phase 9.4).
+
+    Returns (corrected_question, notes). Corrects, in order:
+      1. Roman Urdu/Hinglish phrases ("mahine ke hisab se" -> "monthly").
+      2. Metric synonyms when the dataset has no such column ("revenue" -> "Sales"),
+         reported as an assumption note.
+      3. Close misspellings of column names, analysis words and DATASET VALUES
+         ("lahor" -> "Lahore", "laptp" -> "Laptop"). Each value correction is noted.
+      4. A misspelling that is equally close to two different values is NOT guessed:
+         it is left as typed and a note asks the user which one they meant.
+    """
     import difflib
-    vocab = set(_SPELL_VOCAB)
+    notes = []
+    q = question or ""
+    for pat, rep in _PHRASE_NORMALIZE:
+        q = re.sub(pat, rep, q, flags=re.IGNORECASE)
+
+    col_lower = {str(c).lower(): str(c) for c in columns_list}
+    col_parts = {}
     for c in columns_list:
         for part in re.split(r"[^A-Za-z0-9]+", re.sub(r"([a-z])([A-Z])", r"\1 \2", str(c))):
-            if len(part) >= 4:
-                vocab.add(part.lower())
+            if len(part) >= 3:
+                col_parts.setdefault(part.lower(), str(c))
+    vocab = set(_SPELL_VOCAB) | set(col_parts)
+
+    values = {}
+    if table_name:
+        try:
+            from ai.value_matcher import get_column_vocabulary
+            try:
+                from ai.schema_intelligence import get_dataset_schema_intelligence
+                si = get_dataset_schema_intelligence(table_name)
+            except Exception:
+                si = None
+            for col, vals in (get_column_vocabulary(table_name, si) or {}).items():
+                for v in vals:
+                    sv = str(v).strip()
+                    if 3 <= len(sv) <= 40 and re.fullmatch(r"[A-Za-z][A-Za-z ]*", sv):
+                        values.setdefault(sv.lower(), sv)
+        except Exception:
+            values = {}
+    value_words = {}
+    for low, orig in values.items():
+        value_words.setdefault(low, orig)
+
     out = []
-    for tok in re.split(r"(\W+)", question):
+    for tok in re.split(r"(\W+)", q):
         low = tok.lower()
-        if len(low) >= 4 and low.isalpha() and low not in vocab:
-            m = difflib.get_close_matches(low, vocab, n=1, cutoff=0.8)
-            if m and abs(len(m[0]) - len(low)) <= 2:
-                out.append(m[0])
+        if low in _SHORT_FIXES:
+            out.append(_SHORT_FIXES[low])
+            continue
+        if not low.isalpha() or len(low) < 3 or low in _NEVER_CORRECT:
+            out.append(tok)
+            continue
+        # 2. synonyms for a metric the dataset doesn't have
+        if low in _METRIC_SYNONYMS and low not in col_parts and low not in col_lower:
+            target = next((col_lower[c] for c in _METRIC_SYNONYMS[low] if c in col_lower), None)
+            if target:
+                notes.append(f"There is no '{tok}' column, so I used {target}.")
+                out.append(target)
                 continue
+        if low in vocab or low in value_words or len(low) < 4:
+            out.append(tok)
+            continue
+        # 3a. dataset values (city, product, status ...)
+        if value_words:
+            # Same first letter and at most one or two letters off: a typo, not another word.
+            scored = sorted(((difflib.SequenceMatcher(None, low, v).ratio(), v) for v in value_words
+                             if v[:1] == low[:1] and abs(len(v) - len(low)) <= max(1, len(low) // 4)), reverse=True)
+            scored = scored or [(0.0, "")]
+            best = scored[0]
+            if best[0] >= 0.8 and abs(len(best[1]) - len(low)) <= 2:
+                if len(scored) > 1 and scored[1][0] >= best[0] - 0.02 and scored[1][0] >= 0.8:
+                    a, b = value_words[best[1]], value_words[scored[1][1]]
+                    notes.append(f"'{tok}' could mean {a} or {b}; I left it as typed. Please say which one you mean.")
+                    out.append(tok)
+                    continue
+                fixed = value_words[best[1]]
+                if fixed.lower() != low:
+                    notes.append(f"Read '{tok}' as {fixed}.")
+                out.append(fixed)
+                continue
+        # 3b. columns and analysis words
+        m = [w for w in difflib.get_close_matches(low, vocab, n=3, cutoff=0.75) if w[:1] == low[:1]]
+        if m and abs(len(m[0]) - len(low)) <= 2:
+            fix = m[0]
+            if fix in col_parts:
+                notes.append(f"Read '{tok}' as the {col_parts[fix]} column.")
+            out.append(fix)
+            continue
         out.append(tok)
-    return "".join(out)
+    return "".join(out), notes
+
+
+def correct_question_typos(question: str, columns_list: list) -> str:
+    """Back-compat wrapper (columns and analysis words only, no notes)."""
+    return correct_question_with_notes(question, columns_list)[0]
 
 
 def fast_pattern_sql_generator(question: str, table_name: str, columns_list: list):
@@ -1182,7 +1298,7 @@ def execute_sql_with_retry(question: str, table_name: str, columns_list: list, m
     which model is asked if/when that deterministic path can't handle the question).
     """
     start_time = time.time()
-    question = correct_question_typos(question, columns_list)
+    question, typo_notes = correct_question_with_notes(question, columns_list, table_name)
 
     # Enforce strict domain guardrails
     if is_out_of_domain_question(question, columns_list, table_name_hint=table_name):
@@ -1264,6 +1380,8 @@ def execute_sql_with_retry(question: str, table_name: str, columns_list: list, m
                 "success": True,
                 "is_out_of_domain": False,
                 "is_fast_pattern": is_fast_pattern,
+                "assumptions": typo_notes,
+                "interpreted_question": question,
                 "sql": sql,
                 "df": df,
                 "chart": None,

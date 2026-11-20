@@ -376,3 +376,12 @@ Fixed:
 Tests added: `tests/test_admin_never_sees_rows.py` (3: a marker row stored through the real vault never appears on 10 admin pages or 4 admin exports, including inside xlsx; the admin code never calls a row-reading function), `tests/test_plan_expiry.py` (3: who returns to Free, emails, idempotent, banner). Full non-Selenium suite: 137 passed.
 
 Schema: none (the sweep only changes values in existing columns).
+
+## R-Phase 9.4 — AI features (Ask AI typos, summary, charts, profit/loss)
+
+- Fuzzy Ask AI (`ai/gemini.py`): misspelled column names, values and keywords (incl. Roman Urdu) are corrected before planning; every correction or ambiguous match is returned as `assumptions` and shown above the answer ("How I read your question"), never applied silently (`frontend/routes.py` `/chat`).
+- Dataset summary (`ai/dataset_brief.py`, `/api/dataset-summary/<id>`, `templates/_dataset_summary.html` on upload/preview/chat): built from computed facts (rows, columns, date range, totals, top group, empty cells, duplicates); the LLM only re-phrases, with the computed text as fallback.
+- Profit/loss (`ai/profit_loss.py`, `/api/profit-loss/<id>`, `predictions.html`): deterministic profit or revenue−cost, margin, monthly trend slope, best/weakest month, top/loss-making categories and costs, a 3-month seasonal-naive/trend forecast with a confidence note, "analysis estimate, not financial advice". Missing columns are named. `/predictions` now reads the whole dataset (was `TOP 10000`).
+- Evidence (QA server, SQLite, encrypted 6,000-row sales CSV, one process): 12/12 misspelled questions correct vs pandas (`typo_results.json`), 6/6 off-topic refused with the exact required sentence; earlier battery 27/27 in scope, 20/20 refused, 2/2 missing columns flagged. Profit set: "In profit", margin 17.61%. Loss set: margin −29.84%, falling trend. Unsuitable set: names the missing revenue and cost columns. Browser (Playwright Chromium): all 10 chart modes render; hover gaps found → R-Phase 9.5.
+- Tests: `tests/test_ask_ai_fuzzy.py` (5), `tests/test_profit_loss.py` (5). Full non-Selenium suite: 161 passed.
+- Schema: none.

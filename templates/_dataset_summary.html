@@ -1,0 +1,30 @@
+{# Short dataset summary (R-Phase 9.4). Needs summary_dataset_id. Facts are computed on the server; see ai/dataset_brief.py #}
+<section class="dataset-summary-card" id="dataset-summary" data-url="{{ url_for('frontend.api_dataset_summary', dataset_id=summary_dataset_id) }}" aria-live="polite"
+         style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-surface); padding: 16px 18px; margin-bottom: 18px;">
+    <div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap;">
+        <h2 style="margin: 0; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; color: var(--text-muted);">Dataset summary</h2>
+        <span id="dataset-summary-source" style="font-size: 12px; color: var(--text-muted);"></span>
+    </div>
+    <p id="dataset-summary-text" style="margin: 8px 0 0; line-height: 1.65; color: var(--text-primary);">Summarising this dataset…</p>
+</section>
+<script>
+(function () {
+    var box = document.getElementById('dataset-summary');
+    if (!box) return;
+    var txt = document.getElementById('dataset-summary-text'), src = document.getElementById('dataset-summary-source');
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+    fetch(box.dataset.url, { credentials: 'same-origin', signal: ctl ? ctl.signal : undefined })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+            clearTimeout(timer);
+            if (j && j.success) {
+                txt.textContent = j.summary;
+                src.textContent = j.source === 'ai' ? 'Worded by AI from computed facts' : 'Computed from your data';
+            } else {
+                txt.textContent = (j && j.error) || 'The summary is not available for this dataset.';
+            }
+        })
+        .catch(function () { clearTimeout(timer); txt.textContent = 'The summary is not available right now.'; });
+})();
+</script>
