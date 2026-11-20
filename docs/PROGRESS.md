@@ -319,3 +319,25 @@ Copy: unverified "10M+ rows/records" claims replaced with "up to 500 MB"; encryp
 - Live domain `aidataanalystpro.co.uk` with this branch deployed.
 - Theme/mobile screenshot matrix for R-Phase 8 changes (Playwright system libraries missing in this sandbox).
 - Scheduler log line `Auto-suspend error: near ".": syntax error` on SQLite: seen again in the QA server log, not investigated.
+
+---
+
+# R-Phase 9 — Market-ready pass (started 2026-11-20)
+
+Order changed by the owner: functional work first (audit → auth → upload/encryption → AI → admin/billing/email → security → docs), design and performance last. QA env: Python 3.12 venv, SQLite QA DB (`ALLOW_SQLITE_FALLBACK=true`, throwaway key), local SMTP sink, one Waitress process on 127.0.0.1:5051. Playwright Chromium now runs in this sandbox (system libraries installed with apt); Lighthouse 12 via npm in `/workspace/work/tools` (outside the repo).
+
+## R-Phase 9.1 — Audit and baseline
+
+- Routes: 124 URL rules (30 admin, 26 auth, 17 api, 9 dataset, rest public/portal). List kept outside the repo in the QA folder.
+- Tests: 125 passed (non-Selenium; `test_auth.py`, `test_demo_sandbox.py`, `test_public_pages.py` excluded).
+- Internal link crawl (requests, one URL per pattern): anonymous 24 pages, logged-in user 67, Super Admin 36 — no 404/5xx (JS template-literal hrefs excluded).
+- Domain: every default/doc/test uses `https://aidataanalystpro.co.uk`; no `dataanalystpro.co.uk` string in the repo.
+- Lighthouse BEFORE (mobile emulation, local server, no Nginx gzip): `/` perf 99, a11y 98, BP 100, SEO 100, FCP 1.6 s, LCP 1.8 s, TBT 0 ms, CLS 0.007, 155 KB. `/auth/login` perf 99, a11y 98, BP 100, SEO 66 (deliberate `noindex`), FCP 1.5 s, LCP 2.0 s, 153 KB.
+
+Failing / suspicious (to fix in later phases):
+1. Scheduler `Auto-suspend error: near "."` on SQLite: `auto_suspend_overdue_users()` uses SQL Server-only `UPDATE … OUTPUT INSERTED.*`. It also sets `suspended`, while the plan rule is "Pro lasts 30 days, then reverts to Free".
+2. Lapsed Pro users (status `expired`/`suspended`, still `IsActive=1`) see a red "ACCOUNT SUSPENDED" banner although they keep full Free access.
+3. Ask AI refusal text is not the exact sentence required.
+4. Password reset has no resend limit (each request mails a new code).
+5. No per-IP rate limit on login / OTP / reset endpoints (only per-account lockout).
+6. Still to check: Google button on register page, profit/loss prediction, chart-type coverage, invoice PDF, admin user list, startup PUBLIC_BASE_URL warning.
