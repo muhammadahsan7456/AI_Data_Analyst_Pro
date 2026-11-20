@@ -392,8 +392,11 @@ def signup():
                         res = cursor.fetchone()
                         if res:
                             new_user_id = int(res[0])
-                    except Exception as insert_err:
-                        print("Insert User fetchone notice:", insert_err)
+                    except Exception:
+                        # Not fatal on its own: the lookup by email below finds the row if the
+                        # INSERT did land; if it did not, new_user_id stays empty and the
+                        # caller reports the failure.
+                        logger.warning("Signup: INSERT ... OUTPUT did not return an id for %s", email, exc_info=True)
 
                 if not new_user_id:
                     with get_db_cursor() as cursor:
@@ -1217,8 +1220,8 @@ def login():
                     create_user_session(),
                     (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
                 )
-        except Exception as e:
-            print("Create Session Error:", e)
+        except Exception:
+            logger.exception("Could not store the login session row for user_id=%s", user_id)
 
         log_login_attempt(user_id, "Success")
         log_audit_event("LOGIN", "User logged in successfully.", user_id=user_id)

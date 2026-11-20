@@ -260,7 +260,7 @@ def admin_login():
             to_email=email,
             user_name=full_name or "Super Admin",
             otp_code=otp_code,
-            ip_address=request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+            ip_address=get_client_ip()
         )
 
         if not email_sent:
@@ -355,8 +355,8 @@ def admin_verify_otp():
                         create_user_session(),
                         (user_id, session["admin_session_token"], get_client_ip(), request.headers.get("User-Agent", "")[:500])
                     )
-            except Exception as e:
-                print("Create Admin Session Error:", e)
+            except Exception:
+                logger.exception("Could not store the admin session row for user_id=%s", user_id)
             log_audit_event("ADMIN_LOGIN_SUCCESS", f"Super Admin '{pending.get('full_name')}' logged into Executive Console (2FA verified)", user_id=user_id)
             flash(f"Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
             return redirect(pending.get("next") or url_for("admin.dashboard"))
@@ -533,8 +533,9 @@ def dashboard():
             cursor.execute(get_monthly_signups_trend(), (trend_start, trend_end))
             signups_trend = [{"month": r[0], "signups": r[1] or 0} for r in cursor.fetchall()]
 
-    except Exception as e:
-        print("Admin Dashboard Query Error:", e)
+    except Exception:
+        logger.exception("Admin dashboard query failed")
+        flash("Some dashboard figures could not be loaded (database error). The numbers shown may be incomplete.", "error")
 
     announcement = fetch_site_announcement()
     return render_template(
@@ -864,7 +865,7 @@ def delete_user(user_id):
                     try:
                         cursor.execute(f"IF OBJECT_ID('{t_candidate}', 'U') IS NOT NULL DROP TABLE [{t_candidate}]")
                     except Exception:
-                        pass
+                        logger.warning("Delete user %s: could not drop legacy table %s", user_id, t_candidate, exc_info=True)
                     from utils import dataset_vault
                     dataset_vault.drop(t_candidate, cursor=cursor)
 
@@ -895,9 +896,9 @@ def delete_user(user_id):
 
         log_audit_event("ADMIN_USER_DELETED", f"Deleted user #{user_id} ({u_row[0]} <{u_row[1]}>) and purged datasets & history.", user_id=admin_id)
         flash(f"User account '{escape(u_row[0])}' and all associated datasets & history records deleted successfully.", "success")
-    except Exception as e:
-        print("Delete User Error:", e)
-        flash(f"Failed to delete user: {str(e)}", "error")
+    except Exception:
+        logger.exception("Admin delete user failed: user_id=%s", user_id)
+        flash("The user could not be deleted (database error). Nothing was reported as deleted; check the server log.", "error")
 
     return redirect(url_for("admin.manage_users"))
 
@@ -1374,8 +1375,9 @@ def audit_logs():
                 "ip_address": ip_addr or "127.0.0.1",
                 "created_at": format_12hr_datetime(created_at)
             })
-    except Exception as e:
-        print("Admin Audit Logs Error:", e)
+    except Exception:
+        logger.exception("Admin audit log query failed")
+        flash("The audit log could not be loaded (database error). The list below may be empty or incomplete.", "error")
 
     return render_template(
         "admin/audit_logs.html",
@@ -1613,8 +1615,9 @@ def subscribers():
                 "ip_address": ip_addr or "127.0.0.1",
                 "subscribed_at": format_12hr_datetime(sub_at)
             })
-    except Exception as e:
-        print("Admin Subscribers Fetch Error:", e)
+    except Exception:
+        logger.exception("Admin subscribers query failed")
+        flash("The subscriber list could not be loaded (database error). The list below may be empty or incomplete.", "error")
 
     active_count = sum(1 for s in subscribers_list if s["status"].lower() == "active")
     return render_template("admin/subscribers.html", subscribers=subscribers_list, active_count=active_count, search_query=search_query)
@@ -1686,8 +1689,9 @@ def contact_messages():
                 "admin_reply": admin_reply,
                 "replied_at": format_12hr_datetime(replied_at) if replied_at else None
             })
-    except Exception as e:
-        print("Admin Contact Messages Fetch Error:", e)
+    except Exception:
+        logger.exception("Admin contact messages query failed")
+        flash("Contact messages could not be loaded (database error). The inbox below may be empty or incomplete.", "error")
 
     new_count = sum(1 for m in messages_list if m["status"].lower() == "new")
     return render_template(

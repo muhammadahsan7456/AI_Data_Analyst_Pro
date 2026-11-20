@@ -119,7 +119,7 @@ from auth.decorators import (
     role_required,
     viewer_allowed
 )
-from auth.security import log_audit_event
+from auth.security import log_audit_event, get_client_ip
 
 frontend = Blueprint(
     "frontend",
@@ -1986,8 +1986,8 @@ def delete_dataset(dataset_id):
             if is_safe_identifier(table_name):
                 try:
                     cursor.execute(f"IF OBJECT_ID('{table_name}', 'U') IS NOT NULL DROP TABLE {sanitize_identifier(table_name)}")
-                except Exception as drop_err:
-                    print("Drop Table Warning:", drop_err)
+                except Exception:
+                    logger.warning("Delete dataset %s: could not drop legacy table %s", dataset_id, table_name, exc_info=True)
 
             # 3. Delete metadata record from Datasets table
             cursor.execute(delete_dataset_record(user_id=user_id), (dataset_id,))
@@ -2100,6 +2100,11 @@ def export_dataset(dataset_id, format_type):
     try:
         df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
         df = auto_repair_dataframe_headers(df)
+        # RecordID is the storage row id the app adds at upload, not one of the user's
+        # columns. Preview, query export and analytics already drop it; the full-dataset
+        # export shipped it as an extra first column in every format.
+        if "RecordID" in df.columns:
+            df = df.drop(columns=["RecordID"])
 
         log_audit_event("EXPORT_DATASET", f"Exported dataset #{dataset_id} as {format_type.upper()}", user_id=user_id)
         trigger_ai_event(user_id, build_report_export_card(format_type))
@@ -2157,9 +2162,9 @@ def export_dataset(dataset_id, format_type):
                 mimetype="image/svg+xml",
                 headers={"Content-Disposition": build_content_disposition(f"Chart_{base_name}.svg")}
             )
-    except Exception as e:
-        print("Export Dataset Error:", e)
-        flash(f"Failed to export dataset: {str(e)}", "error")
+    except Exception:
+        logger.exception("Dataset export failed: dataset_id=%s format=%s", dataset_id, format_type)
+        flash("Sorry, the export could not be created. Please try again, or contact support if it keeps happening.", "error")
         return redirect(url_for("frontend.dashboard"))
 
 
@@ -2463,7 +2468,7 @@ def contact_submit():
     subject = (subject or "General Inquiry")[:200]
     message = message[:4000]
 
-    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+    client_ip = get_client_ip()
 
     try:
         with get_db_cursor(commit=True) as cursor:
@@ -3165,7 +3170,7 @@ def subscribe_newsletter():
             return jsonify({"success": False, "message": "Please enter a valid email address."}), 400
 
         # Store subscriber record in database for Super Admin visibility
-        client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(',')[0].strip()
+        client_ip = get_client_ip()
         try:
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute("SELECT SubscriberID FROM NewsletterSubscribers WHERE Email = ?", (email,))
@@ -3181,8 +3186,11 @@ def subscribe_newsletter():
                         SET Status = 'Active', IPAddress = ?, SubscribedAt = GETDATE()
                         WHERE Email = ?
                     """, (client_ip, email))
-        except Exception as db_err:
-            print("Save Newsletter Subscriber DB Notice:", db_err)
+        except Exception:
+            # Before: the error was printed and the visitor was still told "subscribed
+            # successfully", although nothing was saved.
+            logger.exception("Newsletter subscribe: could not save %s", email)
+            return jsonify({"success": False, "message": "We could not save your subscription right now. Please try again later."}), 500
 
         # Dispatch Automated Executive Welcome Email
         try:
@@ -3193,13 +3201,16 @@ def subscribe_newsletter():
             unsubscribe_url = external_url("frontend.unsubscribe_newsletter", token=token)
 
             email_service = EmailService()
-            email_service.send_newsletter_subscription_email(to_email=email, unsubscribe_url=unsubscribe_url)
-        except Exception as mail_err:
-            print("Newsletter Welcome Email Notice:", mail_err)
+            mail_ok = bool(email_service.send_newsletter_subscription_email(to_email=email, unsubscribe_url=unsubscribe_url))
+        except Exception:
+            logger.exception("Newsletter welcome email failed for %s", email)
+            mail_ok = False
 
         return jsonify({
             "success": True,
-            "message": "Thank you! Your email has been subscribed successfully and a welcome email has been sent to your inbox."
+            "message": ("Thank you! You are subscribed and a welcome email is on its way to your inbox."
+                        if mail_ok else
+                        "Thank you! You are subscribed. We could not send the welcome email just now, but you will still receive our updates.")
         })
     except Exception as e:
         print("Subscribe Newsletter Error:", e)
@@ -3219,7 +3230,7 @@ def unsubscribe_newsletter(token):
         email = serializer.loads(token, salt="newsletter-unsubscribe", max_age=60 * 60 * 24 * 365)
     except BadSignature:
         flash("This unsubscribe link is invalid.", "error")
-        return redirect(url_for("frontend.index"))
+        return redirect(url_for("frontend.home"))
 
     try:
         with get_db_cursor(commit=True) as cursor:
@@ -3227,8 +3238,11 @@ def unsubscribe_newsletter(token):
                 "UPDATE NewsletterSubscribers SET Status = 'Unsubscribed' WHERE Email = ?",
                 (email,)
             )
-    except Exception as db_err:
-        print("Unsubscribe DB Notice:", db_err)
+    except Exception:
+        # Before: a failed UPDATE still showed "you have been unsubscribed".
+        logger.exception("Newsletter unsubscribe failed for a signed token")
+        flash("We could not process your unsubscribe request right now. Please try the link again later, or reply to any of our emails and we will remove you.", "error")
+        return redirect(url_for("frontend.home"))
 
     return render_template("unsubscribed.html", email=email)
 
@@ -3243,8 +3257,18 @@ def page_not_found(e):
 
 @frontend.app_errorhandler(500)
 def internal_server_error(e):
-    # Log the real exception server-side only - rendering str(e) straight into the page
-    # (the previous behavior) could show visitors internal detail like a SQL fragment,
-    # table/column name, or file path from whatever raised the error.
-    print("Unhandled 500 error:", e)
-    return render_template("500.html"), 500
+    # Log the real exception (with traceback) server-side only; the page never shows it.
+    # print() went to stdout without a traceback, so production 500s left nothing useful
+    # in the log. The template render is guarded: if the error came from the database,
+    # base.html's own lookups can fail too, and the visitor must still get a plain page.
+    original = getattr(e, "original_exception", None) or e
+    logging.getLogger("errors").error(
+        "Unhandled 500 on %s %s", request.method, request.path,
+        exc_info=(type(original), original, original.__traceback__),
+    )
+    try:
+        return render_template("500.html"), 500
+    except Exception:
+        logging.getLogger("errors").exception("500.html failed to render")
+        return ("<!doctype html><title>Server error</title><h1>Something went wrong</h1>"
+                "<p>We have logged the problem. Please try again shortly.</p>"), 500
