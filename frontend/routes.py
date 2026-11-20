@@ -2954,13 +2954,14 @@ def receipts():
     own UserID, with a link to view/download the same PDF invoice format the admin panel
     generates.
     """
+    from utils.invoices import invoice_number
     user_id = session.get("user_id")
     receipt_list = []
     error = None
     try:
         with get_db_cursor() as cursor:
             cursor.execute(
-                "SELECT PaymentID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate, PaymentType, RejectionReason "
+                "SELECT PaymentID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate, PaymentType, RejectionReason, InvoiceNumber, ReviewedAt "
                 "FROM Payments WHERE UserID = ? ORDER BY PaymentDate DESC",
                 (user_id,)
             )
@@ -2976,10 +2977,11 @@ def receipts():
                     "plan_name": r[6],
                     "payment_date": format_12hr_datetime(r[7]),
                     "payment_type": r[8] or "New",
-                    "rejection_reason": r[9]
+                    "rejection_reason": r[9],
+                    "invoice_number": (r[10] or invoice_number(r[0], r[11] or r[7])) if r[5] == "Completed" else "",
                 })
-    except Exception as e:
-        print("Receipts Fetch Error:", e)
+    except Exception:
+        logger.exception("Receipts fetch failed for user #%s", user_id)
         error = "We couldn't load your payment receipts right now. Please try refreshing the page."
 
     return render_template("receipts.html", receipts=receipt_list, error=error)
@@ -2988,100 +2990,46 @@ def receipts():
 @frontend.route("/receipts/<int:payment_id>")
 @login_required
 def view_receipt(payment_id):
-    """
-    Same on-screen invoice layout the admin panel uses (Print + Download PDF buttons),
-    reused here for a user viewing their own receipt - ownership-checked, unlike the
-    admin route which checks admin role instead.
-    """
-    user_id = session.get("user_id")
+    """The user's own invoice (approved) or payment record (pending/rejected); ownership-checked."""
+    from utils.invoices import load_invoice
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ? AND P.UserID = ?
-            """, (payment_id, user_id))
-            p = cursor.fetchone()
-
-        if not p:
-            flash("Receipt not found.", "error")
-            return redirect(url_for("frontend.receipts"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        return render_template(
-            "admin/invoice.html", payment=payment_dict,
-            back_url=url_for("frontend.receipts"), back_label="Back to Receipts",
-            download_url=url_for("frontend.download_receipt_pdf", payment_id=p_id)
-        )
-    except Exception as e:
-        print("View Receipt Error:", e)
+        inv = load_invoice(payment_id, user_id=session.get("user_id"))
+    except Exception:
+        logger.exception("Loading receipt #%s failed", payment_id)
         flash("Failed to load receipt.", "error")
         return redirect(url_for("frontend.receipts"))
+    if not inv:
+        flash("Receipt not found.", "error")
+        return redirect(url_for("frontend.receipts"))
+    return render_template(
+        "admin/invoice.html", payment=inv,
+        back_url=url_for("frontend.receipts"), back_label="Back to Receipts",
+        download_url=url_for("frontend.download_receipt_pdf", payment_id=inv["id"]) if inv["has_invoice"] else None,
+    )
 
 
 @frontend.route("/receipts/<int:payment_id>/download")
 @login_required
 def download_receipt_pdf(payment_id):
-    """
-    Same PDF invoice generator the admin panel uses, but gated by ownership instead of
-    admin role - a user can only ever download their OWN payment's receipt, never one
-    reached by guessing/incrementing another payment_id in the URL.
-    """
-    user_id = session.get("user_id")
+    """PDF invoice for the user's OWN approved payment (never another user's id)."""
+    from utils.invoices import load_invoice, invoice_filename
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ? AND P.UserID = ?
-            """, (payment_id, user_id))
-            p = cursor.fetchone()
-
-        if not p:
+        inv = load_invoice(payment_id, user_id=session.get("user_id"))
+        if not inv:
             flash("Receipt not found.", "error")
             return redirect(url_for("frontend.receipts"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        pdf_bytes = export_invoice_to_pdf(payment_dict)
-        filename = f"Receipt_{payment_dict['txn_id']}.pdf"
-        return Response(pdf_bytes, mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
-    except Exception as e:
-        print("Download Receipt Error:", e)
-        flash("Failed to generate receipt PDF.", "error")
+        if not inv["has_invoice"]:
+            flash("Your invoice will be available here as soon as the payment is approved.", "info")
+            return redirect(url_for("frontend.receipts"))
+        pdf_bytes = export_invoice_to_pdf(inv)
+    except Exception:
+        logger.exception("Generating receipt PDF #%s failed", payment_id)
+        flash("Failed to generate the invoice PDF. Please try again later.", "error")
         return redirect(url_for("frontend.receipts"))
+    return Response(pdf_bytes, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{invoice_filename(inv)}"', "Cache-Control": "no-store"})
 
 
-# ==========================================
-# RENEW SUBSCRIPTION & UPLOAD PAYMENT RECEIPT
-# ==========================================
 @frontend.route("/subscription/renew", methods=["GET", "POST"])
 @login_required
 def renew_subscription():

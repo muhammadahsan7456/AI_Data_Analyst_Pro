@@ -25,6 +25,12 @@ LOGO_CID = "aidataanalystpro_logo"
 # a module-level localhost default.
 from utils.public_url import public_base_url
 from site_config import support_email
+from markupsafe import escape as _escape
+
+
+def _h(value):
+    """HTML-escape a user-supplied value before it goes into an email body."""
+    return str(_escape("" if value is None else value))
 
 
 class EmailService:
@@ -65,11 +71,28 @@ class EmailService:
             "from_name": from_name
         }
 
+    def config_problems(self) -> list:
+        """Startup check of the sender setup (no network). Returns warning strings."""
+        cfg = self._get_config()
+        problems = []
+        if not (cfg["user"] and cfg["password"]):
+            problems.append("SMTP_USERNAME/SMTP_PASSWORD are not set: no email (OTP, reset, payment) can be sent.")
+        explicit_from = (os.getenv("MAIL_FROM") or os.getenv("SMTP_FROM_EMAIL") or "").strip()
+        if not explicit_from:
+            problems.append("MAIL_FROM is not set; mail is sent from the SMTP login address. "
+                            "Set MAIL_FROM to a sender verified in Brevo (Senders & IP).")
+        if cfg["from_email"].lower().endswith("smtp-brevo.com"):
+            problems.append(f"The From address {cfg['from_email']} is the Brevo SMTP login, which Brevo rejects as a sender. "
+                            "Set MAIL_FROM to your verified sender address.")
+        if "@" not in cfg["from_email"]:
+            problems.append("MAIL_FROM is not an email address.")
+        return problems
+
     def _is_configured(self) -> bool:
         cfg = self._get_config()
         return bool(cfg["user"] and cfg["password"])
 
-    def _send_email_async(self, to_email: str, subject: str, html_body: str, plain_text: str = None, list_unsubscribe: str = None) -> bool:
+    def _send_email_async(self, to_email: str, subject: str, html_body: str, plain_text: str = None, list_unsubscribe: str = None, wait: bool = False) -> bool:
         """
         Launches an asynchronous daemon background thread for zero-latency instant HTTP response
         while SMTP delivers the email rapidly in the background (< 1 second).
@@ -91,6 +114,7 @@ class EmailService:
         """
         def _run_and_record():
             ok = self._send_email(to_email, subject, html_body, plain_text, list_unsubscribe)
+            result["ok"] = ok
             if not ok:
                 try:
                     from database.connection import get_db_cursor
@@ -103,6 +127,12 @@ class EmailService:
                 except Exception as log_err:
                     print("[SMTP] Also failed to record EMAIL_SEND_FAILED audit entry:", log_err)
 
+        result = {"ok": False}
+        if wait:
+            # Admin actions (approve/reject/reply) wait for the real SMTP result so the
+            # admin is told honestly when the customer did not get the email.
+            _run_and_record()
+            return result["ok"]
         thread = threading.Thread(target=_run_and_record, daemon=True)
         thread.start()
         return True
@@ -128,9 +158,12 @@ class EmailService:
         msg["Subject"] = subject
         msg["From"] = f"{cfg['from_name']} <{cfg['from_email']}>"
         msg["To"] = to_email
-        msg["Reply-To"] = f"{cfg['from_name']} <{cfg['from_email']}>"
+        # Replies go to the one support mailbox (SUPPORT_EMAIL), not to the sending
+        # relay address, and the Message-ID uses the sender's own domain (a gmail.com
+        # Message-ID on mail from another domain is a spam signal).
+        msg["Reply-To"] = support_email()
         msg["Date"] = formatdate(localtime=True)
-        msg["Message-ID"] = make_msgid(domain="gmail.com")
+        msg["Message-ID"] = make_msgid(domain=(cfg["from_email"].rsplit("@", 1)[-1] or "aidataanalystpro.co.uk"))
 
         # Note: X-Priority/Importance/X-MSMail-Priority headers were deliberately removed here.
         # Marking every automated email as "urgent" is a well-known spam-scoring anti-pattern
@@ -192,8 +225,8 @@ class EmailService:
         stakes of admin access (billing/user-data control) rather than a routine signup.
         """
         subject = f"{otp_code} is your Super Admin security code"
-        user_name_clean = user_name or "Super Admin"
-        ip_line = f"Request IP: {ip_address}" if ip_address else ""
+        user_name_clean = _h(user_name or "Super Admin")
+        ip_line = f"Request IP: {_h(ip_address)}" if ip_address else ""
 
         plain_text = f"""Hello {user_name_clean},
 
@@ -278,7 +311,7 @@ AI Data Analyst Pro Security Team
 
     def send_verification_email(self, to_email: str, user_name: str, otp_code: str, verification_link: str = None) -> bool:
         subject = f"{otp_code} is your AI Data Analyst Pro verification code"
-        user_name_clean = user_name or "Valued Member"
+        user_name_clean = _h(user_name or "Valued Member")
 
         plain_text = f"""Hello {user_name_clean},
 
@@ -389,7 +422,7 @@ AI Data Analyst Pro Security Team
 
     def send_password_reset_email(self, to_email: str, user_name: str, otp_code: str, reset_link: str = None) -> bool:
         subject = f"{otp_code} is your AI Data Analyst Pro password reset code"
-        user_name_clean = user_name or "Valued Member"
+        user_name_clean = _h(user_name or "Valued Member")
 
         plain_text = f"""Hello {user_name_clean},
 
@@ -488,9 +521,9 @@ AI Data Analyst Pro Security Team
 
     def send_login_notification_email(self, to_email: str, user_name: str, login_time: str = None, device_info: str = None) -> bool:
         subject = "Security Alert: New login to AI Data Analyst Pro"
-        user_name_clean = user_name or "Valued Member"
+        user_name_clean = _h(user_name or "Valued Member")
         time_str = login_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-        dev_str = device_info or "Web Browser"
+        dev_str = _h(device_info or "Web Browser")
 
         plain_text = f"""Hello {user_name_clean},
 
@@ -570,13 +603,13 @@ AI Data Analyst Pro Security Team
 </html>"""
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
-    def send_contact_reply_email(self, to_email: str, user_name: str, original_subject: str, original_message: str, admin_reply: str) -> bool:
+    def send_contact_reply_email(self, to_email: str, user_name: str, original_subject: str, original_message: str, admin_reply: str, wait: bool = False) -> bool:
         """
         Send the Super Admin's reply to a customer's Contact Us submission directly to
         their registered email, quoting their original message for context.
         """
         from markupsafe import escape
-        user_name_clean = (user_name or "Valued Customer").strip()
+        user_name_clean = _h((user_name or "Valued Customer").strip())
         subject_clean = str(escape((original_subject or "Your Inquiry").strip()))
         original_message = str(escape(original_message or ""))
         admin_reply = str(escape(admin_reply or ""))
@@ -666,13 +699,14 @@ AI Data Analyst Pro Support Team
     </table>
 </body>
 </html>"""
-        return self._send_email_async(to_email, subject, html_body, plain_text)
+        return self._send_email_async(to_email, subject, html_body, plain_text, wait=wait)
 
     def send_payment_status_email(self, to_email: str, user_name: str, txn_id: str, status: str, amount: float, plan_name: str = "Pro Plan (PKR 1,499/mo)") -> bool:
         """
         Send an official transactional payment status email notification to customer.
         """
-        user_name_clean = user_name.strip() or "Valued Customer"
+        user_name_clean = _h((user_name or "").strip() or "Valued Customer")
+        txn_id = _h(txn_id)
         status_clean = str(status).strip().capitalize()
         status_color = "#10b981" if status_clean == "Completed" else ("#f59e0b" if status_clean == "Pending" else "#ef4444")
         
@@ -878,7 +912,7 @@ AI Data Analyst Pro Support Team
 
     def send_payment_received_email(self, to_email: str, user_name: str) -> bool:
         subject = "Payment Received - Under Review | AI Data Analyst Pro"
-        name = user_name or "Valued Customer"
+        name = _h(user_name or "Valued Customer")
         plain_text = f"Hello {name},\n\nWe received your payment proof (PKR 1,499). Our team is verifying it now - your Pro dashboard (500 MB upload access) will be activated as soon as it's approved.\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
@@ -895,6 +929,7 @@ AI Data Analyst Pro Support Team
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
     def send_admin_new_payment_alert_email(self, admin_email: str, user_name: str, user_email: str, amount: float, txn_id: str) -> bool:
+        user_name, user_email, txn_id = _h(user_name), _h(user_email), _h(txn_id)
         subject = f"New Payment Submitted by {user_name} - Review Needed"
         plain_text = f"{user_name} ({user_email}) submitted a payment of PKR {amount:,.2f} (Txn: {txn_id}). Please review it in the Super Admin panel."
         body = f"""
@@ -912,10 +947,12 @@ AI Data Analyst Pro Support Team
         html_body = self._wrap_branded_email("Action Needed", "#f59e0b", "New Payment Submitted", body)
         return self._send_email_async(admin_email, subject, html_body, plain_text)
 
-    def send_payment_approved_email(self, to_email: str, user_name: str, start_date: str, end_date: str) -> bool:
-        subject = "Your Dashboard is Active! - AI Data Analyst Pro"
-        name = user_name or "Valued Customer"
-        plain_text = f"Hello {name},\n\nYour payment has been approved! Your dashboard has been enabled and all functionality is now accessible.\n\nSubscription: {start_date} to {end_date}\n\nLog in: access your dashboard now.\n\nAI Data Analyst Pro Team"
+    def send_payment_approved_email(self, to_email: str, user_name: str, start_date: str, end_date: str,
+                                    invoice_url: str = None, invoice_number: str = None, wait: bool = False) -> bool:
+        subject = "Payment approved: your Pro plan is active - AI Data Analyst Pro"
+        name = _h(user_name or "Valued Customer")
+        invoice_line = f"\n\nInvoice {invoice_number}: {invoice_url}" if invoice_url else ""
+        plain_text = f"Hello {name},\n\nYour payment has been approved and your Pro plan is active.\n\nPlan period: {start_date} to {end_date}{invoice_line}\n\nLog in: {public_base_url()}/auth/login\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
@@ -923,20 +960,44 @@ AI Data Analyst Pro Support Team
             </p>
             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; margin-bottom: 24px;">
                 <tr><td style="padding: 16px; font-size: 14px; color: #166534; line-height: 1.8;">
-                    <strong>Subscription Period:</strong> {start_date} to {end_date}
+                    <strong>Plan period:</strong> {_h(start_date)} to {_h(end_date)}
                 </td></tr>
             </table>
+            {f'<p style="margin: 0 0 20px 0; font-size: 14px; color: #525252;">Your invoice {_h(invoice_number)} is ready: <a href="{_h(invoice_url)}" style="color: #0a0a0a; font-weight: 700;">download the PDF invoice</a> (sign in first if asked).</p>' if invoice_url else ''}
             <div style="text-align: center;">
                 <a href="{public_base_url()}/auth/login" style="background: #0a0a0a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Log In to Your Dashboard</a>
             </div>
         """
-        html_body = self._wrap_branded_email("Approved", "#10b981", "Your Dashboard is Active!", body)
+        html_body = self._wrap_branded_email("Approved", "#10b981", "Payment approved", body)
+        return self._send_email_async(to_email, subject, html_body, plain_text, wait=wait)
+
+    def send_welcome_email(self, to_email: str, user_name: str, via_google: bool = False) -> bool:
+        """Sent once the account is usable: after email verification, or a Google sign-up."""
+        subject = "Welcome to AI Data Analyst Pro"
+        name = _h(user_name or "there")
+        how = "with Google" if via_google else "with your email and password"
+        plain_text = (f"Hello {name},\n\nYour free account is ready. Sign in {how} at {public_base_url()}/auth/login\n\n"
+                      f"Free plan: files under 1 MB. Pro (PKR 1,499 for 30 days): files up to 500 MB.\n\n"
+                      f"Questions: {support_email()}\n\nAI Data Analyst Pro Team")
+        body = f"""
+            <p style="margin: 0 0 18px 0; font-size: 15px; line-height: 1.6; color: #525252;">
+                Hello <strong>{name}</strong>,<br><br>
+                Your free account is ready. Upload a dataset and ask questions about it in plain language.
+            </p>
+            <p style="margin: 0 0 22px 0; font-size: 14px; line-height: 1.6; color: #525252;">
+                Free plan: files under 1 MB. Pro (PKR 1,499 for 30 days): files up to 500 MB.
+            </p>
+            <div style="text-align: center;">
+                <a href="{public_base_url()}/dashboard" style="background: #0a0a0a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">Open your dashboard</a>
+            </div>
+        """
+        html_body = self._wrap_branded_email("Welcome", "#0a0a0a", "Your account is ready", body)
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
-    def send_payment_rejected_email(self, to_email: str, user_name: str, reason: str) -> bool:
+    def send_payment_rejected_email(self, to_email: str, user_name: str, reason: str, wait: bool = False) -> bool:
         subject = "Payment Verification Issue - Action Needed"
-        name = user_name or "Valued Customer"
-        reason_clean = reason or "Payment could not be verified."
+        name = _h(user_name or "Valued Customer")
+        reason_clean = _h(reason or "Payment could not be verified.")
         plain_text = f"Hello {name},\n\nYour payment submission could not be approved.\n\nReason: {reason_clean}\n\nPlease upload a new payment screenshot to try again.\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
@@ -949,10 +1010,10 @@ AI Data Analyst Pro Support Team
             <p style="margin: 0; font-size: 14px; color: #525252;">Please upload a new, clear payment screenshot with the correct details to try again.</p>
         """
         html_body = self._wrap_branded_email("Action Needed", "#ef4444", "Payment Verification Issue", body)
-        return self._send_email_async(to_email, subject, html_body, plain_text)
+        return self._send_email_async(to_email, subject, html_body, plain_text, wait=wait)
 
     def send_subscription_reminder_email(self, to_email: str, user_name: str, due_date: str, days_left: int) -> bool:
-        name = user_name or "Valued Customer"
+        name = _h(user_name or "Valued Customer")
         when = "today" if days_left <= 0 else f"in {days_left} day(s)"
         subject = f"Reminder: Your Subscription is Due {when}"
         plain_text = f"Hello {name},\n\nYour monthly subscription of PKR 1,499 is due on {due_date}. Please pay and upload your screenshot to keep your 500 MB Pro access.\n\nAI Data Analyst Pro Team"
@@ -985,21 +1046,24 @@ AI Data Analyst Pro Support Team
         html_body = self._wrap_branded_email("Plan ended", "#0a0a0a", "Your Pro plan has ended", body)
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
-    def send_subscription_renewed_email(self, to_email: str, user_name: str, start_date: str, end_date: str) -> bool:
-        name = user_name or "Valued Customer"
+    def send_subscription_renewed_email(self, to_email: str, user_name: str, start_date: str, end_date: str, wait: bool = False,
+                                        invoice_url: str = None, invoice_number: str = None) -> bool:
+        name = _h(user_name or "Valued Customer")
         subject = "Subscription Renewed - Dashboard Re-activated"
-        plain_text = f"Hello {name},\n\nYour subscription has been renewed and your dashboard is active again.\n\nNew period: {start_date} to {end_date}\n\nAI Data Analyst Pro Team"
+        invoice_line = f"\n\nInvoice {invoice_number}: {invoice_url}" if invoice_url else ""
+        plain_text = f"Hello {name},\n\nYour subscription has been renewed and your dashboard is active again.\n\nNew period: {start_date} to {end_date}{invoice_line}\n\nAI Data Analyst Pro Team"
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
                 Your renewal payment has been approved! Your dashboard is active again.
             </p>
             <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;">
-                <tr><td style="padding: 16px; font-size: 14px; color: #166534;"><strong>New Subscription Period:</strong> {start_date} to {end_date}</td></tr>
+                <tr><td style="padding: 16px; font-size: 14px; color: #166534;"><strong>New Subscription Period:</strong> {_h(start_date)} to {_h(end_date)}</td></tr>
             </table>
+            {f'<p style="margin: 20px 0 0 0; font-size: 14px; color: #525252;">Your invoice {_h(invoice_number)} is ready: <a href="{_h(invoice_url)}" style="color: #0a0a0a; font-weight: 700;">download the PDF invoice</a> (sign in first if asked).</p>' if invoice_url else ''}
         """
         html_body = self._wrap_branded_email("Renewed", "#10b981", "Subscription Renewed", body)
-        return self._send_email_async(to_email, subject, html_body, plain_text)
+        return self._send_email_async(to_email, subject, html_body, plain_text, wait=wait)
 
 
 # Singleton Instance

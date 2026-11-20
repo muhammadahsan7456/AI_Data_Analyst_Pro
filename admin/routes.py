@@ -1,3 +1,4 @@
+import os
 import time
 import secrets
 import math
@@ -1118,90 +1119,42 @@ def export_payments_admin(format_type):
 @admin_bp.route("/payment/invoice/<int:payment_id>")
 @admin_required
 def view_payment_invoice(payment_id):
-    """
-    Render Printable Billing Invoice Receipt for a payment record.
-    """
+    """On-screen numbered invoice (approved payments) or payment record (others)."""
+    from utils.invoices import load_invoice
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ?
-            """, (payment_id,))
-            p = cursor.fetchone()
-
-        if not p:
-            flash("Invoice not found.", "error")
-            return redirect(url_for("admin.manage_payments"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        return render_template("admin/invoice.html", payment=payment_dict)
-    except Exception as e:
-        print("View Invoice Error:", e)
-        flash(f"Failed to load invoice: {str(e)}", "error")
+        inv = load_invoice(payment_id)
+    except Exception:
+        logger.exception("Loading invoice for payment #%s failed", payment_id)
+        flash("The invoice could not be loaded. The error was logged on the server.", "error")
         return redirect(url_for("admin.manage_payments"))
+    if not inv:
+        flash("Invoice not found.", "error")
+        return redirect(url_for("admin.manage_payments"))
+    return render_template("admin/invoice.html", payment=inv)
 
 
 @admin_bp.route("/payment/invoice/<int:payment_id>/download")
 @admin_required
 def download_payment_invoice(payment_id):
-    """
-    Generate a real PDF file for this invoice and send it as a download - separate from
-    the on-screen invoice page's Print button, which only opens the browser's print
-    dialog and never actually produces a saved file.
-    """
+    """PDF invoice download for an approved payment (any user's), for the Super Admin."""
     from utils.exporters import export_invoice_to_pdf
-
+    from utils.invoices import load_invoice, invoice_filename
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ?
-            """, (payment_id,))
-            p = cursor.fetchone()
-
-        if not p:
+        inv = load_invoice(payment_id)
+        if not inv:
             flash("Invoice not found.", "error")
             return redirect(url_for("admin.manage_payments"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        pdf_bytes = export_invoice_to_pdf(payment_dict)
-        filename = f"Invoice_{payment_dict['txn_id']}.pdf"
-        log_audit_event("ADMIN_DOWNLOAD_INVOICE", f"Downloaded invoice PDF for PaymentID {payment_id}", user_id=session.get("admin_user_id") or session.get("user_id"))
-        return Response(pdf_bytes, mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
-    except Exception as e:
-        print("Download Invoice Error:", e)
-        flash(f"Failed to generate invoice PDF: {str(e)}", "error")
+        if not inv["has_invoice"]:
+            flash("An invoice is issued only after the payment is approved.", "warning")
+            return redirect(url_for("admin.view_payment_invoice", payment_id=payment_id))
+        pdf_bytes = export_invoice_to_pdf(inv)
+    except Exception:
+        logger.exception("Generating invoice PDF for payment #%s failed", payment_id)
+        flash("The invoice PDF could not be generated. The error was logged on the server.", "error")
         return redirect(url_for("admin.manage_payments"))
+    log_audit_event("ADMIN_DOWNLOAD_INVOICE", f"Downloaded invoice {inv['invoice_number']} (PaymentID {payment_id})", user_id=session.get("admin_user_id"))
+    return Response(pdf_bytes, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{invoice_filename(inv)}"', "Cache-Control": "no-store"})
 
 
 @admin_bp.route("/payment/update-status/<int:payment_id>", methods=["POST"])
@@ -1234,7 +1187,7 @@ def update_payment_status(payment_id):
 
         with get_db_cursor() as cursor:
             cursor.execute(
-                "SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.TransactionID, P.PlanName, U.SubscriptionStatus, U.SubscriptionEndDate FROM Payments P LEFT JOIN Users U ON P.UserID = U.UserID WHERE P.PaymentID = ?",
+                "SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.TransactionID, P.PlanName, U.SubscriptionStatus, U.SubscriptionEndDate, P.Status FROM Payments P LEFT JOIN Users U ON P.UserID = U.UserID WHERE P.PaymentID = ?",
                 (payment_id,)
             )
             p_row = cursor.fetchone()
@@ -1243,8 +1196,18 @@ def update_payment_status(payment_id):
             flash("Payment not found.", "error")
             return redirect(url_for("admin.manage_payments"))
 
-        _, u_id, u_name, u_email, p_amount, txn_id, plan_name, cur_sub_status, cur_sub_end = p_row
+        _, u_id, u_name, u_email, p_amount, txn_id, plan_name, cur_sub_status, cur_sub_end, cur_pay_status = p_row
         p_amount = float(p_amount or 0.0)
+        if isinstance(cur_sub_end, str):
+            try:
+                cur_sub_end = datetime.fromisoformat(cur_sub_end.strip().replace("T", " ")[:19])
+            except ValueError:
+                cur_sub_end = None
+
+        if new_status == "Completed" and cur_pay_status == "Completed":
+            # A second approval would extend the plan again and issue a second period.
+            flash(f"Payment #{payment_id} is already approved; nothing was changed.", "info")
+            return redirect(url_for("admin.manage_payments"))
 
         if new_status == "Completed":
             if p_amount < 1499.0:
@@ -1259,6 +1222,8 @@ def update_payment_status(payment_id):
                 and cur_sub_end > datetime.now()
             )
 
+            from utils.invoices import record_invoice_on_approval, _to_date
+            period_start = cur_sub_end.date() if renewing_early else datetime.now().date()
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(approve_payment_admin(), (admin_id, payment_id))
                 if renewing_early:
@@ -1267,47 +1232,58 @@ def update_payment_status(payment_id):
                     cursor.execute(activate_user_new_subscription(), (u_id,))
                 cursor.execute("UPDATE Users SET IsVerified = 1 WHERE UserID = ?", (u_id,))
                 cursor.execute("SELECT SubscriptionEndDate FROM Users WHERE UserID = ?", (u_id,))
-                new_end_date = cursor.fetchone()[0]
+                new_end_date = _to_date(cursor.fetchone()[0])
+                invoice_no = record_invoice_on_approval(cursor, payment_id, period_start, new_end_date)
 
-            start_label = datetime.now().strftime("%d %b %Y")
-            if isinstance(new_end_date, str):
-                    new_end_date = datetime.fromisoformat(new_end_date)
+            start_label = period_start.strftime("%d %b %Y")
             end_label = new_end_date.strftime("%d %b %Y") if new_end_date else "N/A"
 
+            mail_ok = None
             if u_email:
                 try:
                     from auth.email_service import EmailService
+                    from utils.public_url import external_url
                     es = EmailService()
+                    invoice_url = external_url("frontend.download_receipt_pdf", payment_id=payment_id)
                     if renewing_early or cur_sub_status == "suspended":
-                        es.send_subscription_renewed_email(u_email, u_name or "Valued Customer", start_label, end_label)
+                        mail_ok = es.send_subscription_renewed_email(u_email, u_name or "Valued Customer", start_label, end_label,
+                                                                     wait=True, invoice_url=invoice_url, invoice_number=invoice_no)
                     else:
-                        es.send_payment_approved_email(u_email, u_name or "Valued Customer", start_label, end_label)
-                except Exception as mail_err:
-                    print("Payment Approval Email Notice:", mail_err)
+                        mail_ok = es.send_payment_approved_email(u_email, u_name or "Valued Customer", start_label, end_label,
+                                                                 invoice_url=invoice_url, invoice_number=invoice_no, wait=True)
+                except Exception:
+                    logger.exception("Payment approval email failed for payment #%s", payment_id)
+                    mail_ok = False
 
             try:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(
                         create_ai_notification(),
                         (u_id, "payment_approved", "Dashboard Activated!",
-                         f"Your payment has been approved. Your dashboard is active from {start_label} to {end_label}.", None)
+                         f"Your payment has been approved. Your dashboard is active from {start_label} to {end_label}. Invoice {invoice_no} is in Receipts.", None)
                     )
             except Exception:
-                pass
+                logger.exception("In-app approval notice failed for user #%s", u_id)
 
-            flash(f"Payment #{payment_id} approved. {escape(u_name or 'User')}'s dashboard is now active until {end_label}.", "success")
+            flash(f"Payment #{payment_id} approved. {escape(u_name or 'User')}'s Pro plan runs {start_label} to {end_label}. Invoice {invoice_no} issued.", "success")
+            if mail_ok is False:
+                flash("The approval email could NOT be sent (the failure is in the server log and audit log). The user will still see the approval and invoice in the app.", "warning")
+            elif mail_ok is None:
+                flash("This user has no email address on file, so no approval email was sent.", "warning")
 
         elif new_status in ("Rejected", "Failed"):
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(reject_payment_admin(), (reason, admin_id, payment_id))
                 cursor.execute(set_user_rejected(), (reason, u_id))
 
+            mail_ok = None
             if u_email:
                 try:
                     from auth.email_service import EmailService
-                    EmailService().send_payment_rejected_email(u_email, u_name or "Valued Customer", reason)
-                except Exception as mail_err:
-                    print("Payment Rejection Email Notice:", mail_err)
+                    mail_ok = EmailService().send_payment_rejected_email(u_email, u_name or "Valued Customer", reason, wait=True)
+                except Exception:
+                    logger.exception("Payment rejection email failed for payment #%s", payment_id)
+                    mail_ok = False
 
             try:
                 with get_db_cursor(commit=True) as cursor:
@@ -1317,9 +1293,12 @@ def update_payment_status(payment_id):
                          f"Your payment could not be approved. Reason: {reason}. Please upload a new screenshot to try again.", None)
                     )
             except Exception:
-                pass
+                logger.exception("In-app rejection notice failed for user #%s", u_id)
 
-            flash(f"Payment #{payment_id} rejected and {escape(u_name or 'User')} has been notified with the reason.", "success")
+            if mail_ok:
+                flash(f"Payment #{payment_id} rejected and {escape(u_name or 'User')} was emailed the reason.", "success")
+            else:
+                flash(f"Payment #{payment_id} rejected. The rejection email could NOT be sent; the user sees the reason in the app only.", "warning")
 
         else:
             with get_db_cursor(commit=True) as cursor:
@@ -1483,6 +1462,23 @@ def settings():
         "request_total": req_stats["total"],
         "request_errors": req_stats["errors"],
     }
+    # Configuration checks (presence only: no secret value is read into the page).
+    try:
+        import shutil
+        from utils.public_url import check_public_base_url_config
+        from auth.email_service import EmailService
+        usage = shutil.disk_usage(os.path.abspath("."))
+        infra_health["disk_free_gb"] = round(usage.free / 1024 ** 3, 1)
+        infra_health["disk_used_pct"] = round(100 * usage.used / usage.total)
+        infra_health["config_warnings"] = (
+            check_public_base_url_config(logging.getLogger("admin.health"))
+            + EmailService().config_problems()
+            + ([] if os.getenv("DATASET_ENCRYPTION_KEY") else ["DATASET_ENCRYPTION_KEY is not set: uploads are refused."])
+            + ([] if os.getenv("FORCE_SECURE_COOKIES", "").lower() == "true" else ["FORCE_SECURE_COOKIES is not true: cookies are not marked Secure and HSTS is off."])
+        )
+    except Exception:
+        logger.exception("Configuration health check failed")
+        infra_health.setdefault("config_warnings", ["The configuration check itself failed; see the server log."])
 
     return render_template("admin/settings.html", announcement=fetch_site_announcement(), payment_settings=_get_payment_settings_dict(), infra_health=infra_health)
 
@@ -1757,19 +1753,25 @@ def reply_contact_message(message_id):
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(save_contact_message_reply(), (reply_text, message_id))
 
+        sent = False
         if email:
             from auth.email_service import EmailService
             email_service = EmailService()
-            email_service.send_contact_reply_email(
+            sent = email_service.send_contact_reply_email(
                 to_email=email,
                 user_name=full_name or "Valued Customer",
                 original_subject=subject or "Your Inquiry",
                 original_message=original_message or "",
-                admin_reply=reply_text
+                admin_reply=reply_text,
+                wait=True,
             )
 
-        log_audit_event("ADMIN_CONTACT_MESSAGE_REPLIED", f"Replied to contact message #{message_id} from {email}", user_id=admin_id)
-        flash(f"Reply sent successfully to {escape(email or 'the customer')}!", "success")
+        log_audit_event("ADMIN_CONTACT_MESSAGE_REPLIED" if sent else "ADMIN_CONTACT_REPLY_NOT_SENT",
+                        f"Reply to contact message #{message_id} ({'emailed' if sent else 'saved, email not sent'})", user_id=admin_id)
+        if sent:
+            flash(f"Reply sent to {escape(email)}.", "success")
+        else:
+            flash("The reply was saved, but the email could NOT be sent" + ("" if email else " (no email address on the message)") + ". Check the SMTP settings and server log, then try again.", "warning")
     except Exception as e:
         print("Reply Contact Message Error:", e)
         flash(f"Failed to send reply: {str(e)}", "error")

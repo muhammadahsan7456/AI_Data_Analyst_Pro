@@ -189,8 +189,13 @@
                             </button>
                             {% endif %}
                             <a href="{{ url_for('admin.view_payment_invoice', payment_id=p.id) }}" class="btn btn-sm" style="background: rgba(128, 128, 128, 0.15); border: 1px solid rgba(128, 128, 128, 0.4); color: var(--accent-blue); padding: 5px 10px; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 8px;" title="View Billing Receipt">
-                                <i class="fa-solid fa-file-invoice"></i> Receipt
+                                <i class="fa-solid fa-file-invoice"></i> {% if p.status == 'Completed' %}Invoice{% else %}Record{% endif %}
                             </a>
+                            {% if p.status == 'Completed' %}
+                            <a href="{{ url_for('admin.download_payment_invoice', payment_id=p.id) }}" class="btn btn-sm" style="border: 1px solid var(--border-color); padding: 5px 10px; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 8px;" title="Download PDF invoice">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </a>
+                            {% endif %}
                             <form method="POST" action="{{ url_for('admin.update_payment_status', payment_id=p.id) }}" style="display: inline-block; margin: 0;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <select name="status" class="admin-select-filter" style="padding: 4px 8px; font-size: 12px; font-weight: 700;" onchange="this.value === 'Rejected' ? document.getElementById('reject-modal-{{ p.id }}').style.display='flex' : this.form.submit()">
                                     <option value="Completed" {% if p.status == 'Completed' %}selected{% endif %}>Completed</option>

@@ -452,6 +452,28 @@
             </div>
         </div>
 
+        <!-- Disk space and configuration checks -->
+        <div class="health-status-row" style="margin-top: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-hard-drive" style="font-size: 18px;"></i>
+                <div>
+                    <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Disk space (app volume)</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Uploads, logs and backups share this disk</div>
+                </div>
+            </div>
+            <span class="badge-status {% if infra_health.disk_free_gb is defined and infra_health.disk_free_gb >= 5 %}badge-active{% endif %}">{% if infra_health.disk_free_gb is defined %}{{ infra_health.disk_free_gb }} GB free · {{ infra_health.disk_used_pct }}% used{% else %}unknown{% endif %}</span>
+        </div>
+        <div class="health-status-row" style="margin-top: 14px; display: block;">
+            <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 6px;">Configuration checks</div>
+            {% if infra_health.config_warnings %}
+            <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-primary);">
+                {% for w in infra_health.config_warnings %}<li style="margin-bottom: 4px;">{{ w }}</li>{% endfor %}
+            </ul>
+            {% else %}
+            <div style="font-size: 13px; color: var(--text-secondary);">PUBLIC_BASE_URL, email sender, encryption key and secure cookies are configured.</div>
+            {% endif %}
+        </div>
+
         <!-- Quick Environment Summary Box -->
         <div style="margin-top: 24px; padding: 16px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">

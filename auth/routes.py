@@ -550,6 +550,7 @@ def verify_otp():
 
                 log_audit_event("VERIFY_OTP_SUCCESS", "Account verified successfully via 6-digit OTP.", user_id=user_id)
                 trigger_ai_event(user_id, build_email_verified_card(full_name))
+                _send_welcome(user_id, full_name)
                 session.pop("pending_otp", None)
 
                 session["toast"] = {
@@ -697,6 +698,7 @@ def verify_email(token):
 
         log_audit_event("VERIFY_EMAIL", "Email verified successfully.", user_id=user_id)
         trigger_ai_event(user_id, build_email_verified_card(user_name))
+        _send_welcome(user_id, user_name)
         flash("Your email address has been verified successfully! You can now log in.", "success")
     except Exception:
         logger.exception("Email verification failed for user_id=%s.", user_id)
@@ -1076,12 +1078,26 @@ def google_callback():
     _start_google_session(new_user_id, full_name, username, email, "Analyst", picture)
     log_login_attempt(new_user_id, "Success")
     log_audit_event("SIGNUP_GOOGLE", f"New account created via Google ({email}).", user_id=new_user_id)
+    _send_welcome(new_user_id, full_name, via_google=True)
     try:
         trigger_ai_event(new_user_id, build_email_verified_card(full_name))
     except Exception:
         logger.exception("Welcome card failed after Google sign-up.")
     flash(f"Welcome to AI Data Analyst Pro, {escape(full_name)}. Your free account is ready.", "success")
     return _post_login_redirect(new_user_id)
+
+
+def _send_welcome(user_id, name, via_google=False):
+    """Welcome email once the account is usable. Background send; failures are logged
+    and written to AuditLogs (EMAIL_SEND_FAILED) by EmailService, never shown as success."""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(get_user_by_id(), (user_id,))
+            row = cursor.fetchone()
+        if row and row[5]:
+            EmailService().send_welcome_email(row[5], name or row[4] or row[3], via_google=via_google)
+    except Exception:
+        logger.exception("Welcome email could not be queued for user_id=%s.", user_id)
 
 
 # ==========================================

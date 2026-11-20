@@ -94,5 +94,5 @@ def check_public_base_url_config(log=None):
             log.error("!!! CONFIG WARNING: %s", msg)
         else:
             log.warning("CONFIG WARNING: %s", msg)
-        print(f"[CONFIG WARNING] {msg}")
+        print("=" * 78 + f"\n[CONFIG WARNING] {msg}\n" + "=" * 78)
     return problems

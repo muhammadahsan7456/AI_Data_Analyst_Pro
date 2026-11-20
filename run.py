@@ -67,6 +67,13 @@ if _proxy_count > 0:
 import logging as _logging
 from utils.public_url import check_public_base_url_config
 check_public_base_url_config(_logging.getLogger("startup"))
+try:
+    from auth.email_service import EmailService as _ES
+    for _msg in _ES().config_problems():
+        _logging.getLogger("startup").error("!!! EMAIL CONFIG WARNING: %s", _msg)
+        print(f"[EMAIL CONFIG WARNING] {_msg}")
+except Exception:
+    _logging.getLogger("startup").exception("Email configuration check failed")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
 # Hard request-body ceiling. Set a few MB above the 500 MB file-size limit the upload

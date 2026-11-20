@@ -707,6 +707,9 @@ def init_sqlite_db(conn):
         ("RejectionReason", "TEXT"),
         ("ReviewedBy", "INTEGER"),
         ("ReviewedAt", "TEXT"),
+        ("InvoiceNumber", "TEXT"),
+        ("PeriodStart", "TEXT"),
+        ("PeriodEnd", "TEXT"),
     ):
         if column not in payment_cols:
             cursor.execute(f"ALTER TABLE Payments ADD COLUMN {column} {definition}")
@@ -1174,6 +1177,22 @@ def init_db():
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ReviewedAt')
     BEGIN
         ALTER TABLE Payments ADD ReviewedAt DATETIME2 NULL;
+    END;
+
+    -- R-Phase 9.6: numbered invoice + plan period stored at approval (additive, nullable).
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'InvoiceNumber')
+    BEGIN
+        ALTER TABLE Payments ADD InvoiceNumber NVARCHAR(40) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PeriodStart')
+    BEGIN
+        ALTER TABLE Payments ADD PeriodStart DATE NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PeriodEnd')
+    BEGIN
+        ALTER TABLE Payments ADD PeriodEnd DATE NULL;
     END;
 
     IF OBJECT_ID('PaymentSettings', 'U') IS NULL
