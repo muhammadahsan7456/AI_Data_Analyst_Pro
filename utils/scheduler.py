@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from database.connection import get_db_cursor
 from database.queries import (
     get_due_scheduled_reports, update_scheduled_report_last_run,
-    auto_suspend_overdue_users, get_users_due_on_date,
+    get_lapsed_pro_users, revert_user_to_free, AUTO_EXPIRY_REASON, get_users_due_on_date,
     has_reminder_been_sent, log_reminder_sent, create_ai_notification,
     get_datasets_due_for_insight_scan, mark_dataset_insight_scanned
 )
@@ -104,7 +104,7 @@ def process_subscription_expiry_sweep():
 
       1. Reminder 3 days before the due date.
       2. Reminder on the due date itself.
-      3. Auto-suspend anyone whose due date has passed without a renewed payment.
+      3. Return anyone whose Pro period has ended to the Free plan (data kept).
 
     Reminders are logged in ReminderLog (UNIQUE on user+type+due-date) so re-running
     this within the same day - or even the same minute, since the scheduler tick is
@@ -148,29 +148,39 @@ def process_subscription_expiry_sweep():
             except Exception as err:
                 print(f"[SCHEDULER ENGINE] Reminder send error ({reminder_type}, user {u_id}):", err)
 
-    # 3: auto-suspend anyone past due (bulk UPDATE, OUTPUT gives back who got hit so
-    # they can be emailed/notified without a second SELECT).
+    # 3: Pro period over -> back to the Free plan (R-Phase 9.3). Select first, then a
+    # guarded per-user UPDATE: portable to SQLite (the old UPDATE ... OUTPUT INSERTED.*
+    # was SQL Server-only and failed every tick with 'near ".": syntax error'), and
+    # only users whose row actually changed are emailed.
     try:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(auto_suspend_overdue_users())
-            suspended_users = cursor.fetchall() or []
+        with get_db_cursor() as cursor:
+            cursor.execute(get_lapsed_pro_users(), (AUTO_EXPIRY_REASON,))
+            lapsed = cursor.fetchall() or []
     except Exception as err:
-        print("[SCHEDULER ENGINE] Auto-suspend error:", err)
-        suspended_users = []
+        print("[SCHEDULER ENGINE] Plan-expiry lookup error:", err)
+        lapsed = []
 
-    for u_id, full_name, email in suspended_users:
+    for u_id, full_name, email, old_status, reason in lapsed:
         try:
-            if email:
-                email_service.send_subscription_suspended_email(email, full_name or "Valued Customer")
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(
-                    create_ai_notification(),
-                    (u_id, "subscription_suspended", "Dashboard Suspended",
-                     "Your Pro subscription has expired. Please pay PKR 1,499 and upload the screenshot to re-activate 500 MB upload access.", None)
-                )
-            print(f"[SCHEDULER ENGINE] Auto-suspended user #{u_id} ({email}) - subscription expired.")
+                cursor.execute(revert_user_to_free(), (u_id, AUTO_EXPIRY_REASON))
+                changed = getattr(cursor, "rowcount", 1)
+                if changed == 0:
+                    continue
+                # Legacy rows the old sweep already marked 'suspended' were emailed back
+                # then; they are moved to Free quietly.
+                if old_status != "suspended":
+                    cursor.execute(
+                        create_ai_notification(),
+                        (u_id, "subscription_expired", "Pro plan ended",
+                         "Your 30-day Pro plan has ended and your account is back on the Free plan (uploads under 1 MB). Your datasets are kept. Renew Pro (PKR 1,499) any time for uploads up to 500 MB.", None)
+                    )
+            if old_status != "suspended" and email:
+                if not email_service.send_subscription_suspended_email(email, full_name or "Valued Customer"):
+                    print(f"[SCHEDULER ENGINE] Plan-expired email FAILED for user #{u_id}.")
+            print(f"[SCHEDULER ENGINE] User #{u_id}: Pro plan ended, now on Free.")
         except Exception as err:
-            print(f"[SCHEDULER ENGINE] Suspension notification error (user {u_id}):", err)
+            print(f"[SCHEDULER ENGINE] Plan-expiry error (user {u_id}):", err)
 
 
 def process_proactive_insights_scan():

@@ -2,7 +2,7 @@
 
 {% block seo_meta %}
 <title>Enterprise Security — AI Data Analyst Pro | Encrypted dataset storage & Data Protection</title>
-<meta name="description" content="AI Data Analyst Pro provides bank-grade security: encrypted dataset storage, 1-hour inactivity timeouts, row-level user data isolation, and automated audit logging.">
+<meta name="description" content="AI Data Analyst Pro provides layered security: encrypted dataset storage, 1-hour inactivity timeouts, row-level user data isolation, and automated audit logging.">
 <link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
@@ -16,7 +16,7 @@
         <div class="section-header reveal">
             <div class="section-badge"><i class="fa-solid fa-shield-halved"></i> Enterprise Security</div>
             <h1 class="section-title" style="font-size: clamp(28px, 4.5vw, 48px);">100% Data Protection & <span class="gradient-text">Compliance</span></h1>
-            <p class="section-subtitle">Your enterprise data is protected with bank-grade encryption, strict access controls, and comprehensive audit logging.</p>
+            <p class="section-subtitle">Your enterprise data is protected with per-dataset encryption, strict access controls, and comprehensive audit logging.</p>
         </div>
 
         <div class="security-grid stagger-children">
@@ -38,7 +38,7 @@
                 <div class="security-icon icon-cyan"><i class="fa-solid fa-key"></i></div>
                 <div>
                     <h3 class="security-card-title">Encrypted dataset storage</h3>
-                    <p class="security-card-desc">Every dataset's rows are encrypted with AES-256-GCM under a key unique to that dataset before they reach the database, shielding customer records from direct SQL inspection even by database administrators.</p>
+                    <p class="security-card-desc">Every dataset's rows are encrypted with AES-256-GCM under a key unique to that dataset before they reach the database, shielding customer records from direct SQL inspection, database backups and the admin console. The server must decrypt a dataset in memory to answer your questions, so anyone who controls both the server and its master key could technically read it; the master key is kept outside the database and backed up separately.</p>
                 </div>
             </div>
             <div class="security-card reveal">

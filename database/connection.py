@@ -224,6 +224,11 @@ class SQLiteCursorAdapter:
         self._cursor.executemany(s, seq_of_parameters or ())
         return self
 
+    @property
+    def rowcount(self):
+        """Rows changed by the last UPDATE/DELETE (pyodbc-compatible)."""
+        return self._cursor.rowcount
+
     def fetchone(self):
         res = self._cursor.fetchone()
         if res is None and self.last_inserted_id is not None:

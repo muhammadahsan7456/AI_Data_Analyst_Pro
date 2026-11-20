@@ -1156,21 +1156,53 @@ def set_user_rejected():
     """
 
 
-def auto_suspend_overdue_users():
+AUTO_EXPIRY_REASON = "Subscription period expired without a renewed payment."
+
+
+def get_lapsed_pro_users():
     """
-    Bulk sweep: any non-admin user whose subscription end date has passed and who is
-    still marked 'active' gets suspended. Runs as one statement so it's cheap even at
-    scale and safe to run repeatedly (idempotent - already-suspended rows are excluded).
+    Pro plans whose 30-day period has ended (portable: SQL Server + SQLite).
+    Returns (UserID, FullName, Email, SubscriptionStatus, SuspensionReason).
+    Includes rows the old sweep marked 'suspended' for expiry (still IsActive=1, reason
+    = AUTO_EXPIRY_REASON) so they also return to the Free plan. Rows an admin suspended
+    (IsActive=0) are never touched.
     """
     return """
-    UPDATE Users
-    SET SubscriptionStatus = 'suspended', SuspensionReason = 'Subscription period expired without a renewed payment.'
-    OUTPUT INSERTED.UserID, INSERTED.FullName, INSERTED.Email
-    WHERE SubscriptionStatus = 'active'
+    SELECT UserID, FullName, Email, SubscriptionStatus, SuspensionReason
+    FROM Users
+    WHERE IsActive = 1
+      AND Role NOT IN ('SuperAdmin', 'Admin')
       AND SubscriptionEndDate IS NOT NULL
       AND SubscriptionEndDate < GETDATE()
-      AND Role NOT IN ('SuperAdmin', 'Admin')
+      AND (
+            SubscriptionStatus IN ('active', 'expiring_soon', 'expired')
+         OR (SubscriptionStatus = 'suspended' AND SuspensionReason = ?)
+      )
     """
+
+
+def revert_user_to_free():
+    """Pro period over -> Free plan (1 MB uploads, full access, data kept). The status
+    guard makes it idempotent and safe against a renewal approved in the meantime.
+    Params: (UserID, AUTO_EXPIRY_REASON)."""
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'free', SuspensionReason = NULL, SuspendedAt = NULL
+    WHERE UserID = ?
+      AND IsActive = 1
+      AND SubscriptionEndDate < GETDATE()
+      AND (
+            SubscriptionStatus IN ('active', 'expiring_soon', 'expired')
+         OR (SubscriptionStatus = 'suspended' AND SuspensionReason = ?)
+      )
+    """
+
+
+def auto_suspend_overdue_users():
+    """Kept for backward compatibility; the scheduler now uses get_lapsed_pro_users() +
+    revert_user_to_free() (the old UPDATE ... OUTPUT form was SQL Server-only and
+    suspended users instead of returning them to Free)."""
+    return get_lapsed_pro_users()
 
 
 def get_users_due_on_date():

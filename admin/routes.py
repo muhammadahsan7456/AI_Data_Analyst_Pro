@@ -876,6 +876,68 @@ def delete_user(user_id):
     return redirect(url_for("admin.manage_users"))
 
 
+@admin_bp.route("/datasets")
+@admin_required
+def manage_datasets():
+    """
+    Dataset metadata for the Super Admin (R-Phase 9.3): name, owner, size, rows,
+    columns, upload date and whether its rows are in the encrypted vault. This page and
+    every other admin view/export NEVER read dataset rows: no run_query, no vault
+    decrypt - only the Datasets / Users / DatasetVaultMeta bookkeeping columns.
+    Filtered and paginated in the database.
+    """
+    q = request.args.get("q", "").strip().lower()[:100]
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    per_page = 25
+    where, params = "", []
+    if q:
+        where = "WHERE LOWER(D.OriginalFileName) LIKE ? OR LOWER(U.Email) LIKE ? OR LOWER(D.DatasetName) LIKE ?"
+        like = f"%{q}%"
+        params = [like, like, like]
+    rows, total, total_rows_all, total_kb_all = [], 0, 0, 0.0
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                f"SELECT COUNT(*), SUM(D.TotalRows), SUM(D.StorageSizeKB) FROM Datasets D LEFT JOIN Users U ON U.UserID = D.UserID {where}",
+                tuple(params),
+            )
+            r = cursor.fetchone() or (0, 0, 0)
+            total, total_rows_all, total_kb_all = int(r[0] or 0), int(r[1] or 0), float(r[2] or 0)
+            total_pages = max(1, math.ceil(total / per_page))
+            page = min(page, total_pages)
+            cursor.execute(
+                f"""SELECT D.DatasetID, D.DatasetName, D.OriginalFileName, D.FileType, D.TotalRows,
+                           D.TotalColumns, D.StorageSizeKB, D.UploadDate, U.UserID, U.Email, U.FullName
+                    FROM Datasets D LEFT JOIN Users U ON U.UserID = D.UserID
+                    {where}
+                    ORDER BY D.UploadDate DESC, D.DatasetID DESC
+                    OFFSET {(page - 1) * per_page} ROWS FETCH NEXT {per_page} ROWS ONLY""",
+                tuple(params),
+            )
+            raw = cursor.fetchall() or []
+            vaulted = set()
+            try:
+                cursor.execute("SELECT TableName FROM DatasetVaultMeta")
+                vaulted = {str(x[0]).lower() for x in cursor.fetchall() or []}
+            except Exception:
+                vaulted = set()  # vault table not created yet (no encrypted upload so far)
+        for d in raw:
+            rows.append({
+                "id": d[0], "table": d[1], "file": d[2], "type": d[3], "rows": int(d[4] or 0),
+                "cols": int(d[5] or 0), "size_kb": float(d[6] or 0), "uploaded": format_12hr_datetime(d[7]),
+                "owner_id": d[8], "owner_email": d[9] or "(deleted user)", "owner_name": d[10] or "",
+                "encrypted": str(d[1] or "").lower() in vaulted,
+            })
+    except Exception:
+        logger.exception("Admin dataset list failed.")
+        flash("Could not load the dataset list. Details are in the server log.", "error")
+        total_pages = 1
+    return render_template(
+        "admin/datasets.html", datasets=rows, total=total, page=page, total_pages=total_pages,
+        search_query=q, total_rows_all=total_rows_all, total_kb_all=total_kb_all,
+    )
+
+
 @admin_bp.route("/payments")
 @admin_required
 def manage_payments():

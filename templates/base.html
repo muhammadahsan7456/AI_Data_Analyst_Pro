@@ -175,7 +175,7 @@
         <!-- Main Content -->
         <main class="main-content {% if request.endpoint == 'frontend.dashboard' %}dashboard-workspace{% endif %}">
             {% if is_logged_in and subscription_info and subscription_info.show_banner %}
-            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}var(--mono-danger){% else %}var(--mono-warning){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}#f87171{% else %}#fb923c{% endif %};">
+            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' %}var(--mono-danger){% else %}var(--mono-warning){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' %}#f87171{% else %}#fb923c{% endif %};">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <i class="fa-solid {% if subscription_info.status == 'suspended' %}fa-ban{% elif subscription_info.status == 'expired' %}fa-triangle-exclamation{% else %}fa-clock{% endif %}" style="font-size: 20px; color: #fef08a;"></i>
                     <div>
@@ -275,7 +275,8 @@
             <h3>
                 {% if subscription_info.status == 'pending_approval' %}Payment Under Review
                 {% elif subscription_info.status == 'rejected' %}Payment Verification Issue
-                {% elif subscription_info.status in ('expired', 'suspended') %}Your Pro Plan Has Expired
+                {% elif subscription_info.status == 'expired' %}Your Pro Plan Has Ended
+                {% elif subscription_info.status == 'suspended' %}Account Suspended
                 {% else %}Your Pro Plan Is Ending Soon{% endif %}
             </h3>
             <p>{{ subscription_info.banner_message }}</p>

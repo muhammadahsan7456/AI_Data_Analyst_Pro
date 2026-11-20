@@ -966,16 +966,23 @@ AI Data Analyst Pro Support Team
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
     def send_subscription_suspended_email(self, to_email: str, user_name: str) -> bool:
-        name = user_name or "Valued Customer"
-        subject = "Your Dashboard Has Been Suspended"
-        plain_text = f"Hello {name},\n\nYour Pro subscription has expired. Please pay PKR 1,499 and upload the screenshot to re-activate 500 MB uploads.\n\nAI Data Analyst Pro Team"
+        """Plan-expired notice (name kept for existing callers): Pro ended, account is Free."""
+        from html import escape
+        name = escape(user_name or "Valued Customer")
+        renew = public_base_url() + "/subscription/renew"
+        subject = "Your Pro plan has ended - you're on the Free plan"
+        plain_text = (f"Hello {user_name or 'Valued Customer'},\n\nYour 30-day Pro plan has ended, so your account is back on the Free plan "
+                      f"(uploads under 1 MB). Your datasets and history are kept.\n\nRenew Pro (PKR 1,499 / 30 days) for uploads up to 500 MB: {renew}\n\nAI Data Analyst Pro Team")
         body = f"""
             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #525252;">
                 Hello <strong>{name}</strong>,<br><br>
-                Your Pro subscription has expired. Please pay <strong>PKR 1,499</strong> and upload the screenshot to re-activate your 500 MB Pro access.
+                Your 30-day Pro plan has ended, so your account is back on the <strong>Free plan</strong> (uploads under 1 MB).
+                Your datasets and history are kept.<br><br>
+                Renew Pro (<strong>PKR 1,499</strong> / 30 days) for uploads up to 500 MB:
+                <a href="{renew}" style="color:#0a0a0a;">{renew}</a>
             </p>
         """
-        html_body = self._wrap_branded_email("Suspended", "#ef4444", "Your Dashboard Has Been Suspended", body)
+        html_body = self._wrap_branded_email("Plan ended", "#0a0a0a", "Your Pro plan has ended", body)
         return self._send_email_async(to_email, subject, html_body, plain_text)
 
     def send_subscription_renewed_email(self, to_email: str, user_name: str, start_date: str, end_date: str) -> bool:

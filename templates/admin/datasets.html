@@ -1,0 +1,59 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Datasets - Super Admin Console{% endblock %}
+{% block header_title %}<i class="fa-solid fa-database"></i> Datasets (metadata only){% endblock %}
+
+{% block content %}
+<div class="admin-card-box" style="margin-bottom: 16px;">
+    <p style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+        This console shows dataset <strong>metadata only</strong>: file name, owner, size, row and column counts, and upload date.
+        Row contents are stored encrypted (AES-256-GCM, one key per dataset, wrapped by the server master key) and are never shown,
+        returned or exported here. The application decrypts a dataset in memory only to answer its owner's own requests.
+    </p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+    <div class="admin-card-box"><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Datasets</div><div class="mono-num" style="font-size: 26px; font-weight: 800;">{{ total }}</div></div>
+    <div class="admin-card-box"><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Total rows</div><div class="mono-num" style="font-size: 26px; font-weight: 800;">{{ "{:,}".format(total_rows_all) }}</div></div>
+    <div class="admin-card-box"><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Storage</div><div class="mono-num" style="font-size: 26px; font-weight: 800;">{{ "%.1f"|format(total_kb_all / 1024) }} MB</div></div>
+</div>
+
+<div class="admin-card-box">
+    <form method="GET" action="{{ url_for('admin.manage_datasets') }}" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+        <label for="ds-search" class="sr-only">Search datasets</label>
+        <input id="ds-search" type="text" name="q" value="{{ search_query }}" placeholder="Search file name or owner email" style="flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--admin-border); background: var(--admin-bg-dark); color: var(--text-primary); font-size: 14px;">
+        <button type="submit" class="btn btn-sm">Search</button>
+        {% if search_query %}<a href="{{ url_for('admin.manage_datasets') }}" class="btn btn-sm">Reset</a>{% endif %}
+    </form>
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr><th>ID</th><th>File</th><th>Owner</th><th style="text-align:right;">Rows</th><th style="text-align:right;">Columns</th><th style="text-align:right;">Size</th><th>Uploaded</th><th>Storage</th></tr>
+            </thead>
+            <tbody>
+                {% for d in datasets %}
+                <tr>
+                    <td class="mono-num">#{{ d.id }}</td>
+                    <td>{{ d.file }} <span style="color: var(--text-muted); font-size: 12px;">({{ d.type }})</span></td>
+                    <td>{{ d.owner_name }}<div style="font-size: 12px; color: var(--text-muted);">{{ d.owner_email }}</div></td>
+                    <td class="mono-num" style="text-align:right;">{{ "{:,}".format(d.rows) }}</td>
+                    <td class="mono-num" style="text-align:right;">{{ d.cols }}</td>
+                    <td class="mono-num" style="text-align:right;">{{ "%.1f"|format(d.size_kb) }} KB</td>
+                    <td>{{ d.uploaded }}</td>
+                    <td>{% if d.encrypted %}<span class="badge badge-success">Encrypted</span>{% else %}<span class="badge badge-warning">Not migrated</span>{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 24px;">No datasets found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if total_pages > 1 %}
+    <nav aria-label="Dataset pages" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+        {% if page > 1 %}<a class="btn btn-sm" href="{{ url_for('admin.manage_datasets', q=search_query, page=page-1) }}">Previous</a>{% endif %}
+        <span style="align-self: center; font-size: 13px; color: var(--text-muted);">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}<a class="btn btn-sm" href="{{ url_for('admin.manage_datasets', q=search_query, page=page+1) }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

@@ -126,9 +126,12 @@ def get_user_subscription_info(user_id: int) -> dict:
         delta = sub_end - now
         days_left = delta.days
 
-        # Determine true status
-        if not is_active or sub_status == "suspended":
+        # Determine true status. "suspended" means an admin ban (IsActive = 0). A row the
+        # old expiry sweep marked 'suspended' while still active is just a lapsed Pro plan.
+        if not is_active:
             calc_status = "suspended"
+        elif sub_status == "suspended":
+            calc_status = "expired"
         elif days_left <= 0:
             calc_status = "expired"
         elif days_left <= 5:
@@ -156,11 +159,13 @@ def get_user_subscription_info(user_id: int) -> dict:
             show_banner = True
         elif calc_status == "suspended":
             banner_type = "danger"
-            banner_message = "ACCOUNT SUSPENDED: Your Pro access has been suspended due to unpaid subscription renewal (PKR 1,499). Please upload your payment receipt below for immediate reactivation."
+            banner_message = "ACCOUNT SUSPENDED: This account has been suspended by the administrator. Please contact support."
             show_banner = True
         elif calc_status == "expired":
-            banner_type = "danger"
-            banner_message = f"ANNOUNCEMENT: Your Pro 30-day subscription expired on {end_date_str}! Please upload your PKR 1,499 payment receipt to renew 500 MB access."
+            # Pro lasts 30 days, then the account is simply on the Free plan (the daily
+            # sweep sets SubscriptionStatus = 'free'). Nothing is locked.
+            banner_type = "info"
+            banner_message = f"Your 30-day Pro plan ended on {end_date_str}. You are on the Free plan now (uploads under 1 MB); your datasets are kept. Renew Pro (PKR 1,499) any time for uploads up to 500 MB."
             show_banner = True
         elif calc_status == "expiring_soon":
             banner_type = "warning"

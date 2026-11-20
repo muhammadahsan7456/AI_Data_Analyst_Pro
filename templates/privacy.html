@@ -137,8 +137,9 @@
                     We implement modern cryptographic protocols across data transmission and storage:
                 </p>
                 <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.7; padding-left: 20px; margin: 0;">
-                    <li><strong>TLS 1.3 Transport Encryption:</strong> All browser communications and API requests are encrypted via HTTPS.</li>
-                    <li><strong>Argon2id / PBKDF2 Password Hashing:</strong> User passwords are securely salted and hashed prior to database storage.</li>
+                    <li><strong>HTTPS transport encryption:</strong> All browser communications and API requests are encrypted in transit via HTTPS (TLS).</li>
+                    <li><strong>Encrypted dataset storage:</strong> Uploaded rows are stored as AES-256-GCM ciphertext with a key unique to each dataset; that key is itself encrypted with a server master key that is not stored in the database. The admin console shows only metadata (file name, size, row count, owner, dates), never rows. Deleting a dataset deletes its ciphertext and its key. The server must decrypt a dataset in memory to answer your questions, so anyone who controls both the server and its master key could technically read it; the master key is kept outside the database and backed up separately.</li>
+                    <li><strong>bcrypt password hashing:</strong> User passwords are salted and hashed with bcrypt before storage; one-time codes are stored only as keyed digests.</li>
                     <li><strong>Transactional RFC 2822 Email Security:</strong> Email verification codes (OTP) utilize High-Priority transactional SMTP delivery headers to prevent spam intercept.</li>
                 </ul>
             </div>

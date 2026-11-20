@@ -416,6 +416,12 @@
                         <span>User Management</span>
                     </a>
                 </li>
+                <li class="admin-nav-item {% if request.endpoint == 'admin.manage_datasets' %}active{% endif %}">
+                    <a href="{{ url_for('admin.manage_datasets') }}">
+                        <i class="fa-solid fa-database"></i>
+                        <span>Datasets (metadata)</span>
+                    </a>
+                </li>
                 <li class="admin-nav-item {% if request.endpoint == 'admin.manage_payments' %}active{% endif %}">
                     <a href="{{ url_for('admin.manage_payments') }}" style="display: flex; align-items: center; justify-content: space-between;">
                         <span><i class="fa-solid fa-credit-card"></i> <span>Payments & Billing</span></span>

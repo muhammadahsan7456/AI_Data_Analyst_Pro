@@ -357,3 +357,22 @@ Tests added (16 + 16 in the two files, all pass):
 - Full non-Selenium suite: 131 passed.
 
 Not verifiable here: a real Google round-trip (no client secret in this sandbox; Google is mocked) and SQL Server execution of the new query text.
+
+## R-Phase 9.3 — Upload gate, plans and encryption
+
+Re-verified live (QA server, SQLite, one process):
+- Free user, 487,559-byte CSV: HTTP 200, stored in 1.16 s. Free user, 1,142,858-byte CSV: HTTP 400 `upgrade_required=true` (server-side). >500 MB rejection stays covered by `tests/test_upload_limits.py`.
+- Pro user, 66,610,623-byte CSV (800,000 rows): POST returned a background job in 0.44 s; progress 0→20→39→57→75→99→100; done 4.46 s after the request started.
+- Stored form: plaintext table 0 rows for both uploads; vault meta 800,000 rows / 17 chunks, 6,000 rows / 1 chunk; first chunk contains no "Lahore"/"Laptop" bytes.
+- Preview pagination on the 800k-row dataset: page 1 (100 rows) 0.16–0.20 s / 43 KB; page 4,000 0.17 s; the largest page size (5,000 rows) 0.44 s / 1.4 MB. Never renders all rows.
+
+Fixed:
+- **Pro lasts 30 days, then Free** (`utils/scheduler.py`, `database/queries.py`): the sweep used SQL Server-only `UPDATE … OUTPUT INSERTED.*` (root cause of the SQLite log line `Auto-suspend error: near "."`) and set users to `suspended`. Now a portable SELECT + guarded per-user `UPDATE` (`get_lapsed_pro_users()`, `revert_user_to_free()`) sets `SubscriptionStatus='free'`, sends one "Pro plan ended" email and an in-app notice, and is idempotent. Rows the old sweep marked `suspended` for expiry (still `IsActive=1`, reason = the auto-expiry text) return to Free quietly (no repeat email). Admin bans (`IsActive=0`) and admins are never touched. `SQLiteCursorAdapter.rowcount` added (pyodbc-compatible).
+- `utils/subscription.py` + `templates/base.html`: a lapsed plan no longer shows a red "ACCOUNT SUSPENDED" banner; it shows "Your 30-day Pro plan ended on …, you are on the Free plan now". "Suspended" is shown only for a real admin ban.
+- `auth/email_service.py` `send_subscription_suspended_email` (name kept for callers) now says the plan ended and the account is on Free, with a renew link from `PUBLIC_BASE_URL`.
+- New admin page `/admin/datasets` (`admin.manage_datasets`, `templates/admin/datasets.html`, sidebar link): dataset **metadata only** (file, owner, rows, columns, size, upload date, encrypted / not migrated), searchable, paginated in the database.
+- Honest privacy copy (`privacy.html`, `faq_page.html`, `security_page.html`): the server decrypts in memory to answer; anyone controlling both the server and the master key could read data; master key kept outside the DB and backed up separately. Removed inaccurate "Argon2id/PBKDF2" (it is bcrypt), "TLS 1.3" and "bank-grade".
+
+Tests added: `tests/test_admin_never_sees_rows.py` (3: a marker row stored through the real vault never appears on 10 admin pages or 4 admin exports, including inside xlsx; the admin code never calls a row-reading function), `tests/test_plan_expiry.py` (3: who returns to Free, emails, idempotent, banner). Full non-Selenium suite: 137 passed.
+
+Schema: none (the sweep only changes values in existing columns).
