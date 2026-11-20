@@ -538,3 +538,17 @@ table tr:hover td { background: var(--mono-hover); }
     .top-bar .page-header h1 { font-size: 20px !important; line-height: 1.2; overflow-wrap: anywhere; }
     .top-bar .page-header p { font-size: 13px !important; }
 }
+
+/* Single-value Ask AI answer: a KPI card instead of a one-point chart */
+.kpi-result-card {
+    border: 1px solid var(--mono-border);
+    border-radius: var(--mono-radius-lg);
+    background: var(--mono-surface);
+    color: var(--mono-text);
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: var(--mono-shadow);
+}
+.kpi-result-label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--mono-text-2); }
+.kpi-result-value { font-family: var(--mono-font-mono); font-variant-numeric: tabular-nums; font-size: clamp(36px, 7vw, 56px); font-weight: 600; line-height: 1.1; margin: 10px 0 8px; color: var(--mono-text); overflow-wrap: anywhere; }
+.kpi-result-note { font-size: 14px; color: var(--mono-text-3); }

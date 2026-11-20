@@ -406,8 +406,73 @@ try {
 }
 let currentChartSpec = window.currentChartSpec;
 
+// A single number is not a chart: a one-point bar/pie has nothing to compare and its
+// hover target is a sliver. Show it as a KPI card and hide the format switcher.
+function isSingleValueSpec(spec) {
+    return !!(spec && spec.labels && spec.values && spec.labels.length === 1 && spec.values.length === 1 && !(spec.matrix && spec.matrix.length));
+}
+function _chartCardFor(container) {
+    return container ? (container.closest(".chat-chart-card, .table-card") || container.parentNode) : null;
+}
+function _humanize(raw) {
+    if (!raw) return "";
+    return String(raw).replace(/_/g, " ").split(" ").filter(Boolean)
+        .map((w, i) => (i > 0 && /^(by|of|and|per|in|for|the|vs)$/i.test(w)) ? w.toLowerCase()
+            : (w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(" ");
+}
+function renderSingleValueCard(spec, container) {
+    if (typeof Plotly !== "undefined" && container.data) { try { Plotly.purge(container); } catch (e) {} }
+    container.style.display = "none";
+    const card = _chartCardFor(container);
+    const switcher = card ? card.querySelector(".chart-type-switcher-bar") : null;
+    if (switcher) switcher.style.display = "none";
+    if (card) card.querySelectorAll(".chat-chart-badge, .badge-success").forEach(b => { b.style.display = "none"; });
+    let kpi = document.getElementById("kpi-result-card");
+    if (!kpi) {
+        kpi = document.createElement("div");
+        kpi.id = "kpi-result-card";
+        kpi.className = "kpi-result-card";
+        kpi.setAttribute("role", "group");
+        container.parentNode.insertBefore(kpi, container);
+    }
+    const raw = spec.values[0];
+    const num = Number(raw);
+    const isPct = /percent|pct|%|\brate\b/i.test(spec.y_col || "");
+    let shown;
+    if (raw === null || raw === undefined || raw === "") shown = "—";
+    else if (Number.isFinite(num)) shown = num.toLocaleString(undefined, { maximumFractionDigits: Number.isInteger(num) ? 0 : 2 }) + (isPct ? "%" : "");
+    else shown = String(raw);
+    const metric = _humanize(spec.y_col) || "Result";
+    const label = spec.labels[0];
+    const labelText = (label !== null && label !== undefined && String(label) !== "" && _humanize(label) !== metric) ? String(label) : "";
+    kpi.textContent = "";
+    const m = document.createElement("div"); m.className = "kpi-result-label"; m.textContent = metric + (labelText ? " · " + labelText : "");
+    const v = document.createElement("div"); v.className = "kpi-result-value"; v.textContent = shown; v.title = String(raw);
+    const n = document.createElement("div"); n.className = "kpi-result-note"; const title = _humanize(spec.title || "");
+    n.textContent = (title && !/^(dataset|interactive data) analytics$/i.test(title) && title !== metric) ? title : "Single value from your question";
+    kpi.appendChild(m); kpi.appendChild(v); kpi.appendChild(n);
+    kpi.setAttribute("aria-label", metric + ": " + shown);
+    kpi.style.display = "";
+}
+function _clearSingleValueCard(container) {
+    const kpi = document.getElementById("kpi-result-card");
+    if (kpi) kpi.style.display = "none";
+    const card = _chartCardFor(container);
+    const switcher = card ? card.querySelector(".chart-type-switcher-bar") : null;
+    if (switcher) switcher.style.display = "";
+    if (card) card.querySelectorAll(".chat-chart-badge, .badge-success").forEach(b => { b.style.display = ""; });
+}
+window.isSingleValueSpec = isSingleValueSpec;
+
 function renderInteractivePlotlyChart(spec, targetMode) {
     if (!spec || !spec.labels || spec.labels.length === 0) return;
+
+    const _target = document.getElementById("interactive-plotly-chart");
+    if (_target && isSingleValueSpec(spec) && targetMode !== "static") {
+        renderSingleValueCard(spec, _target);
+        return;
+    }
+    if (_target) _clearSingleValueCard(_target);
 
     if (typeof Plotly === "undefined") {
         if (!window._loadingPlotlyScript) {
@@ -533,6 +598,7 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             zerolinecolor: chartTheme.zeroline
         },
         legend: { font: { color: chartTheme.legend } },
+        hovermode: "closest",
         autosize: true
     };
     if (mode === "horizontal_bar" && labels && labels.length > 15) {
@@ -645,15 +711,28 @@ function renderInteractivePlotlyChart(spec, targetMode) {
             hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{label}</b><br>Value / Count: <b>%{value:,.2f}</b><extra></extra>"
         }];
     } else if (mode === "funnel") {
+        // Labels stay categories (month strings like "2025-01-01" were auto-typed as a date
+        // axis), every stage gets a hover with the metric's own name, and the bars use the
+        // grayscale ramp with an outline so light stages stay visible on white.
+        const metricName = humanizeLabel(spec.y_col) || "Value";
         plotlyData = [{
             type: "funnel",
-            y: labels,
+            y: labels.map(l => String(l)),
             x: values,
             textinfo: "value+percent initial",
-            marker: { colors: colorsFor(labels.length) },
+            textfont: { color: chartTheme.barText, size: 11 },
+            marker: { color: colorsFor(labels.length), line: { color: chartTheme.barLine, width: 1 } },
+            connector: { fillcolor: chartTheme.fill, line: { color: chartTheme.grid, width: 1 } },
+            hoverinfo: "y+x",
             hovertext: richHoverText,
-            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : "<b>%{y}</b><br>Stage Count: <b>%{x:,.2f}</b><extra></extra>"
+            hovertemplate: hasRichHover ? "%{hovertext}<extra></extra>" : ("<b>%{y}</b><br>" + metricName + ": <b>%{x:" + hoverNumFormat + "}" + hoverSuffix + "</b><extra></extra>")
         }];
+        layout.yaxis.type = "category";
+        layout.yaxis.autorange = "reversed";
+        layout.yaxis.title.text = humanizeLabel(spec.x_col);
+        layout.xaxis.title.text = metricName;
+        layout.margin = { l: 120, r: 30, t: 50, b: 50 };
+        if (labels.length > 12) layout.height = Math.max(460, labels.length * 26);
     } else {
         // Default Bar Chart - format each bar individually
         const perBarText = labels.map((lbl, i) => {

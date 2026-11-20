@@ -180,19 +180,29 @@ def format_ai_explanation(text: str) -> str:
 
         else:
             # General Markdown block fallback & markdown table parser
-            if "|" in section and "-|-" in section:
+            # Separator rows look like "|---|---|" or "| :--- | ---: |" (spaces allowed).
+            if "|" in section and re.search(r"\|\s*:?-{3,}:?\s*\|", section):
                 # Markdown table detected
                 table_lines = [l.strip() for l in lines if "|" in l]
                 if len(table_lines) >= 2:
-                    header_cells = [c.strip() for c in table_lines[0].split("|") if c.strip()]
+                    def _bold(c):
+                        return re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", c)
+                    def _cells(row):
+                        return [c.strip() for c in row.strip().strip("|").split("|")]
+                    header_cells = _cells(table_lines[0])
                     rows_html = []
-                    for row_l in table_lines[2:]:
-                        cells = [c.strip() for c in row_l.split("|") if c.strip()]
-                        if cells:
-                            row_tds = "".join([f"<td style='padding: 8px 14px; border-bottom: 1px solid var(--border-color); font-size: 13px;'>{re.sub(r'\\*\\*(.*?)\\*\\*', r'<strong>\\1</strong>', c)}</td>" for c in cells])
+                    for row_l in table_lines[1:]:
+                        if re.fullmatch(r"[\s|:\-]+", row_l):
+                            continue  # separator row
+                        cells = _cells(row_l)
+                        if any(cells):
+                            row_tds = "".join(
+                                "<td style='padding: 8px 14px; border-bottom: 1px solid var(--border-color); font-size: 13px;'>" + _bold(c) + "</td>"
+                                for c in cells)
                             rows_html.append(f"<tr>{row_tds}</tr>")
-                    
-                    head_ths = "".join([f"<th style='padding: 10px 14px; background: var(--bg-primary); border-bottom: 2px solid var(--accent-blue); font-size: 12px; font-weight: 800; color: var(--accent-blue); text-transform: uppercase;'>{re.sub(r'\\*\\*(.*?)\\*\\*', r'<strong>\\1</strong>', c)}</th>" for c in header_cells])
+                    head_ths = "".join(
+                        "<th style='padding: 10px 14px; background: var(--bg-primary); border-bottom: 2px solid var(--border-color); font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; text-align: left;'>" + _bold(c) + "</th>"
+                        for c in header_cells)
                     table_markup = f"""
                     <div style="overflow-x: auto; margin: 12px 0;">
                         <table style="width: 100%; border-collapse: collapse; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px;">
@@ -201,7 +211,16 @@ def format_ai_explanation(text: str) -> str:
                         </table>
                     </div>
                     """
-                    formatted_blocks.append(table_markup)
+                    # Keep any plain sentence that shared the paragraph with the table.
+                    lead = ""
+                    for l in lines:
+                        if "|" in l:
+                            continue
+                        if l.startswith("#"):
+                            lead += "<h4 style='font-size: 16px; font-weight: 800; margin: 16px 0 10px 0;'>" + l.lstrip("#").strip() + "</h4>"
+                        else:
+                            lead += "<div style='margin-bottom: 6px; font-size: 14px; line-height: 1.6;'>" + _bold(l) + "</div>"
+                    formatted_blocks.append(lead + table_markup)
                     continue
 
             block_html = []
