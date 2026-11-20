@@ -154,7 +154,7 @@ def test_sqlite_adapter_handles_nested_top_for_admin_users(tmp_path):
         "SubscriptionEndDate TEXT)"
     )
     cursor.execute(
-        "CREATE TABLE AuditLogs (UserID INTEGER, IPAddress TEXT, CreatedAt TEXT)"
+        "CREATE TABLE AuditLogs (UserID INTEGER, Action TEXT, IPAddress TEXT, CreatedAt TEXT)"
     )
     cursor.execute(
         "INSERT INTO Users (UserID, FullName, Email, IsActive, IsVerified, Role, CreatedAt, "

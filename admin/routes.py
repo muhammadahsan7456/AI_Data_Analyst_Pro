@@ -21,6 +21,7 @@ from database.queries import (
     search_users_admin,
     count_users_admin,
     get_users_admin_filter_params,
+    USERS_ADMIN_STATUSES,
     get_expiring_users_admin,
     update_user_status_admin,
     update_user_role_admin,
@@ -562,19 +563,36 @@ def manage_users():
     is what this route used to do and would not have scaled as the Users table grows.
     """
     users_list = []
-    search_query = request.args.get("q", "").strip().lower()
+    search_query = request.args.get("q", "").strip().lower()[:100]
     role_filter = request.args.get("role", "").strip()
+    if role_filter not in ("", "SuperAdmin", "Analyst", "User"):
+        role_filter = ""
     status_filter = request.args.get("status", "").strip()
+    if status_filter not in ("",) + USERS_ADMIN_STATUSES:
+        status_filter = ""
+    signup_filter = request.args.get("signup", "").strip()
+    if signup_filter not in ("", "google", "form"):
+        signup_filter = ""
+    verified_filter = request.args.get("verified", "").strip()
+    if verified_filter not in ("", "0", "1"):
+        verified_filter = ""
+    joined_days = request.args.get("joined", "").strip()
+    joined_days = joined_days if joined_days in ("1", "7", "30", "90") else ""
+    sort = request.args.get("sort", "newest").strip()
+    if sort not in ("newest", "oldest", "name", "attention"):
+        sort = "newest"
     page = request.args.get("page", 1, type=int) or 1
-    per_page = 20
+    per_page = request.args.get("per_page", 20, type=int) or 20
+    per_page = per_page if per_page in (20, 50, 100) else 20
+    filter_args = dict(signup_filter=signup_filter, verified_filter=verified_filter, joined_days=joined_days or None)
 
     total_found = 0
     total_pages = 1
     try:
-        params = get_users_admin_filter_params(search_query, role_filter, status_filter)
+        params = get_users_admin_filter_params(search_query, role_filter, status_filter, **filter_args)
 
         with get_db_cursor() as cursor:
-            cursor.execute(count_users_admin(search_query, role_filter, status_filter), tuple(params))
+            cursor.execute(count_users_admin(search_query, role_filter, status_filter, **filter_args), tuple(params))
             total_found = cursor.fetchone()[0] or 0
 
         total_pages = max(1, math.ceil(total_found / per_page))
@@ -582,7 +600,7 @@ def manage_users():
 
         with get_db_cursor() as cursor:
             cursor.execute(
-                search_users_admin(search_query, role_filter, status_filter, page=page, per_page=per_page),
+                search_users_admin(search_query, role_filter, status_filter, page=page, per_page=per_page, sort=sort, **filter_args),
                 tuple(params)
             )
             raw_users = cursor.fetchall() or []
@@ -600,8 +618,9 @@ def manage_users():
             phone, country, city, profile_img = u[6], u[7], u[8], u[9]
             is_active, is_verified, role, created_at = u[10], u[11], u[12], u[13]
             last_ip = u[14] if len(u) > 14 else "127.0.0.1"
-            sub_status = u[15] if len(u) > 15 else "active"
+            sub_status = u[15] if len(u) > 15 else "free"
             sub_end = u[16] if len(u) > 16 else None
+            uses_google = bool(u[17]) if len(u) > 17 else False
 
             sub_end_formatted = format_12hr_datetime(sub_end) if sub_end else "N/A"
             usage = storage_by_user.get(u_id, {"dataset_count": 0, "storage_kb": 0.0, "total_rows": 0})
@@ -631,11 +650,12 @@ def manage_users():
                 "created_at": format_12hr_datetime(created_at),
                 "dataset_count": usage["dataset_count"],
                 "storage_display": storage_display,
-                "total_rows": usage["total_rows"]
+                "total_rows": usage["total_rows"],
+                "uses_google": uses_google,
             })
-    except Exception as e:
-        print("Admin Users Fetch Error:", e)
-        flash(f"Error fetching users: {str(e)}", "error")
+    except Exception:
+        logger.exception("Admin users list query failed")
+        flash("The user list could not be loaded. The error was logged on the server.", "error")
 
     return render_template(
         "admin/users.html",
@@ -643,6 +663,11 @@ def manage_users():
         search_query=search_query,
         role_filter=role_filter,
         status_filter=status_filter,
+        signup_filter=signup_filter,
+        verified_filter=verified_filter,
+        joined_filter=joined_days,
+        sort=sort,
+        per_page=per_page,
         page=page,
         total_pages=total_pages,
         total_found=total_found

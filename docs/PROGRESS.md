@@ -395,3 +395,11 @@ Schema: none (the sweep only changes values in existing columns).
 - Evidence (Playwright Chromium, QA server, one process): "totl revnue by regon", "mahine ke hisab se sales trnd dikhao", "top 5 prodcuts by sles" — all 10 modes render the requested type and every hovered mark (up to 3 per mode) shows a tooltip, light and dark. "how mny orders wer canceled" → KPI card 600 (pandas: 600 Cancelled), "totl sales" → 13,558,420 (pandas 13,558,420), "total profit for north region" → 601,853.2 (pandas 601,853.2); switcher hidden, chart hidden, no page errors. Script/results: `/workspace/work/qa/r9/browser_chart2.py`, `browser_chart2_[a-d].json` (outside the repo).
 - Tests: `tests/test_explanation_tables.py` (3).
 - Schema: none.
+
+## R-Phase 9.6 — Super Admin, billing and emails (in progress)
+
+### Users list
+- Root cause of "new users not in the admin list" (`database/queries.py` `search_users_admin`): the fixed sort put every banned/suspended/expired account first, then newest. With the 31 `suspended` rows seen in production, page 1 (20 rows) held only lapsed accounts and every new sign-up (form or Google) landed on page 2+. Default sort is now newest first; "Needs attention first", "Oldest first" and "Name A–Z" are options.
+- Search was broken: the WHERE clause used `LastIP.IPAddress`, an alias that was never joined, so any search raised a SQL error and showed an empty list. Now an `EXISTS` on `AuditLogs`.
+- New filters, all in SQL with bound parameters and whitelisted values: plan (Free, Pro active, expiring, payment pending/rejected, expired, suspended, banned), sign-in method (uses Google, from `SIGNUP_GOOGLE`/`LOGIN_GOOGLE`/`LINK_GOOGLE_VERIFIED` audit rows; no schema change), verified, joined in the last 1/7/30/90 days, 20/50/100 per page, First/Last page links that keep every filter. Google and Not-verified badges in the list. A failed query now logs server-side and shows a generic message (was `print` + raw error text).
+- Tests: `tests/test_admin_users_list.py` (2, real templates): a form sign-up and a real Google callback sign-up both appear above 30 older suspended accounts on page 1; search, every filter, pagination without overlap, and junk filter values.
