@@ -18,6 +18,19 @@ All three run from the same Flask codebase and the same database — there's no 
 
 ---
 
+## 0a. Market-ready pass (R-Phase 9, branch `release/final-polish`)
+
+Short summary; details and evidence per phase are in `docs/PROGRESS.md`, deploy steps in `DEPLOY_UPDATE.md`.
+
+- **Sign-in**: form (email/username + password + email OTP) and Continue with Google on login and register. A Google sign-in with a verified email links to the existing account (case-insensitive match); Google-created users can add a password via Forgot password. Reset codes: 5 wrong tries then invalid, resend limited (60 s, 3/hour), counters in the database. Super Admin OTP: counter and 15-minute lock in the database (`Users.AdminOtp*`), not in the cookie.
+- **Plans**: Free < 1 MB; Pro (PKR 1,499 / 30 days, manual Easypaisa/NayaPay/SadaPay proof) up to 500 MB; larger rejected. Server-side checks. A lapsed Pro plan reverts to Free (portable scheduler sweep), no "suspended" banner.
+- **Encryption**: every dataset stored AES-GCM encrypted with its own key wrapped by `DATASET_ENCRYPTION_KEY` (env only). The Super Admin console shows dataset metadata only (`/admin/datasets`), never rows (tested). Privacy copy says honestly that the server decrypts in memory to answer.
+- **Ask AI**: typo/Roman Urdu tolerant matching with stated assumptions, exact refusal sentence for off-topic questions, deterministic dataset summary, KPI card for single values, chart switcher with hover on every mode, profit/loss analysis with a 3-month forecast (labelled an estimate).
+- **Admin and billing**: users list newest first with working search, filters and DB pagination; numbered PDF invoices (`AIDAP-<year>-<id>`, `Payments.InvoiceNumber/PeriodStart/PeriodEnd`) for users and admin; all 12 email types use `PUBLIC_BASE_URL`, escape user text, report send failures honestly, Reply-To `SUPPORT_EMAIL`.
+- **Security**: CSRF on every state-changing route (tested, none exempt); per-IP rate limits (`utils/rate_limit.py`, HTTP 429); client IP only from the local Nginx hop; CSP with self-hosted fonts; debug off; 500 page logs the traceback and shows nothing internal; dependency floors raised past published advisories.
+- **Config added**: `MAIL_FROM`, `INVOICE_COMPANY_NAME/ADDRESS/TAX_ID`, `RATE_LIMITS_ENABLED`, `TRUST_CLOUDFLARE_IP` (see `.env.example`).
+- **Run model**: exactly one Waitress process (`python wsgi.py`) on 127.0.0.1 behind Nginx, one systemd service, SQL Server on the same VM.
+
 ## 0. Recent Work Log (this engagement)
 
 Everything below was found, fixed, and **live-tested** (real browser/real HTTP requests, not just read-and-assumed) across several passes. Grouped by category, not chronological.

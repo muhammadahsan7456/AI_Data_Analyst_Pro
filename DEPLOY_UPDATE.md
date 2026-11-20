@@ -21,6 +21,51 @@ export BK=/var/backups/aidap/$STAMP              # this deploy's backup folder
 sudo mkdir -p $BK && sudo chown "$USER" $BK
 ```
 
+## 0. What this release (branch `release/final-polish`, R-Phase 9) changes
+
+**Schema** — added automatically by `init_db()` when the service starts. Every change is
+additive and idempotent (`IF NOT EXISTS (SELECT * FROM sys.columns ...) ALTER TABLE ... ADD`),
+all new columns are nullable or have a default, nothing is renamed, dropped or rewritten,
+and the previous code simply ignores them:
+
+| Table | New column | Type | Purpose |
+|---|---|---|---|
+| `Payments` | `InvoiceNumber` | `NVARCHAR(40) NULL` | `AIDAP-<year>-<PaymentID>` set at approval |
+| `Payments` | `PeriodStart` | `DATE NULL` | plan period printed on the invoice |
+| `Payments` | `PeriodEnd` | `DATE NULL` | plan period printed on the invoice |
+| `Users` | `AdminOtpHash` | `NVARCHAR(128) NULL` | Super Admin OTP digest (server-side) |
+| `Users` | `AdminOtpIssuedAt` | `DATETIME2 NULL` | OTP issue time |
+| `Users` | `AdminOtpFailedAttempts` | `INT NOT NULL DEFAULT 0` | wrong-code counter |
+| `Users` | `AdminOtpLockoutUntil` | `DATETIME2 NULL` | 15-minute lock after 5 wrong codes |
+
+(`PasswordResetTokens.Attempts/UsedAt`, `EmailVerificationTokens.Attempts/UsedAt` and
+`Datasets.InsightsEnabled/LastInsightScanAt` use the same guarded pattern and are skipped
+when they already exist.) To see them after the restart:
+
+```bash
+sqlcmd -S 127.0.0.1,1433 -U $SA_USER -C -d $DB_NAME -Q "SELECT OBJECT_NAME(object_id) AS tbl, name FROM sys.columns WHERE name IN ('InvoiceNumber','PeriodStart','PeriodEnd','AdminOtpHash','AdminOtpIssuedAt','AdminOtpFailedAttempts','AdminOtpLockoutUntil')"
+```
+
+Expected: 7 rows.
+
+**New / changed environment variables** (all described in `.env.example`):
+`MAIL_FROM` (verified Brevo sender, e.g. `noreply@aidataanalystpro.co.uk`),
+`INVOICE_COMPANY_NAME`, `INVOICE_COMPANY_ADDRESS`, `INVOICE_COMPANY_TAX_ID` (invoice seller
+details, optional), `RATE_LIMITS_ENABLED` (default true), `TRUST_CLOUDFLARE_IP` (default
+false). Existing values (`SECRET_KEY`, `DATASET_ENCRYPTION_KEY`) stay exactly as they are.
+
+**Dependencies** — `requirements.txt` floors were raised to versions without published
+advisories, so `pip install -r requirements.txt` WILL upgrade, among others, Flask (3.1.3+),
+Werkzeug (3.1.9+), waitress (3.0.1+), requests, urllib3, pyarrow (23.0.1+), lxml (6.1+,
+major) and Pillow (13+, major). The release was tested on exactly those versions.
+
+**Behaviour to know about** — per-IP rate limits answer HTTP 429 after, for example, 10
+failed logins from one address in 5 minutes or 5 Super Admin password attempts in 15
+minutes (counters reset when the service restarts). Client IPs in audit logs now come only
+from Nginx (see section 2b), not from a header the visitor can set.
+
+---
+
 `sqlcmd` is `/opt/mssql-tools18/bin/sqlcmd` (or `/opt/mssql-tools/bin/sqlcmd`). With
 ODBC Driver 18 tools add `-C` (trust the local self-signed certificate). Each command
 below prompts for the password if you leave out `-P`.
@@ -99,6 +144,58 @@ DATASET_ENCRYPTION_KEY=<existing value, unchanged>
 UPLOAD_ASYNC_THRESHOLD_MB=50
 GOOGLE_CLIENT_ID=... / GOOGLE_CLIENT_SECRET=...   (for Continue with Google)
 ALLOW_SQLITE_FALLBACK=false
+MAIL_FROM=noreply@aidataanalystpro.co.uk          (a sender verified in Brevo)
+INVOICE_COMPANY_NAME=<legal/trading name>          (optional: _ADDRESS, _TAX_ID)
+RATE_LIMITS_ENABLED=true
+TRUST_CLOUDFLARE_IP=false                          (true only if the VM accepts Cloudflare traffic alone)
+TRUSTED_PROXY_COUNT=                               (empty: wsgi.py already trusts the local Nginx)
+```
+
+### 2b. Nginx and systemd: check, do not change unless different
+
+The app takes the visitor's IP from the ONE proxy hop on `127.0.0.1` (Waitress
+`trusted_proxy=127.0.0.1`, `trusted_proxy_count=1`). The site block must pass these headers
+and allow 500 MB uploads:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:5000;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;   # or $remote_addr
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+    client_max_body_size 500M;
+    proxy_read_timeout 300s;
+}
+```
+
+```bash
+sudo nginx -T 2>/dev/null | grep -nE "proxy_pass|X-Forwarded-For|X-Forwarded-Proto|client_max_body_size"
+```
+
+The one systemd unit (`/etc/systemd/system/$SERVICE.service`) should look like this; there
+must be no second unit, cron job or `screen` session running `run.py`/`wsgi.py`:
+
+```ini
+[Unit]
+Description=AI Data Analyst Pro (Waitress)
+After=network.target mssql-server.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/AI_Data_Analyst_Pro
+ExecStart=/opt/AI_Data_Analyst_Pro/venv/bin/python wsgi.py
+Restart=on-failure
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl list-units --type=service | grep -i -E "aidap|analyst"   # exactly one
+pgrep -af "wsgi.py|run.py"                                         # exactly one process
 ```
 
 ---
@@ -160,8 +257,10 @@ journalctl -u $SERVICE -n 80 --no-pager
 ```
 
 In the log, there must be NO `CONFIG WARNING` line about `PUBLIC_BASE_URL` (it is printed
-when the variable is missing, not https, or points at localhost in production), and no
-database initialisation error. `sudo nginx -t && sudo systemctl reload nginx` only if the
+when the variable is missing, not https, or points at localhost in production), no
+`EMAIL CONFIG WARNING` line (missing SMTP login, missing `MAIL_FROM`, or the Brevo SMTP
+login used as From), and no database initialisation error. Then run the schema check from
+section 0 (7 rows). `sudo nginx -t && sudo systemctl reload nginx` only if the
 Nginx config changed.
 
 ---
@@ -186,6 +285,16 @@ In a browser:
 5. "Forgot password" on a test account: open the email and check that every link starts with
    `https://aidataanalystpro.co.uk` (not 127.0.0.1 / localhost) and the support address is right.
 6. Continue with Google on the login page.
+7. Super Admin → Payments: approve a test payment, then download its Invoice PDF (number
+   `AIDAP-<year>-<id>`, PKR 1,499.00, period, your company details); the user downloads the
+   same PDF from Receipts, and the "Payment approved" email links to it.
+8. Super Admin → Audit logs: your own login shows your real public IP, not `127.0.0.1`.
+9. Exports: on a dataset, download CSV, Excel, PDF, Word and PowerPoint and open each.
+10. Headers: `curl -sI https://aidataanalystpro.co.uk/ | grep -iE "content-security-policy|x-frame-options|cross-origin-opener"`
+    (the CSP must not mention fonts.gstatic.com).
+
+Do NOT test the rate limit from your own connection on production with the real login:
+10 failed attempts lock your IP out of login for 5 minutes (restart the service to clear it).
 
 ---
 
@@ -218,6 +327,10 @@ curl -fsS https://aidataanalystpro.co.uk/health ; echo
 ```
 
 Later, return to the current release with `git checkout main && git pull --ff-only`.
+
+The new columns from section 0 can stay: the previous code never reads them, so no
+schema rollback is needed. `pip install` does not downgrade packages; the previous code
+runs on the newer versions too (its floors are lower), so leave them.
 
 Note: restoring the .bak discards everything written after the backup (new users,
 uploads, payments). Prefer a code-only rollback when the data is fine.
