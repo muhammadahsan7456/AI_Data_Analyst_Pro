@@ -453,6 +453,15 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None,
             progress_cb(total_rows, total_rows, "Building indexes...")
         create_high_performance_indexes(table_name, df)
 
+        # Decrypt the new dataset into memory now, so the first Ask AI question does not
+        # pay for it (encrypted datasets only; see utils/dataset_vault.py).
+        try:
+            from utils import dataset_vault
+            if dataset_vault.is_vaulted(table_name):
+                dataset_vault.prewarm(table_name)
+        except Exception:
+            pass
+
         # The Ask AI value matcher caches each column's distinct values to recognise
         # filter terms in a question. Re-ingesting into an existing table would otherwise
         # leave it matching against the previous contents for up to an hour.
@@ -536,4 +545,7 @@ def process_file_upload(uploaded_file, user_id: int = 1, tags: str = None,
 
     except Exception as e:
         log_event("UPLOAD_LOG", f"Failed to ingest file '{filename}': {str(e)}", user_id=user_id)
+        if type(e).__name__ == "VaultUnavailable":
+            return False, ("Uploads are paused because dataset encryption is not configured on the server. "
+                           "Please contact support.")
         return False, f"Upload Error for '{filename}': {str(e)}"

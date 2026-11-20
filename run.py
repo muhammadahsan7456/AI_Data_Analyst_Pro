@@ -19,7 +19,7 @@ if os.path.exists(venv_site_packages) and venv_site_packages not in sys.path:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from dotenv import load_dotenv
-from flask import Flask, session, g, request, redirect, url_for, flash
+from flask import Flask, session, g, request, redirect, url_for, flash, render_template
 
 load_dotenv()
 
@@ -49,6 +49,31 @@ app = Flask(__name__)
 
 # Configure Secret Key for Sessions & 1-Hour Permanent Lifetime
 app.secret_key = _secret_key
+
+# Reverse-proxy trust. wsgi.py (Waitress behind Nginx on the same VM) already trusts the
+# one loopback hop. For any other server, set TRUSTED_PROXY_COUNT to the number of proxies
+# in front of the app (normally 1) so X-Forwarded-For/-Proto/-Host are honoured; left
+# unset, those headers are ignored because any client could forge them.
+try:
+    _proxy_count = int(os.getenv("TRUSTED_PROXY_COUNT", "0").strip() or 0)
+except ValueError:
+    _proxy_count = 0
+if _proxy_count > 0:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_proxy_count, x_proto=_proxy_count,
+                            x_host=_proxy_count, x_port=_proxy_count)
+
+# Loud startup warning when emailed links would point at localhost / the wrong host.
+import logging as _logging
+from utils.public_url import check_public_base_url_config
+check_public_base_url_config(_logging.getLogger("startup"))
+try:
+    from auth.email_service import EmailService as _ES
+    for _msg in _ES().config_problems():
+        _logging.getLogger("startup").error("!!! EMAIL CONFIG WARNING: %s", _msg)
+        print(f"[EMAIL CONFIG WARNING] {_msg}")
+except Exception:
+    _logging.getLogger("startup").exception("Email configuration check failed")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
 # Hard request-body ceiling. Set a few MB above the 500 MB file-size limit the upload
@@ -99,6 +124,31 @@ def handle_csrf_error(e):
     if ref and urlparse(ref).netloc == urlparse(request.host_url).netloc:
         return redirect(ref)
     return redirect(url_for("frontend.home"))
+
+
+@app.before_request
+def enforce_rate_limits():
+    """Per-IP limits on sign-in, OTP, reset and contact endpoints (utils/rate_limit.py)."""
+    from utils import rate_limit
+    from auth.security import get_client_ip
+    client_ip = get_client_ip()
+    wait = rate_limit.check(request.endpoint, request.method, client_ip)
+    if not wait:
+        return None
+    _logging.getLogger("security").warning(
+        "Rate limit hit: endpoint=%s ip=%s retry_after=%ss", request.endpoint, client_ip, wait)
+    minutes = max(1, (wait + 59) // 60)
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.path.startswith(("/api/", "/auth/api/")):
+        from flask import jsonify
+        resp = jsonify({"success": False, "error": f"Too many attempts. Please wait about {minutes} minute(s) and try again."})
+    else:
+        from urllib.parse import urlparse
+        ref = request.referrer
+        back = ref if ref and urlparse(ref).netloc == urlparse(request.host_url).netloc else url_for("frontend.home")
+        resp = app.make_response(render_template("429.html", minutes=minutes, back_url=back))
+    resp.status_code = 429
+    resp.headers["Retry-After"] = str(wait)
+    return resp
 
 
 @app.errorhandler(413)
@@ -223,6 +273,7 @@ def load_user_context():
 
 
 from utils.subscription import get_user_subscription_info
+from utils.public_url import public_base_url
 
 # Global Context Processor for Templates
 @app.context_processor
@@ -248,7 +299,11 @@ def inject_user_context():
         max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "500")),
         subscription_info=sub_info,
         pending_payments_count=pending_payments_count,
-        site_config=site_config
+        site_config=site_config,
+        support_email=site_config.support_email(),
+        public_root=public_base_url() + "/",
+        canonical_url=public_base_url() + request.path,
+        now_year=__import__("datetime").datetime.now().year,
     )
 
 
@@ -300,19 +355,22 @@ def add_performance_headers(response):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         f"script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.plot.ly {ADSENSE_SCRIPT}; "
-        # fonts.googleapis.com is deliberately absent: the font stylesheet is now served
-        # from static/css/fonts.css, so nothing loads styles from Google any more. The
-        # .woff2 files it references still come from fonts.gstatic.com, hence font-src.
+        # Fonts are self-hosted (static/fonts, static/css/fonts.css): no Google Fonts origin
+        # is allowed any more. cdnjs stays for the Font Awesome icon font.
         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
-        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+        "font-src 'self' data: https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; "
         "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; "
         "object-src 'none'; "
         "base-uri 'self'; "
+        # Google sign-in is a top-level redirect (/auth/google -> accounts.google.com ->
+        # /auth/google/callback), not a form post or an embedded script, so it needs no
+        # CSP origin. Google profile photos load under img-src https:.
         "form-action 'self'; "
         "frame-ancestors 'self'"
     )
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     # microphone=(self) allows this site's own pages to use the mic for the Voice AI
     # feature - a blanket microphone=() (my earlier default) blocks it at the browser
     # level entirely, before the user's own permission choice is even consulted.
@@ -378,7 +436,7 @@ if __name__ == "__main__":
         # the correct, narrow fix for this deployment shape, not a blanket "trust
         # everyone" that would reopen the spoofing hole.
         # threads=16 meant only 16 requests could be in flight at once - and most request
-        # time here is spent waiting on RDS or an external AI API call, not on CPU work, so
+        # time here is spent waiting on SQL Server or an external AI API call, not on CPU work, so
         # a handful of concurrently slow requests (a multi-second AI query, a large upload)
         # could already exhaust the pool and leave the next visitor queued behind them, even
         # with no CPU pressure at all. Raised to a level suited for I/O-bound work on a

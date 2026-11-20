@@ -15,7 +15,7 @@ def send_scheduled_executive_briefing(to_email: str, table_name: str, schedule_t
     """
     try:
         report_html = generate_executive_report_html(table_name, user_email=to_email)
-        subject = f"📊 [{schedule_type} Briefing] AI Executive Analytics Report: {table_name}"
+        subject = f"[{schedule_type} Briefing] AI Executive Analytics Report: {table_name}"
         return _email_service._send_email_async(to_email, subject, report_html)
     except Exception:
         return False
@@ -25,10 +25,10 @@ def dispatch_kpi_threshold_alert(to_email: str, alert_title: str, message: str) 
     """
     Dispatches immediate high-priority KPI threshold alert email.
     """
-    subject = f"🚨 [ALERT] {alert_title} - AI Data Analyst Pro"
+    subject = f"[ALERT] {alert_title} - AI Data Analyst Pro"
     html_body = f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; background: #fff1f2; border-left: 4px solid #e11d48; border-radius: 6px;">
-        <h3 style="color: #be123c; margin-top: 0;">🚨 High Priority KPI Threshold Alert</h3>
+        <h3 style="color: #be123c; margin-top: 0;">High Priority KPI Threshold Alert</h3>
         <p><strong>Alert Event:</strong> {alert_title}</p>
         <p><strong>Details:</strong> {message}</p>
         <hr style="border: 0; border-top: 1px solid #fecdd3;">

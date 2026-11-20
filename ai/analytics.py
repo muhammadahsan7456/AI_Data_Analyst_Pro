@@ -172,15 +172,15 @@ def generate_ai_insights(df: pd.DataFrame) -> list:
 
     # 1. Health & Quality Insight
     if report["health_score"] >= 85:
-        insights.append("✅ Data Quality Excellent: Dataset has an optimal health score with high completeness.")
+        insights.append("Data Quality Excellent: Dataset has an optimal health score with high completeness.")
     elif report["health_score"] >= 65:
-        insights.append("⚠️ Data Quality Moderate: Moderate health score. Consider handling missing values or duplicates.")
+        insights.append("Data Quality Moderate: Moderate health score. Consider handling missing values or duplicates.")
     else:
-        insights.append("❌ Data Quality Attention Required: High missingness or duplicate rows detected. AI Data Cleaning recommended.")
+        insights.append("Data Quality Attention Required: High missingness or duplicate rows detected. AI Data Cleaning recommended.")
 
     # 2. Duplicate Rows Insight
     if report["total_duplicates"] > 0:
-        insights.append(f"🔍 Duplication Alert: Found {report['total_duplicates']} exact duplicate rows ({round((report['total_duplicates']/len(df))*100, 1)}% of total).")
+        insights.append(f"Duplication Alert: Found {report['total_duplicates']} exact duplicate rows ({round((report['total_duplicates']/len(df))*100, 1)}% of total).")
 
     # 3. Outlier Anomaly Detection Insight
     outlier_cols = list(report["outliers"].keys())
@@ -190,7 +190,7 @@ def generate_ai_insights(df: pd.DataFrame) -> list:
             count = report["outliers"][col]["count"]
             pct = report["outliers"][col]["percentage"]
             details.append(f"[{col}] ({count} outliers, {pct}%)")
-        insights.append(f"📊 Numeric Outliers Detected: Statistically significant anomalies found in: {', '.join(details)}.")
+        insights.append(f"Numeric Outliers Detected: Statistically significant anomalies found in: {', '.join(details)}.")
 
     # 4. Correlation & Feature Interdependence Insight
     numeric_cols = df.select_dtypes(include=[np.number]).columns
@@ -205,16 +205,16 @@ def generate_ai_insights(df: pd.DataFrame) -> list:
                     relationship = "Strong Positive" if val > 0 else "Strong Negative"
                     strong_pairs.append(f"{relationship} correlation ({round(val, 2)}) between [{col1}] and [{col2}]")
         if strong_pairs:
-            insights.append(f"📈 Feature Relationships: {'; '.join(strong_pairs[:2])}.")
+            insights.append(f"Feature Relationships: {'; '.join(strong_pairs[:2])}.")
 
     # 5. Categorical Skewness / Dominance Insight
     for prof in report["column_profiles"]:
         if not prof["is_numeric"] and "stats" in prof and "top_pct" in prof["stats"]:
             if prof["stats"]["top_pct"] >= 65.0:
-                insights.append(f"📌 Categorical Skew: Column [{prof['name']}] is heavily skewed towards '{prof['stats']['top_value']}' ({prof['stats']['top_pct']}% of records).")
+                insights.append(f"Categorical Skew: Column [{prof['name']}] is heavily skewed towards '{prof['stats']['top_value']}' ({prof['stats']['top_pct']}% of records).")
 
     if not insights:
-        insights.append("💡 Dataset is well-structured and balanced. Ready for advanced SQL analytics and visualization.")
+        insights.append("Dataset is well-structured and balanced. Ready for advanced SQL analytics and visualization.")
 
     return insights
 
@@ -415,25 +415,25 @@ def generate_dynamic_dataset_suggestions(table_name: str) -> list:
 
     # 1. Simple aggregate
     if metric and category:
-        suggestions.append((f"📊 Total {metric} by {category}", f"Total {metric} by {category}"))
+        suggestions.append((f"Total {metric} by {category}", f"Total {metric} by {category}"))
     elif category:
-        suggestions.append((f"📊 Count by {category}", f"Count of records by {category}"))
+        suggestions.append((f"Count by {category}", f"Count of records by {category}"))
     elif metric:
-        suggestions.append((f"📊 Total {metric}", f"What is the total {metric}"))
+        suggestions.append((f"Total {metric}", f"What is the total {metric}"))
 
     # 2. Time-based trend, only offered when the dataset actually has a date column
     if date_col and metric:
-        suggestions.append((f"📈 {metric} Trend", f"Total {metric} by month"))
+        suggestions.append((f"{metric} Trend", f"Total {metric} by month"))
     elif date_col:
-        suggestions.append(("📈 Records Over Time", "Count of records by month"))
+        suggestions.append(("Records Over Time", "Count of records by month"))
 
     # 3. Ranking - uses the SECOND categorical column when available so this doesn't just
     # repeat suggestion #1 with "Top 5" prefixed onto the identical breakdown.
     rank_category = second_category or category
     if metric and rank_category:
-        suggestions.append((f"🏆 Top 5 {rank_category}", f"Top 5 {rank_category} by {metric}"))
+        suggestions.append((f"Top 5 {rank_category}", f"Top 5 {rank_category} by {metric}"))
     elif metric:
-        suggestions.append(("🏆 Top 10 Records", f"Top 10 records by {metric}"))
+        suggestions.append(("Top 10 Records", f"Top 10 records by {metric}"))
 
     # 4. A specific filtered question using a REAL value actually present in this
     # dataset (not a placeholder) - the most frequently occurring value in the primary
@@ -449,7 +449,7 @@ def generate_dynamic_dataset_suggestions(table_name: str) -> list:
             if not top_df.empty:
                 top_val = str(top_df.iloc[0]["val"]).strip()
                 if top_val:
-                    suggestions.append((f"🔍 {metric} for {top_val}", f"Total {metric} for {top_val}"))
+                    suggestions.append((f"{metric} for {top_val}", f"Total {metric} for {top_val}"))
         except Exception:
             pass
 
@@ -457,11 +457,11 @@ def generate_dynamic_dataset_suggestions(table_name: str) -> list:
     # always-answerable, generic questions rather than erroring or showing nothing.
     if len(suggestions) < 4:
         if category:
-            suggestions.append((f"🔍 Distinct {category}", f"Show all distinct values in {category}"))
+            suggestions.append((f"Distinct {category}", f"Show all distinct values in {category}"))
     if len(suggestions) < 4:
-        suggestions.append(("📋 Show Total Records", "Show total records"))
+        suggestions.append(("Show Total Records", "Show total records"))
     if len(suggestions) < 4:
-        suggestions.append(("🔍 Top 10 Rows", "Show top 10 rows from dataset"))
+        suggestions.append(("Top 10 Rows", "Show top 10 rows from dataset"))
 
     # De-duplicate while preserving order, in case a small dataset's columns made two
     # branches above produce the same prompt text.

@@ -11,7 +11,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 24px;">
             <div>
                 <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
-                    {% if account_status == 'rejected' %}⚠️ Payment Verification Issue{% elif account_status == 'pending_approval' %}⏳ Payment Under Review{% else %}💳 Subscription Expired - Renew Now{% endif %}
+                    {% if account_status == 'rejected' %}Payment Verification Issue{% elif account_status == 'pending_approval' %}Payment Under Review{% else %}Subscription Expired - Renew Now{% endif %}
                 </h2>
                 <p style="font-size: 13px; color: var(--text-muted);">
                     Current Account Status:
@@ -24,14 +24,14 @@
 
         {% if account_status == 'rejected' and rejection_reason %}
         <div style="background: rgba(239, 68, 68, 0.12); border-left: 4px solid #ef4444; border-radius: 6px; padding: 14px 18px; margin-bottom: 24px;">
-            <strong style="color: #dc2626;">Reason your last payment was not approved:</strong>
+            <strong style="color: var(--mono-danger);">Reason your last payment was not approved:</strong>
             <p style="color: var(--text-primary); margin-top: 4px; font-size: 13px;">{{ rejection_reason }}</p>
         </div>
         {% endif %}
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px;">
             <div style="background: var(--bg-primary); padding: 20px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.05);">
-                <h4 style="font-size: 15px; font-weight: 700; color: #38bdf8; margin-bottom: 12px;">
+                <h4 style="font-size: 15px; font-weight: 700; color: var(--mono-text-3); margin-bottom: 12px;">
                     <i class="fa-solid fa-building-columns"></i> Payment Transfer Options
                 </h4>
                 <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; list-style: none; padding: 0;">
@@ -48,7 +48,7 @@
             </div>
 
             <div style="background: var(--bg-primary); padding: 20px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.05);">
-                <h4 style="font-size: 15px; font-weight: 700; color: #a855f7; margin-bottom: 12px;">
+                <h4 style="font-size: 15px; font-weight: 700; color: var(--mono-text-3); margin-bottom: 12px;">
                     <i class="fa-solid fa-shield-check"></i> Super Admin Verification Process
                 </h4>
                 <ol style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; padding-left: 18px;">
@@ -64,7 +64,7 @@
         <form action="{{ url_for('frontend.renew_subscription') }}" method="POST" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="margin-bottom: 20px;">
                 <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-                    📤 Upload Payment Screenshot *
+                    Upload Payment Screenshot *
                 </label>
                 <input type="file" name="receipt_file" accept=".jpg,.jpeg,.png,.webp" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); width: 100%;">
                 <small style="color: var(--text-muted); display: block; margin-top: 6px;">Supported formats: JPG, JPEG, PNG, WEBP (Max 5MB)</small>
@@ -72,7 +72,7 @@
 
             <div style="margin-bottom: 20px;">
                 <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-                    🏦 Select Payment Bank / Transfer Method Used *
+                    Select Payment Bank / Transfer Method Used *
                 </label>
                 <select name="bank_method" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); width: 100%;">
                     <option value="">-- Select Payment Method --</option>
@@ -84,15 +84,15 @@
 
             <div style="margin-bottom: 20px;">
                 <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-                    💵 Payment Transfer Amount (PKR) *
+                    Payment Transfer Amount (PKR) *
                 </label>
-                <input type="number" name="payment_amount" value="1499" min="1499" step="1" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: #34d399; font-weight: 700; font-size: 16px; padding: 12px; border-radius: var(--radius-md); width: 100%;">
-                <small style="color: #ef4444; display: block; margin-top: 6px; font-weight: 600;">⚠️ Minimum Acceptable Subscription Fee: PKR 1,499. Submissions under PKR 1,499 will be automatically rejected.</small>
+                <input type="number" name="payment_amount" value="1499" min="1499" step="1" required class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--mono-success); font-weight: 700; font-size: 16px; padding: 12px; border-radius: var(--radius-md); width: 100%;">
+                <small style="color: var(--mono-danger); display: block; margin-top: 6px; font-weight: 600;">Minimum Acceptable Subscription Fee: PKR 1,499. Submissions under PKR 1,499 will be automatically rejected.</small>
             </div>
 
             <div style="margin-bottom: 24px;">
                 <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-                    📝 Transaction ID / Payment Reference Number *
+                    Transaction ID / Payment Reference Number *
                 </label>
                 <input type="text" name="transaction_note" required placeholder="e.g. TXN-99887766 or Bank Ref #12345" class="form-control" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); width: 100%;">
             </div>
@@ -107,7 +107,7 @@
     {% if payments %}
     <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px;">
         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">
-            📜 Payment & Renewal Receipt Submissions
+            Payment & Renewal Receipt Submissions
         </h3>
         <div style="overflow-x: auto;">
             <table class="table table-bordered custom-table" style="width: 100%;">
@@ -134,7 +134,7 @@
                         <td>
                             {% if p.screenshot_path %}
                             <a href="{{ url_for('frontend.secure_payment_screenshot', payment_id=p.id) }}" target="_blank" class="btn btn-sm btn-secondary" style="font-size: 11px;">
-                                👁️ View Receipt Proof
+                                View Receipt Proof
                             </a>
                             {% else %}
                             <span style="color: var(--text-muted);">N/A</span>

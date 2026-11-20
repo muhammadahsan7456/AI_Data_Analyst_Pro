@@ -120,7 +120,7 @@ def admin_required(f):
 
         if not is_user_active_in_db(user_id):
             session.clear()
-            flash("❌ Your account has been suspended by the administrator. Please contact support.", "error")
+            flash("Your account has been suspended by the administrator. Please contact support.", "error")
             return redirect(url_for("auth.login"))
 
         user_role = session.get("user_role")

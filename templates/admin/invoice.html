@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice {{ payment.txn_id }} - AI Data Analyst Pro</title>
+    <title>{% if payment.has_invoice %}Invoice {{ payment.invoice_number }}{% else %}Payment record #{{ payment.id }}{% endif %} - AI Data Analyst Pro</title>
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261121">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -57,8 +57,8 @@
             width: 36px;
             height: 36px;
             border-radius: 10px;
-            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-            color: #ffffff;
+            background: var(--mono-ink);
+            color: var(--mono-on-ink);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -156,7 +156,7 @@
         }
 
         .btn-action {
-            background: #2563eb;
+            background: #737373;
             color: #ffffff;
             border: none;
             padding: 10px 20px;
@@ -176,6 +176,8 @@
             .invoice-card { box-shadow: none; border: none; padding: 0; }
         }
     </style>
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body>
 
@@ -187,9 +189,11 @@
             <button onclick="window.print()" class="btn-action">
                 <i class="fa-solid fa-print"></i> Print
             </button>
-            <a href="{{ download_url or url_for('admin.download_payment_invoice', payment_id=payment.id) }}" class="btn-action" style="background: #059669;">
+            {% if payment.has_invoice %}
+            <a href="{{ download_url or url_for('admin.download_payment_invoice', payment_id=payment.id) }}" class="btn-action" style="background: #0a0a0a;">
                 <i class="fa-solid fa-file-arrow-down"></i> Download PDF
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -215,9 +219,10 @@
                 </div>
             </div>
             <div class="invoice-meta">
-                <div style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: #0f172a;">INVOICE</div>
-                <div><strong>Ref:</strong> {{ payment.txn_id }}</div>
-                <div><strong>Date:</strong> {{ payment.payment_date }}</div>
+                <div style="font-size: 20px; font-weight: 700; color: #0a0a0a;">{% if payment.has_invoice %}INVOICE{% else %}PAYMENT RECORD{% endif %}</div>
+                {% if payment.has_invoice %}<div><strong>Invoice no.:</strong> <span style="font-family: var(--mono-font-mono, monospace);">{{ payment.invoice_number }}</span></div>
+                <div><strong>Issue date:</strong> {{ payment.issue_date }}</div>{% else %}<div>No invoice yet: issued when the payment is approved.</div>{% endif %}
+                <div><strong>Paid on:</strong> {{ payment.payment_date }}</div>
             </div>
         </div>
 
@@ -232,9 +237,11 @@
 
             <div>
                 <div class="section-label">Issued By</div>
-                <div style="font-weight: 700; font-size: 16px; color: #0f172a;">AI Data Analyst Pro Inc.</div>
-                <div style="font-size: 14px; color: #475569;">Enterprise Billing & Security Operations</div>
-                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">support@aidataanalystpro.com</div>
+                <div style="font-weight: 700; font-size: 16px; color: #0a0a0a;">{{ payment.company.name }}</div>
+                {% if payment.company.address %}<div style="font-size: 14px; color: #404040;">{{ payment.company.address }}</div>{% endif %}
+                {% if payment.company.website %}<div style="font-size: 13px; color: #525252;">{{ payment.company.website }}</div>{% endif %}
+                <div style="font-size: 13px; color: #525252; margin-top: 4px;">{{ payment.company.email }}</div>
+                {% if payment.company.tax_id %}<div style="font-size: 13px; color: #525252;">Tax ID: {{ payment.company.tax_id }}</div>{% endif %}
             </div>
         </div>
 
@@ -243,7 +250,7 @@
             <thead>
                 <tr>
                     <th>Description / Plan Tier</th>
-                    <th>Billing Period</th>
+                    <th>Plan period</th>
                     <th>Payment Method</th>
                     <th style="text-align: right;">Amount</th>
                 </tr>
@@ -253,11 +260,11 @@
                     <td style="font-weight: 600;">
                         {{ payment.plan_name }}
                         <div style="font-size: 12px; color: #64748b; font-weight: 400;">
-                            Includes 10M+ Streaming Chunking, AES-256 Field Encryption at Rest & Fast Exports
+                            Includes uploads up to 500 MB, encrypted dataset storage & Fast Exports
                         </div>
                     </td>
-                    <td style="color: #475569;">30-Day Monthly Cycle</td>
-                    <td style="color: #475569;"><i class="fa-solid fa-credit-card"></i> {{ payment.payment_method }}</td>
+                    <td style="color: #404040;">{{ payment.period_label or "Starts when approved" }}{% if payment.period_estimated %}<div style="font-size: 11px; color: #525252;">one calendar month from the approval date</div>{% endif %}</td>
+                    <td style="color: #404040;">{{ payment.payment_method }}<div style="font-size: 12px; color: #525252;">Txn ID: <span style="font-family: var(--mono-font-mono, monospace);">{{ payment.txn_id }}</span></div></td>
                     <td style="text-align: right; font-weight: 700; color: #0f172a;">PKR {{ "{:,.2f}".format(payment.amount) }}</td>
                 </tr>
             </tbody>
@@ -270,7 +277,7 @@
         </div>
 
         <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
-            Thank you for choosing AI Data Analyst Pro. This is an official computer-generated billing receipt.
+            Computer-generated invoice for a manually verified payment. Questions: {{ payment.company.email }}
         </div>
     </div>
 </body>

@@ -46,11 +46,17 @@ def classify_column_semantic_type(col_name: str, series: pd.Series) -> str:
 
     # Numeric check for string-formatted numbers (e.g. '1,600', '1500.00', '$250', 'Rs 500')
     if not any(kw in c_lower for kw in ["phone", "mobile", "contact", "cnic", "zip", "postal", "code", "year", "date", "time"]):
-        clean_num_series = non_nulls.str.replace(r"[^\d.-]", "", regex=True)
-        clean_num_series = clean_num_series[clean_num_series != ""]
-        valid_nums = pd.to_numeric(clean_num_series, errors="coerce").dropna()
-        if len(valid_nums) > 0 and (len(valid_nums) / len(non_nulls)) >= 0.7:
-            return "numeric"
+        # Only currency/thousand-separator/percent decoration may be stripped. Stripping every
+        # non-digit used to classify labels such as "Customer 0369" or "INV-001" as numbers,
+        # which then offered them as metrics to sum.
+        number_like = non_nulls.str.match(
+            r"^(?:rs\.?|pkr|usd|gbp|eur|\$|£|€)?\s*[-+]?[\d,]*\.?\d+\s*(?:%|rs|pkr|usd)?$", case=False
+        )
+        if number_like.mean() >= 0.7:
+            clean_num_series = non_nulls[number_like].str.replace(r"[^\d.-]", "", regex=True)
+            valid_nums = pd.to_numeric(clean_num_series, errors="coerce").dropna()
+            if len(valid_nums) > 0 and (len(valid_nums) / len(non_nulls)) >= 0.7:
+                return "numeric"
 
     # Test date parsing
     if any(kw in c_lower for kw in ["date", "time", "dob", "created", "updated", "timestamp"]):

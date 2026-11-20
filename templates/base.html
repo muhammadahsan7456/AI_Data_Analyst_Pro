@@ -21,10 +21,11 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
 
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/fonts.css') }}?v=20261121">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/playfair-display-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <!-- Font Awesome -->
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
@@ -39,19 +40,22 @@
     {% block extra_css %}{% endblock %}
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20261015_v7">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/style.css') }}?v=20261121">
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body>
 
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar" aria-label="Main navigation">
             <div>
                 <div class="sidebar-header">
                     <div class="sidebar-brand-icon">
                         <i class="fa-solid fa-brain"></i>
                     </div>
-                    <div class="sidebar-title">{{ site_config.BRAND_NAME }}</div>
+                    <div class="sidebar-title sidebar-brand-text">{{ site_config.BRAND_NAME }}</div>
+                    <button type="button" id="mobile-sidebar-close" class="drawer-close-btn" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                 </div>
 
                 <ul class="sidebar-menu">
@@ -98,7 +102,7 @@
                     </li>
                     {% if g.user_role in ['SuperAdmin', 'Admin'] %}
                     <li>
-                        <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link" style="color: #ef4444; font-weight: 700;">
+                        <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link" style="color: var(--mono-danger); font-weight: 700;">
                             <i class="fa-solid fa-crown"></i> Super Admin Console
                         </a>
                     </li>
@@ -161,7 +165,7 @@
                 {% endif %}
 
                 <button class="theme-toggle-btn" id="theme-toggle" style="width: 100%; justify-content: center;">
-                    <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+                    <span id="theme-icon"><i class="fa-solid fa-moon" aria-hidden="true"></i></span> <span id="theme-text">Dark Mode</span>
                 </button>
             </div>
         </aside>
@@ -172,17 +176,17 @@
         <!-- Main Content -->
         <main class="main-content {% if request.endpoint == 'frontend.dashboard' %}dashboard-workspace{% endif %}">
             {% if is_logged_in and subscription_info and subscription_info.show_banner %}
-            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}linear-gradient(135deg, #7f1d1d, #b91c1c){% else %}linear-gradient(135deg, #7c2d12, #c2410c){% endif %}; color: #ffffff; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid {% if subscription_info.status == 'suspended' or subscription_info.status == 'expired' %}#f87171{% else %}#fb923c{% endif %};">
+            <div class="subscription-announcement-bar" style="background: {% if subscription_info.status == 'suspended' %}var(--mono-danger){% else %}var(--mono-warning){% endif %}; color: {% if subscription_info.status == 'suspended' %}var(--mono-on-danger){% else %}var(--mono-on-warning){% endif %}; padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid transparent;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fa-solid {% if subscription_info.status == 'suspended' %}fa-ban{% elif subscription_info.status == 'expired' %}fa-triangle-exclamation{% else %}fa-clock{% endif %}" style="font-size: 20px; color: #fef08a;"></i>
+                    <i class="fa-solid {% if subscription_info.status == 'suspended' %}fa-ban{% elif subscription_info.status == 'expired' %}fa-triangle-exclamation{% else %}fa-clock{% endif %}" style="font-size: 20px; color: inherit;"></i>
                     <div>
                         <div style="font-weight: 700; font-size: 14px;">{{ subscription_info.banner_message }}</div>
                         <div style="font-size: 12px; opacity: 0.9;">Plan Expiry Date: <strong>{{ subscription_info.end_date }}</strong> ({{ subscription_info.days_left }} days remaining)</div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <a href="{{ url_for('frontend.renew_subscription') }}" class="btn btn-sm" style="background: #ffffff; color: #0f172a; font-weight: 700; border: none; padding: 8px 16px; border-radius: 20px; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                        💳 Renew / Upload Receipt Proof
+                    <a href="{{ url_for('frontend.renew_subscription') }}" class="btn btn-sm" style="background: var(--mono-surface); color: var(--mono-text); font-weight: 700; border: none; padding: 8px 16px; border-radius: 20px; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        Renew / Upload Receipt Proof
                     </a>
                 </div>
             </div>
@@ -190,7 +194,7 @@
 
             <div class="top-bar">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button id="mobile-sidebar-toggle" class="mobile-sidebar-btn" title="Toggle Navigation Menu">
+                    <button id="mobile-sidebar-toggle" class="mobile-sidebar-btn" type="button" title="Open menu" aria-label="Open menu" aria-controls="app-sidebar" aria-expanded="false">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <div class="page-header">
@@ -204,7 +208,7 @@
                 <div style="display: flex; align-items: center; gap: 14px;">
                     <button id="btn-notification-center" class="btn-notif-trigger" title="AI Notification Center" style="position: relative; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-color); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease;">
                         <i class="fa-solid fa-bell" style="font-size: 18px; color: var(--accent-blue);"></i>
-                        <span id="notif-badge-count" class="notif-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 10px; border: 2px solid var(--bg-card);">0</span>
+                        <span id="notif-badge-count" class="notif-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--mono-danger); color: var(--mono-on-danger); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 10px; border: 2px solid var(--bg-card);">0</span>
                     </button>
                 </div>
                 {% endif %}
@@ -215,7 +219,7 @@
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="toast toast-{{ category }}" style="margin-bottom: 20px;">
-                            <span>{% if category == 'error' %}❌{% elif category == 'warning' %}⚠️{% else %}✅{% endif %}</span>
+                            <i class="fa-solid {% if category == 'error' %}fa-circle-exclamation{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}" aria-hidden="true"></i>
                             {# No |safe here: flash messages interpolate user-supplied values
                                (email addresses, dataset names, DB error text), and rendering
                                them raw let an attacker inject live HTML. The few messages that
@@ -228,6 +232,18 @@
             {% endwith %}
 
             {% block content %}{% endblock %}
+            <footer class="app-footer" role="contentinfo">
+                <span><span class="app-footer-brand">{{ site_config.BRAND_NAME if site_config is defined else "AI Data Analyst Pro" }}</span> &copy; {{ now_year }}</span>
+                <nav aria-label="Footer">
+                    <a href="{{ url_for('frontend.help_center') }}">Help</a>
+                    <a href="{{ url_for('frontend.docs') }}">Docs</a>
+                    <a href="{{ url_for('frontend.faq_page') }}">FAQ</a>
+                    <a href="{{ url_for('frontend.contact') }}">Contact</a>
+                    <a href="{{ url_for('frontend.privacy') }}">Privacy</a>
+                    <a href="{{ url_for('frontend.terms') }}">Terms</a>
+                    {% if support_email %}<a href="mailto:{{ support_email }}">{{ support_email }}</a>{% endif %}
+                </nav>
+            </footer>
         </main>
     </div>
 
@@ -243,7 +259,7 @@
         </div>
         <div class="notif-drawer-actions">
             <button id="btn-mark-all-read" class="btn btn-secondary btn-sm" style="font-size: 12px;"><i class="fa-solid fa-check-double"></i> Mark Read</button>
-            <button id="btn-clear-notifications" class="btn btn-secondary btn-sm" style="font-size: 12px; color: #ef4444;"><i class="fa-solid fa-trash-can"></i> Clear History</button>
+            <button id="btn-clear-notifications" class="btn btn-secondary btn-sm" style="font-size: 12px; color: var(--mono-danger);"><i class="fa-solid fa-trash-can"></i> Clear History</button>
         </div>
         <div id="notif-drawer-list" class="notif-drawer-list">
             <!-- Rendered by client JS -->
@@ -272,7 +288,8 @@
             <h3>
                 {% if subscription_info.status == 'pending_approval' %}Payment Under Review
                 {% elif subscription_info.status == 'rejected' %}Payment Verification Issue
-                {% elif subscription_info.status in ('expired', 'suspended') %}Your Pro Plan Has Expired
+                {% elif subscription_info.status == 'expired' %}Your Pro Plan Has Ended
+                {% elif subscription_info.status == 'suspended' %}Account Suspended
                 {% else %}Your Pro Plan Is Ending Soon{% endif %}
             </h3>
             <p>{{ subscription_info.banner_message }}</p>
@@ -321,8 +338,8 @@
         .sub-expiry-modal p { font-size: 14px; line-height: 1.6; color: var(--text-muted); margin-bottom: 22px; }
         .sub-expiry-modal-actions { display: flex; flex-direction: column; gap: 10px; }
         .sub-expiry-btn-primary {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            color: #fff; text-decoration: none; padding: 12px 20px; border-radius: var(--radius-md);
+            background: var(--mono-ink);
+            color: var(--mono-on-ink); text-decoration: none; padding: 12px 20px; border-radius: var(--radius-md);
             font-weight: 700; font-size: 14px;
         }
         .sub-expiry-btn-secondary {
@@ -360,9 +377,9 @@
          inline handler below (and in the child templates) actually uses them. The theme is
          already applied by the inline script in <head>, so deferring theme.js causes no flash. -->
     <script defer src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
-    <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=2"></script>
     <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
-    <script defer src="{{ url_for('frontend.static', filename='js/app.js') }}?v=20260918_v6"></script>
+    <script defer src="{{ url_for('frontend.static', filename='js/app.js') }}?v=20261121"></script>
     <script defer src="{{ url_for('frontend.static', filename='js/voice_ai.js') }}?v=20261012_v2"></script>
 
     {% if session.get('toast') %}

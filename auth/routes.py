@@ -31,13 +31,16 @@ from auth.security import (
     log_audit_event,
     is_lockout_active,
     parse_user_agent,
-    get_client_ip
+    get_client_ip,
+    otp_digest,
+    otp_matches,
 )
 from auth.decorators import login_required, admin_required, manager_required
 
 from auth.email_service import EmailService
 
 from database.connection import get_db_cursor
+from utils.public_url import public_base_url, external_url
 from database.queries import (
     get_user_by_email,
     get_user_by_username,
@@ -61,8 +64,10 @@ from database.queries import (
     increment_email_token_attempt,
     mark_email_token_used,
     create_password_reset_token,
-    get_password_reset_token,
-    increment_reset_token_attempt,
+    invalidate_user_reset_tokens,
+    count_recent_reset_requests,
+    get_active_password_reset_token,
+    record_failed_reset_attempt,
     mark_reset_token_used,
     check_resend_rate_limit,
     get_user_login_history,
@@ -387,8 +392,11 @@ def signup():
                         res = cursor.fetchone()
                         if res:
                             new_user_id = int(res[0])
-                    except Exception as insert_err:
-                        print("Insert User fetchone notice:", insert_err)
+                    except Exception:
+                        # Not fatal on its own: the lookup by email below finds the row if the
+                        # INSERT did land; if it did not, new_user_id stays empty and the
+                        # caller reports the failure.
+                        logger.warning("Signup: INSERT ... OUTPUT did not return an id for %s", email, exc_info=True)
 
                 if not new_user_id:
                     with get_db_cursor() as cursor:
@@ -430,7 +438,7 @@ def signup():
             otp_code = f"{secrets.randbelow(900000) + 100000}"
 
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_email_verification_token(), (new_user_id, otp_code))
+                cursor.execute(create_email_verification_token(), (new_user_id, otp_digest("email-otp", new_user_id, otp_code)))
 
             # Sent synchronously so we get the REAL delivery result before putting the user
             # on a "enter your 6-digit code" screen - previously this fired on a background
@@ -449,7 +457,7 @@ def signup():
             # Store pending OTP & user details in session
             session["pending_otp"] = {
                 "user_id": new_user_id,
-                "otp_code": otp_code,
+                "otp_hash": otp_digest("email-otp", new_user_id, otp_code),
                 "email": email,
                 "phone": phone or "",
                 "first_name": first_name,
@@ -465,7 +473,7 @@ def signup():
 
             log_audit_event("SIGNUP_OTP_EMAIL", f"6-digit email verification code sent to {email}", user_id=new_user_id)
 
-            flash(Markup(f"🔐 Account details updated! A 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
+            flash(Markup(f"Account details updated! A 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
             return redirect(url_for("auth.verify_otp"))
 
@@ -510,9 +518,15 @@ def verify_otp():
             digits = [request.form.get(f"digit{i}", "").strip() for i in range(1, 7)]
             input_code = "".join(digits)
 
-        expected_code = str(pending.get("otp_code", "")).strip()
         user_id = pending.get("user_id")
         full_name = pending.get("full_name", "User")
+        # Only a keyed digest of the code is kept (session and DB); see otp_digest().
+        expected_code = pending.get("otp_hash")
+        if not expected_code:
+            # A pending session from before this change (plain code in the cookie).
+            session.pop("pending_otp", None)
+            flash("Your verification session has expired. Please sign in again to receive a new code.", "warning")
+            return redirect(url_for("auth.login"))
 
         # Check DB attempts and expiration
         db_token = None
@@ -528,10 +542,10 @@ def verify_otp():
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(mark_email_token_used(), (expected_code,))
             session.pop("pending_otp", None)
-            flash("❌ Maximum verification attempts exceeded (5 failed attempts). Verification code invalidated. Please request a new code.", "error")
+            flash("Maximum verification attempts exceeded (5 failed attempts). Verification code invalidated. Please request a new code.", "error")
             return redirect(url_for("auth.login"))
 
-        if input_code == expected_code:
+        if otp_matches(expected_code, "email-otp", user_id, input_code):
             try:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(verify_user_email(), (user_id,))
@@ -539,14 +553,15 @@ def verify_otp():
 
                 log_audit_event("VERIFY_OTP_SUCCESS", "Account verified successfully via 6-digit OTP.", user_id=user_id)
                 trigger_ai_event(user_id, build_email_verified_card(full_name))
+                _send_welcome(user_id, full_name)
                 session.pop("pending_otp", None)
 
                 session["toast"] = {
                     "type": "success",
-                    "title": f"👋 Hello {full_name}!",
+                    "title": f"Hello {full_name}!",
                     "message": "Your email address has been verified successfully. You can now log in."
                 }
-                flash(f"👋 Hello {escape(full_name)}! Your email has been verified successfully.", "success")
+                flash(f"Hello {escape(full_name)}! Your email has been verified successfully.", "success")
                 return redirect(url_for("auth.login"))
             except Exception:
                 logger.exception("OTP verification failed for user_id=%s.", user_id)
@@ -567,10 +582,10 @@ def verify_otp():
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(mark_email_token_used(), (expected_code,))
                 session.pop("pending_otp", None)
-                flash("❌ Maximum verification attempts exceeded. Please request a new verification code.", "error")
+                flash("Maximum verification attempts exceeded. Please request a new verification code.", "error")
                 return redirect(url_for("auth.login"))
             else:
-                flash(f"❌ Invalid verification code. {remaining} attempt(s) remaining.", "error")
+                flash(f"Invalid verification code. {remaining} attempt(s) remaining.", "error")
 
     return render_template("verify_otp.html", pending_otp=pending)
 
@@ -603,19 +618,20 @@ def resend_otp():
         return redirect(url_for("auth.verify_otp"))
 
     # Persist the new token and invalidate the old one atomically before sending it.
-    old_code = pending.get("otp_code")
+    old_code = pending.get("otp_hash")
     new_otp = f"{secrets.randbelow(900000) + 100000}"
     try:
         with get_db_cursor(commit=True) as cursor:
             if old_code:
                 cursor.execute(mark_email_token_used(), (old_code,))
-            cursor.execute(create_email_verification_token(), (user_id, new_otp))
+            cursor.execute(create_email_verification_token(), (user_id, otp_digest("email-otp", user_id, new_otp)))
     except Exception:
         logger.exception("Could not persist resent email OTP for user_id=%s.", user_id)
         flash("We could not prepare a new verification code right now. Please try again.", "error")
         return redirect(url_for("auth.verify_otp"))
 
-    pending["otp_code"] = new_otp
+    pending.pop("otp_code", None)
+    pending["otp_hash"] = otp_digest("email-otp", user_id, new_otp)
     pending["attempts"] = 0
     session["pending_otp"] = pending
 
@@ -630,7 +646,7 @@ def resend_otp():
         return redirect(url_for("auth.verify_otp"))
 
     log_audit_event("RESEND_OTP_EMAIL", f"New Email OTP sent to {email}", user_id=user_id)
-    flash(Markup(f"📧 A new 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
+    flash(Markup(f"A new 6-digit verification code has been sent to your email address (<strong>{escape(email)}</strong>). Please check your Gmail inbox."), "info")
 
     return redirect(url_for("auth.verify_otp"))
 
@@ -685,7 +701,8 @@ def verify_email(token):
 
         log_audit_event("VERIFY_EMAIL", "Email verified successfully.", user_id=user_id)
         trigger_ai_event(user_id, build_email_verified_card(user_name))
-        flash("🎉 Your email address has been verified successfully! You can now log in.", "success")
+        _send_welcome(user_id, user_name)
+        flash("Your email address has been verified successfully! You can now log in.", "success")
     except Exception:
         logger.exception("Email verification failed for user_id=%s.", user_id)
         flash("We could not verify your email right now. Please try again.", "error")
@@ -716,7 +733,7 @@ def resend_verification():
 
         otp_code = f"{secrets.randbelow(900000) + 100000}"
         with get_db_cursor(commit=True) as cursor:
-            cursor.execute(create_email_verification_token(), (user_id, otp_code))
+            cursor.execute(create_email_verification_token(), (user_id, otp_digest("email-otp", user_id, otp_code)))
 
         email_sent = email_service.send_verification_email(email, full_name, otp_code)
         if not email_sent:
@@ -726,7 +743,7 @@ def resend_verification():
 
         session["pending_otp"] = {
             "user_id": user_id,
-            "otp_code": otp_code,
+            "otp_hash": otp_digest("email-otp", user_id, otp_code),
             "email": email,
             "full_name": full_name,
             "created_at": datetime.now().isoformat(),
@@ -743,317 +760,360 @@ def resend_verification():
 # ==========================================
 # GOOGLE OAUTH 2.0 AUTHENTICATION
 # ==========================================
+# Root causes fixed here (see docs/PROGRESS.md, Phase 2):
+#   1. New Google users always failed: upsert_user_profile()/upsert_user_settings() were
+#      called with 11/6 parameters for statements that have 25/13 markers, so the driver
+#      raised and the whole sign-up transaction rolled back.
+#   2. Existing users always failed on SQL Server: the inline T-SQL inserted into columns
+#      that do not exist (UserProfiles.CreatedAt, UserSettings.ExportFormat/DefaultChart/
+#      DefaultDashboard). SQL Server rejects unknown columns at compile time, even inside
+#      an IF NOT EXISTS branch that would not run.
+#   3. Visitors on www.<domain> got their OAuth state cookie on the www host while Google
+#      returned them to the apex callback, so the state check always failed. google_login
+#      now bounces to the PUBLIC_BASE_URL host before setting state (R-Phase 8: the
+#      hardcoded domain was replaced by PUBLIC_BASE_URL via utils.public_url).
+#   4. email_verified was never checked, and an unverified password account with the same
+#      email was silently merged (its old password kept working).
+_GOOGLE_GENERIC_ERROR = (
+    "We couldn't sign you in with Google right now. Please try again, or use your "
+    "email and password."
+)
+
+
+def _public_base_url():
+    """The canonical public origin (scheme + host) the OAuth flow must run on.
+
+    PUBLIC_BASE_URL first; otherwise the request origin as seen through the trusted
+    proxy hop (utils.public_url). Untrusted X-Forwarded-* headers are not read here,
+    and no domain is hardcoded: production sets PUBLIC_BASE_URL.
+    """
+    return public_base_url()
+
+
 def _get_google_redirect_uri():
-    if "aidataanalystpro.co.uk" in request.host:
-        return "https://aidataanalystpro.co.uk/auth/google/callback"
-    proto = request.headers.get("X-Forwarded-Proto") or request.scheme
-    if proto == "https":
-        return url_for("auth.google_callback", _external=True, _scheme="https")
-    return url_for("auth.google_callback", _external=True)
+    explicit = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+    if explicit:
+        return explicit
+    return _public_base_url() + url_for("auth.google_callback")
+
+
+def _google_config():
+    return (
+        os.getenv("GOOGLE_CLIENT_ID", "").strip(),
+        os.getenv("GOOGLE_CLIENT_SECRET", "").strip(),
+    )
+
+
+def _ensure_google_user_rows(cursor, user_id, picture):
+    """Create the UserProfiles/UserSettings rows if missing, portably (SQL Server + SQLite)."""
+    # COUNT(*) always returns a row, so this is unambiguous on both SQL Server and the
+    # SQLite QA adapter (whose fetchone() can echo the last inserted id on an empty result).
+    cursor.execute("SELECT COUNT(*) FROM UserProfiles WHERE UserID = ?", (user_id,))
+    if not cursor.fetchone()[0]:
+        cursor.execute(
+            "INSERT INTO UserProfiles (UserID, ProfileImage) VALUES (?, ?)",
+            (user_id, picture),
+        )
+    cursor.execute("SELECT COUNT(*) FROM UserSettings WHERE UserID = ?", (user_id,))
+    if not cursor.fetchone()[0]:
+        cursor.execute(
+            "INSERT INTO UserSettings (UserID, Theme, DateFormat, DefaultExportFormat, "
+            "ChartPreference, DashboardPreference) VALUES (?, 'dark', 'YYYY-MM-DD', 'csv', 'bar', 'standard')",
+            (user_id,),
+        )
+
+
+def _start_google_session(user_id, display_name, username, email, role, avatar):
+    session.clear()
+    session["user_id"] = user_id
+    session["user_name"] = display_name
+    session["username"] = username
+    session["full_name"] = display_name
+    session["profile_image"] = avatar
+    session["user_email"] = email
+    session["user_role"] = role or "Analyst"
+    session["login_time"] = datetime.now().isoformat()
+    session["last_activity"] = time.time()
+    session.permanent = True
+    session_token = generate_secure_token()
+    session["session_token"] = session_token
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                create_user_session(),
+                (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500]),
+            )
+    except Exception:
+        logger.exception("Could not persist Google sign-in session for user_id=%s.", user_id)
+
+
+def _post_login_redirect(user_id):
+    from auth.decorators import get_user_access_status
+    try:
+        allowed, gate_status, _ = get_user_access_status(user_id)
+    except Exception:
+        logger.exception("Could not read access status after Google sign-in for user_id=%s.", user_id)
+        allowed, gate_status = True, None
+    if not allowed:
+        if gate_status == "pending_approval":
+            return redirect(url_for("frontend.waiting_approval"))
+        return redirect(url_for("frontend.renew_subscription"))
+    return redirect(url_for("frontend.dashboard"))
+
+
+def _pkce_pair():
+    import base64
+    import hashlib
+    verifier = secrets.token_urlsafe(64)[:96]
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+    return verifier, challenge
 
 
 @auth_bp.route("/google")
 @auth_bp.route("/google/login")
 def google_login():
-    """
-    Redirects user to Google's official OAuth 2.0 authorization screen.
-    """
+    """Redirect to Google's OAuth 2.0 consent screen (authorization code + PKCE)."""
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))
 
-    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-
+    client_id, client_secret = _google_config()
     if not client_id or not client_secret:
-        flash(
-            Markup(
-                "⚙️ <strong>Google Sign-In Setup:</strong> To enable one-click Google authentication, "
-                "please add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your <code>.env</code> file. "
-                "In the meantime, you can sign in or register with email and password."
-            ),
-            "warning"
-        )
+        logger.error("Google sign-in requested but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are not configured.")
+        flash("Google sign-in is not available right now. Please sign in with your email and password.", "warning")
         return redirect(url_for("auth.login"))
 
+    # The state cookie must live on the same host Google sends the user back to.
+    base = _public_base_url()
+    canonical_host = urllib.parse.urlsplit(base).netloc.lower()
+    if canonical_host and canonical_host != (request.host or "").lower():
+        return redirect(base + url_for("auth.google_login"))
+
     state = secrets.token_urlsafe(32)
+    verifier, challenge = _pkce_pair()
     session["google_oauth_state"] = state
-    redirect_uri = _get_google_redirect_uri()
+    session["google_oauth_verifier"] = verifier
+    session["google_oauth_started"] = time.time()
 
     params = {
         "client_id": client_id,
-        "redirect_uri": redirect_uri,
+        "redirect_uri": _get_google_redirect_uri(),
         "response_type": "code",
         "scope": "openid email profile",
         "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
         "access_type": "online",
-        "prompt": "select_account"
+        "prompt": "select_account",
     }
-    google_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
-    return redirect(google_url)
+    return redirect("https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params))
 
 
 @auth_bp.route("/google/callback")
 def google_callback():
-    """
-    Handles Google OAuth 2.0 callback, exchanges code for token,
-    and signs in or registers the user directly.
-    """
+    """Exchange the code, verify the Google identity, then sign in, link, or create the user."""
     if session.get("user_id"):
         return redirect(url_for("frontend.dashboard"))
 
+    saved_state = session.pop("google_oauth_state", None)
+    verifier = session.pop("google_oauth_verifier", None)
+    started = session.pop("google_oauth_started", None)
+
     error = request.args.get("error")
     if error:
-        flash(f"Google authentication was cancelled or failed ({escape(error)}).", "error")
+        if error == "access_denied":
+            flash("Google sign-in was cancelled.", "info")
+        else:
+            logger.warning("Google OAuth returned error=%s", error[:64])
+            flash(_GOOGLE_GENERIC_ERROR, "error")
         return redirect(url_for("auth.login"))
 
-    code = request.args.get("code")
     state = request.args.get("state")
-    saved_state = session.pop("google_oauth_state", None)
-
-    if not state or state != saved_state:
-        flash("Invalid OAuth state validation. Please try again.", "error")
+    code = request.args.get("code")
+    if not state or not saved_state or not secrets.compare_digest(state, saved_state):
+        logger.warning("Google OAuth state mismatch (cookie present=%s).", bool(saved_state))
+        flash("Your Google sign-in session expired. Please click Continue with Google again.", "warning")
         return redirect(url_for("auth.login"))
-
+    if started and time.time() - float(started) > 600:
+        flash("Your Google sign-in session expired. Please click Continue with Google again.", "warning")
+        return redirect(url_for("auth.login"))
     if not code:
-        flash("Authorization code missing from Google.", "error")
+        flash(_GOOGLE_GENERIC_ERROR, "error")
         return redirect(url_for("auth.login"))
 
-    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-    redirect_uri = _get_google_redirect_uri()
+    client_id, client_secret = _google_config()
+    if not client_id or not client_secret:
+        flash("Google sign-in is not available right now. Please sign in with your email and password.", "warning")
+        return redirect(url_for("auth.login"))
 
     try:
-        # 1. Exchange authorization code for tokens
+        token_payload = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": _get_google_redirect_uri(),
+        }
+        if verifier:
+            token_payload["code_verifier"] = verifier
         token_resp = requests.post(
             "https://oauth2.googleapis.com/token",
-            data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": redirect_uri
-            },
+            data=token_payload,
             headers={"Accept": "application/json"},
-            timeout=10
+            timeout=10,
         )
-
         if token_resp.status_code != 200:
-            print("Google token exchange error:", token_resp.status_code, token_resp.text, flush=True)
-            flash("Failed to authenticate with Google. Please check your credentials.", "error")
+            try:
+                err = (token_resp.json() or {}).get("error", "unknown")
+            except ValueError:
+                err = "non-json"
+            logger.error("Google token exchange failed: HTTP %s error=%s", token_resp.status_code, err)
+            flash(_GOOGLE_GENERIC_ERROR, "error")
             return redirect(url_for("auth.login"))
 
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
+        access_token = (token_resp.json() or {}).get("access_token")
         if not access_token:
-            flash("Google returned an invalid access token.", "error")
+            logger.error("Google token response had no access_token.")
+            flash(_GOOGLE_GENERIC_ERROR, "error")
             return redirect(url_for("auth.login"))
 
-        # 2. Retrieve verified user profile from Google
         profile_resp = requests.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
+            "https://openidconnect.googleapis.com/v1/userinfo",
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=10
+            timeout=10,
         )
-
         if profile_resp.status_code != 200:
-            flash("Could not retrieve profile info from Google.", "error")
+            logger.error("Google userinfo failed: HTTP %s", profile_resp.status_code)
+            flash(_GOOGLE_GENERIC_ERROR, "error")
             return redirect(url_for("auth.login"))
+        profile_data = profile_resp.json() or {}
+    except (requests.RequestException, ValueError):
+        logger.exception("Google OAuth network/JSON error.")
+        flash(_GOOGLE_GENERIC_ERROR, "error")
+        return redirect(url_for("auth.login"))
 
-        profile_data = profile_resp.json()
-        email = (profile_data.get("email") or "").strip().lower()
-        if not email:
-            flash("Google account did not provide an email address.", "error")
-            return redirect(url_for("auth.login"))
+    email = (profile_data.get("email") or "").strip().lower()
+    email_verified = profile_data.get("email_verified") in (True, "true", "True", 1)
+    if not email:
+        flash("Your Google account did not share an email address, so we can't sign you in with it.", "error")
+        return redirect(url_for("auth.login"))
+    if not email_verified:
+        flash("Your Google email address is not verified. Please verify it with Google, or sign in with email and password.", "error")
+        return redirect(url_for("auth.login"))
 
-        full_name = profile_data.get("name") or profile_data.get("given_name") or email.split("@")[0]
-        picture = profile_data.get("picture") or None
+    full_name = (profile_data.get("name") or profile_data.get("given_name") or email.split("@")[0]).strip()[:150]
+    picture = profile_data.get("picture") or None
 
-        # 3. Check if user already exists in DB
+    try:
         with get_db_cursor() as cursor:
             cursor.execute(get_user_by_email(), (email,))
             existing_user = cursor.fetchone()
 
         if existing_user:
-            user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active, is_verified, role, failed_attempts, lockout_until, created_at = existing_user
+            (user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active,
+             is_verified, role, failed_attempts, lockout_until, created_at) = existing_user
 
             if not is_active:
                 log_login_attempt(user_id, "Suspended")
-                trigger_ai_event(user_id, build_account_locked_card())
-                flash("❌ Your account has been suspended by the administrator. Please contact support.", "error")
+                flash("Your account has been suspended by the administrator. Please contact support.", "error")
                 return redirect(url_for("auth.login"))
 
-            # Since email is verified by Google Identity, ensure IsVerified is True and reset any failed attempts
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(verify_user_email(), (user_id,))
+                if not is_verified:
+                    # The address was never proven by whoever registered it. Google has now
+                    # proven it belongs to this person, so retire the unproven password:
+                    # whoever set it can no longer use it. The owner can set a new one via
+                    # Forgot password.
+                    cursor.execute(update_user_password(), (hash_password(secrets.token_urlsafe(32)), user_id))
+                    cursor.execute(verify_user_email(), (user_id,))
                 cursor.execute(reset_failed_login(), (user_id,))
                 if picture and not pimg:
                     cursor.execute(update_user_avatar(), (picture, user_id))
+                _ensure_google_user_rows(cursor, user_id, picture)
 
-                # Ensure UserProfiles record exists
-                cursor.execute("""
-                    IF NOT EXISTS (SELECT 1 FROM UserProfiles WHERE UserID = ?)
-                    BEGIN
-                        INSERT INTO UserProfiles (UserID, ProfileImage, CreatedAt)
-                        VALUES (?, ?, GETDATE())
-                    END
-                """, (user_id, user_id, picture))
-
-                # Ensure UserSettings record exists
-                cursor.execute("""
-                    IF NOT EXISTS (SELECT 1 FROM UserSettings WHERE UserID = ?)
-                    BEGIN
-                        INSERT INTO UserSettings (UserID, Theme, DateFormat, ExportFormat, DefaultChart, DefaultDashboard)
-                        VALUES (?, 'dark', 'YYYY-MM-DD', 'csv', 'bar', 'standard')
-                    END
-                """, (user_id, user_id))
-
-            user_display_name = fnm or full_name
-            user_avatar = pimg or picture
-            user_role = role or "Analyst"
-
-            # Set enterprise session
-            session.clear()
-            session["user_id"] = user_id
-            session["user_name"] = user_display_name
-            session["username"] = un
-            session["full_name"] = user_display_name
-            session["profile_image"] = user_avatar
-            session["user_email"] = em
-            session["user_role"] = user_role
-            session["login_time"] = datetime.now().isoformat()
-            session["last_activity"] = time.time()
-            session.permanent = True
-
-            session_token = generate_secure_token()
-            session["session_token"] = session_token
-            try:
-                with get_db_cursor(commit=True) as cursor:
-                    cursor.execute(
-                        create_user_session(),
-                        (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
-                    )
-            except Exception as sess_err:
-                print("Google session persistence notice:", sess_err)
-
-            # Persist to LoginHistory and AuditLogs
+            display_name = fnm or full_name
+            _start_google_session(user_id, display_name, un, em, role, pimg or picture)
             log_login_attempt(user_id, "Success")
-            log_audit_event("LOGIN_GOOGLE", f"User {user_display_name} ({em}) signed in securely via Google OAuth 2.0.", user_id=user_id)
-
-            # Dispatch AI notification (persists to AINotifications table)
-            trigger_ai_event(user_id, build_welcome_back_card(user_id, user_display_name))
-
-            session["toast"] = {
-                "type": "success",
-                "title": f"👋 Welcome back, {user_display_name}!",
-                "message": "Signed in successfully via Google."
-            }
-            flash(f"👋 Welcome back, {escape(user_display_name)}!", "success")
-            return redirect(url_for("frontend.dashboard"))
-
-        else:
-            # 4. New user: Register directly via Google OAuth
-            base_username = re.sub(r"[^a-zA-Z0-9_]", "", email.split("@")[0])[:25] or "user"
-            candidate = base_username
-            with get_db_cursor() as cursor:
-                for _ in range(20):
-                    cursor.execute(get_user_by_username(), (candidate,))
-                    if not cursor.fetchone():
-                        break
-                    candidate = f"{base_username}{secrets.randbelow(9000) + 1000}"
-                else:
-                    candidate = f"{base_username}{secrets.token_hex(4)}"
-            username = candidate
-
-            rand_pwd = secrets.token_urlsafe(32)
-            pwd_hash = hash_password(rand_pwd)
-
-            parts = full_name.split(None, 1)
-            first_name = parts[0]
-            last_name = parts[1] if len(parts) > 1 else ""
-
-            with get_db_cursor(commit=True) as cursor:
-                # Insert into Users
-                cursor.execute(create_user(), (
-                    first_name,
-                    last_name,
-                    username,
-                    full_name,
-                    email,
-                    "",  # phone
-                    "",  # country
-                    "",  # city
-                    pwd_hash
-                ))
-                new_user_id = cursor.fetchone()[0]
-
-                # Pre-verify since Google email is authentic
-                cursor.execute(verify_user_email(), (new_user_id,))
-                cursor.execute("UPDATE Users SET SubscriptionStatus = 'free' WHERE UserID = ?", (new_user_id,))
-
-                # Set avatar if available from Google
-                if picture:
-                    cursor.execute(update_user_avatar(), (picture, new_user_id))
-
-                # Insert default UserProfiles record
-                cursor.execute(upsert_user_profile(), (new_user_id, None, None, None, None, None, None, None, None, None, picture))
-
-                # Insert default UserSettings record (dark luxury theme, CSV, standard dashboard)
-                cursor.execute(upsert_user_settings(), (new_user_id, "dark", "YYYY-MM-DD", "csv", "bar", "standard"))
-
-            # Set enterprise session
-            session.clear()
-            session["user_id"] = new_user_id
-            session["user_name"] = full_name
-            session["username"] = username
-            session["full_name"] = full_name
-            session["profile_image"] = picture
-            session["user_email"] = email
-            session["user_role"] = "Analyst"
-            session["login_time"] = datetime.now().isoformat()
-            session["last_activity"] = time.time()
-            session.permanent = True
-
-            session_token = generate_secure_token()
-            session["session_token"] = session_token
+            log_audit_event(
+                "LOGIN_GOOGLE" if is_verified else "LINK_GOOGLE_VERIFIED",
+                f"Signed in via Google ({em}).",
+                user_id=user_id,
+            )
             try:
-                with get_db_cursor(commit=True) as cursor:
-                    cursor.execute(
-                        create_user_session(),
-                        (new_user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
-                    )
-            except Exception as sess_err:
-                print("Google session persistence notice:", sess_err)
+                trigger_ai_event(user_id, build_welcome_back_card(user_id, display_name))
+            except Exception:
+                logger.exception("Welcome card failed after Google sign-in.")
+            flash(f"Welcome back, {escape(display_name)}.", "success")
+            return _post_login_redirect(user_id)
 
-            # Persist to LoginHistory and AuditLogs
-            log_login_attempt(new_user_id, "Success")
-            log_audit_event("SIGNUP_GOOGLE", f"New user {full_name} ({email}) registered securely via Google OAuth 2.0 with verified email.", user_id=new_user_id)
+        # New user: free tier, verified, no OTP and no payment step.
+        base_username = re.sub(r"[^a-zA-Z0-9_]", "", email.split("@")[0])[:25] or "user"
+        candidate = base_username
+        with get_db_cursor() as cursor:
+            for _ in range(20):
+                cursor.execute(get_user_by_username(), (candidate,))
+                if not cursor.fetchone():
+                    break
+                candidate = f"{base_username}{secrets.randbelow(9000) + 1000}"
+            else:
+                candidate = f"{base_username}{secrets.token_hex(4)}"
+        username = candidate
 
-            # Dispatch AI notification (persists to AINotifications table)
-            trigger_ai_event(new_user_id, build_email_verified_card(full_name))
+        parts = full_name.split(None, 1)
+        first_name = parts[0] if parts else username
+        last_name = parts[1] if len(parts) > 1 else ""
 
-            # Send welcome login notification email asynchronously
-            try:
-                client_info = parse_client_device(request.headers.get("User-Agent", ""))
-                email_service.send_login_notification_email(email, full_name, datetime.now().strftime("%Y-%m-%d %H:%M UTC"), client_info["device"])
-            except Exception as notify_err:
-                print("Google signup email notification notice:", notify_err)
-
-            session["toast"] = {
-                "type": "success",
-                "title": f"🎉 Welcome {full_name}!",
-                "message": "Your enterprise account has been created via Google."
-            }
-            flash(f"🎉 Welcome to AI Data Analyst Pro, {escape(full_name)}! Your account is active.", "success")
-            return redirect(url_for("frontend.dashboard"))
-
-    except Exception as e:
-        flash(f"Google authentication error: {str(e)}", "error")
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(create_user(), (
+                first_name, last_name, username, full_name, email, "", "", "",
+                hash_password(secrets.token_urlsafe(32)),
+            ))
+            new_user_id = cursor.fetchone()[0]
+            cursor.execute(verify_user_email(), (new_user_id,))
+            cursor.execute("UPDATE Users SET SubscriptionStatus = 'free' WHERE UserID = ?", (new_user_id,))
+            if picture:
+                cursor.execute(update_user_avatar(), (picture, new_user_id))
+            _ensure_google_user_rows(cursor, new_user_id, picture)
+    except Exception:
+        logger.exception("Google sign-in database step failed.")
+        flash(_GOOGLE_GENERIC_ERROR, "error")
         return redirect(url_for("auth.login"))
+
+    _start_google_session(new_user_id, full_name, username, email, "Analyst", picture)
+    log_login_attempt(new_user_id, "Success")
+    log_audit_event("SIGNUP_GOOGLE", f"New account created via Google ({email}).", user_id=new_user_id)
+    _send_welcome(new_user_id, full_name, via_google=True)
+    try:
+        trigger_ai_event(new_user_id, build_email_verified_card(full_name))
+    except Exception:
+        logger.exception("Welcome card failed after Google sign-up.")
+    flash(f"Welcome to AI Data Analyst Pro, {escape(full_name)}. Your free account is ready.", "success")
+    return _post_login_redirect(new_user_id)
+
+
+def _send_welcome(user_id, name, via_google=False):
+    """Welcome email once the account is usable. Background send; failures are logged
+    and written to AuditLogs (EMAIL_SEND_FAILED) by EmailService, never shown as success."""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(get_user_by_id(), (user_id,))
+            row = cursor.fetchone()
+        if row and row[5]:
+            EmailService().send_welcome_email(row[5], name or row[4] or row[3], via_google=via_google)
+    except Exception:
+        logger.exception("Welcome email could not be queued for user_id=%s.", user_id)
 
 
 # ==========================================
 # LOGIN ROUTE
 # ==========================================
+# Same text for unknown account and wrong password (no account enumeration). The second
+# sentence covers accounts created with Google, which have no password the user knows.
+LOGIN_FAILED_MESSAGE = (
+    "Invalid email/username or password. If you signed up with Google, use Continue with "
+    "Google, or set a password with Forgot password."
+)
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
@@ -1073,7 +1133,7 @@ def login():
 
         if not user:
             trigger_ai_event(None, build_failed_login_card(), save_to_history=False)
-            flash("Invalid email/username or password.", "error")
+            flash(LOGIN_FAILED_MESSAGE, "error")
             return render_template("login.html")
 
         user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active, is_verified, role, failed_attempts, lockout_until, created_at = user
@@ -1082,7 +1142,7 @@ def login():
         if not is_active:
             log_login_attempt(user_id, "Suspended")
             trigger_ai_event(user_id, build_account_locked_card())
-            flash("❌ Your account has been suspended by the administrator. Please contact support.", "error")
+            flash("Your account has been suspended by the administrator. Please contact support.", "error")
             return render_template("login.html")
 
         # Check Account Lockout
@@ -1105,14 +1165,14 @@ def login():
 
             log_login_attempt(user_id, "Failed")
             trigger_ai_event(user_id, build_failed_login_card())
-            flash("Invalid email/username or password.", "error")
+            flash(LOGIN_FAILED_MESSAGE, "error")
             return render_template("login.html")
 
         # Check Email Verification
         if not is_verified:
             otp_code = f"{secrets.randbelow(900000) + 100000}"
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_email_verification_token(), (user_id, otp_code))
+                cursor.execute(create_email_verification_token(), (user_id, otp_digest("email-otp", user_id, otp_code)))
 
             # This page doesn't claim the email was sent (it shows a "Resend Verification
             # Code" button, which goes through the checked/synchronous resend_otp route
@@ -1129,7 +1189,7 @@ def login():
 
             session["pending_otp"] = {
                 "user_id": user_id,
-                "otp_code": otp_code,
+                "otp_hash": otp_digest("email-otp", user_id, otp_code),
                 "email": em,
                 "full_name": fnm or un,
                 "created_at": datetime.now().isoformat(),
@@ -1160,8 +1220,8 @@ def login():
                     create_user_session(),
                     (user_id, session_token, get_client_ip(), request.headers.get("User-Agent", "")[:500])
                 )
-        except Exception as e:
-            print("Create Session Error:", e)
+        except Exception:
+            logger.exception("Could not store the login session row for user_id=%s", user_id)
 
         log_login_attempt(user_id, "Success")
         log_audit_event("LOGIN", "User logged in successfully.", user_id=user_id)
@@ -1169,7 +1229,7 @@ def login():
         # Set Login Toast
         session["toast"] = {
             "type": "success",
-            "title": f"👋 Hello {user_display_name}!",
+            "title": f"Hello {user_display_name}!",
             "message": "You have successfully logged in."
         }
 
@@ -1209,7 +1269,7 @@ def login():
                 build_welcome_back_card(user_id, user_display_name)
             )
 
-        flash(f"👋 Hello {escape(user_display_name)}! You have successfully logged in.", "success")
+        flash(f"Hello {escape(user_display_name)}! You have successfully logged in.", "success")
 
         # Payment-gated accounts go straight to their gate screen, not wherever "next"
         # or the dashboard would otherwise send them - login_required would redirect
@@ -1221,8 +1281,10 @@ def login():
                 return redirect(url_for("frontend.waiting_approval"))
             return redirect(url_for("frontend.renew_subscription"))
 
-        next_page = request.args.get("next")
-        if next_page:
+        next_page = request.args.get("next") or ""
+        # Only same-site relative paths: an absolute or protocol-relative "next" would
+        # turn the login page into an open redirect.
+        if next_page.startswith("/") and not next_page.startswith("//") and "\\" not in next_page:
             return redirect(next_page)
         return redirect(url_for("frontend.dashboard"))
 
@@ -1243,15 +1305,41 @@ def forgot_password():
                 cursor.execute(get_user_by_email(), (email,))
                 user = cursor.fetchone()
 
+        throttled = False
         if user:
+            # Resend limit (server-side, per account): at most RESET_MAX_PER_HOUR codes per
+            # 60 minutes and one per 60 seconds. Without it every request minted a fresh
+            # code with a fresh 5-try budget, so the per-code limit could be sidestepped
+            # by simply asking for new codes. A DB error fails closed (no code is sent).
+            try:
+                with get_db_cursor() as cursor:
+                    cursor.execute(count_recent_reset_requests(), (user[0],))
+                    row = cursor.fetchone() or (0, 0)
+                last_hour, last_minute = int(row[0] or 0), int(row[1] or 0)
+                throttled = last_hour >= RESET_MAX_PER_HOUR or last_minute >= 1
+            except Exception:
+                logger.exception("Password reset resend-limit lookup failed; not sending a code.")
+                throttled = True
+            if throttled:
+                log_audit_event("FORGOT_PASSWORD_THROTTLED", f"Password reset code NOT sent to {user[5]}: resend limit reached", user_id=user[0])
+
+        if user and not throttled:
             user_id = user[0]
             full_name = user[4] or user[3]
             otp_code = f"{secrets.randbelow(900000) + 100000}"
 
+            # Only a keyed digest of the code is stored (same scheme as the email/admin
+            # OTPs), and a new request retires any older live code for this account.
             with get_db_cursor(commit=True) as cursor:
-                cursor.execute(create_password_reset_token(), (user_id, otp_code))
+                cursor.execute(invalidate_user_reset_tokens(), (user_id,))
+                cursor.execute(
+                    create_password_reset_token(),
+                    (user_id, otp_digest(RESET_CODE_PURPOSE, user_id, otp_code)),
+                )
 
-            reset_link = url_for("auth.reset_password", token=otp_code, _external=True)
+            # The link never carries the code itself (it would end up in browser history
+            # and proxy logs); the page asks for the code that is in the email body.
+            reset_link = external_url("auth.reset_password", token="verify")
             # Sent synchronously so a real send failure is captured in the audit log (the
             # same silent-failure pattern fixed elsewhere in this pass) - but UNLIKE the
             # registration/login OTP fixes, the user-facing flash below deliberately stays
@@ -1273,10 +1361,81 @@ def forgot_password():
         # only when it matched (the previous behavior) let anyone enumerate registered
         # accounts just by watching which redirect target came back, and the email was
         # never actually usable to prefill anything anyway (only a 6-digit OTP is).
-        flash("If an account exists with this email, a password reset code has been sent.", "info")
+        # Remembered for every submitted address (existing or not) purely to prefill the
+        # email field on the next page - doing it unconditionally keeps it non-enumerating.
+        session["reset_email"] = email
+        flash(
+            "If an account exists with this email, a password reset code has been sent. "
+            "Codes can be requested once a minute and up to 3 times an hour; if you asked "
+            "recently, use the code already in your inbox.",
+            "info",
+        )
         return redirect(url_for("auth.reset_password", token="verify"))
 
     return render_template("forgot_password.html")
+
+
+# ==========================================
+# PASSWORD RESET CODE CHECK (shared by both steps)
+# ==========================================
+RESET_CODE_PURPOSE = "password-reset"
+RESET_MAX_PER_HOUR = 3
+RESET_CODE_MAX_ATTEMPTS = 5
+RESET_CODE_GENERIC_ERROR = (
+    "Invalid or expired code for this email. Check the code, or request a new one."
+)
+
+
+def _check_reset_code(email, otp_code):
+    """
+    Validates a password reset code for ONE account (looked up by email, never by the code
+    alone). Returns (token_id, user_id) on success, None otherwise.
+
+    - The stored token is an HMAC digest bound to the user; comparison is constant-time.
+    - Every wrong code increments PasswordResetTokens.Attempts in the database; the 5th
+      wrong code invalidates the code (IsUsed = 1), so the counter cannot be reset by
+      replaying a cookie or opening a new browser.
+    - Callers show one generic message for every failure (unknown email, no live code,
+      wrong code, code burned) so the response never reveals whether an account exists.
+    """
+    email = (email or "").strip().lower()
+    otp_code = (otp_code or "").strip()
+    if not email or not re.fullmatch(r"[0-9]{6}", otp_code):
+        return None
+
+    with get_db_cursor() as cursor:
+        cursor.execute(get_user_by_email(), (email,))
+        user = cursor.fetchone()
+    if not user:
+        # Same work as a real check, so timing doesn't separate unknown emails.
+        otp_matches(otp_digest(RESET_CODE_PURPOSE, 0, "000000"), RESET_CODE_PURPOSE, 0, otp_code)
+        return None
+
+    user_id = user[0]
+    with get_db_cursor() as cursor:
+        cursor.execute(get_active_password_reset_token(), (user_id,))
+        tok = cursor.fetchone()
+    if not tok:
+        otp_matches(otp_digest(RESET_CODE_PURPOSE, user_id, "000000"), RESET_CODE_PURPOSE, user_id, otp_code)
+        return None
+
+    token_id, stored_digest, attempts = tok[0], tok[2], int(tok[5] or 0)
+    if attempts >= RESET_CODE_MAX_ATTEMPTS:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(mark_reset_token_used(), (token_id,))
+        return None
+
+    if otp_matches(stored_digest, RESET_CODE_PURPOSE, user_id, otp_code):
+        return token_id, user_id
+
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(record_failed_reset_attempt(), (token_id,))
+    except Exception:
+        logger.exception("Could not record failed password reset attempt.")
+    if attempts + 1 >= RESET_CODE_MAX_ATTEMPTS:
+        log_audit_event("PASSWORD_RESET_CODE_LOCKED", "Reset code invalidated after 5 wrong attempts.", user_id=user_id)
+    return None
 
 
 # ==========================================
@@ -1285,34 +1444,15 @@ def forgot_password():
 @auth_bp.route("/reset-password/verify-code", methods=["POST"])
 def reset_password_verify_code():
     """
-    Checks a reset code's validity (exists, unused, unexpired, under the attempt limit)
-    without consuming it or changing anything - lets the reset-password page only reveal
-    the new-password fields once the code is actually confirmed, instead of asking for the
-    code and the new password in the same breath. The real reset_password() POST below
-    still independently re-validates the code before touching the database; this endpoint
-    existing doesn't weaken that, it just gives the page something to check against first.
+    Checks a reset code for the given email without consuming it, so the page only reveals
+    the new-password fields once the code is confirmed. A wrong code here counts toward the
+    same 5-attempt limit as the final submit. reset_password() re-validates independently.
     """
-    otp_code = request.form.get("otp_code", "").strip()
-
-    with get_db_cursor() as cursor:
-        cursor.execute(get_password_reset_token(), (otp_code,))
-        tok_data = cursor.fetchone()
-
-    if not tok_data:
-        try:
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(increment_reset_token_attempt(), (otp_code,))
-        except Exception:
-            pass
-        return jsonify({"valid": False, "message": "Invalid or expired password reset code."})
-
-    attempts = tok_data[5] if len(tok_data) > 5 else 0
-    if attempts >= 5:
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(mark_reset_token_used(), (otp_code,))
-        return jsonify({"valid": False, "message": "Maximum verification attempts exceeded. Please request a new code."})
-
-    return jsonify({"valid": True})
+    email = request.form.get("email", "")
+    otp_code = request.form.get("otp_code", "")
+    if _check_reset_code(email, otp_code):
+        return jsonify({"valid": True})
+    return jsonify({"valid": False, "message": RESET_CODE_GENERIC_ERROR})
 
 
 # ==========================================
@@ -1322,42 +1462,26 @@ def reset_password_verify_code():
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token=""):
     if request.method == "POST":
-        input_token = request.form.get("token", token).strip()
-        otp_code = request.form.get("otp_code", "").strip() or input_token
+        email = request.form.get("email", "").strip().lower()
+        otp_code = request.form.get("otp_code", "").strip()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
         if password != confirm_password:
             flash("Passwords do not match.", "error")
-            return render_template("reset_password.html", token=token, otp_code=otp_code)
+            return render_template("reset_password.html", token=token, reset_email=email)
 
         is_strong, msg = validate_password_strength(password)
         if not is_strong:
             flash(msg, "error")
-            return render_template("reset_password.html", token=token, otp_code=otp_code)
+            return render_template("reset_password.html", token=token, reset_email=email)
 
-        with get_db_cursor() as cursor:
-            cursor.execute(get_password_reset_token(), (otp_code,))
-            tok_data = cursor.fetchone()
+        checked = _check_reset_code(email, otp_code)
+        if not checked:
+            flash(RESET_CODE_GENERIC_ERROR, "error")
+            return render_template("reset_password.html", token=token, reset_email=email)
 
-        if not tok_data:
-            # Check if token exists but failed attempts exceeded or expired
-            try:
-                with get_db_cursor(commit=True) as cursor:
-                    cursor.execute(increment_reset_token_attempt(), (otp_code,))
-            except Exception:
-                logger.exception("Could not record failed password reset attempt.")
-            flash("Invalid or expired password reset code.", "error")
-            return render_template("reset_password.html", token=token, otp_code=otp_code)
-
-        user_id = tok_data[1]
-        attempts = tok_data[5] if len(tok_data) > 5 else 0
-
-        if attempts >= 5:
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(mark_reset_token_used(), (otp_code,))
-            flash("❌ Maximum verification attempts exceeded. Password reset code invalidated.", "error")
-            return redirect(url_for("auth.forgot_password"))
+        token_id, user_id = checked
 
         # Fetch user name for toast
         user_name = "User"
@@ -1373,8 +1497,9 @@ def reset_password(token=""):
         try:
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(update_user_password(), (new_hash, user_id))
-                cursor.execute(mark_reset_token_used(), (otp_code,))
+                cursor.execute(mark_reset_token_used(), (token_id,))
 
+            session.pop("reset_email", None)
             log_audit_event("PASSWORD_RESET_SUCCESS", "Password reset successfully via 6-digit OTP.", user_id=user_id)
             trigger_ai_event(user_id, build_password_changed_card())
 
@@ -1394,7 +1519,7 @@ def reset_password(token=""):
             logger.exception("Password reset failed for user_id=%s.", user_id)
             flash("We could not reset your password right now. Please try again.", "error")
 
-    return render_template("reset_password.html", token=token)
+    return render_template("reset_password.html", token=token, reset_email=session.get("reset_email", ""))
 
 
 # ==========================================
@@ -1676,11 +1801,11 @@ def logout():
     session["pending_ai_card"] = farewell_card
     session["toast"] = {
         "type": "success",
-        "title": f"👋 Goodbye {user_name}!",
+        "title": f"Goodbye {user_name}!",
         "message": "You have successfully logged out."
     }
 
-    flash(f"👋 Goodbye {escape(user_name)}! You have successfully logged out.", "info")
+    flash(f"Goodbye {escape(user_name)}! You have successfully logged out.", "info")
     return redirect(url_for("auth.login"))
 
 

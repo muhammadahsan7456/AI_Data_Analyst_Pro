@@ -103,10 +103,10 @@ def evaluate_alert_rules_batch() -> list:
 
                 # Dispatch Email
                 if recipient_email:
-                    subject = f"🚨 AI Alert Triggered: {ds_name} - {metric_label}"
+                    subject = f"AI Alert Triggered: {ds_name} - {metric_label}"
                     body = f"""
                     <div style="font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; border-radius: 8px;">
-                        <h2 style="color: #f43f5e;">🚨 Automated Threshold Alert Triggered</h2>
+                        <h2 style="color: #f43f5e;">Automated Threshold Alert Triggered</h2>
                         <p><b>Dataset:</b> {ds_name}</p>
                         <p><b>Metric:</b> {metric_label}</p>
                         <p><b>Observed Value:</b> <span style="font-size: 18px; font-weight: bold; color: #fbbf24;">{current_value:.2f}%</span></p>

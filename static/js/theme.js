@@ -31,14 +31,14 @@
         var iconSpan = document.getElementById("theme-icon");
         var textSpan = document.getElementById("theme-text");
         if (iconSpan && textSpan) {
-            iconSpan.textContent = isDark ? "☀️" : "🌙";
+            iconSpan.innerHTML = isDark ? '<i class="fa-solid fa-sun" aria-hidden="true"></i>' : '<i class="fa-solid fa-moon" aria-hidden="true"></i>';
             textSpan.textContent = isDark ? "Light Mode" : "Dark Mode";
         }
 
         var faIcon = document.getElementById("theme-toggle-icon");
         if (faIcon) {
             faIcon.className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
-            faIcon.style.color = isDark ? "#f59e0b" : "#60a5fa";
+            faIcon.style.color = "";  // inherits the button text color (monochrome)
         }
     }
 

@@ -41,6 +41,49 @@
     </div>
 </div>
 
+{% if profit_loss %}
+<section class="table-card pl-panel" id="profit-loss-panel" aria-labelledby="pl-title" style="padding: 24px; margin-bottom: 32px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-surface);">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+        <h2 id="pl-title" style="margin: 0; font-size: 20px;">Profit &amp; loss analysis</h2>
+        <span class="badge" style="font-size: 12px;">{{ profit_loss.disclaimer }}</span>
+    </div>
+    {% if not profit_loss.suitable %}
+    <p id="pl-unsuitable" style="margin: 14px 0 0; color: var(--text-secondary); line-height: 1.6;">{{ profit_loss.message }}</p>
+    {% else %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin: 18px 0;">
+        <div><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Result</div>
+            <div id="pl-status" style="font-size: 22px; font-weight: 700; color: {% if profit_loss.status == 'profit' %}var(--accent-green){% elif profit_loss.status == 'loss' %}var(--accent-red){% else %}var(--text-primary){% endif %};">{{ {'profit': 'In profit', 'loss': 'In loss', 'break-even': 'Break-even'}[profit_loss.status] }}</div></div>
+        <div><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Total profit</div>
+            <div class="mono-num" style="font-size: 22px; font-weight: 700;">{{ "{:,.2f}".format(profit_loss.total_profit) }}</div></div>
+        {% if profit_loss.margin_pct is not none %}
+        <div><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Margin</div>
+            <div class="mono-num" style="font-size: 22px; font-weight: 700;">{{ "%.2f"|format(profit_loss.margin_pct) }}%</div></div>
+        {% endif %}
+        {% if profit_loss.trend %}
+        <div><div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Monthly trend</div>
+            <div style="font-size: 22px; font-weight: 700; text-transform: capitalize;">{{ profit_loss.trend.direction }}</div></div>
+        {% endif %}
+    </div>
+    <p id="pl-explanation" style="margin: 0 0 16px; line-height: 1.7; color: var(--text-secondary);">{{ profit_loss.explanation_text or profit_loss.explanation }}</p>
+    {% if profit_loss.forecast %}
+    <div style="overflow-x: auto;">
+        <table class="table custom-table" style="min-width: 420px;">
+            <caption style="text-align: left; padding-bottom: 8px; color: var(--text-muted); font-size: 13px;">Forecast ({{ profit_loss.forecast.method }}). {{ profit_loss.forecast.confidence_note }}</caption>
+            <thead><tr><th scope="col">Month</th><th scope="col" style="text-align:right;">Expected profit</th><th scope="col" style="text-align:right;">Likely range</th></tr></thead>
+            <tbody>
+            {% for i in range(profit_loss.forecast.months|length) %}
+                <tr><td>{{ profit_loss.forecast.months[i] }}</td>
+                    <td class="mono-num" style="text-align:right;">{{ "{:,.2f}".format(profit_loss.forecast['values'][i]) }}</td>
+                    <td class="mono-num" style="text-align:right;">{{ "{:,.2f}".format(profit_loss.forecast.low[i]) }} to {{ "{:,.2f}".format(profit_loss.forecast.high[i]) }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% endif %}
+</section>
+{% endif %}
+
 {% if result and result.success %}
 <!-- Forecast Results Panel -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 32px;">
@@ -71,9 +114,9 @@
                     <div style="font-size: 12px; color: var(--text-muted);">Expected Trend Growth</div>
                     <div style="font-size: 20px; font-weight: 700; color: {% if result.pct_growth is defined and result.pct_growth and result.pct_growth >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
                         {% if result.pct_growth is defined and result.pct_growth and result.pct_growth >= 0 %}
-                            📈 +{{ result.pct_growth }}%
+                            +{{ result.pct_growth }}%
                         {% else %}
-                            📉 {{ result.pct_growth if result.pct_growth is defined else 0 }}%
+                            {{ result.pct_growth if result.pct_growth is defined else 0 }}%
                         {% endif %}
                     </div>
                 </div>

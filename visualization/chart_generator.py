@@ -156,24 +156,24 @@ def generate_pure_svg_chart(df: pd.DataFrame, chart_type: str = "bar") -> str:
     labels = sub_df[cat_col].astype(str).tolist()
 
     max_val = max(vals) if vals and max(vals) > 0 else 1
-    colors = ["#38bdf8", "#a855f7", "#34d399", "#fbbf24", "#f43f5e", "#818cf8", "#2dd4bf", "#4ade80"]
+    colors = ["#fafafa", "#a3a3a3", "#d4d4d4", "#737373", "#e5e5e5", "#8a8a8a", "#bdbdbd", "#5e5e5e"]
 
     svg_parts = []
-    svg_parts.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" style="background:#0f172a; border-radius:12px; font-family:system-ui, -apple-system, sans-serif; width:100%; height:auto;">')
+    svg_parts.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" style="background:#141414; border-radius:8px; font-family:system-ui, -apple-system, sans-serif; width:100%; height:auto;">')
     
     # Title
-    svg_parts.append(f'<text x="{width/2:.1f}" y="28" fill="#f8fafc" font-size="16" font-weight="bold" text-anchor="middle">{cat_col} vs {num_col}</text>')
+    svg_parts.append(f'<text x="{width/2:.1f}" y="28" fill="#fafafa" font-size="16" font-weight="bold" text-anchor="middle">{cat_col} vs {num_col}</text>')
 
     # Gridlines & Y-Axis ticks
     num_ticks = 5
     for i in range(num_ticks + 1):
         tick_val = (max_val / num_ticks) * i
         y_pos = height - padding_bottom - (i / num_ticks) * (height - padding_top - padding_bottom)
-        svg_parts.append(f'<line x1="{padding_left}" y1="{y_pos:.1f}" x2="{width-padding_right}" y2="{y_pos:.1f}" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>')
-        svg_parts.append(f'<text x="{padding_left-10}" y="{y_pos+4:.1f}" fill="#64748b" font-size="11" text-anchor="end">{tick_val:,.0f}</text>')
+        svg_parts.append(f'<line x1="{padding_left}" y1="{y_pos:.1f}" x2="{width-padding_right}" y2="{y_pos:.1f}" stroke="#262626" stroke-width="1" stroke-dasharray="4,4"/>')
+        svg_parts.append(f'<text x="{padding_left-10}" y="{y_pos+4:.1f}" fill="#a3a3a3" font-size="11" text-anchor="end">{tick_val:,.0f}</text>')
 
     # Baseline
-    svg_parts.append(f'<line x1="{padding_left}" y1="{height-padding_bottom}" x2="{width-padding_right}" y2="{height-padding_bottom}" stroke="#334155" stroke-width="2"/>')
+    svg_parts.append(f'<line x1="{padding_left}" y1="{height-padding_bottom}" x2="{width-padding_right}" y2="{height-padding_bottom}" stroke="#3a3a3a" stroke-width="2"/>')
 
     num_bars = len(vals)
     avail_width = width - padding_left - padding_right
@@ -194,7 +194,7 @@ def generate_pure_svg_chart(df: pd.DataFrame, chart_type: str = "bar") -> str:
         if bar_h > 15:
             svg_parts.append(f'<text x="{x + bar_width/2:.1f}" y="{y - 6:.1f}" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">{val:,.0f}</text>')
         # Category Label
-        svg_parts.append(f'<text x="{x + bar_width/2:.1f}" y="{height - padding_bottom + 20:.1f}" fill="#94a3b8" font-size="11" text-anchor="middle">{label}</text>')
+        svg_parts.append(f'<text x="{x + bar_width/2:.1f}" y="{height - padding_bottom + 20:.1f}" fill="#a3a3a3" font-size="11" text-anchor="middle">{label}</text>')
 
     svg_parts.append('</svg>')
     return "".join(svg_parts)
@@ -330,7 +330,7 @@ def build_row_hover_card(row: pd.Series, primary_col: str, metric_col: str) -> s
     primary_icon = get_field_icon(primary_col) if primary_col else "👤"
 
     if primary_val:
-        lines.append(f"<b style='font-size:13px;color:#38bdf8;'>{primary_icon} {primary_clean_name}: {primary_val}</b>")
+        lines.append(f"<b style='font-size:13px;color:inherit;'>{primary_icon} {primary_clean_name}: {primary_val}</b>")
         lines.append("─────────────────────────────")
 
     # Display primary metric column directly below header

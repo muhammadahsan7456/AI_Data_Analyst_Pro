@@ -3,7 +3,7 @@
 {% block seo_meta %}
 <title>Customer Reviews — AI Data Analyst Pro | {{ site_config.PROJECTS_COMPLETED }} Projects Completed</title>
 <meta name="description" content="See reviews from data analysts and business leaders using AI Data Analyst Pro for automated SQL querying, voice AI, and executive report generation.">
-<link rel="canonical" href="{{ request.url }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block breadcrumb %}
@@ -43,7 +43,7 @@
 
         <!-- Testimonials Grid (dynamic - managed by Super Admin) -->
         <div class="testimonial-grid stagger-children">
-            {% set gradients = ['#3b82f6, #8b5cf6', '#10b981, #06b6d4', '#f59e0b, #ef4444', '#a855f7, #ec4899', '#14b8a6, #0ea5e9', '#f97316, #dc2626'] %}
+            {% set gradients = ['#737373, #737373', '#10b981, #737373', '#f59e0b, #ef4444', '#737373, #737373', '#737373, #737373', '#f97316, #dc2626'] %}
             {% for r in reviews %}
             <div class="testimonial-card reveal" data-tilt>
                 <div class="testimonial-stars">
@@ -51,7 +51,7 @@
                 </div>
                 <p class="testimonial-text">"{{ r.text }}"</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar" style="background: linear-gradient(135deg, {{ gradients[loop.index0 % gradients|length] }});">{{ r.initials }}</div>
+                    <div class="testimonial-avatar" style="background: var(--mono-ink);">{{ r.initials }}</div>
                     <div><div class="testimonial-name">{{ r.name }}</div><div class="testimonial-role">{{ r.role }}</div></div>
                 </div>
             </div>

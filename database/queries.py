@@ -23,7 +23,7 @@ def get_user_by_email():
     return """
     SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, PasswordHash, ProfileImage, IsActive, IsVerified, Role, FailedLoginAttempts, LockoutUntil, CreatedAt
     FROM Users
-    WHERE Email = ?
+    WHERE LOWER(Email) = LOWER(?)
     """
 
 
@@ -31,7 +31,7 @@ def get_user_by_username():
     return """
     SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, PasswordHash, ProfileImage, IsActive, IsVerified, Role, FailedLoginAttempts, LockoutUntil, CreatedAt
     FROM Users
-    WHERE Username = ?
+    WHERE LOWER(Username) = LOWER(?)
     """
 
 
@@ -219,25 +219,54 @@ def mark_email_token_used():
 
 
 def create_password_reset_token():
+    # Token holds a keyed HMAC digest of the 6-digit code (auth.security.otp_digest with
+    # purpose "password-reset" bound to the UserID), never the code itself.
     return """
-    INSERT INTO PasswordResetTokens (UserID, Token, ExpiresAt, IsUsed, CreatedAt)
-    VALUES (?, ?, DATEADD(MINUTE, 10, GETDATE()), 0, GETDATE())
+    INSERT INTO PasswordResetTokens (UserID, Token, ExpiresAt, IsUsed, Attempts, CreatedAt)
+    VALUES (?, ?, DATEADD(MINUTE, 10, GETDATE()), 0, 0, GETDATE())
     """
 
 
-def get_password_reset_token():
+def count_recent_reset_requests():
+    """Resend limit for password-reset codes: (codes issued in the last 60 minutes,
+    codes issued in the last 60 seconds) for one user. Portable (SQL Server + SQLite)."""
     return """
-    SELECT TokenID, UserID, Token, ExpiresAt, IsUsed, ISNULL(Attempts, 0) AS Attempts
+    SELECT
+        SUM(CASE WHEN CreatedAt >= DATEADD(MINUTE, -60, GETDATE()) THEN 1 ELSE 0 END),
+        SUM(CASE WHEN CreatedAt >= DATEADD(SECOND, -60, GETDATE()) THEN 1 ELSE 0 END)
     FROM PasswordResetTokens
-    WHERE Token = ? AND IsUsed = 0 AND ExpiresAt > GETDATE()
+    WHERE UserID = ?
     """
 
 
-def increment_reset_token_attempt():
+def invalidate_user_reset_tokens():
+    """A new reset request retires every older unused code for that user, so only one
+    code (with its own 5-attempt budget) is ever live per account."""
     return """
     UPDATE PasswordResetTokens
-    SET Attempts = ISNULL(Attempts, 0) + 1
-    WHERE Token = ?
+    SET IsUsed = 1, UsedAt = GETDATE()
+    WHERE UserID = ? AND IsUsed = 0
+    """
+
+
+def get_active_password_reset_token():
+    """Newest live reset code for one user (looked up by the account's email, never by
+    the code alone)."""
+    return """
+    SELECT TOP 1 TokenID, UserID, Token, ExpiresAt, IsUsed, ISNULL(Attempts, 0) AS Attempts
+    FROM PasswordResetTokens
+    WHERE UserID = ? AND IsUsed = 0 AND ExpiresAt > GETDATE()
+    ORDER BY TokenID DESC
+    """
+
+
+def record_failed_reset_attempt():
+    """Server-side wrong-code counter; the 5th wrong code invalidates the code."""
+    return """
+    UPDATE PasswordResetTokens
+    SET Attempts = ISNULL(Attempts, 0) + 1,
+        IsUsed = CASE WHEN ISNULL(Attempts, 0) + 1 >= 5 THEN 1 ELSE IsUsed END
+    WHERE TokenID = ?
     """
 
 
@@ -245,7 +274,62 @@ def mark_reset_token_used():
     return """
     UPDATE PasswordResetTokens
     SET IsUsed = 1, UsedAt = GETDATE()
-    WHERE Token = ?
+    WHERE TokenID = ?
+    """
+
+
+# ==========================================
+# SUPER ADMIN EMAIL-OTP STATE (server-side)
+# ==========================================
+# Stored on the admin's Users row so the wrong-code counter and the 15-minute lockout
+# cannot be reset by replaying an older session cookie.
+
+def get_admin_otp_state():
+    return """
+    SELECT AdminOtpHash, AdminOtpIssuedAt, ISNULL(AdminOtpFailedAttempts, 0), AdminOtpLockoutUntil
+    FROM Users
+    WHERE UserID = ?
+    """
+
+
+def set_admin_otp_challenge():
+    return """
+    UPDATE Users
+    SET AdminOtpHash = ?, AdminOtpIssuedAt = ?
+    WHERE UserID = ?
+    """
+
+
+def increment_admin_otp_failures():
+    return """
+    UPDATE Users
+    SET AdminOtpFailedAttempts = ISNULL(AdminOtpFailedAttempts, 0) + 1
+    WHERE UserID = ?
+    """
+
+
+def lock_admin_otp():
+    return """
+    UPDATE Users
+    SET AdminOtpLockoutUntil = ?, AdminOtpHash = NULL, AdminOtpIssuedAt = NULL
+    WHERE UserID = ?
+    """
+
+
+def clear_admin_otp_state():
+    return """
+    UPDATE Users
+    SET AdminOtpHash = NULL, AdminOtpIssuedAt = NULL,
+        AdminOtpFailedAttempts = 0, AdminOtpLockoutUntil = NULL
+    WHERE UserID = ?
+    """
+
+
+def clear_admin_otp_challenge():
+    return """
+    UPDATE Users
+    SET AdminOtpHash = NULL, AdminOtpIssuedAt = NULL
+    WHERE UserID = ?
     """
 
 
@@ -752,32 +836,13 @@ def get_all_users_admin(limit=None):
     """
 
 
-def _users_admin_where_clauses(search_query=None, role_filter=None, status_filter=None):
-    """
-    Shared WHERE-clause builder for the Users admin list, used by BOTH
-    search_users_admin() (the page of rows) and count_users_admin() (the total for
-    pagination), so the two queries can never drift out of sync with each other. Returns
-    a list of SQL fragments (joined by the caller) - the matching parameter VALUES, in
-    the same order, are built by get_users_admin_filter_params() below.
-    """
-    clauses = []
-    if search_query:
-        clauses.append(
-            "(LOWER(U.FullName) LIKE ? OR LOWER(U.Email) LIKE ? OR LOWER(U.Username) LIKE ? "
-            "OR LOWER(ISNULL(U.Country,'')) LIKE ? OR LOWER(ISNULL(U.City,'')) LIKE ? OR LOWER(LastIP.IPAddress) LIKE ?)"
-        )
-    if role_filter:
-        clauses.append("U.Role = ?")
-    if status_filter in ("suspended", "expired", "pending_approval", "rejected"):
-        clauses.append("ISNULL(U.SubscriptionStatus, 'active') = ?")
-    elif status_filter == "active":
-        # Matches the exact condition the old Python-side filter used: active AND not
-        # suspended/expired/pending/rejected (expiring_soon still counts as "active").
-        clauses.append("(U.IsActive = 1 AND ISNULL(U.SubscriptionStatus, 'active') IN ('active', 'expiring_soon'))")
-    return clauses
+# Audit actions that prove an account has used Google sign-in (created or linked).
+GOOGLE_AUTH_ACTIONS = ("SIGNUP_GOOGLE", "LOGIN_GOOGLE", "LINK_GOOGLE_VERIFIED", "LINK_GOOGLE_UNVERIFIED")
+USERS_ADMIN_STATUSES = ("free", "active", "expiring_soon", "expired", "suspended", "pending_approval", "rejected", "banned")
 
 
-def get_users_admin_filter_params(search_query=None, role_filter=None, status_filter=None):
+def get_users_admin_filter_params(search_query=None, role_filter=None, status_filter=None,
+                                  signup_filter=None, verified_filter=None, joined_days=None):
     """Params matching _users_admin_where_clauses(), in the same order."""
     params = []
     if search_query:
@@ -785,8 +850,13 @@ def get_users_admin_filter_params(search_query=None, role_filter=None, status_fi
         params.extend([like] * 6)
     if role_filter:
         params.append(role_filter)
-    if status_filter in ("suspended", "expired", "pending_approval", "rejected"):
+    if status_filter in ("expiring_soon", "expired", "suspended", "pending_approval", "rejected"):
         params.append(status_filter)
+    if signup_filter in ("google", "form"):
+        params.extend(GOOGLE_AUTH_ACTIONS)
+    if joined_days:
+        from datetime import datetime as _dt, timedelta as _td
+        params.append(_dt.now() - _td(days=int(joined_days)))
     return params
 
 
@@ -795,40 +865,53 @@ _USERS_ADMIN_BASE_SELECT = """
 """
 
 
-def search_users_admin(search_query=None, role_filter=None, status_filter=None, page=1, per_page=20):
+def _users_admin_where_clauses(search_query=None, role_filter=None, status_filter=None,
+                               signup_filter=None, verified_filter=None, joined_days=None):
     """
-    True database-level paginated + filtered Users list for the admin console (replaces
-    loading every user row into Python and filtering/slicing there). Same filters, same
-    default sort (banned/suspended/expired/expiring-soon first, then newest) as the
-    previous get_all_users_admin()-based version.
+    Shared WHERE-clause builder for the Users admin list, used by BOTH
+    search_users_admin() (the page of rows) and count_users_admin() (the total for
+    pagination), so the two queries can never drift out of sync. The matching parameter
+    VALUES, in the same order, come from get_users_admin_filter_params().
+    Every clause is portable T-SQL that the SQLite QA adapter also translates.
     """
-    where_clauses = _users_admin_where_clauses(search_query, role_filter, status_filter)
-    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-    offset = max(0, (int(page) - 1) * int(per_page))
-    return f"""
-    SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
-           ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs
-                   WHERE UserID = U.UserID AND IPAddress IS NOT NULL
-                   ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress,
-           ISNULL(U.SubscriptionStatus, 'active') AS SubscriptionStatus,
-           U.SubscriptionEndDate
-    {_USERS_ADMIN_BASE_SELECT}
-    {where_sql}
-    ORDER BY
-        CASE
-            WHEN U.IsActive = 0 OR U.SubscriptionStatus = 'suspended' THEN 1
-            WHEN U.SubscriptionStatus = 'expired' THEN 2
-            WHEN U.SubscriptionStatus = 'expiring_soon' THEN 3
-            ELSE 4
-        END ASC,
-        U.CreatedAt DESC
-    OFFSET {offset} ROWS FETCH NEXT {int(per_page)} ROWS ONLY
-    """
+    clauses = []
+    if search_query:
+        # Last-login IP is searched through AuditLogs (the old clause referenced a
+        # LastIP alias that was never joined, so every search failed with a SQL error).
+        clauses.append(
+            "(LOWER(U.FullName) LIKE ? OR LOWER(U.Email) LIKE ? OR LOWER(U.Username) LIKE ? "
+            "OR LOWER(ISNULL(U.Country,'')) LIKE ? OR LOWER(ISNULL(U.City,'')) LIKE ? "
+            "OR EXISTS (SELECT 1 FROM AuditLogs AL WHERE AL.UserID = U.UserID AND LOWER(ISNULL(AL.IPAddress,'')) LIKE ?))"
+        )
+    if role_filter:
+        clauses.append("U.Role = ?")
+    if status_filter == "free":
+        clauses.append("(U.SubscriptionStatus IS NULL OR U.SubscriptionStatus = 'free')")
+    elif status_filter == "active":
+        # Paying (Pro) and not banned; expiring_soon still counts as active Pro.
+        clauses.append("(U.IsActive = 1 AND U.SubscriptionStatus IN ('active', 'expiring_soon'))")
+    elif status_filter == "banned":
+        clauses.append("U.IsActive = 0")
+    elif status_filter in ("expiring_soon", "expired", "suspended", "pending_approval", "rejected"):
+        clauses.append("ISNULL(U.SubscriptionStatus, 'free') = ?")
+    if signup_filter in ("google", "form"):
+        marks = ", ".join(["?"] * len(GOOGLE_AUTH_ACTIONS))
+        exists = f"EXISTS (SELECT 1 FROM AuditLogs GA WHERE GA.UserID = U.UserID AND GA.Action IN ({marks}))"
+        clauses.append(exists if signup_filter == "google" else "NOT " + exists)
+    if verified_filter == "1":
+        clauses.append("U.IsVerified = 1")
+    elif verified_filter == "0":
+        clauses.append("U.IsVerified = 0")
+    if joined_days:
+        clauses.append("U.CreatedAt >= ?")
+    return clauses
 
 
-def count_users_admin(search_query=None, role_filter=None, status_filter=None):
+def count_users_admin(search_query=None, role_filter=None, status_filter=None,
+                      signup_filter=None, verified_filter=None, joined_days=None):
     """Total matching row count for search_users_admin()'s filters, for page-count math."""
-    where_clauses = _users_admin_where_clauses(search_query, role_filter, status_filter)
+    where_clauses = _users_admin_where_clauses(search_query, role_filter, status_filter,
+                                               signup_filter, verified_filter, joined_days)
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
     return f"""
     SELECT COUNT(*)
@@ -836,6 +919,49 @@ def count_users_admin(search_query=None, role_filter=None, status_filter=None):
     {where_sql}
     """
 
+
+def search_users_admin(search_query=None, role_filter=None, status_filter=None, page=1, per_page=20,
+                       signup_filter=None, verified_filter=None, joined_days=None, sort="newest"):
+    """
+    Database-level paginated + filtered Users list for the admin console.
+    Default sort is newest first, so a user who just registered (form or Google) is the
+    first row on page 1. The old fixed sort put every banned/suspended/expired account
+    ahead of everyone else, so with dozens of lapsed accounts a new sign-up landed on a
+    later page and looked missing. "attention" keeps that old order as an option.
+    The last column says whether the account has ever used Google sign-in.
+    """
+    where_clauses = _users_admin_where_clauses(search_query, role_filter, status_filter,
+                                               signup_filter, verified_filter, joined_days)
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    offset = max(0, (int(page) - 1) * int(per_page))
+    if sort == "attention":
+        order_sql = """CASE
+            WHEN U.IsActive = 0 OR U.SubscriptionStatus = 'suspended' THEN 1
+            WHEN U.SubscriptionStatus = 'pending_approval' THEN 2
+            WHEN U.SubscriptionStatus = 'expired' THEN 3
+            WHEN U.SubscriptionStatus = 'expiring_soon' THEN 4
+            ELSE 5
+        END ASC, U.CreatedAt DESC, U.UserID DESC"""
+    elif sort == "oldest":
+        order_sql = "U.CreatedAt ASC, U.UserID ASC"
+    elif sort == "name":
+        order_sql = "U.FullName ASC, U.UserID ASC"
+    else:
+        order_sql = "U.CreatedAt DESC, U.UserID DESC"
+    google_actions = ", ".join("'" + a + "'" for a in GOOGLE_AUTH_ACTIONS)
+    return f"""
+    SELECT U.UserID, U.FirstName, U.LastName, U.Username, U.FullName, U.Email, U.PhoneNumber, U.Country, U.City, U.ProfileImage, U.IsActive, U.IsVerified, U.Role, U.CreatedAt,
+           ISNULL((SELECT TOP 1 IPAddress FROM AuditLogs
+                   WHERE UserID = U.UserID AND IPAddress IS NOT NULL
+                   ORDER BY CreatedAt DESC), '127.0.0.1') AS LastIPAddress,
+           ISNULL(U.SubscriptionStatus, 'free') AS SubscriptionStatus,
+           U.SubscriptionEndDate,
+           CASE WHEN EXISTS (SELECT 1 FROM AuditLogs GA WHERE GA.UserID = U.UserID AND GA.Action IN ({google_actions})) THEN 1 ELSE 0 END AS UsesGoogle
+    {_USERS_ADMIN_BASE_SELECT}
+    {where_sql}
+    ORDER BY {order_sql}
+    OFFSET {offset} ROWS FETCH NEXT {int(per_page)} ROWS ONLY
+    """
 
 def update_user_status_admin():
     return """
@@ -1072,21 +1198,53 @@ def set_user_rejected():
     """
 
 
-def auto_suspend_overdue_users():
+AUTO_EXPIRY_REASON = "Subscription period expired without a renewed payment."
+
+
+def get_lapsed_pro_users():
     """
-    Bulk sweep: any non-admin user whose subscription end date has passed and who is
-    still marked 'active' gets suspended. Runs as one statement so it's cheap even at
-    scale and safe to run repeatedly (idempotent - already-suspended rows are excluded).
+    Pro plans whose 30-day period has ended (portable: SQL Server + SQLite).
+    Returns (UserID, FullName, Email, SubscriptionStatus, SuspensionReason).
+    Includes rows the old sweep marked 'suspended' for expiry (still IsActive=1, reason
+    = AUTO_EXPIRY_REASON) so they also return to the Free plan. Rows an admin suspended
+    (IsActive=0) are never touched.
     """
     return """
-    UPDATE Users
-    SET SubscriptionStatus = 'suspended', SuspensionReason = 'Subscription period expired without a renewed payment.'
-    OUTPUT INSERTED.UserID, INSERTED.FullName, INSERTED.Email
-    WHERE SubscriptionStatus = 'active'
+    SELECT UserID, FullName, Email, SubscriptionStatus, SuspensionReason
+    FROM Users
+    WHERE IsActive = 1
+      AND Role NOT IN ('SuperAdmin', 'Admin')
       AND SubscriptionEndDate IS NOT NULL
       AND SubscriptionEndDate < GETDATE()
-      AND Role NOT IN ('SuperAdmin', 'Admin')
+      AND (
+            SubscriptionStatus IN ('active', 'expiring_soon', 'expired')
+         OR (SubscriptionStatus = 'suspended' AND SuspensionReason = ?)
+      )
     """
+
+
+def revert_user_to_free():
+    """Pro period over -> Free plan (1 MB uploads, full access, data kept). The status
+    guard makes it idempotent and safe against a renewal approved in the meantime.
+    Params: (UserID, AUTO_EXPIRY_REASON)."""
+    return """
+    UPDATE Users
+    SET SubscriptionStatus = 'free', SuspensionReason = NULL, SuspendedAt = NULL
+    WHERE UserID = ?
+      AND IsActive = 1
+      AND SubscriptionEndDate < GETDATE()
+      AND (
+            SubscriptionStatus IN ('active', 'expiring_soon', 'expired')
+         OR (SubscriptionStatus = 'suspended' AND SuspensionReason = ?)
+      )
+    """
+
+
+def auto_suspend_overdue_users():
+    """Kept for backward compatibility; the scheduler now uses get_lapsed_pro_users() +
+    revert_user_to_free() (the old UPDATE ... OUTPUT form was SQL Server-only and
+    suspended users instead of returning them to Free)."""
+    return get_lapsed_pro_users()
 
 
 def get_users_due_on_date():

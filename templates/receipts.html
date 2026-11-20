@@ -39,7 +39,7 @@
                     {% for r in receipts %}
                     <tr>
                         <td>{{ r.payment_date }}</td>
-                        <td style="font-family: monospace; font-size: 13px;">{{ r.txn_id }}</td>
+                        <td style="font-family: var(--mono-font-mono, monospace); font-size: 13px;">{{ r.txn_id }}{% if r.invoice_number %}<div style="font-size: 11px; color: var(--text-muted);">Invoice {{ r.invoice_number }}</div>{% endif %}</td>
                         <td>{{ r.plan_name }}<div style="font-size: 11px; color: var(--text-muted);">{{ r.payment_type }}</div></td>
                         <td>{{ r.method }}</td>
                         <td>{{ r.currency }} {{ "{:,.2f}".format(r.amount) }}</td>
@@ -55,9 +55,13 @@
                             <a href="{{ url_for('frontend.view_receipt', payment_id=r.id) }}" class="btn btn-secondary btn-sm" title="View Receipt" target="_blank">
                                 <i class="fa-solid fa-eye"></i> View
                             </a>
-                            <a href="{{ url_for('frontend.download_receipt_pdf', payment_id=r.id) }}" class="btn btn-secondary btn-sm" title="Download PDF Receipt">
-                                <i class="fa-solid fa-file-arrow-down"></i> Download
+                            {% if r.status == 'Completed' %}
+                            <a href="{{ url_for('frontend.download_receipt_pdf', payment_id=r.id) }}" class="btn btn-secondary btn-sm" title="Download PDF invoice {{ r.invoice_number }}">
+                                <i class="fa-solid fa-file-arrow-down"></i> Invoice PDF
                             </a>
+                            {% else %}
+                            <span style="font-size: 12px; color: var(--text-muted);">Invoice after approval</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

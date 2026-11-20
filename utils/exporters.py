@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from site_config import support_email
 
 
 def export_to_csv(df: pd.DataFrame) -> bytes:
@@ -155,7 +156,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     elements.append(Spacer(1, 8))
 
     if insights:
-        elements.append(Paragraph("🤖 Key AI Insights & Business Recommendations", h2_style))
+        elements.append(Paragraph("Key AI Insights & Business Recommendations", h2_style))
         for insight in insights:
             elements.append(Paragraph(f"• {insight}", body_style))
         elements.append(Spacer(1, 8))
@@ -163,7 +164,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     if chart_file_path:
         full_chart_path = os.path.join("static", chart_file_path) if not chart_file_path.startswith("static") else chart_file_path
         if os.path.exists(full_chart_path):
-            elements.append(Paragraph("📈 Visual Analysis", h2_style))
+            elements.append(Paragraph("Visual Analysis", h2_style))
             img = RLImage(full_chart_path, width=500, height=220)
             elements.append(img)
             elements.append(Spacer(1, 10))
@@ -171,7 +172,7 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
     # Fast Table preview limit (up to 300 rows)
     max_pdf_rows = 300
     df_pdf = df.head(max_pdf_rows)
-    record_note = f"📋 Query Records View (Showing Top {len(df_pdf):,} of {len(df):,} Matching Rows)" if len(df) > max_pdf_rows else f"📋 Complete Records View ({len(df):,} Matching Rows)"
+    record_note = f"Query Records View (Showing Top {len(df_pdf):,} of {len(df):,} Matching Rows)" if len(df) > max_pdf_rows else f"Complete Records View ({len(df):,} Matching Rows)"
     elements.append(Paragraph(record_note, h2_style))
 
     cols_to_render = df_pdf.columns[:8]
@@ -213,102 +214,78 @@ def export_to_pdf_report(df: pd.DataFrame, dataset_name: str = "Dataset", insigh
 
 def export_invoice_to_pdf(payment: dict) -> bytes:
     """
-    Render a payment record as a real, downloadable PDF invoice - matching the layout of
-    templates/admin/invoice.html (same header, billed-to/issued-by grid, itemized table,
-    status stamp, total) so the PDF a user/admin downloads looks like the on-screen page
-    they were just looking at, not a generic "Save as PDF" browser printout.
+    Numbered PDF invoice for an approved payment (see utils/invoices.py for the data).
+    Black-and-white layout: header with invoice number and dates, issued by (company
+    details from settings) / billed to, one line item with plan period, method and
+    transaction ID, total. All values are escaped before they reach ReportLab markup.
     """
+    from xml.sax.saxutils import escape as _x
+
+    def x(v):
+        return _x(str(v if v is not None else ""))
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        rightMargin=42,
-        leftMargin=42,
-        topMargin=42,
-        bottomMargin=42
-    )
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=48, leftMargin=48, topMargin=48, bottomMargin=48,
+                            title=f"Invoice {payment.get('invoice_number', '')}", author="AI Data Analyst Pro")
     styles = getSampleStyleSheet()
+    ink, mid, light = colors.HexColor("#0a0a0a"), colors.HexColor("#525252"), colors.HexColor("#d4d4d4")
+    brand = ParagraphStyle("Brand", parent=styles["Normal"], fontName="Times-Bold", fontSize=20, leading=24, textColor=ink)
+    title = ParagraphStyle("Title", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=18, leading=22, textColor=ink, alignment=2)
+    meta = ParagraphStyle("Meta", parent=styles["Normal"], fontName="Helvetica", fontSize=9.5, leading=14, textColor=mid, alignment=2)
+    label = ParagraphStyle("Label", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8, leading=11, textColor=mid, spaceAfter=3)
+    name = ParagraphStyle("Name", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=11.5, leading=15, textColor=ink)
+    detail = ParagraphStyle("Detail", parent=styles["Normal"], fontName="Helvetica", fontSize=9.5, leading=13, textColor=mid)
+    hdr = ParagraphStyle("Hdr", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8, leading=11, textColor=mid)
+    cell = ParagraphStyle("Cell", parent=styles["Normal"], fontName="Helvetica", fontSize=9.5, leading=13, textColor=ink)
+    num = ParagraphStyle("Num", parent=cell, fontName="Courier-Bold", alignment=2)
+    total = ParagraphStyle("Total", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=13, leading=18, textColor=ink, alignment=2)
+    foot = ParagraphStyle("Foot", parent=styles["Normal"], fontName="Helvetica", fontSize=8, leading=11, textColor=mid, alignment=1)
 
-    brand_style = ParagraphStyle('Brand', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, textColor=colors.HexColor('#0f172a'), spaceAfter=2)
-    tagline_style = ParagraphStyle('Tagline', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor('#64748b'))
-    invoice_title_style = ParagraphStyle('InvoiceTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=16, textColor=colors.HexColor('#0f172a'), alignment=2)
-    meta_style = ParagraphStyle('Meta', parent=styles['Normal'], fontName='Helvetica', fontSize=10, textColor=colors.HexColor('#475569'), alignment=2, leading=14)
-    section_label_style = ParagraphStyle('SectionLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor('#64748b'), spaceAfter=4)
-    name_style = ParagraphStyle('Name', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12, textColor=colors.HexColor('#0f172a'))
-    detail_style = ParagraphStyle('Detail', parent=styles['Normal'], fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor('#475569'), leading=13)
-    hdr_style = ParagraphStyle('TblHdr', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, textColor=colors.HexColor('#475569'))
-    cell_style = ParagraphStyle('TblCell', parent=styles['Normal'], fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor('#0f172a'))
-    cell_muted_style = ParagraphStyle('TblCellMuted', parent=styles['Normal'], fontName='Helvetica', fontSize=8, textColor=colors.HexColor('#64748b'))
-    total_style = ParagraphStyle('Total', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=13, textColor=colors.HexColor('#0f172a'), alignment=2)
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontName='Helvetica', fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=1)
-
-    status = str(payment.get("status") or "Completed")
-    stamp_color = {"Completed": "#059669", "Pending": "#d97706"}.get(status, "#dc2626")
-    stamp_text = "PAID" if status == "Completed" else ("PENDING" if status == "Pending" else status.upper())
-    stamp_style = ParagraphStyle('Stamp', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, textColor=colors.HexColor(stamp_color), alignment=2, spaceAfter=10)
-
-    elements = [
-        Table(
-            [[Paragraph(f"<b>AI Data Analyst Pro</b>", brand_style), Paragraph("INVOICE", invoice_title_style)],
-             [Paragraph("Enterprise Data Intelligence &amp; AI Analytics Platform", tagline_style),
-              Paragraph(f"Ref: {payment.get('txn_id', '')}<br/>Date: {payment.get('payment_date', '')}", meta_style)]],
-            colWidths=[300, 240]
-        )
-    ]
-    elements[0].setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 2)]))
-    elements.append(Spacer(1, 4))
-    elements.append(Paragraph(f"<font color='{stamp_color}'><b>[ {stamp_text} ]</b></font>", stamp_style))
-    elements.append(Spacer(1, 6))
-
-    billed_to = [
-        Paragraph("BILLED TO", section_label_style),
-        Paragraph(payment.get("user_name", "Valued Customer"), name_style),
-        Paragraph(payment.get("email", "N/A"), detail_style),
-        Paragraph(f"User ID: #{payment.get('user_id', '')}", detail_style),
-    ]
-    issued_by = [
-        Paragraph("ISSUED BY", section_label_style),
-        Paragraph("AI Data Analyst Pro Inc.", name_style),
-        Paragraph("Enterprise Billing &amp; Security Operations", detail_style),
-        Paragraph("support@aidataanalystpro.com", detail_style),
-    ]
-    info_table = Table([[billed_to, issued_by]], colWidths=[270, 270])
-    info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 20))
-
+    company = payment.get("company") or {}
+    currency = x(payment.get("currency") or "PKR")
     amount = float(payment.get("amount") or 0.0)
-    currency = payment.get("currency", "PKR")
-    item_table = Table(
-        [
-            [Paragraph("DESCRIPTION / PLAN TIER", hdr_style), Paragraph("BILLING PERIOD", hdr_style),
-             Paragraph("PAYMENT METHOD", hdr_style), Paragraph("AMOUNT", hdr_style)],
-            [Paragraph(f"<b>{payment.get('plan_name', '')}</b><br/><font color='#64748b' size=7>Includes 10M+ Streaming Chunking, AES-256 Field Encryption at Rest &amp; Sub-Second Exports</font>", cell_style),
-             Paragraph("30-Day Monthly Cycle", cell_muted_style),
-             Paragraph(str(payment.get("payment_method", "")), cell_muted_style),
-             Paragraph(f"<b>{currency} {amount:,.2f}</b>", cell_style)]
-        ],
-        colWidths=[230, 100, 100, 110]
-    )
-    item_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8fafc')),
-        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#e2e8f0')),
-        ('LINEBELOW', (0, 1), (-1, 1), 1, colors.HexColor('#e2e8f0')),
-        ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    status = str(payment.get("status") or "")
+    stamp = "PAID" if status == "Completed" else status.upper()
+
+    head = Table([
+        [Paragraph(x(company.get("name") or "AI Data Analyst Pro"), brand), Paragraph("INVOICE", title)],
+        [Paragraph("Data analysis with AI", detail),
+         Paragraph(f"Invoice no. <b>{x(payment.get('invoice_number'))}</b><br/>Issue date: {x(payment.get('issue_date'))}<br/>Status: <b>{x(stamp)}</b>", meta)],
+    ], colWidths=[290, 226])
+    head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    elements = [head, Spacer(1, 22)]
+
+    issuer = [Paragraph("ISSUED BY", label), Paragraph(x(company.get("name") or "AI Data Analyst Pro"), name)]
+    for key in ("address", "website", "email"):
+        if company.get(key):
+            issuer.append(Paragraph(x(company[key]), detail))
+    if company.get("tax_id"):
+        issuer.append(Paragraph("Tax ID: " + x(company["tax_id"]), detail))
+    billed = [Paragraph("BILLED TO", label), Paragraph(x(payment.get("user_name")), name),
+              Paragraph(x(payment.get("email")), detail), Paragraph(f"Customer ID: {x(payment.get('user_id'))}", detail)]
+    parties = Table([[issuer, billed]], colWidths=[258, 258])
+    parties.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+    elements += [parties, Spacer(1, 22)]
+
+    period = x(payment.get("period_label") or "")
+    if payment.get("period_estimated"):
+        period += "<br/><font size=7.5>(one calendar month from the approval date)</font>"
+    items = Table([
+        [Paragraph("DESCRIPTION", hdr), Paragraph("PLAN PERIOD", hdr), Paragraph("PAYMENT", hdr), Paragraph("AMOUNT", hdr)],
+        [Paragraph(f"<b>{x(payment.get('plan_name'))}</b><br/><font size=8 color='#525252'>Uploads up to 500 MB, encrypted dataset storage, Ask AI, exports</font>", cell),
+         Paragraph(period, cell),
+         Paragraph(f"{x(payment.get('payment_method'))}<br/><font size=8 color='#525252'>Txn ID: {x(payment.get('txn_id'))}<br/>Paid: {x(payment.get('payment_date'))}</font>", cell),
+         Paragraph(f"{currency} {amount:,.2f}", num)],
+    ], colWidths=[196, 120, 110, 90])
+    items.setStyle(TableStyle([
+        ("LINEABOVE", (0, 0), (-1, 0), 1, ink), ("LINEBELOW", (0, 0), (-1, 0), 0.5, light),
+        ("LINEBELOW", (0, 1), (-1, 1), 1, ink), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8), ("LEFTPADDING", (0, 0), (-1, -1), 4),
     ]))
-    elements.append(item_table)
-    elements.append(Spacer(1, 16))
-
-    elements.append(Paragraph(f"<font color='#64748b' size=9>Subtotal: {currency} {amount:,.2f} &nbsp;|&nbsp; Tax (0%): {currency} 0.00</font>", ParagraphStyle('SubtotalLine', parent=styles['Normal'], alignment=2)))
-    elements.append(Spacer(1, 4))
-    elements.append(Paragraph(f"Total Amount: <font color='#059669'>{currency} {amount:,.2f}</font>", total_style))
-    elements.append(Spacer(1, 30))
-    elements.append(Paragraph("Thank you for choosing AI Data Analyst Pro. This is an official computer-generated billing receipt.", footer_style))
-
+    elements += [items, Spacer(1, 14),
+                 Paragraph(f"Subtotal {currency} {amount:,.2f} &nbsp;&nbsp; Tax {currency} 0.00", meta), Spacer(1, 4),
+                 Paragraph(f"Total paid: {currency} {amount:,.2f}", total), Spacer(1, 36),
+                 Paragraph("Computer-generated invoice for a manually verified payment. Questions: " + x(company.get("email") or support_email()), foot)]
     doc.build(elements)
     buffer.seek(0)
     return buffer.getvalue()
@@ -426,7 +403,7 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
             tx_hdr2 = slide2.shapes.add_textbox(Inches(0.8), Inches(0.6), Inches(11.7), Inches(1))
             p_hdr2 = tx_hdr2.text_frame.paragraphs[0]
-            p_hdr2.text = "🤖 AI Key Business Insights & Recommendations"
+            p_hdr2.text = "AI Key Business Insights & Recommendations"
             p_hdr2.font.bold = True
             p_hdr2.font.size = Pt(24)
             p_hdr2.font.color.rgb = RGBColor(56, 189, 248)
@@ -453,7 +430,7 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
                 tx_c = slide_c.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.8))
                 p_c = tx_c.text_frame.paragraphs[0]
-                p_c.text = "📈 Executive Visual Analytics Chart"
+                p_c.text = "Executive Visual Analytics Chart"
                 p_c.font.bold = True
                 p_c.font.size = Pt(24)
                 p_c.font.color.rgb = RGBColor(56, 189, 248)
@@ -480,7 +457,7 @@ def export_to_pptx_report(df: pd.DataFrame, dataset_name: str = "Dataset", insig
 
                 tx_t = slide_tbl.shapes.add_textbox(Inches(0.8), Inches(0.4), Inches(11.7), Inches(0.8))
                 p_t = tx_t.text_frame.paragraphs[0]
-                p_t.text = f"📋 Dataset Records View (Slide {slide_num} of {total_slides} | Rows {chunk_start+1}-{chunk_start+len(chunk_df)} of {total_records:,})"
+                p_t.text = f"Dataset Records View (Slide {slide_num} of {total_slides} | Rows {chunk_start+1}-{chunk_start+len(chunk_df)} of {total_records:,})"
                 p_t.font.bold = True
                 p_t.font.size = Pt(22)
                 p_t.font.color.rgb = RGBColor(56, 189, 248)

@@ -40,7 +40,7 @@
         flex-shrink: 0;
     }
 
-    .icon-badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .icon-badge-blue { background: rgba(128, 128, 128, 0.15); color: var(--accent-blue); border: 1px solid rgba(128, 128, 128, 0.3); }
     .icon-badge-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
 
     .form-group-label {
@@ -70,7 +70,7 @@
     .setting-input-field:focus, .setting-textarea-field:focus {
         border-color: var(--accent-blue);
         background: var(--admin-card-bg);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.2);
     }
 
     /* Custom Ultra-Visible Toggle Switch */
@@ -78,8 +78,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: rgba(59, 130, 246, 0.08);
-        border: 1px solid rgba(59, 130, 246, 0.3);
+        background: rgba(128, 128, 128, 0.08);
+        border: 1px solid rgba(128, 128, 128, 0.3);
         padding: 16px 20px;
         border-radius: 14px;
         margin-bottom: 24px;
@@ -126,9 +126,9 @@
     }
 
     input:checked + .toggle-slider {
-        background-color: #2563eb;
-        border-color: #3b82f6;
-        box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+        background-color: #737373;
+        border-color: #737373;
+        box-shadow: 0 0 12px rgba(128, 128, 128, 0.5);
     }
 
     input:checked + .toggle-slider:before {
@@ -137,8 +137,8 @@
     }
 
     .btn-save-settings {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: #ffffff;
+        background: var(--mono-ink);
+        color: var(--mono-on-ink);
         border: none;
         border-radius: 12px;
         padding: 14px 24px;
@@ -150,13 +150,13 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 6px 20px rgba(128, 128, 128, 0.4);
         transition: all 0.3s ease;
     }
 
     .btn-save-settings:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.6);
+        box-shadow: 0 10px 25px rgba(128, 128, 128, 0.6);
     }
 
     .health-status-row {
@@ -173,7 +173,7 @@
     .health-status-row:hover {
         border-color: var(--accent-blue);
         transform: translateX(4px);
-        background: rgba(59, 130, 246, 0.04);
+        background: rgba(128, 128, 128, 0.04);
     }
 
     .pulse-dot {
@@ -307,7 +307,7 @@
                 <div style="flex: 1;">
                     <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                         Enable Site-Wide Banner
-                        <span id="ann_status_badge" {% if announcement.enabled %}style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.4);"{% else %}style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);"{% endif %}>
+                        <span id="ann_status_badge" {% if announcement.enabled %}style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.4);"{% else %}style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(239, 68, 68, 0.2); color: var(--mono-danger); border: 1px solid rgba(239, 68, 68, 0.4);"{% endif %}>
                             {% if announcement.enabled %}ACTIVE{% else %}INACTIVE{% endif %}
                         </span>
                     </div>
@@ -320,9 +320,9 @@
             </div>
 
             <!-- Live Banner Preview Component -->
-            <div style="background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 24px;">
+            <div style="background: rgba(128, 128, 128, 0.08); border: 1px dashed rgba(128, 128, 128, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 24px;">
                 <div style="font-size: 11px; font-weight: 700; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
-                    👁️ Live User View Preview
+                    Live User View Preview
                 </div>
                 <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">
                     <i class="fa-solid fa-bullhorn" style="color: var(--accent-blue);"></i> {{ announcement.title }}
@@ -355,7 +355,7 @@
         </div>
         <form method="POST" action="{{ url_for('admin.trigger_backup_now') }}" onsubmit="return confirmAndRunBackup(this);">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" id="backup-now-btn" class="btn-save-settings" style="background: linear-gradient(135deg, #2563eb, #38bdf8);">
+            <button type="submit" id="backup-now-btn" class="btn-save-settings" style="background: var(--mono-ink);">
                 <i class="fa-solid fa-cloud-arrow-down"></i> Backup Now
             </button>
         </form>
@@ -411,7 +411,7 @@
                     <span class="pulse-dot pulse-green"></span> {{ infra_health.db_latency_ms }}ms
                 </span>
                 {% else %}
-                <span class="badge-status" style="background: rgba(239,68,68,0.15); color: #f87171;">Unreachable</span>
+                <span class="badge-status" style="background: rgba(239,68,68,0.15); color: var(--mono-danger);">Unreachable</span>
                 {% endif %}
             </div>
 
@@ -450,6 +450,28 @@
                 </div>
                 <span class="badge-status badge-active">{{ infra_health.uptime_display }}</span>
             </div>
+        </div>
+
+        <!-- Disk space and configuration checks -->
+        <div class="health-status-row" style="margin-top: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-hard-drive" style="font-size: 18px;"></i>
+                <div>
+                    <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Disk space (app volume)</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Uploads, logs and backups share this disk</div>
+                </div>
+            </div>
+            <span class="badge-status {% if infra_health.disk_free_gb is defined and infra_health.disk_free_gb >= 5 %}badge-active{% endif %}">{% if infra_health.disk_free_gb is defined %}{{ infra_health.disk_free_gb }} GB free · {{ infra_health.disk_used_pct }}% used{% else %}unknown{% endif %}</span>
+        </div>
+        <div class="health-status-row" style="margin-top: 14px; display: block;">
+            <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 6px;">Configuration checks</div>
+            {% if infra_health.config_warnings %}
+            <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-primary);">
+                {% for w in infra_health.config_warnings %}<li style="margin-bottom: 4px;">{{ w }}</li>{% endfor %}
+            </ul>
+            {% else %}
+            <div style="font-size: 13px; color: var(--text-secondary);">PUBLIC_BASE_URL, email sender, encryption key and secure cookies are configured.</div>
+            {% endif %}
         </div>
 
         <!-- Quick Environment Summary Box -->

@@ -3,7 +3,7 @@
 {% block seo_meta %}
 <title>Contact — AI Data Analyst Pro | Enterprise Support & Sales</title>
 <meta name="description" content="Contact AI Data Analyst Pro for enterprise sales, technical support, or partnership inquiries. Available via WhatsApp, email, and phone.">
-<link rel="canonical" href="{{ request.url }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block breadcrumb %}
@@ -24,7 +24,7 @@
             <div class="reveal-left">
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                     <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 16px; transition: all 0.3s ease;" data-tilt>
-                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, #25d366, #128c7e); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0;">
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--mono-success); display: flex; align-items: center; justify-content: center; color: var(--mono-on-success); font-size: 22px; flex-shrink: 0;">
                             <i class="fa-brands fa-whatsapp"></i>
                         </div>
                         <div>
@@ -35,18 +35,18 @@
                     </div>
 
                     <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 16px; transition: all 0.3s ease;" data-tilt>
-                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, #3b82f6, #2563eb); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0;">
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--mono-ink); display: flex; align-items: center; justify-content: center; color: var(--mono-on-ink); font-size: 22px; flex-shrink: 0;">
                             <i class="fa-solid fa-envelope"></i>
                         </div>
                         <div>
                             <h3 style="font-family: var(--font-heading); font-weight: 700; font-size: 16px; margin-bottom: 4px;">Email</h3>
                             <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">Enterprise inquiries and partnership proposals.</p>
-                            <a href="mailto:support@aidataanalyst.pro" style="color: var(--accent-blue); font-weight: 700; font-size: 14px;">support@aidataanalyst.pro</a>
+                            <a href="mailto:{{ support_email }}" style="color: var(--accent-blue); font-weight: 700; font-size: 14px;">{{ support_email }}</a>
                         </div>
                     </div>
 
                     <div style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 16px; transition: all 0.3s ease;" data-tilt>
-                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, #8b5cf6, #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0;">
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--mono-ink); display: flex; align-items: center; justify-content: center; color: var(--mono-on-ink); font-size: 22px; flex-shrink: 0;">
                             <i class="fa-solid fa-location-dot"></i>
                         </div>
                         <div>
@@ -124,7 +124,7 @@ function handleContact(e) {
             btn.disabled = false;
             if (ok && data.success) {
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Message Sent!';
-                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                btn.style.background = 'var(--mono-success)';
                 if (msg) {
                     msg.style.color = 'var(--accent-green)';
                     msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || "Thank you! We'll respond within 24 hours.");
