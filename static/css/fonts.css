@@ -35,3 +35,16 @@
   font-display: swap;
   src: url('../fonts/jetbrains-mono-latin-var.woff2') format('woff2');
 }
+/*
+ * Playfair Display (headings)  static/fonts/playfair-display-latin-var.woff2  SIL Open Font License 1.1
+ * Variable weight axis 400-900, subset to Basic Latin + Latin-1 + common punctuation
+ * (pyftsubset, R-Phase 9.9): 31 KB. Three families in total: Playfair Display, Inter,
+ * JetBrains Mono.
+ */
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../fonts/playfair-display-latin-var.woff2') format('woff2');
+}

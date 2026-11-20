@@ -241,7 +241,7 @@
                         {% if eu.status == 'expired' %}
                         <span class="badge-status badge-suspended">Expired</span>
                         {% else %}
-                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">Expiring Soon</span>
+                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: var(--mono-warning); border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">Expiring Soon</span>
                         {% endif %}
                     </td>
                     <td>
@@ -369,7 +369,7 @@
                             {% if p.status == 'Completed' %}
                             <span class="badge-status badge-active">Completed</span>
                             {% elif p.status in ['Pending', 'Pending_Review'] %}
-                            <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">Pending Review</span>
+                            <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: var(--mono-warning); border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">Pending Review</span>
                             {% else %}
                             <span class="badge-status badge-suspended">{{ p.status }}</span>
                             {% endif %}
@@ -452,6 +452,15 @@
     };
 
     const revCanvas = document.getElementById("revenueTrendChart");
+    const signupCanvasEl = document.getElementById("signupsTrendChart");
+    if (!window.Chart) {
+        // The chart library comes from a CDN; if it is blocked or offline, say so instead
+        // of throwing "Chart is not defined" and leaving two empty boxes.
+        [revCanvas, signupCanvasEl].forEach(function (c) {
+            if (c) c.parentElement.insertAdjacentHTML("beforeend", '<p style="color: var(--mono-text-3); font-size: 13px; text-align: center; padding: 20px 0;">The chart could not load. The figures above are still current.</p>');
+        });
+        return;
+    }
     if (revCanvas && revenueTrend.length > 0) {
         new Chart(revCanvas, {
             type: "line",

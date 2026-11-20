@@ -37,13 +37,13 @@
 {% block extra_css %}
 {% if base_template == "base.html" %}
 <!-- See the identical comment in about.html/faq_page.html/help.html. -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261121">
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
 {% if base_template == "base.html" %}
-<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=2"></script>
+<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=4"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
@@ -99,7 +99,7 @@
                         The uploader automatically detects character encodings (UTF-8, Latin-1, CP1252), cleans header column names, and provisions an isolated physical table inside SQL Server with zero data contamination.
                     </p>
                     <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
-                        <strong style="color: #ffffff; display: block; margin-bottom: 8px;">Supported Formats & Parsing Engine:</strong>
+                        <strong style="color: var(--mono-text); display: block; margin-bottom: 8px;">Supported Formats & Parsing Engine:</strong>
                         <ul style="padding-left: 20px;">
                             <li><code>CSV (.csv)</code> & <code>TSV (.tsv)</code> — Chunk-streamed with auto delimiter sniff</li>
                             <li><code>Excel (.xlsx, .xls)</code> — Multi-sheet parsing via openpyxl</li>
@@ -123,7 +123,7 @@
                         Ask analytical questions using your voice or keyboard. The voice engine normalizes spoken typos (e.g., <em>"top 5 ross" "top 5 rows"</em> or Urdu phonetic phrases like <em>"sab se zyada revenue" MAX(revenue)</em>) and executes optimized T-SQL in {{ site_config.TYPICAL_RESPONSE_TIME }}.
                     </p>
                     <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
-                        <strong style="color: #ffffff; display: block; margin-bottom: 8px;">Query Syntax & Natural Language Examples:</strong>
+                        <strong style="color: var(--mono-text); display: block; margin-bottom: 8px;">Query Syntax & Natural Language Examples:</strong>
                         <ul style="padding-left: 20px;">
                             <li><code>"Show top 10 customers by total sales"</code> Fast GROUP BY aggregation</li>
                             <li><code>"What is the average transaction amount in 2026?"</code> Fast AVG with date filter</li>

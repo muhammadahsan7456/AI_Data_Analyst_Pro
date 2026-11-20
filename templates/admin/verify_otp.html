@@ -19,7 +19,7 @@
 
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261121">
     <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -76,10 +76,10 @@
         }
         .otp-shield-icon {
             width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 18px;
-            background: var(--gradient-admin);
+            background: var(--mono-ink);
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 28px;
-            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
+            color: var(--mono-on-ink); font-size: 28px;
+            box-shadow: var(--mono-shadow-lg);
         }
         .otp-title { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
         .otp-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.5; }
@@ -91,7 +91,7 @@
         }
         .otp-input:focus { border-color: var(--accent-red); }
         .otp-btn {
-            width: 100%; background: var(--gradient-admin); color: #fff; border: none;
+            width: 100%; background: var(--mono-ink); color: var(--mono-on-ink); border: none;
             padding: 16px; border-radius: 12px; font-family: 'Outfit', sans-serif;
             font-size: 15px; font-weight: 700; cursor: pointer;
             box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
@@ -100,7 +100,7 @@
         .otp-footer a { color: var(--accent-red); text-decoration: none; font-weight: 600; }
     </style>
     <!-- Monochrome design layer: must stay the last stylesheet. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261120">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body>
     <div class="otp-card">
@@ -115,7 +115,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
-        <div style="padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; text-align: left; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;{% endif %}">
+        <div style="padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; text-align: left; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--mono-danger);{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: var(--mono-success);{% endif %}">
             <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
         </div>
         {% endfor %}
@@ -133,7 +133,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=2"></script>
     <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
 </body>
 </html>

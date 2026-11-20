@@ -523,7 +523,7 @@ function openUpgradeModal(filename, sizeMB) {
         modal.style.cssText = "position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;";
         modal.innerHTML = `
             <div style="background: var(--bg-surface, #1e293b); border: 1px solid var(--border-color, #334155); border-radius: 12px; max-width: 520px; width: 100%; padding: 28px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
+                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: var(--mono-warning); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
                     <i class="fa-solid fa-crown"></i>
                 </div>
                 <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--text-primary);">Free Plan Limit (1 MB) Exceeded</h3>
@@ -563,7 +563,7 @@ function openPendingApprovalModal(filename, sizeMB) {
         modal.style.cssText = "position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;";
         modal.innerHTML = `
             <div style="background: var(--bg-surface, #1e293b); border: 1px solid var(--border-color, #334155); border-radius: 12px; max-width: 520px; width: 100%; padding: 28px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(128, 128, 128, 0.15); color: #737373; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
+                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(128, 128, 128, 0.15); color: var(--mono-text-3); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
                     <i class="fa-solid fa-clock"></i>
                 </div>
                 <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--text-primary);">Payment Pending Super Admin Approval</h3>

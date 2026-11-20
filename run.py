@@ -303,6 +303,7 @@ def inject_user_context():
         support_email=site_config.support_email(),
         public_root=public_base_url() + "/",
         canonical_url=public_base_url() + request.path,
+        now_year=__import__("datetime").datetime.now().year,
     )
 
 

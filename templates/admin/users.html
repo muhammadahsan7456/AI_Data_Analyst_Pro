@@ -36,8 +36,8 @@
     }
 
     .btn-filter-action {
-        background: var(--accent-blue);
-        color: #ffffff;
+        background: var(--mono-ink);
+        color: var(--mono-on-ink);
         border: none;
         padding: 10px 20px;
         border-radius: 10px;
@@ -217,24 +217,24 @@
                     </td>
                     <td>
                         {% if u.role in ('SuperAdmin', 'Admin') %}
-                        <span class="badge-status" style="background: rgba(128, 128, 128, 0.2); color: #737373; border: 1px solid #737373;"><i class="fa-solid fa-crown" style="font-size: 8px;"></i> Full Access ({{ u.role }})</span>
+                        <span class="badge-status" style="background: rgba(128, 128, 128, 0.2); color: var(--mono-text-3); border: 1px solid #737373;"><i class="fa-solid fa-crown" style="font-size: 8px;"></i> Full Access ({{ u.role }})</span>
                         {% elif u.subscription_status == 'pending_approval' %}
-                        <span class="badge-status" style="background: rgba(128, 128, 128, 0.2); color: #737373; border: 1px solid #737373;"><i class="fa-solid fa-hourglass-half" style="font-size: 8px;"></i> Pending Approval</span>
+                        <span class="badge-status" style="background: rgba(128, 128, 128, 0.2); color: var(--mono-text-3); border: 1px solid #737373;"><i class="fa-solid fa-hourglass-half" style="font-size: 8px;"></i> Pending Approval</span>
                         {% elif u.subscription_status == 'rejected' %}
-                        <span class="badge-status" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;"><i class="fa-solid fa-xmark" style="font-size: 8px;"></i> Rejected</span>
+                        <span class="badge-status" style="background: rgba(239, 68, 68, 0.2); color: var(--mono-danger); border: 1px solid #ef4444;"><i class="fa-solid fa-xmark" style="font-size: 8px;"></i> Rejected</span>
                         {% elif u.subscription_status == 'suspended' or not u.is_active %}
                         <span class="badge-status badge-suspended"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Suspended</span>
                         {% elif u.subscription_status == 'expired' %}
-                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b;"><i class="fa-solid fa-clock" style="font-size: 8px;"></i> Expired</span>
+                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: var(--mono-warning); border: 1px solid #f59e0b;"><i class="fa-solid fa-clock" style="font-size: 8px;"></i> Expired</span>
                         {% elif u.subscription_status == 'expiring_soon' %}
-                        <span class="badge-status" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid #eab308;"><i class="fa-solid fa-hourglass-half" style="font-size: 8px;"></i> Expiring Soon</span>
+                        <span class="badge-status" style="background: rgba(234, 179, 8, 0.2); color: var(--mono-warning); border: 1px solid #eab308;"><i class="fa-solid fa-hourglass-half" style="font-size: 8px;"></i> Expiring Soon</span>
                         {% elif u.subscription_status in ('free', 'basic', 'trial') %}
-                        <span class="badge-status" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #94a3b8;"><i class="fa-solid fa-gift" style="font-size: 8px;"></i> Free Plan</span>
+                        <span class="badge-status" style="background: rgba(148, 163, 184, 0.2); color: var(--mono-text-3); border: 1px solid #94a3b8;"><i class="fa-solid fa-gift" style="font-size: 8px;"></i> Free Plan</span>
                         {% else %}
                         <span class="badge-status badge-active"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Pro Active</span>
                         {% endif %}
                     </td>
-                    <td style="color: #737373; font-size: 12px; font-weight: 700;">
+                    <td style="color: var(--mono-text-3); font-size: 12px; font-weight: 700;">
                         {% if u.role in ('SuperAdmin', 'Admin') %}
                         N/A (Full Access)
                         {% else %}

@@ -473,3 +473,27 @@ Schema: none (the sweep only changes values in existing columns).
 - Test: `tests/test_env_example.py` (3: every variable documented, the new ones present, secret variables empty). Full non-Selenium suite: 195 passed.
 - Schema: none in this step.
 - Not verified: the deploy steps themselves (no Oracle VM, Nginx or SQL Server here); the `sqlcmd` commands are unchanged from the earlier reviewed version except the new read-only `sys.columns` query.
+
+## R-Phase 9.9 — Design polish (Phase 9)
+
+### Changes
+- CSS design tokens: hardcoded colours in `style.css`, `landing.css`, `mono.css` and the templates replaced by CSS variables (light and dark themes from one set of tokens).
+- Fonts self-hosted: Playfair Display (new, `static/fonts/playfair-display-latin-var.woff2`, 31.6 KB), Inter and JetBrains Mono; `fonts.css` updated. No third-party font origin.
+- Three.js and vanilla-tilt removed (comments in `landing_base.html` / `animations.js` only). Replaced by a CSS tilt, hover lift and an inline isometric SVG; reduced-motion respected.
+- Mobile drawers for the portal and the Super Admin console; portal and admin footer (brand, year from `now_year` in the `run.py` context processor).
+- Admin base template: the footer read `site_config`, which is not in the admin context, and 2 tests in `tests/test_admin_users_list.py` failed. Guarded with `site_config is defined` and a fallback brand name.
+
+### Evidence
+- Full non-Selenium suite (excluding `test_auth.py`, `test_demo_sandbox.py`, `test_public_pages.py`): 195 passed. `python -m compileall -q` (venv excluded): exit 0. `node --check` on all 6 files in `static/**/*.js`: 0 failures.
+- Accessibility/overflow matrix (axe-core, public, auth, portal, admin; light and dark; several widths): 372 page loads, 0 load errors, 0 WCAG AA colour-contrast failures (before: 215 nodes on 132 loads), 0 horizontal scroll, 0 theme mismatches. Evidence `/workspace/work/qa/r9/design/` (outside the repo).
+- Lighthouse (local QA server, Waitress, headless Chromium; two runs after because TBT varied run to run):
+
+  | Page | Before | After run 1 | After run 2 |
+  |---|---|---|---|
+  | `/` perf / LCP / TBT | 99 / 1.8 s / 0 ms | 96 / 2.1 s / 170 ms | 99 / 2.1 s / 10 ms |
+  | `/auth/login` perf / LCP / TBT | 99 / 2.0 s / 0 ms | 91 / 2.1 s / 320 ms | 99 / 2.1 s / 0 ms |
+
+  Accessibility 98, Best practices 100 on both, unchanged. SEO: `/` 100; `/auth/login` 66 before and after (it is `noindex` on purpose). Page weight +33 KB on both (155 → 188 KB on `/`, 153 → 185 KB on login), mostly the Playfair Display font; LCP is 0.1–0.3 s slower.
+- Internal link crawl (`crawl.py`): anonymous 25 URLs, user 68, admin 40, 0 internal 404/5xx. Every `url()` in the CSS (the three font files) returns 200.
+- Schema: none. New env vars: none.
+- Not verified: real devices/browsers other than headless Chromium; production (Nginx, Cloudflare) performance.

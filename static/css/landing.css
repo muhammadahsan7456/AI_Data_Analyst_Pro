@@ -609,7 +609,7 @@ main > .landing-section:first-child {
 .btn-hero-primary {
     background: var(--gradient-luxury);
     background-size: 200% 200%;
-    color: #ffffff;
+    color: var(--mono-on-ink);
     font-size: clamp(15px, 2vw, 17px);
     font-weight: 700;
     padding: 16px 36px;
@@ -756,7 +756,7 @@ main > .landing-section:first-child {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--mono-on-ink);
     font-size: 26px;
     margin-bottom: 22px;
     box-shadow: 0 8px 25px rgba(128, 128, 128, 0.38);
@@ -920,7 +920,7 @@ main > .landing-section:first-child {
 
 .testimonial-card:hover { border-color: var(--border-glow); transform: translateY(-4px); box-shadow: var(--shadow-glow); }
 
-.testimonial-stars { display: flex; gap: 3px; color: #737373; font-size: 14px; margin-bottom: 16px; }
+.testimonial-stars { display: flex; gap: 3px; color: var(--mono-text-3); font-size: 14px; margin-bottom: 16px; }
 
 .testimonial-text { color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 20px; font-style: italic; }
 
@@ -1118,7 +1118,7 @@ main > .landing-section:first-child {
 
 .mockup-title-bar { font-size: 12px; font-weight: 600; color: var(--text-muted); }
 
-.video-live-tag { font-size: 11px; font-weight: 700; color: #ef4444; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
+.video-live-tag { font-size: 11px; font-weight: 700; color: var(--mono-danger); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
 
 .stage-switcher-tabs {
     display: flex;
@@ -1179,7 +1179,7 @@ main > .landing-section:first-child {
 
 .video-stage-badge {
     background: var(--gradient-primary);
-    color: #fff;
+    color: var(--mono-on-ink);
     font-size: 12px;
     font-weight: 700;
     padding: 6px 14px;
@@ -1220,7 +1220,7 @@ main > .landing-section:first-child {
 
 .btn-replay-big {
     background: var(--gradient-primary);
-    color: #fff;
+    color: var(--mono-on-ink);
     border: none;
     padding: 14px 28px;
     border-radius: var(--radius-md);
@@ -1530,7 +1530,7 @@ main > .landing-section:first-child {
     width: 24px; height: 24px;
     border-radius: 50%;
     background: var(--gradient-primary);
-    color: #fff;
+    color: var(--mono-on-ink);
     font-size: 12px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -1576,7 +1576,7 @@ main > .landing-section:first-child {
 .btn-submit-payment-proof {
     width: 100%;
     background: var(--gradient-primary);
-    color: #fff;
+    color: var(--mono-on-ink);
     border: none;
     padding: 14px;
     border-radius: var(--radius-md);
@@ -1886,7 +1886,7 @@ main > .landing-section:first-child {
     align-items: center;
     justify-content: center;
     font-size: 26px;
-    color: #ffffff;
+    color: var(--mono-on-ink);
     margin: 0 auto 16px auto;
     box-shadow: 0 8px 25px rgba(128, 128, 128, 0.45);
     animation: pulse-icon 4s infinite alternate;
@@ -1988,7 +1988,7 @@ main > .landing-section:first-child {
     border: none;
     background: var(--gradient-luxury);
     background-size: 200% 200%;
-    color: #ffffff;
+    color: var(--mono-on-ink);
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -2160,7 +2160,7 @@ main > .landing-section:first-child {
 [data-theme="light"] .auth-title,
 [data-theme="light"] .pipeline-title,
 [data-theme="light"] .sandbox-explain-title {
-    color: #090d16 !important;
+    color: var(--mono-text) !important;
 }
 
 [data-theme="light"] .feature-card-desc,
@@ -2170,13 +2170,13 @@ main > .landing-section:first-child {
 [data-theme="light"] .auth-subtitle,
 [data-theme="light"] .sandbox-explain-desc,
 [data-theme="light"] .pricing-feature-item {
-    color: #334155 !important;
+    color: var(--mono-text-2) !important;
 }
 
 [data-theme="light"] .auth-input {
     background: #f8fafc !important;
     border-color: #cbd5e1 !important;
-    color: #090d16 !important;
+    color: var(--mono-text) !important;
 }
 
 [data-theme="light"] .auth-input:focus {
@@ -2196,7 +2196,7 @@ main > .landing-section:first-child {
 [data-theme="light"] .chip-btn {
     background: #f1f5f9 !important;
     border-color: #cbd5e1 !important;
-    color: #1e293b !important;
+    color: var(--mono-text) !important;
 }
 
 [data-theme="light"] .chip-btn.active,

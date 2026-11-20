@@ -7,7 +7,7 @@
 <!-- Top KPI Summary Bar -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
     <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
-        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(128, 128, 128, 0.15); border: 1px solid rgba(128, 128, 128, 0.3); color: #737373; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(128, 128, 128, 0.15); border: 1px solid rgba(128, 128, 128, 0.3); color: var(--mono-text-3); display: flex; align-items: center; justify-content: center; font-size: 20px;">
             <i class="fa-solid fa-inbox"></i>
         </div>
         <div>
@@ -17,12 +17,12 @@
     </div>
 
     <div class="admin-card-box" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
-        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--mono-danger); display: flex; align-items: center; justify-content: center; font-size: 20px;">
             <i class="fa-solid fa-envelope-circle-check"></i>
         </div>
         <div>
             <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Awaiting Response (New)</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: #f87171;">{{ new_count }}</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; color: var(--mono-danger);">{{ new_count }}</div>
         </div>
     </div>
 </div>
@@ -84,11 +84,11 @@
                     <td style="color: var(--text-secondary); font-size: 12px; white-space: nowrap;">{{ m.created_at }}</td>
                     <td>
                         {% if m.status == 'New' %}
-                        <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> New</span>
+                        <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: var(--mono-danger); font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> New</span>
                         {% elif m.status == 'Responded' %}
-                        <span class="badge-status" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> Responded</span>
+                        <span class="badge-status" style="background: rgba(16, 185, 129, 0.15); color: var(--mono-success); font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> Responded</span>
                         {% else %}
-                        <span class="badge-status" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> Read</span>
+                        <span class="badge-status" style="background: rgba(148, 163, 184, 0.15); color: var(--mono-text-3); font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 7px; margin-right: 4px;"></i> Read</span>
                         {% endif %}
                     </td>
                     <td style="text-align: right; white-space: nowrap;">
@@ -99,11 +99,11 @@
                                 <option value="Responded" {% if m.status == 'Responded' %}selected{% endif %}>Responded</option>
                             </select>
                         </form>
-                        <button type="button" onclick="document.getElementById('reply-modal-{{ m.id }}').style.display='flex'" class="btn btn-sm" style="background: rgba(128, 128, 128, 0.15); border: 1px solid rgba(128, 128, 128, 0.4); color: #737373; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Reply directly to the customer's email">
+                        <button type="button" onclick="document.getElementById('reply-modal-{{ m.id }}').style.display='flex'" class="btn btn-sm" style="background: rgba(128, 128, 128, 0.15); border: 1px solid rgba(128, 128, 128, 0.4); color: var(--mono-text-3); padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Reply directly to the customer's email">
                             <i class="fa-solid fa-reply"></i> Reply
                         </button>
                         <form method="POST" action="{{ url_for('admin.delete_contact_message_route', message_id=m.id) }}" onsubmit="return confirm('Delete this message from {{ m.full_name }}?')" style="display: inline;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Delete Message">
+                            <button type="submit" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--mono-danger); padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Delete Message">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </form>
@@ -130,7 +130,7 @@
     <div style="background: var(--admin-card-bg); border: 1px solid var(--admin-border); border-radius: 16px; max-width: 560px; width: 100%; padding: 28px; max-height: 85vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">
-                <i class="fa-solid fa-reply" style="color: #737373;"></i> Reply to {{ m.full_name }}
+                <i class="fa-solid fa-reply" style="color: var(--mono-text-3);"></i> Reply to {{ m.full_name }}
             </h3>
             <button type="button" onclick="document.getElementById('reply-modal-{{ m.id }}').style.display='none'" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
         </div>
@@ -143,7 +143,7 @@
 
         {% if m.admin_reply %}
         <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
-            <strong style="color: #34d399; font-size: 11px; text-transform: uppercase;">Previously Sent Reply ({{ m.replied_at }}):</strong><br>{{ m.admin_reply }}
+            <strong style="color: var(--mono-success); font-size: 11px; text-transform: uppercase;">Previously Sent Reply ({{ m.replied_at }}):</strong><br>{{ m.admin_reply }}
         </div>
         {% endif %}
 

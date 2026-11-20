@@ -23,8 +23,9 @@
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261121">
     <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/playfair-display-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
     
     <!-- Font Awesome Icons -->
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
@@ -32,7 +33,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
     
     <!-- Core Application CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261011_v1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261121">
     
     <style>
         :root, [data-theme="dark"] {
@@ -187,7 +188,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #ffffff;
+            color: var(--mono-on-danger);
             font-size: 18px;
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
         }
@@ -318,9 +319,9 @@
             font-weight: 700;
             display: inline-block;
         }
-        .badge-superadmin { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
-        .badge-analyst { background: rgba(128, 128, 128, 0.15); color: #737373; border: 1px solid rgba(128, 128, 128, 0.4); }
-        .badge-user { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
+        .badge-superadmin { background: rgba(239, 68, 68, 0.15); color: var(--mono-danger); border: 1px solid rgba(239, 68, 68, 0.4); }
+        .badge-analyst { background: rgba(128, 128, 128, 0.15); color: var(--mono-text-3); border: 1px solid rgba(128, 128, 128, 0.4); }
+        .badge-user { background: rgba(148, 163, 184, 0.15); color: var(--mono-text-3); border: 1px solid rgba(148, 163, 184, 0.4); }
 
         .badge-status {
             padding: 4px 10px;
@@ -328,8 +329,8 @@
             font-size: 12px;
             font-weight: 600;
         }
-        .badge-active { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-        .badge-suspended { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-active { background: rgba(16, 185, 129, 0.15); color: var(--mono-success); }
+        .badge-suspended { background: rgba(239, 68, 68, 0.15); color: var(--mono-danger); }
 
         /* Super Admin Master Responsive Rules */
         .admin-mobile-toggle-btn { display: none; }
@@ -388,19 +389,23 @@
         }
     </style>
     <!-- Monochrome design layer: must stay the last stylesheet. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261120">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body>
 
     <!-- Super Admin Glassmorphic Sidebar -->
-    <aside class="admin-sidebar">
+    <div class="admin-drawer-overlay" id="admin-drawer-overlay" aria-hidden="true"></div>
+    <aside class="admin-sidebar" id="admin-sidebar" aria-label="Super Admin navigation">
         <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
             <a href="{{ url_for('admin.dashboard') }}" class="admin-brand">
                 <div class="admin-badge-icon">
                     <i class="fa-solid fa-user-shield"></i>
                 </div>
-                <span>Super Admin</span>
+                <span class="admin-brand-text">Super Admin</span>
             </a>
+            <button type="button" class="drawer-close-btn" id="admin-drawer-close" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
 
             <ul class="admin-nav-menu">
                 <li class="admin-nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
@@ -425,7 +430,7 @@
                     <a href="{{ url_for('admin.manage_payments') }}" style="display: flex; align-items: center; justify-content: space-between;">
                         <span><i class="fa-solid fa-credit-card"></i> <span>Payments & Billing</span></span>
                         {% if pending_payments_count and pending_payments_count > 0 %}
-                        <span style="background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 10px; line-height: 1.4;">{{ pending_payments_count }}</span>
+                        <span style="background: var(--mono-danger); color: var(--mono-on-danger); font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 10px; line-height: 1.4;">{{ pending_payments_count }}</span>
                         {% endif %}
                     </a>
                 </li>
@@ -480,7 +485,7 @@
         <!-- Top Header Bar -->
         <header class="admin-top-bar">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <button class="admin-mobile-toggle-btn" onclick="toggleAdminSidebar()" title="Toggle Menu">
+                <button class="admin-mobile-toggle-btn" type="button" onclick="toggleAdminSidebar()" title="Open menu" aria-label="Open menu" aria-controls="admin-sidebar" aria-expanded="false">
                     <i class="fa-solid fa-bars"></i>
                 </button>
                 <h1 class="admin-page-title">
@@ -505,7 +510,7 @@
         {% if messages %}
         <div style="padding: 16px 32px 0 32px;">
             {% for category, message in messages %}
-            <div style="padding: 12px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; justify-content: space-between; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;{% endif %}">
+            <div style="padding: 12px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; justify-content: space-between; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--mono-danger);{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: var(--mono-success);{% endif %}">
                 <span>{{ message }}</span>
                 <i class="fa-solid fa-xmark" style="cursor: pointer;" onclick="this.parentElement.remove()"></i>
             </div>
@@ -517,28 +522,54 @@
         <!-- Content Body Area -->
         <main class="admin-content-area">
             {% block content %}{% endblock %}
+            <footer class="app-footer" role="contentinfo">
+                <span><span class="app-footer-brand">{{ site_config.BRAND_NAME if site_config is defined else "AI Data Analyst Pro" }}</span> &copy; {{ now_year }}</span>
+                <nav aria-label="Footer">
+                    <a href="{{ url_for('frontend.help_center') }}">Help</a>
+                    <a href="{{ url_for('frontend.docs') }}">Docs</a>
+                    <a href="{{ url_for('frontend.faq_page') }}">FAQ</a>
+                    <a href="{{ url_for('frontend.contact') }}">Contact</a>
+                    <a href="{{ url_for('frontend.privacy') }}">Privacy</a>
+                    <a href="{{ url_for('frontend.terms') }}">Terms</a>
+                    {% if support_email %}<a href="mailto:{{ support_email }}">{{ support_email }}</a>{% endif %}
+                </nav>
+            </footer>
         </main>
     </div>
 
     <script>
-        function toggleAdminSidebar() {
+        // Slide-in drawer on tablets/phones: overlay, close button, Escape, focus return.
+        function toggleAdminSidebar(force) {
             const sidebar = document.querySelector('.admin-sidebar');
-            if (sidebar) sidebar.classList.toggle('mobile-open');
-        }
-
-        document.addEventListener('click', (e) => {
-            const sidebar = document.querySelector('.admin-sidebar');
+            const overlay = document.getElementById('admin-drawer-overlay');
             const toggleBtn = document.querySelector('.admin-mobile-toggle-btn');
-            if (sidebar && sidebar.classList.contains('mobile-open')) {
-                if (!sidebar.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
-                    sidebar.classList.remove('mobile-open');
-                }
+            if (!sidebar) return;
+            const open = typeof force === 'boolean' ? force : !sidebar.classList.contains('mobile-open');
+            sidebar.classList.toggle('mobile-open', open);
+            if (overlay) overlay.classList.toggle('active', open);
+            document.body.classList.toggle('drawer-locked', open);
+            if (toggleBtn) toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) {
+                const closeBtn = document.getElementById('admin-drawer-close');
+                if (closeBtn) closeBtn.focus();
+            } else if (toggleBtn && sidebar.contains(document.activeElement)) {
+                toggleBtn.focus();
             }
-        });
+        }
+        (function () {
+            const overlay = document.getElementById('admin-drawer-overlay');
+            const closeBtn = document.getElementById('admin-drawer-close');
+            if (overlay) overlay.addEventListener('click', () => toggleAdminSidebar(false));
+            if (closeBtn) closeBtn.addEventListener('click', () => toggleAdminSidebar(false));
+            document.addEventListener('keydown', (e) => {
+                const sidebar = document.querySelector('.admin-sidebar');
+                if (e.key === 'Escape' && sidebar && sidebar.classList.contains('mobile-open')) toggleAdminSidebar(false);
+            });
+        })();
 
     </script>
     <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
-    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=2"></script>
     <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
 </body>
 </html>

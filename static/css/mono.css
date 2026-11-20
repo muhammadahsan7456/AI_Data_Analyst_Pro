@@ -552,3 +552,144 @@ table tr:hover td { background: var(--mono-hover); }
 .kpi-result-label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--mono-text-2); }
 .kpi-result-value { font-family: var(--mono-font-mono); font-variant-numeric: tabular-nums; font-size: clamp(36px, 7vw, 56px); font-weight: 600; line-height: 1.1; margin: 10px 0 8px; color: var(--mono-text); overflow-wrap: anywhere; }
 .kpi-result-note { font-size: 14px; color: var(--mono-text-3); }
+
+/* ==========================================================================
+   R-Phase 9.9 — Jet black / jet white, luxury type, light 3D touch
+   Every color below is a theme token. Display serif for page and section
+   headings, Inter for UI, JetBrains Mono for figures. Motion is transform /
+   opacity only and is switched off for prefers-reduced-motion.
+   ========================================================================== */
+:root {
+    --mono-font-display: 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --jet-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+html[data-theme="light"], html:not([data-theme]) {
+    --mono-on-danger: #ffffff;
+    --mono-on-success: #ffffff;
+    --mono-on-warning: #ffffff;
+    --mono-shadow-depth: 0 1px 1px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.04),
+                         0 16px 32px -8px rgba(0, 0, 0, 0.12), 0 40px 80px -32px rgba(0, 0, 0, 0.22);
+}
+html[data-theme="dark"] {
+    --mono-on-danger: #0a0a0a;
+    --mono-on-success: #0a0a0a;
+    --mono-on-warning: #0a0a0a;
+    --mono-shadow-depth: 0 1px 1px rgba(0, 0, 0, 0.6), 0 16px 32px -8px rgba(0, 0, 0, 0.7),
+                         0 40px 80px -32px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ---------- Display type ---------- */
+h1, h2, .hero-title, .section-title, .page-title, .admin-page-title, .auth-title,
+.page-header h1, .top-bar h1, .pricing-title, .cta-title, .home-cta-section h2,
+.brand-logo > span, .footer-brand > span, .sidebar-brand-text, .admin-brand-text {
+    font-family: var(--mono-font-display) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.012em !important;
+    font-feature-settings: "lnum" 1, "kern" 1;
+}
+.hero-title { font-weight: 600 !important; line-height: 1.06 !important; }
+.hero-title .gradient-text { font-style: italic; font-weight: 500; }
+h3, h4, h5, h6, .feature-card-title, .card-title { font-family: var(--mono-font) !important; }
+/* Figures and tables: tabular mono numbers. */
+.counter-value, .price-amount, .kpi-result-value, .stat-value, .metric-value, td.num, .num {
+    font-family: var(--mono-font-mono) !important;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---------- State fills keep readable text in both themes ---------- */
+[style*="background: var(--mono-danger)"], [style*="background: var(--accent-red)"],
+[style*="background: #ef4444"], [style*="background: #dc2626"] { color: var(--mono-on-danger) !important; }
+[style*="background: var(--mono-success)"], [style*="background: var(--accent-green)"],
+[style*="background: #10b981"], [style*="background: #22c55e"] { color: var(--mono-on-success) !important; }
+[style*="background: var(--mono-danger)"] *, [style*="background: var(--accent-red)"] *,
+[style*="background: var(--mono-success)"] *, [style*="background: var(--accent-green)"] * { color: inherit !important; }
+.notif-badge, #notif-badge-count { background: var(--mono-danger) !important; color: var(--mono-on-danger) !important; }
+
+/* ---------- Depth: layered shadows and hover lift ---------- */
+.feature-card, .pricing-card, .testimonial-card, .stat-card, .metric-card, .kpi-card,
+.dataset-card, .dashboard-card, .admin-card, .faq-item, .info-card {
+    transition: transform 0.35s var(--jet-ease), box-shadow 0.35s var(--jet-ease), border-color 0.35s var(--jet-ease) !important;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .feature-card:hover, .pricing-card:hover, .testimonial-card:hover, .stat-card:hover,
+    .metric-card:hover, .kpi-card:hover, .dataset-card:hover, .dashboard-card:hover, .admin-card:hover {
+        transform: translate3d(0, -3px, 0) !important;
+        box-shadow: var(--mono-shadow-depth) !important;
+    }
+}
+
+/* ---------- Hero: perspective tilt on the workspace preview ---------- */
+.home-workspace-preview { box-shadow: var(--mono-shadow-depth) !important; }
+@media (min-width: 1025px) and (prefers-reduced-motion: no-preference) {
+    .home-hero-layout { perspective: 1600px; }
+    .home-workspace-preview {
+        transform: rotateY(var(--tilt-y, -8deg)) rotateX(var(--tilt-x, 4deg));
+        transform-style: preserve-3d;
+        transition: transform 0.7s var(--jet-ease);
+        will-change: transform;
+    }
+    .home-workspace-preview .preview-bar-chart { transform: translateZ(28px); }
+    .home-workspace-preview .preview-question { transform: translateZ(16px); }
+}
+
+/* ---------- Isometric chart illustration (inline SVG, home) ---------- */
+.iso-illustration { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto 8px; color: var(--mono-text); }
+.iso-illustration .iso-top { fill: var(--mono-surface); stroke: currentColor; }
+.iso-illustration .iso-left { fill: var(--mono-hover); stroke: currentColor; }
+.iso-illustration .iso-right { fill: var(--mono-border-strong); stroke: currentColor; }
+.iso-illustration .iso-accent.iso-top { fill: var(--mono-ink); }
+.iso-illustration .iso-accent.iso-left { fill: var(--mono-text-2); }
+.iso-illustration .iso-accent.iso-right { fill: var(--mono-text-3); }
+.iso-illustration .iso-floor { fill: none; stroke: var(--mono-border-strong); }
+
+/* ---------- Section reveal: short, transform/opacity only ---------- */
+.reveal, .reveal-left, .reveal-right, .reveal-scale {
+    transition: opacity 0.6s var(--jet-ease), transform 0.6s var(--jet-ease) !important;
+}
+.reveal { transform: translate3d(0, 16px, 0); }
+.reveal-left { transform: translate3d(-16px, 0, 0); }
+.reveal-right { transform: translate3d(16px, 0, 0); }
+.reveal-scale { transform: scale(0.97); }
+.reveal.revealed, .reveal-left.revealed, .reveal-right.revealed, .reveal-scale.revealed { transform: none; }
+/* Above the fold never waits for script: the hero shows at first paint. */
+.hero-section .reveal, .hero-section .reveal-left, .hero-section .reveal-right, .hero-section .reveal-scale {
+    opacity: 1 !important; transform: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .home-workspace-preview { transform: none !important; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- Mobile drawers (portal and admin): overlay + close button ---------- */
+.drawer-close-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 44px; height: 44px; margin-left: auto;
+    border: 1px solid var(--mono-border) !important; border-radius: var(--mono-radius) !important;
+    background: var(--mono-surface) !important; color: var(--mono-text) !important; cursor: pointer;
+}
+.admin-drawer-overlay {
+    position: fixed; inset: 0; z-index: 99998; background: rgba(0, 0, 0, 0.5);
+    opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s;
+}
+.admin-drawer-overlay.active { opacity: 1; visibility: visible; }
+body.drawer-locked { overflow: hidden; }
+@media (max-width: 1199px) {
+    .sidebar .drawer-close-btn { display: inline-flex; }
+    .mobile-sidebar-btn { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 992px) {
+    .admin-sidebar .drawer-close-btn { display: inline-flex; }
+    .admin-mobile-toggle-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* ---------- App footer (portal and admin), same links as the public footer ---------- */
+.app-footer {
+    margin-top: 48px; padding: 20px 0 8px; border-top: 1px solid var(--mono-border);
+    display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between;
+    font-size: 14px; color: var(--mono-text-3);
+}
+.app-footer nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.app-footer a { color: var(--mono-text-2) !important; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.app-footer a:hover { color: var(--mono-text) !important; text-decoration: underline; }
+.app-footer .app-footer-brand { font-family: var(--mono-font-display); color: var(--mono-text); font-size: 15px; }

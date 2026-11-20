@@ -47,8 +47,9 @@
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261118">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261121">
     <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/playfair-display-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <!-- Font Awesome (preconnect first: the stylesheet itself then pulls ~280KB of icon
          webfonts from the same origin, so paying the TLS handshake up front saves ~400ms) -->
@@ -62,7 +63,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"></noscript>
 
     <!-- Landing Page CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v10">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261121">
 
     {% block extra_css %}{% endblock %}
 
@@ -92,12 +93,11 @@
     </script>
     {% endblock %}
     <!-- Monochrome design layer: must stay the last stylesheet. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261120">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body class="landing-body">
 
     <!-- Animated Background Canvas -->
-    <canvas id="hero-3d-canvas" class="hero-bg-canvas"></canvas>
 
     <!-- Public Navigation -->
     <header class="site-header" id="site-header">
@@ -247,7 +247,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2026 AI Data Analyst Pro. Built for questions about your data.</p>
+                <p>&copy; {{ now_year }} {{ site_config.BRAND_NAME }}. Built for questions about your data.</p>
                 <div class="footer-bottom-links">
                     <a href="{{ url_for('frontend.privacy') }}">Privacy</a>
                     <span class="footer-dot">•</span>
@@ -267,7 +267,7 @@
     <script defer src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
     <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift).
          Safe to defer: the inline script in <head> already sets data-theme before first paint. -->
-    <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script defer src="{{ url_for('static', filename='js/theme.js') }}?v=2"></script>
     <script defer src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
 
     <!-- The decorative Three.js background and vanilla-tilt are not needed by the home
@@ -283,10 +283,9 @@
                 document.body.appendChild(s);
             }
             function start() {
-                if (!document.querySelector('.home-analyst-hero, .auth-luxury-page')) {
-                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js');
-                }
+                // Three.js and vanilla-tilt (about 650 KB from a CDN on most public pages)
+                // were removed in R-Phase 9.9; depth and tilt are CSS (mono.css) plus a few
+                // lines in animations.js.
                 // animations.js defines functions some pages' own inline scripts call
                 // (e.g. index.html's initTypedText on DOMContentLoaded) - DOMContentLoaded
                 // always fires before window.load, so a page-specific script waiting on
@@ -294,7 +293,7 @@
                 // (confirmed live: "initTypedText is not defined"). Dispatching this event
                 // once animations.js has actually finished loading gives those callers a
                 // real signal to wait on instead of assuming a fixed load order.
-                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=3', function () {
+                loadScript('{{ url_for("static", filename="js/animations.js") }}?v=4', function () {
                     window.dispatchEvent(new Event('animationsEngineReady'));
                 });
             }

@@ -45,7 +45,7 @@
                     </div>
                     <h5 class="fw-bold mb-1">Overall Data Health</h5>
                     <span class="badge px-3 py-2 text-uppercase fw-semibold"
-                          style="background: {% if quality.health_score >= 85 %}#10b98122; color: #10b981{% elif quality.health_score >= 70 %}#f59e0b22; color: #f59e0b{% else %}#ef444422; color: #ef4444{% endif %};">
+                          style="background: {% if quality.health_score >= 85 %}#10b98122; color: var(--mono-success){% elif quality.health_score >= 70 %}#f59e0b22; color: var(--mono-warning){% else %}#ef444422; color: var(--mono-danger){% endif %};">
                         {% if quality.health_score >= 85 %}EXCELLENT (READY FOR AI){% elif quality.health_score >= 70 %}GOOD (MINOR ATTENTION){% else %}NEEDS ATTENTION{% endif %}
                     </span>
                 </div>

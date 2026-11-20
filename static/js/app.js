@@ -15,7 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initMobileSidebar() {
+    // Slide-in drawer on tablets/phones: overlay, close button, Escape, focus return.
     const toggleBtn = document.getElementById("mobile-sidebar-toggle");
+    const closeBtn = document.getElementById("mobile-sidebar-close");
     const sidebar = document.querySelector(".sidebar");
     const backdrop = document.getElementById("sidebar-backdrop");
 
@@ -24,11 +26,18 @@ function initMobileSidebar() {
     function openSidebar() {
         sidebar.classList.add("open");
         if (backdrop) backdrop.classList.add("active");
+        document.body.classList.add("drawer-locked");
+        toggleBtn.setAttribute("aria-expanded", "true");
+        if (closeBtn) closeBtn.focus();
     }
 
     function closeSidebar() {
+        const hadFocus = sidebar.contains(document.activeElement);
         sidebar.classList.remove("open");
         if (backdrop) backdrop.classList.remove("active");
+        document.body.classList.remove("drawer-locked");
+        toggleBtn.setAttribute("aria-expanded", "false");
+        if (hadFocus) toggleBtn.focus();
     }
 
     toggleBtn.addEventListener("click", (e) => {
@@ -40,9 +49,11 @@ function initMobileSidebar() {
         }
     });
 
-    if (backdrop) {
-        backdrop.addEventListener("click", closeSidebar);
-    }
+    if (backdrop) backdrop.addEventListener("click", closeSidebar);
+    if (closeBtn) closeBtn.addEventListener("click", closeSidebar);
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && sidebar.classList.contains("open")) closeSidebar();
+    });
 
     const sidebarLinks = sidebar.querySelectorAll(".sidebar-link");
     sidebarLinks.forEach(link => {
