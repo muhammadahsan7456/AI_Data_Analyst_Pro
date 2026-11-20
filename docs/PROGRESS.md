@@ -341,3 +341,19 @@ Failing / suspicious (to fix in later phases):
 4. Password reset has no resend limit (each request mails a new code).
 5. No per-IP rate limit on login / OTP / reset endpoints (only per-account lockout).
 6. Still to check: Google button on register page, profit/loss prediction, chart-type coverage, invoice PDF, admin user list, startup PUBLIC_BASE_URL warning.
+
+## R-Phase 9.2 — Authentication and Google account linking
+
+Already in place and re-verified by tests: Google on login AND register (`btn-google-signup` on `auth/signup.html`, which `/auth/register` renders), PKCE + state, `email_verified` required, new Google users verified + `free` with no OTP/payment step, linking to an existing account by verified email, hashed OTPs, reset-code 5-try limit, admin OTP 15-minute lockout in the DB.
+
+Fixed now:
+- `database/queries.py` `get_user_by_email` / `get_user_by_username`: compare with `LOWER(..) = LOWER(?)`. Root cause: login and Google linking lowercased the input, so on a case-sensitive database a migrated user stored as `Name@Example.COM` was not found (Google would even have created a second account). SQL Server's default collation already ignores case, so behaviour there is unchanged; on SQLite it is now the same.
+- `auth/routes.py` forgot-password: server-side resend limit — one code per 60 seconds and at most 3 per hour per account (`count_recent_reset_requests()`, counted from `PasswordResetTokens.CreatedAt`). Before, every request minted a new code with a fresh 5-try budget, which sidestepped the per-code limit. A DB error fails closed. The page message is the same for throttled, unknown and normal requests (no enumeration) and now says honestly that codes are limited.
+- `auth/routes.py` login: the failed-login message (same for unknown account and wrong password) now tells Google-created users to use Continue with Google or set a password with Forgot password.
+
+Tests added (16 + 16 in the two files, all pass):
+- `tests/test_google_oauth.py`: legacy mixed-case email links to the same account (no new row, password and plan kept); form user → Google → form again lands on the same `UserID`; Google-only user → Forgot password → form login and Google both open the same account.
+- `tests/test_reset_and_admin_otp_limits.py`: 60-second spacing, 3-per-hour cap then allowed after an hour, throttled message identical to unknown-email message.
+- Full non-Selenium suite: 131 passed.
+
+Not verifiable here: a real Google round-trip (no client secret in this sandbox; Google is mocked) and SQL Server execution of the new query text.

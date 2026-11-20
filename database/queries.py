@@ -23,7 +23,7 @@ def get_user_by_email():
     return """
     SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, PasswordHash, ProfileImage, IsActive, IsVerified, Role, FailedLoginAttempts, LockoutUntil, CreatedAt
     FROM Users
-    WHERE Email = ?
+    WHERE LOWER(Email) = LOWER(?)
     """
 
 
@@ -31,7 +31,7 @@ def get_user_by_username():
     return """
     SELECT UserID, FirstName, LastName, Username, FullName, Email, PhoneNumber, Country, City, PasswordHash, ProfileImage, IsActive, IsVerified, Role, FailedLoginAttempts, LockoutUntil, CreatedAt
     FROM Users
-    WHERE Username = ?
+    WHERE LOWER(Username) = LOWER(?)
     """
 
 
@@ -224,6 +224,18 @@ def create_password_reset_token():
     return """
     INSERT INTO PasswordResetTokens (UserID, Token, ExpiresAt, IsUsed, Attempts, CreatedAt)
     VALUES (?, ?, DATEADD(MINUTE, 10, GETDATE()), 0, 0, GETDATE())
+    """
+
+
+def count_recent_reset_requests():
+    """Resend limit for password-reset codes: (codes issued in the last 60 minutes,
+    codes issued in the last 60 seconds) for one user. Portable (SQL Server + SQLite)."""
+    return """
+    SELECT
+        SUM(CASE WHEN CreatedAt >= DATEADD(MINUTE, -60, GETDATE()) THEN 1 ELSE 0 END),
+        SUM(CASE WHEN CreatedAt >= DATEADD(SECOND, -60, GETDATE()) THEN 1 ELSE 0 END)
+    FROM PasswordResetTokens
+    WHERE UserID = ?
     """
 
 

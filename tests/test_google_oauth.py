@@ -48,6 +48,7 @@ def app(tmp_path, monkeypatch):
 
     flask_app = Flask(__name__, template_folder="../templates")
     flask_app.secret_key = "test-secret"
+    flask_app.jinja_env.globals["csrf_token"] = lambda: ""
     flask_app.register_blueprint(frontend)
     flask_app.register_blueprint(auth_bp, url_prefix="/auth")
     flask_app.config["SERVER_NAME"] = None
@@ -256,3 +257,85 @@ def test_explicit_google_redirect_uri_overrides(app, monkeypatch):
     client = app.test_client()
     _, q = _start(client)
     assert q["redirect_uri"] == ["https://aidataanalystpro.co.uk/auth/google/callback"]
+
+
+# ---------------------------------------------------------------- R-Phase 9.2: linking both ways
+
+def _google_signin(app, monkeypatch, email, name="Some One"):
+    _mock_google(monkeypatch, {"email": email, "email_verified": True, "name": name})
+    client = app.test_client()
+    _, q = _start(client)
+    r = client.get(f"/auth/google/callback?state={q['state'][0]}&code=abc", base_url="https://aidataanalystpro.co.uk")
+    with client.session_transaction(base_url="https://aidataanalystpro.co.uk") as s:
+        uid = s.get("user_id")
+    return r, uid
+
+
+def test_legacy_mixed_case_email_links_to_same_account(app, monkeypatch):
+    """A migrated form user stored as 'Legacy.User@Example.COM' signs in with Google as
+    legacy.user@example.com: same account, no new row, existing data kept."""
+    with app.db_cursor(commit=True) as c:
+        c.execute(
+            "INSERT INTO Users (FirstName, LastName, Username, FullName, Email, PasswordHash, IsActive, IsVerified, Role, SubscriptionStatus) "
+            "VALUES ('Legacy','User','LegacyUser','Legacy User','Legacy.User@Example.COM','LEGACY-HASH',1,1,'Analyst','active')"
+        )
+        legacy_id = c.last_inserted_id
+    r, uid = _google_signin(app, monkeypatch, "legacy.user@example.com")
+    assert r.headers["Location"].endswith("/dashboard")
+    assert uid == legacy_id
+    with app.db_cursor() as c:
+        c.execute("SELECT COUNT(*) FROM Users")
+        assert c.fetchone()[0] == 1
+        c.execute("SELECT PasswordHash, SubscriptionStatus FROM Users WHERE UserID = ?", (legacy_id,))
+        assert c.fetchone() == ("LEGACY-HASH", "active")
+
+
+def test_form_user_then_google_then_form_again_same_account(app, monkeypatch):
+    """Form-registered user -> Google sign-in -> password login still works, one account."""
+    pw_hash = auth_security.hash_password("Form#Pass2026")
+    with app.db_cursor(commit=True) as c:
+        c.execute(
+            "INSERT INTO Users (FirstName, LastName, Username, FullName, Email, PasswordHash, IsActive, IsVerified, Role, SubscriptionStatus) "
+            "VALUES ('Form','User','formuser','Form User','form.user@example.com',?,1,1,'Analyst','free')", (pw_hash,)
+        )
+        form_id = c.last_inserted_id
+    _, uid = _google_signin(app, monkeypatch, "form.user@example.com")
+    assert uid == form_id
+    client = app.test_client()
+    r = client.post("/auth/login", data={"email_or_username": "Form.User@Example.com", "password": "Form#Pass2026"})
+    assert r.status_code == 302 and r.headers["Location"].endswith("/dashboard"), r.headers.get("Location")
+    with client.session_transaction() as s:
+        assert s["user_id"] == form_id
+
+
+def test_google_user_can_set_password_via_forgot_password_then_use_both(app, monkeypatch):
+    """Google-created user -> Forgot password -> form login lands on the same account,
+    and Google sign-in afterwards still opens it."""
+    _, gid = _google_signin(app, monkeypatch, "g.only@example.com", "G Only")
+    assert gid
+    mailed = []
+    monkeypatch.setattr(auth_routes.email_service, "send_password_reset_email",
+                        lambda email, name, code, link=None: mailed.append(code) or True)
+    monkeypatch.setattr(auth_routes, "log_audit_event", lambda *a, **k: None)
+    monkeypatch.setattr(auth_routes, "render_template", lambda *a, **k: "page")
+    client = app.test_client()
+    # Form login before a password exists: generic failure that points to Google / Forgot password.
+    client.post("/auth/login", data={"email_or_username": "g.only@example.com", "password": "Whatever#1"})
+    with client.session_transaction() as s:
+        msgs = [m for _, m in s.get("_flashes", [])]
+    assert any("Continue with Google" in m and "Forgot password" in m for m in msgs), msgs
+    client.post("/auth/forgot-password", data={"email": "g.only@example.com"})
+    assert mailed, "reset code was not sent"
+    r = client.post("/auth/reset-password/verify", data={
+        "email": "g.only@example.com", "otp_code": mailed[-1],
+        "password": "Chosen#Pass2026", "confirm_password": "Chosen#Pass2026"})
+    assert r.status_code == 302
+    r = client.post("/auth/login", data={"email_or_username": "g.only@example.com", "password": "Chosen#Pass2026"})
+    assert r.headers["Location"].endswith("/dashboard")
+    with client.session_transaction() as s:
+        assert s["user_id"] == gid
+    _, again = _google_signin(app, monkeypatch, "g.only@example.com", "G Only")
+    assert again == gid
+    with app.db_cursor() as c:
+        c.execute("SELECT COUNT(*) FROM Users")
+        assert c.fetchone()[0] == 1

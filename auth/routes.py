@@ -65,6 +65,7 @@ from database.queries import (
     mark_email_token_used,
     create_password_reset_token,
     invalidate_user_reset_tokens,
+    count_recent_reset_requests,
     get_active_password_reset_token,
     record_failed_reset_attempt,
     mark_reset_token_used,
@@ -1086,6 +1087,14 @@ def google_callback():
 # ==========================================
 # LOGIN ROUTE
 # ==========================================
+# Same text for unknown account and wrong password (no account enumeration). The second
+# sentence covers accounts created with Google, which have no password the user knows.
+LOGIN_FAILED_MESSAGE = (
+    "Invalid email/username or password. If you signed up with Google, use Continue with "
+    "Google, or set a password with Forgot password."
+)
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
@@ -1105,7 +1114,7 @@ def login():
 
         if not user:
             trigger_ai_event(None, build_failed_login_card(), save_to_history=False)
-            flash("Invalid email/username or password.", "error")
+            flash(LOGIN_FAILED_MESSAGE, "error")
             return render_template("login.html")
 
         user_id, fn, ln, un, fnm, em, ph, cnt, ct, pwd_hash, pimg, is_active, is_verified, role, failed_attempts, lockout_until, created_at = user
@@ -1137,7 +1146,7 @@ def login():
 
             log_login_attempt(user_id, "Failed")
             trigger_ai_event(user_id, build_failed_login_card())
-            flash("Invalid email/username or password.", "error")
+            flash(LOGIN_FAILED_MESSAGE, "error")
             return render_template("login.html")
 
         # Check Email Verification
@@ -1277,7 +1286,25 @@ def forgot_password():
                 cursor.execute(get_user_by_email(), (email,))
                 user = cursor.fetchone()
 
+        throttled = False
         if user:
+            # Resend limit (server-side, per account): at most RESET_MAX_PER_HOUR codes per
+            # 60 minutes and one per 60 seconds. Without it every request minted a fresh
+            # code with a fresh 5-try budget, so the per-code limit could be sidestepped
+            # by simply asking for new codes. A DB error fails closed (no code is sent).
+            try:
+                with get_db_cursor() as cursor:
+                    cursor.execute(count_recent_reset_requests(), (user[0],))
+                    row = cursor.fetchone() or (0, 0)
+                last_hour, last_minute = int(row[0] or 0), int(row[1] or 0)
+                throttled = last_hour >= RESET_MAX_PER_HOUR or last_minute >= 1
+            except Exception:
+                logger.exception("Password reset resend-limit lookup failed; not sending a code.")
+                throttled = True
+            if throttled:
+                log_audit_event("FORGOT_PASSWORD_THROTTLED", f"Password reset code NOT sent to {user[5]}: resend limit reached", user_id=user[0])
+
+        if user and not throttled:
             user_id = user[0]
             full_name = user[4] or user[3]
             otp_code = f"{secrets.randbelow(900000) + 100000}"
@@ -1318,7 +1345,12 @@ def forgot_password():
         # Remembered for every submitted address (existing or not) purely to prefill the
         # email field on the next page - doing it unconditionally keeps it non-enumerating.
         session["reset_email"] = email
-        flash("If an account exists with this email, a password reset code has been sent.", "info")
+        flash(
+            "If an account exists with this email, a password reset code has been sent. "
+            "Codes can be requested once a minute and up to 3 times an hour; if you asked "
+            "recently, use the code already in your inbox.",
+            "info",
+        )
         return redirect(url_for("auth.reset_password", token="verify"))
 
     return render_template("forgot_password.html")
@@ -1328,6 +1360,7 @@ def forgot_password():
 # PASSWORD RESET CODE CHECK (shared by both steps)
 # ==========================================
 RESET_CODE_PURPOSE = "password-reset"
+RESET_MAX_PER_HOUR = 3
 RESET_CODE_MAX_ATTEMPTS = 5
 RESET_CODE_GENERIC_ERROR = (
     "Invalid or expired code for this email. Check the code, or request a new one."

@@ -70,7 +70,7 @@ def db(tmp_path, monkeypatch):
     monkeypatch.setattr(admin_routes, "verify_password", lambda pw, h: pw == "Correct#Pass1")
 
     def query(sql, params=()):
-        with cursor() as cur:
+        with cursor(commit=not sql.lstrip().upper().startswith("SELECT")) as cur:
             cur.execute(sql, params)
             return cur.fetchall()
 
@@ -221,6 +221,7 @@ def test_correct_code_and_email_resets_password_once(reset_client, db):
 def test_new_request_retires_older_code(reset_client, db):
     client, mailed = reset_client
     first = _request_code(client, mailed)
+    _backdate_reset_tokens(db, 2)  # the 60-second resend spacing (R-Phase 9.2)
     second = _request_code(client, mailed)
     if first != second:
         assert _verify(client, USER_EMAIL, first)["valid"] is False
@@ -367,3 +368,39 @@ def test_admin_code_expires_after_ten_minutes(admin_client, db):
     r = _otp(client, code)
     assert r.headers["Location"].endswith("/admin/login")
     assert not _logged_in(client)
+
+
+# ---------------------------------------------------------------- R-Phase 9.2: reset resend limits
+
+def _backdate_reset_tokens(db, minutes):
+    db(f"UPDATE PasswordResetTokens SET CreatedAt = datetime(CreatedAt, '-{int(minutes)} minutes') WHERE UserID = 11")
+
+
+def test_reset_resend_needs_a_minute_between_codes(reset_client, db):
+    client, mailed = reset_client
+    _request_code(client, mailed)
+    client.post("/auth/forgot-password", data={"email": USER_EMAIL})
+    assert len(mailed) == 1, "a second code was mailed within 60 seconds"
+    assert db("SELECT COUNT(*) FROM PasswordResetTokens WHERE UserID = 11")[0][0] == 1
+
+
+def test_reset_resend_max_three_per_hour_then_allowed_again(reset_client, db):
+    client, mailed = reset_client
+    for _ in range(3):
+        client.post("/auth/forgot-password", data={"email": USER_EMAIL})
+        _backdate_reset_tokens(db, 2)
+    assert len(mailed) == 3
+    client.post("/auth/forgot-password", data={"email": USER_EMAIL})
+    assert len(mailed) == 3, "4th code within an hour must not be sent"
+    _backdate_reset_tokens(db, 61)
+    client.post("/auth/forgot-password", data={"email": USER_EMAIL})
+    assert len(mailed) == 4
+
+
+def test_throttled_request_shows_same_message_as_unknown_email(reset_client, db):
+    client, mailed = reset_client
+    _request_code(client, mailed)
+    client.post("/auth/forgot-password", data={"email": USER_EMAIL})
+    throttled = _flashes(client)
+    client.post("/auth/forgot-password", data={"email": "nobody@example.com"})
+    assert throttled[-1] == _flashes(client)[-1]
