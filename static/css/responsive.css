@@ -16,6 +16,18 @@ html, body {
     -webkit-overflow-scrolling: touch;
 }
 
+/* Home hero & workflow section spacing normalization */
+.hero-section.home-analyst-hero {
+    padding-bottom: 24px !important;
+}
+.landing-section.home-workflow-section {
+    padding-top: 36px !important;
+    padding-bottom: 48px !important;
+}
+.section-header {
+    margin-bottom: 28px !important;
+}
+
 /* Make sure all media/images never push parent boundaries */
 img, video, canvas, audio, iframe {
     max-width: 100% !important;
