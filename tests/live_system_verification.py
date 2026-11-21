@@ -321,9 +321,7 @@ else:
     ok = es.send_otp_email(
         "ahsanromeo126@gmail.com",
         "Muhammad Ahsan",
-        "786911",
-        "Production Health Check",
-        wait=True
+        "786911"
     )
     print(f"BREVO_DISPATCH_RESULT:{ok}")
 """
