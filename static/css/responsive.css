@@ -17,9 +17,18 @@ html, body {
 }
 
 /* Make sure all media/images never push parent boundaries */
-img, svg, video, canvas, audio, iframe {
+img, video, canvas, audio, iframe {
     max-width: 100% !important;
     height: auto;
+}
+svg:not([width]):not([height]) {
+    max-width: 100%;
+}
+.iso-illustration {
+    width: 100% !important;
+    max-width: 240px !important;
+    height: auto !important;
+    margin: 0 auto 12px auto !important;
 }
 
 /* 2. Generic Table Responsive Container */
