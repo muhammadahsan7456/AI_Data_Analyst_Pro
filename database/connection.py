@@ -81,7 +81,7 @@ def adapt_tsql_for_sqlite(query: str) -> str:
         amount = match.group(2).strip()
         base = match.group(3).strip()
         if base.upper() == "GETDATE()":
-            base_expr = "date('now')"
+            base_expr = "date('now', 'localtime')"
         else:
             base_expr = f"date({base})"
         return f"DATEADD('{unit}', {amount}, {base_expr})"
@@ -112,12 +112,12 @@ def adapt_tsql_for_sqlite(query: str) -> str:
             unit_str = "days"
 
         if num.startswith("-"):
-            return f"datetime('now', '{num} {unit_str}')"
+            return f"datetime('now', 'localtime', '{num} {unit_str}')"
         else:
-            return f"datetime('now', '+{num} {unit_str}')"
+            return f"datetime('now', 'localtime', '+{num} {unit_str}')"
 
     s = re.sub(r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(?:GETDATE\(\)|CURRENT_TIMESTAMP)\s*\)", replace_dateadd, s, flags=re.IGNORECASE)
-    s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
+    s = s.replace("GETDATE()", "datetime('now', 'localtime')")
     s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
     s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
     s = _tsql_top_to_limit(s)

@@ -969,13 +969,13 @@ def google_callback():
             except ValueError:
                 err = token_resp.text[:100] or "non-json"
             logger.error("Google token exchange failed: HTTP %s error=%s (redirect_uri=%s)", token_resp.status_code, err, redirect_uri)
-            flash(f"Google token exchange failed ({err}). Check redirect URI or credentials.", "error")
+            flash("We couldn't sign you in with Google right now. Please try again, or use your email and password.", "error")
             return redirect(url_for("auth.login"))
 
         access_token = (token_resp.json() or {}).get("access_token")
         if not access_token:
             logger.error("Google token response had no access_token.")
-            flash("Google token response missing access_token. Please try again.", "error")
+            flash("We couldn't sign you in with Google right now. Please try again, or use your email and password.", "error")
             return redirect(url_for("auth.login"))
 
         profile_resp = requests.get(
@@ -985,7 +985,7 @@ def google_callback():
         )
         if profile_resp.status_code != 200:
             logger.error("Google userinfo failed: HTTP %s", profile_resp.status_code)
-            flash(f"Google userinfo request failed (HTTP {profile_resp.status_code}). Please try again.", "error")
+            flash("We couldn't sign you in with Google right now. Please try again, or use your email and password.", "error")
             return redirect(url_for("auth.login"))
         profile_data = profile_resp.json() or {}
     except (requests.RequestException, ValueError) as net_err:

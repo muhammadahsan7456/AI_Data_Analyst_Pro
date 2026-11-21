@@ -226,6 +226,7 @@ def test_headers_use_support_reply_to_and_sender_domain(monkeypatch):
     assert re.search(r"Message-ID: <[^>]+@aidataanalystpro\.co\.uk>", captured["msg"])
     assert EmailService().config_problems() == []
     monkeypatch.delenv("MAIL_FROM")
+    monkeypatch.delenv("SMTP_FROM_EMAIL", raising=False)
     probs = " ".join(EmailService().config_problems())
     assert "MAIL_FROM is not set" in probs and "Brevo rejects" in probs
 
