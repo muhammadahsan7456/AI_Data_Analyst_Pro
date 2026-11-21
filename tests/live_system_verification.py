@@ -99,10 +99,9 @@ def test_superadmin_full_flow(session: requests.Session):
     if "/admin/verify-otp" in r_post_login.url:
         print("  [2FA] OTP required. Querying live database for newly dispatched OTP hash...")
         otp_script = """
-from app import create_app
+from run import app
 from database.connection import get_db_cursor
 from auth.security import otp_matches
-app = create_app()
 with app.app_context():
     with get_db_cursor() as cur:
         cur.execute("SELECT UserID, AdminOtpHash FROM Users WHERE Email = 'ahsanromeo126@gmail.com'")
