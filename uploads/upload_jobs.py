@@ -22,7 +22,21 @@ import uuid
 # the threshold can be tuned per deployment (and so the old fully-synchronous behaviour
 # can be restored by setting it very high, which is also how the before/after timings
 # for this change were measured on one server).
-ASYNC_THRESHOLD_MB = float(os.getenv("UPLOAD_ASYNC_THRESHOLD_MB", "8"))
+# Default 50 MB (R-Phase 8): typical uploads answer synchronously in one round trip;
+# only genuinely large files go to a background job with progress polling.
+DEFAULT_ASYNC_THRESHOLD_MB = 50.0
+
+
+def _threshold_mb():
+    raw = (os.getenv("UPLOAD_ASYNC_THRESHOLD_MB") or "").strip()
+    try:
+        value = float(raw) if raw else DEFAULT_ASYNC_THRESHOLD_MB
+    except ValueError:
+        value = DEFAULT_ASYNC_THRESHOLD_MB
+    return value if value > 0 else DEFAULT_ASYNC_THRESHOLD_MB
+
+
+ASYNC_THRESHOLD_MB = _threshold_mb()
 ASYNC_THRESHOLD_BYTES = int(ASYNC_THRESHOLD_MB * 1024 * 1024)
 
 # Finished jobs are kept this long so a slow or reloaded page can still read the result.

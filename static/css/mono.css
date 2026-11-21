@@ -1,0 +1,695 @@
+/* ==========================================================================
+   AI Data Analyst Pro - monochrome design layer
+   Loaded LAST on every page shell (public, auth, portal, admin).
+   It normalises the older per-page styles to one system:
+     ink + white + neutral grays, 1px borders, 4-8px radius, quiet shadows,
+     Inter for UI, JetBrains Mono with tabular figures for numbers,
+     functional color (success/danger/warning) only for state.
+   Many templates carry inline style="" colors and gradients; the attribute
+   selectors near the end override those without editing every template.
+   ========================================================================== */
+
+:root {
+    --mono-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    --mono-radius: 6px;
+    --mono-radius-lg: 8px;
+    --mono-focus: 0 0 0 2px var(--mono-bg, #fff), 0 0 0 4px var(--mono-ink, #0a0a0a);
+}
+
+html[data-theme="light"], html:not([data-theme]) {
+    --mono-bg: #ffffff;
+    --mono-surface: #ffffff;
+    --mono-subtle: #fafafa;
+    --mono-hover: #f5f5f5;
+    --mono-border: #e5e5e5;
+    --mono-border-strong: #d4d4d4;
+    --mono-text: #0a0a0a;
+    --mono-text-2: #404040;
+    --mono-text-3: #595959;
+    --mono-ink: #0a0a0a;
+    --mono-on-ink: #ffffff;
+    --mono-success: #15803d;
+    --mono-danger: #b91c1c;
+    --mono-warning: #8a5a00;
+    --mono-success-bg: #f0fdf4;
+    --mono-danger-bg: #fef2f2;
+    --mono-warning-bg: #fffbeb;
+    --mono-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --mono-shadow-lg: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.07);
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    --mono-bg: #0a0a0a;
+    --mono-surface: #141414;
+    --mono-subtle: #111111;
+    --mono-hover: #1f1f1f;
+    --mono-border: #2a2a2a;
+    --mono-border-strong: #3a3a3a;
+    --mono-text: #fafafa;
+    --mono-text-2: #d4d4d4;
+    --mono-text-3: #a3a3a3;
+    --mono-ink: #fafafa;
+    --mono-on-ink: #0a0a0a;
+    --mono-success: #4ade80;
+    --mono-danger: #f87171;
+    --mono-warning: #fbbf24;
+    --mono-success-bg: rgba(74, 222, 128, 0.08);
+    --mono-danger-bg: rgba(248, 113, 113, 0.08);
+    --mono-warning-bg: rgba(251, 191, 36, 0.08);
+    --mono-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --mono-shadow-lg: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+}
+
+/* ---------- Base ---------- */
+html, body {
+    font-family: var(--mono-font) !important;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+body {
+    background-color: var(--mono-bg) !important;
+    background-image: none !important;
+    color: var(--mono-text);
+    font-size: 16px;
+    line-height: 1.6;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--mono-font) !important;
+    color: var(--mono-text);
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    font-weight: 650;
+}
+p, li, dd, label, small, td, th { color: inherit; }
+a { color: var(--mono-text); text-underline-offset: 3px; }
+
+code, pre, kbd, samp, .mono, .font-mono,
+.metric-value, .stat-value, .stat-number, .kpi-value, .counter, [data-count],
+table td, .table td, .amount, .price-amount, .number {
+    font-variant-numeric: tabular-nums;
+}
+code, pre, kbd, samp, .mono, .font-mono, .metric-value, .kpi-value, .stat-value, .stat-number, .price-amount {
+    font-family: var(--mono-font-mono) !important;
+}
+
+/* Decorative gradient text becomes plain ink. */
+.gradient-text, .text-gradient, [class*="gradient-text"] {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: var(--mono-text) !important;
+}
+
+/* Decorative backgrounds, orbs, glows, canvases. */
+.glow-orb, [class*="glow-orb"], .hero-bg-canvas, .bg-orb, .floating-orb, .particles, #particles-js,
+.hero-glow, .aurora, .mesh-bg {
+    display: none !important;
+}
+
+/* No glassmorphism: solid surfaces. */
+* { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.site-header, header.navbar, .navbar, .top-header, .landing-header {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+/* ---------- Surfaces ---------- */
+.glass-card, .card, .table-card, .feature-card, .pricing-card, .testimonial-card, .faq-item,
+.stat-card, .metric-card, .kpi-card, .admin-card, .auth-luxury-card, .auth-card, .modal-content,
+.dashboard-card, .info-card, .settings-card, .profile-card, .dataset-card, .chart-card, .panel {
+    background: var(--mono-surface) !important;
+    background-image: none !important;
+    border: 1px solid var(--mono-border) !important;
+    border-radius: var(--mono-radius-lg) !important;
+    box-shadow: var(--mono-shadow) !important;
+    color: var(--mono-text);
+}
+.glass-card:hover, .card:hover, .feature-card:hover, .pricing-card:hover, .stat-card:hover, .metric-card:hover {
+    box-shadow: var(--mono-shadow-lg) !important;
+    border-color: var(--mono-border-strong) !important;
+}
+hr { border: 0; border-top: 1px solid var(--mono-border); }
+
+/* ---------- Buttons ---------- */
+.btn, button, [type="submit"], [type="button"], .auth-submit-btn, .btn-hero-primary, .btn-hero-secondary,
+.btn-nav-login, .btn-nav-register, .chip-btn, .chart-mode-btn, .admin-btn-submit, .btn-save-settings,
+.btn-submit-payment-proof, .home-final-cta-primary, .sub-expiry-btn-primary, .sub-expiry-btn-secondary {
+    font-family: var(--mono-font) !important;
+    border-radius: var(--mono-radius) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    letter-spacing: 0;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.btn, .auth-submit-btn, .btn-hero-primary, .btn-hero-secondary, .btn-nav-login, .btn-nav-register,
+.admin-btn-submit, .btn-save-settings, .btn-submit-payment-proof, .home-final-cta-primary,
+.sub-expiry-btn-primary, .sub-expiry-btn-secondary, .btn-google-auth {
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    font-weight: 600 !important;
+}
+.btn-sm { min-height: 36px; }
+@media (pointer: coarse) { .btn-sm { min-height: 44px; } }
+
+/* Primary = solid ink. */
+.btn-primary, .auth-submit-btn, .btn-hero-primary, .btn-nav-register, .admin-btn-submit,
+.btn-save-settings, .btn-submit-payment-proof, .home-final-cta-primary, .sub-expiry-btn-primary,
+.btn-success, .btn-info {
+    background: var(--mono-ink) !important;
+    background-image: none !important;
+    color: var(--mono-on-ink) !important;
+    border: 1px solid var(--mono-ink) !important;
+}
+.btn-primary *, .auth-submit-btn *, .btn-hero-primary *, .btn-nav-register *, .admin-btn-submit *,
+.btn-save-settings *, .btn-submit-payment-proof *, .home-final-cta-primary *, .sub-expiry-btn-primary *,
+.btn-success *, .btn-info * {
+    color: inherit !important;
+}
+.btn-primary:hover, .auth-submit-btn:hover, .btn-hero-primary:hover, .btn-nav-register:hover,
+.admin-btn-submit:hover, .btn-save-settings:hover, .btn-submit-payment-proof:hover,
+.home-final-cta-primary:hover, .sub-expiry-btn-primary:hover, .btn-success:hover, .btn-info:hover {
+    opacity: 0.88;
+    transform: none !important;
+}
+
+/* Secondary = outline. */
+.btn-secondary, .btn-hero-secondary, .btn-nav-login, .btn-outline-light, .sub-expiry-btn-secondary,
+.btn-google-auth, .btn-action, .btn-copy, .btn-print-row, .btn-filter-action {
+    background: transparent !important;
+    background-image: none !important;
+    color: var(--mono-text) !important;
+    border: 1px solid var(--mono-border-strong) !important;
+}
+.btn-secondary:hover, .btn-hero-secondary:hover, .btn-nav-login:hover, .btn-outline-light:hover,
+.sub-expiry-btn-secondary:hover, .btn-google-auth:hover, .btn-action:hover, .btn-copy:hover {
+    background: var(--mono-hover) !important;
+    border-color: var(--mono-text-3) !important;
+    transform: none !important;
+}
+.btn-google-auth .google-btn-text { color: var(--mono-text) !important; }
+
+/* Destructive / warning keep their functional meaning, quietly. */
+.btn-danger {
+    background: transparent !important;
+    background-image: none !important;
+    color: var(--mono-danger) !important;
+    border: 1px solid currentColor !important;
+}
+.btn-danger:hover { background: var(--mono-danger-bg) !important; }
+.btn-warning {
+    background: transparent !important;
+    background-image: none !important;
+    color: var(--mono-warning) !important;
+    border: 1px solid currentColor !important;
+}
+
+.chip-btn, .chart-mode-btn {
+    background: var(--mono-surface) !important;
+    background-image: none !important;
+    color: var(--mono-text-2) !important;
+    border: 1px solid var(--mono-border) !important;
+    min-height: 36px;
+}
+.chip-btn:hover, .chart-mode-btn:hover { border-color: var(--mono-text-3) !important; color: var(--mono-text) !important; }
+.chart-mode-btn.active, .chip-btn.active, .chart-mode-btn[aria-pressed="true"] {
+    background: var(--mono-ink) !important;
+    color: var(--mono-on-ink) !important;
+    border-color: var(--mono-ink) !important;
+}
+
+/* ---------- Forms ---------- */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+select, textarea, .form-control, .form-select {
+    background-color: var(--mono-surface) !important;
+    background-image: none;
+    color: var(--mono-text) !important;
+    border: 1px solid var(--mono-border-strong) !important;
+    border-radius: var(--mono-radius) !important;
+    box-shadow: none !important;
+    font-family: var(--mono-font) !important;
+    font-size: 16px;
+    min-height: 44px;
+}
+select { background-image: revert; }
+textarea { min-height: 88px; }
+input::placeholder, textarea::placeholder { color: var(--mono-text-3) !important; opacity: 1 !important; }
+input:focus, select:focus, textarea:focus, .form-control:focus {
+    outline: none !important;
+    border-color: var(--mono-ink) !important;
+    box-shadow: 0 0 0 1px var(--mono-ink) !important;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--mono-ink); width: 18px; height: 18px; }
+label { color: var(--mono-text-2); font-weight: 500; }
+
+/* ---------- Focus (keyboard) ---------- */
+a:focus-visible, button:focus-visible, [role="button"]:focus-visible, .btn:focus-visible,
+summary:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--mono-ink) !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+}
+
+/* ---------- Tables ---------- */
+table { border-collapse: collapse; }
+table th {
+    background: var(--mono-subtle) !important;
+    background-image: none !important;
+    color: var(--mono-text-2) !important;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    border-bottom: 1px solid var(--mono-border) !important;
+}
+table td { border-bottom: 1px solid var(--mono-border) !important; color: var(--mono-text); }
+table tr:hover td { background: var(--mono-hover); }
+.table-responsive, .table-wrapper, .table-container, .data-table-wrapper, .preview-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+/* ---------- Badges and alerts: state color only ---------- */
+.badge, [class*="badge-"] {
+    background: var(--mono-subtle) !important;
+    background-image: none !important;
+    color: var(--mono-text-2) !important;
+    border: 1px solid var(--mono-border) !important;
+    border-radius: 4px !important;
+    font-weight: 600;
+    box-shadow: none !important;
+}
+.badge-success, .badge.bg-success, .status-approved, .status-completed, .status-active { color: var(--mono-success) !important; border-color: currentColor !important; background: var(--mono-success-bg) !important; }
+.badge-error, .badge-danger, .badge.bg-danger, .status-rejected, .status-failed { color: var(--mono-danger) !important; border-color: currentColor !important; background: var(--mono-danger-bg) !important; }
+.badge-warning, .badge.bg-warning, .status-pending { color: var(--mono-warning) !important; border-color: currentColor !important; background: var(--mono-warning-bg) !important; }
+
+.alert, .flash, .flash-message, [class*="alert-"], .toast {
+    background: var(--mono-surface) !important;
+    background-image: none !important;
+    color: var(--mono-text) !important;
+    border: 1px solid var(--mono-border-strong) !important;
+    border-left-width: 3px !important;
+    border-radius: var(--mono-radius) !important;
+    box-shadow: var(--mono-shadow) !important;
+}
+.alert-success, .flash-success, .toast-success { border-left-color: var(--mono-success) !important; }
+.alert-danger, .alert-error, .flash-error, .flash-danger, .toast-error { border-left-color: var(--mono-danger) !important; }
+.alert-warning, .flash-warning, .toast-warning { border-left-color: var(--mono-warning) !important; }
+
+/* ---------- Navigation ---------- */
+.sidebar, .admin-sidebar {
+    background: var(--mono-subtle) !important;
+    background-image: none !important;
+    border-right: 1px solid var(--mono-border) !important;
+    box-shadow: none !important;
+}
+.sidebar a, .admin-sidebar a, .sidebar .nav-link, .admin-sidebar .nav-link { color: var(--mono-text-2) !important; }
+.sidebar a.active, .sidebar .nav-link.active, .sidebar li.active > a,
+.admin-sidebar a.active, .admin-sidebar .nav-link.active {
+    background: var(--mono-hover) !important;
+    background-image: none !important;
+    color: var(--mono-text) !important;
+    box-shadow: inset 2px 0 0 var(--mono-ink) !important;
+}
+.sidebar a:hover, .admin-sidebar a:hover { background: var(--mono-hover) !important; color: var(--mono-text) !important; }
+.sidebar i, .admin-sidebar i { color: inherit !important; }
+.top-header, .site-header, .landing-header, header.navbar {
+    background: var(--mono-bg) !important;
+    background-image: none !important;
+    border-bottom: 1px solid var(--mono-border) !important;
+    box-shadow: none !important;
+}
+
+/* ---------- Icons: no colored icon tiles ---------- */
+.feature-icon, .stat-icon, .metric-icon, .kpi-icon, .icon-box, .icon-wrapper, .card-icon, .step-icon {
+    background: var(--mono-subtle) !important;
+    background-image: none !important;
+    color: var(--mono-text) !important;
+    border: 1px solid var(--mono-border) !important;
+    box-shadow: none !important;
+}
+.feature-icon i, .stat-icon i, .metric-icon i, .kpi-icon i, .icon-box i, .card-icon i { color: inherit !important; }
+
+/* ---------- Inline-style normalisation ----------
+   Templates written before this system set colors inline. These rules win over
+   inline declarations (author !important beats inline normal) and map them back
+   onto the theme so both light and dark stay readable. */
+[style*="linear-gradient"], [style*="radial-gradient"] {
+    background-image: none !important;
+    background-color: var(--mono-surface) !important;
+}
+[style*="-webkit-background-clip"], [style*="background-clip: text"], [style*="text-fill-color"] {
+    -webkit-text-fill-color: currentColor !important;
+    background: none !important;
+    color: var(--mono-text) !important;
+}
+[style*="box-shadow"] { box-shadow: var(--mono-shadow) !important; }
+[style*="text-shadow"] { text-shadow: none !important; }
+
+/* Inline text colors -> theme text tones. Functional reds/greens/ambers keep meaning. */
+[style*="color: #fff"], [style*="color:#fff"], [style*="color: white"], [style*="color:white"],
+[style*="color: #f8fafc"], [style*="color: #f1f5f9"], [style*="color: #e2e8f0"], [style*="color: #ffffff"],
+[style*="color: #0f172a"], [style*="color: #1e293b"], [style*="color: #111827"], [style*="color: #000"],
+[style*="color: #3b82f6"], [style*="color: #2563eb"], [style*="color: #60a5fa"], [style*="color: #38bdf8"],
+[style*="color: #8b5cf6"], [style*="color: #a78bfa"], [style*="color: #6366f1"], [style*="color: #818cf8"],
+[style*="color: #c084fc"], [style*="color: #06b6d4"], [style*="color: #22d3ee"], [style*="color: #ec4899"],
+[style*="color: var(--accent-blue)"], [style*="color: var(--accent-purple)"], [style*="color: var(--accent-cyan)"],
+[style*="color: var(--accent-gold)"], [style*="color: var(--accent-violet)"] {
+    color: var(--mono-text) !important;
+}
+[style*="color: #94a3b8"], [style*="color: #64748b"], [style*="color: #cbd5e1"], [style*="color: #475569"],
+[style*="color: #9ca3af"], [style*="color: #6b7280"], [style*="color: rgba(255"], [style*="color:rgba(255"] {
+    color: var(--mono-text-3) !important;
+}
+[style*="color: #10b981"], [style*="color: #22c55e"], [style*="color: #34d399"], [style*="color: #059669"], [style*="color: #16a34a"],
+[style*="color: var(--accent-green)"] {
+    color: var(--mono-success) !important;
+}
+[style*="color: #ef4444"], [style*="color: #f87171"], [style*="color: #dc2626"], [style*="color: #fca5a5"],
+[style*="color: var(--accent-red)"] {
+    color: var(--mono-danger) !important;
+}
+/* Amber/yellow was used decoratively (icons, headings, dataset names); in a black-and-white
+   system it reads as ink. Real warnings use the alert/badge classes, which keep --mono-warning. */
+[style*="color: #f59e0b"], [style*="color: #fbbf24"], [style*="color: #d97706"], [style*="color: var(--accent-amber)"],
+[style*="color: var(--accent-yellow)"], [style*="color:#f59e0b"], [style*="color:#fbbf24"] {
+    color: var(--mono-text) !important;
+}
+.btn-theme-toggle i, .theme-toggle-btn i, #themeToggle i, [data-theme-toggle] i { color: inherit !important; }
+
+/* Inline backgrounds (tinted panels) -> subtle neutral surface. */
+[style*="background: rgba("], [style*="background-color: rgba("], [style*="background:rgba("],
+[style*="background: #0f172a"], [style*="background: #1e293b"], [style*="background: #111827"],
+[style*="background: #0b0f19"], [style*="background: #070a12"], [style*="background-color: #0f172a"],
+[style*="background: #eff6ff"], [style*="background: #f5f3ff"], [style*="background: #ecfeff"] {
+    background-color: var(--mono-subtle) !important;
+}
+[style*="border: 1px solid rgba("], [style*="border:1px solid rgba("], [style*="border-color: rgba("],
+[style*="border: 1px solid #3b82f6"], [style*="border: 1px solid #8b5cf6"] {
+    border-color: var(--mono-border) !important;
+}
+[style*="border-left: 4px solid"], [style*="border-left: 3px solid"] { border-left-color: var(--mono-border-strong) !important; }
+
+/* ---------- Mobile drawers: slide in from the side with overlay ---------- */
+@media (max-width: 1024px) {
+    .mobile-nav-drawer, .mobile-menu, .nav-drawer {
+        background: var(--mono-bg) !important;
+        background-image: none !important;
+        border-left: 1px solid var(--mono-border) !important;
+        box-shadow: var(--mono-shadow-lg) !important;
+    }
+}
+
+/* ---------- Motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 480px) {
+    body { font-size: 16px; }
+    h1 { font-size: clamp(1.75rem, 7vw, 2.25rem); }
+    h2 { font-size: clamp(1.375rem, 5.5vw, 1.75rem); }
+}
+
+/* ---------- Print ---------- */
+@media print {
+    body { background: #fff !important; color: #000 !important; }
+    .sidebar, .admin-sidebar, .top-header, .site-header { display: none !important; }
+}
+
+/* ---------- Portal components that were written for a dark-only sidebar ---------- */
+.sidebar { color: var(--mono-text) !important; }
+.sidebar-header, .sidebar-footer { border-color: var(--mono-border) !important; }
+.sidebar-title { color: var(--mono-text) !important; }
+.sidebar-brand-icon, .ai-avatar-icon {
+    background: var(--mono-ink) !important;
+    color: var(--mono-on-ink) !important;
+    box-shadow: none !important;
+}
+.sidebar-brand-icon i, .ai-avatar-icon i { color: var(--mono-on-ink) !important; }
+.sidebar-link { color: var(--mono-text-2) !important; }
+.sidebar-link:hover, .sidebar-link.active { color: var(--mono-text) !important; }
+.sidebar-link.active {
+    background: var(--mono-hover) !important;
+    box-shadow: inset 2px 0 0 var(--mono-ink) !important;
+}
+.custom-table tbody tr:hover { background-color: var(--mono-hover) !important; }
+.btn:hover { box-shadow: none !important; }
+.btn-voice-mic.listening {
+    background: var(--mono-danger) !important;
+    color: #fff !important;
+    border-color: var(--mono-danger) !important;
+}
+.loading-overlay, .notif-drawer-backdrop, .sidebar-backdrop { background: rgba(0, 0, 0, 0.5) !important; }
+.spinner { border-color: var(--mono-border) !important; border-top-color: var(--mono-ink) !important; }
+#page-progress-bar { background: var(--mono-ink) !important; box-shadow: none !important; }
+.page-progress-spinner-ring { border-color: var(--mono-border) !important; border-top-color: var(--mono-ink) !important; }
+
+.ai-assistant-widget, .ai-assistant-header, .ai-metrics-grid {
+    background: var(--mono-surface) !important;
+    color: var(--mono-text) !important;
+    border-color: var(--mono-border) !important;
+    box-shadow: var(--mono-shadow-lg) !important;
+}
+.ai-card-lines p.ai-card-heading, .ai-metric-val { color: var(--mono-text) !important; }
+.ai-metric-label, .ai-card-footer { color: var(--mono-text-3) !important; border-color: var(--mono-border) !important; }
+.ai-typing-indicator span { background-color: var(--mono-text-3) !important; }
+.ai-pulse-dot { background-color: var(--mono-success) !important; border-color: var(--mono-surface) !important; box-shadow: none !important; }
+.notif-item.unread { background: var(--mono-hover) !important; }
+
+/* Icon tiles of any naming: neutral tile, ink glyph. */
+[class*="icon-wrapper"], [class*="icon-box"], [class*="icon-tile"], [class*="icon-circle"], [class*="-icon-bg"],
+.admin-stat-icon, .stat-card-icon, .metric-card-icon {
+    background: var(--mono-subtle) !important;
+    background-image: none !important;
+    color: var(--mono-text) !important;
+    border: 1px solid var(--mono-border) !important;
+    box-shadow: none !important;
+}
+[class*="icon-wrapper"] i, [class*="icon-box"] i, [class*="icon-tile"] i, [class*="icon-circle"] i,
+[style*="linear-gradient"] > i, [style*="linear-gradient"] > svg { color: var(--mono-text) !important; }
+
+/* State badges used by the admin console. */
+.badge-active, .badge-approved, .badge-completed { color: var(--mono-success) !important; border-color: currentColor !important; background: var(--mono-success-bg) !important; }
+.badge-suspended, .badge-expired, .badge-rejected, .badge-failed { color: var(--mono-danger) !important; border-color: currentColor !important; background: var(--mono-danger-bg) !important; }
+.badge-pending, .badge-expiring { color: var(--mono-warning) !important; border-color: currentColor !important; background: var(--mono-warning-bg) !important; }
+.admin-user-pill {
+    background: var(--mono-subtle) !important;
+    color: var(--mono-text-2) !important;
+    border: 1px solid var(--mono-border) !important;
+    box-shadow: none !important;
+}
+.admin-user-pill i { color: inherit !important; }
+
+/* Inline "solid accent" fills (buttons/pills written with style="background: var(--accent-blue)")
+   become solid ink with inverted text. Declared after the text-color rules so it wins. */
+[style*="background: var(--accent-blue)"], [style*="background:var(--accent-blue)"],
+[style*="background-color: var(--accent-blue)"], [style*="background: var(--accent-gold)"],
+[style*="background: var(--accent-purple)"], [style*="background: var(--gradient-primary)"],
+[style*="background: var(--gradient-gold)"], [style*="background: var(--gradient-luxury)"],
+[style*="background: #3b82f6"], [style*="background: #2563eb"], [style*="background: #6366f1"],
+[style*="background: #8b5cf6"], [style*="background-color: #3b82f6"], [style*="background-color: #2563eb"] {
+    background: var(--mono-ink) !important;
+    background-image: none !important;
+    color: var(--mono-on-ink) !important;
+    border-color: var(--mono-ink) !important;
+}
+[style*="background: var(--accent-blue)"] *, [style*="background-color: var(--accent-blue)"] *,
+[style*="background: var(--accent-gold)"] *, [style*="background: var(--accent-purple)"] *,
+[style*="background: var(--gradient-primary)"] *, [style*="background: var(--gradient-gold)"] *,
+[style*="background: #3b82f6"] *, [style*="background: #2563eb"] *, [style*="background: #6366f1"] *,
+[style*="background: #8b5cf6"] * {
+    color: inherit !important;
+}
+[style*="background: var(--accent-green)"], [style*="background: #10b981"], [style*="background: #22c55e"] {
+    background: var(--mono-success) !important; color: #fff !important; background-image: none !important;
+}
+[style*="background: var(--accent-red)"], [style*="background: #ef4444"], [style*="background: #dc2626"] {
+    background: var(--mono-danger) !important; color: #fff !important; background-image: none !important;
+}
+
+/* Header actions on small screens: keep one line; secondary pills move out of the way. */
+@media (max-width: 640px) {
+    .admin-user-pill { display: none !important; }
+    .btn-nav-login, .btn-nav-register { min-height: 40px; padding: 0 12px !important; }
+    .admin-page-title, .top-header h1 { font-size: 1.125rem !important; line-height: 1.25; }
+}
+
+/* Portal top bar on phones: keep menu, title and bell on one row instead of wrapping the
+   bell under the menu button. */
+@media (max-width: 768px) {
+    .top-bar { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: flex-start !important; justify-content: space-between !important; gap: 10px !important; }
+    .top-bar > div:first-child { flex: 1 1 auto; min-width: 0; align-items: flex-start !important; }
+    .top-bar > div:last-child { flex: 0 0 auto; }
+    .top-bar .page-header { min-width: 0; }
+    .top-bar .page-header h1 { font-size: 20px !important; line-height: 1.2; overflow-wrap: anywhere; }
+    .top-bar .page-header p { font-size: 13px !important; }
+}
+
+/* Single-value Ask AI answer: a KPI card instead of a one-point chart */
+.kpi-result-card {
+    border: 1px solid var(--mono-border);
+    border-radius: var(--mono-radius-lg);
+    background: var(--mono-surface);
+    color: var(--mono-text);
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: var(--mono-shadow);
+}
+.kpi-result-label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--mono-text-2); }
+.kpi-result-value { font-family: var(--mono-font-mono); font-variant-numeric: tabular-nums; font-size: clamp(36px, 7vw, 56px); font-weight: 600; line-height: 1.1; margin: 10px 0 8px; color: var(--mono-text); overflow-wrap: anywhere; }
+.kpi-result-note { font-size: 14px; color: var(--mono-text-3); }
+
+/* ==========================================================================
+   R-Phase 9.9 — Jet black / jet white, luxury type, light 3D touch
+   Every color below is a theme token. Display serif for page and section
+   headings, Inter for UI, JetBrains Mono for figures. Motion is transform /
+   opacity only and is switched off for prefers-reduced-motion.
+   ========================================================================== */
+:root {
+    --mono-font-display: 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --jet-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+html[data-theme="light"], html:not([data-theme]) {
+    --mono-on-danger: #ffffff;
+    --mono-on-success: #ffffff;
+    --mono-on-warning: #ffffff;
+    --mono-shadow-depth: 0 1px 1px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.04),
+                         0 16px 32px -8px rgba(0, 0, 0, 0.12), 0 40px 80px -32px rgba(0, 0, 0, 0.22);
+}
+html[data-theme="dark"] {
+    --mono-on-danger: #0a0a0a;
+    --mono-on-success: #0a0a0a;
+    --mono-on-warning: #0a0a0a;
+    --mono-shadow-depth: 0 1px 1px rgba(0, 0, 0, 0.6), 0 16px 32px -8px rgba(0, 0, 0, 0.7),
+                         0 40px 80px -32px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ---------- Display type ---------- */
+h1, h2, .hero-title, .section-title, .page-title, .admin-page-title, .auth-title,
+.page-header h1, .top-bar h1, .pricing-title, .cta-title, .home-cta-section h2,
+.brand-logo > span, .footer-brand > span, .sidebar-brand-text, .admin-brand-text {
+    font-family: var(--mono-font-display) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.012em !important;
+    font-feature-settings: "lnum" 1, "kern" 1;
+}
+.hero-title { font-weight: 600 !important; line-height: 1.06 !important; }
+.hero-title .gradient-text { font-style: italic; font-weight: 500; }
+h3, h4, h5, h6, .feature-card-title, .card-title { font-family: var(--mono-font) !important; }
+/* Figures and tables: tabular mono numbers. */
+.counter-value, .price-amount, .kpi-result-value, .stat-value, .metric-value, td.num, .num {
+    font-family: var(--mono-font-mono) !important;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---------- State fills keep readable text in both themes ---------- */
+[style*="background: var(--mono-danger)"], [style*="background: var(--accent-red)"],
+[style*="background: #ef4444"], [style*="background: #dc2626"] { color: var(--mono-on-danger) !important; }
+[style*="background: var(--mono-success)"], [style*="background: var(--accent-green)"],
+[style*="background: #10b981"], [style*="background: #22c55e"] { color: var(--mono-on-success) !important; }
+[style*="background: var(--mono-danger)"] *, [style*="background: var(--accent-red)"] *,
+[style*="background: var(--mono-success)"] *, [style*="background: var(--accent-green)"] * { color: inherit !important; }
+.notif-badge, #notif-badge-count { background: var(--mono-danger) !important; color: var(--mono-on-danger) !important; }
+
+/* ---------- Depth: layered shadows and hover lift ---------- */
+.feature-card, .pricing-card, .testimonial-card, .stat-card, .metric-card, .kpi-card,
+.dataset-card, .dashboard-card, .admin-card, .faq-item, .info-card {
+    transition: transform 0.35s var(--jet-ease), box-shadow 0.35s var(--jet-ease), border-color 0.35s var(--jet-ease) !important;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .feature-card:hover, .pricing-card:hover, .testimonial-card:hover, .stat-card:hover,
+    .metric-card:hover, .kpi-card:hover, .dataset-card:hover, .dashboard-card:hover, .admin-card:hover {
+        transform: translate3d(0, -3px, 0) !important;
+        box-shadow: var(--mono-shadow-depth) !important;
+    }
+}
+
+/* ---------- Hero: perspective tilt on the workspace preview ---------- */
+.home-workspace-preview { box-shadow: var(--mono-shadow-depth) !important; }
+@media (min-width: 1025px) and (prefers-reduced-motion: no-preference) {
+    .home-hero-layout { perspective: 1600px; }
+    .home-workspace-preview {
+        transform: rotateY(var(--tilt-y, -8deg)) rotateX(var(--tilt-x, 4deg));
+        transform-style: preserve-3d;
+        transition: transform 0.7s var(--jet-ease);
+        will-change: transform;
+    }
+    .home-workspace-preview .preview-bar-chart { transform: translateZ(28px); }
+    .home-workspace-preview .preview-question { transform: translateZ(16px); }
+}
+
+/* ---------- Isometric chart illustration (inline SVG, home) ---------- */
+.iso-illustration { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto 8px; color: var(--mono-text); }
+.iso-illustration .iso-top { fill: var(--mono-surface); stroke: currentColor; }
+.iso-illustration .iso-left { fill: var(--mono-hover); stroke: currentColor; }
+.iso-illustration .iso-right { fill: var(--mono-border-strong); stroke: currentColor; }
+.iso-illustration .iso-accent.iso-top { fill: var(--mono-ink); }
+.iso-illustration .iso-accent.iso-left { fill: var(--mono-text-2); }
+.iso-illustration .iso-accent.iso-right { fill: var(--mono-text-3); }
+.iso-illustration .iso-floor { fill: none; stroke: var(--mono-border-strong); }
+
+/* ---------- Section reveal: short, transform/opacity only ---------- */
+.reveal, .reveal-left, .reveal-right, .reveal-scale {
+    transition: opacity 0.6s var(--jet-ease), transform 0.6s var(--jet-ease) !important;
+}
+.reveal { transform: translate3d(0, 16px, 0); }
+.reveal-left { transform: translate3d(-16px, 0, 0); }
+.reveal-right { transform: translate3d(16px, 0, 0); }
+.reveal-scale { transform: scale(0.97); }
+.reveal.revealed, .reveal-left.revealed, .reveal-right.revealed, .reveal-scale.revealed { transform: none; }
+/* Above the fold never waits for script: the hero shows at first paint. */
+.hero-section .reveal, .hero-section .reveal-left, .hero-section .reveal-right, .hero-section .reveal-scale {
+    opacity: 1 !important; transform: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .home-workspace-preview { transform: none !important; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- Mobile drawers (portal and admin): overlay + close button ---------- */
+.drawer-close-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 44px; height: 44px; margin-left: auto;
+    border: 1px solid var(--mono-border) !important; border-radius: var(--mono-radius) !important;
+    background: var(--mono-surface) !important; color: var(--mono-text) !important; cursor: pointer;
+}
+.admin-drawer-overlay {
+    position: fixed; inset: 0; z-index: 99998; background: rgba(0, 0, 0, 0.5);
+    opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s;
+}
+.admin-drawer-overlay.active { opacity: 1; visibility: visible; }
+body.drawer-locked { overflow: hidden; }
+@media (max-width: 1199px) {
+    .sidebar .drawer-close-btn { display: inline-flex; }
+    .mobile-sidebar-btn { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 992px) {
+    .admin-sidebar .drawer-close-btn { display: inline-flex; }
+    .admin-mobile-toggle-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* ---------- App footer (portal and admin), same links as the public footer ---------- */
+.app-footer {
+    margin-top: 48px; padding: 20px 0 8px; border-top: 1px solid var(--mono-border);
+    display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between;
+    font-size: 14px; color: var(--mono-text-3);
+}
+.app-footer nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.app-footer a { color: var(--mono-text-2) !important; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.app-footer a:hover { color: var(--mono-text) !important; text-decoration: underline; }
+.app-footer .app-footer-brand { font-family: var(--mono-font-display); color: var(--mono-text); font-size: 15px; }

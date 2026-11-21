@@ -24,6 +24,48 @@ except ImportError:
     pyodbc = None
 
 
+def _tsql_top_to_limit(s: str) -> str:
+    """
+    Rewrite every `SELECT [DISTINCT] TOP (n)` (outer query or any nested subquery) as
+    `SELECT [DISTINCT] ... LIMIT n` placed at the end of that query's own parenthesis scope.
+    Processes the last occurrence first so nested subqueries are handled before the
+    queries that contain them. QA/dev SQLite only.
+    """
+    pat = re.compile(r"\bSELECT\s+(DISTINCT\s+)?TOP\s*\(?\s*(\d+)\s*\)?\s+", re.IGNORECASE)
+    for _ in range(20):
+        matches = list(pat.finditer(s))
+        if not matches:
+            break
+        m = matches[-1]
+        n = m.group(2)
+        start = m.end()
+        depth = 0
+        end = len(s)
+        i = start
+        in_str = False
+        while i < len(s):
+            ch = s[i]
+            if ch == "'":
+                in_str = not in_str
+            elif not in_str:
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    if depth == 0:
+                        end = i
+                        break
+                    depth -= 1
+                elif ch == ";" and depth == 0:
+                    end = i
+                    break
+            i += 1
+        body = s[start:end].rstrip()
+        if not re.search(r"\bLIMIT\s+\d+\s*$", body, re.IGNORECASE):
+            body = f"{body} LIMIT {n}"
+        s = s[:m.start()] + "SELECT " + (m.group(1) or "") + body + s[end:]
+    return s
+
+
 def adapt_tsql_for_sqlite(query: str) -> str:
     """
     Safely transform Microsoft T-SQL syntax to SQLite syntax.
@@ -78,28 +120,7 @@ def adapt_tsql_for_sqlite(query: str) -> str:
     s = s.replace("GETDATE()", "CURRENT_TIMESTAMP")
     s = re.sub(r"ISNULL\s*\(", "COALESCE(", s, flags=re.IGNORECASE)
     s = re.sub(r"OUTPUT\s+INSERTED\.\w+", "", s, flags=re.IGNORECASE)
-    s = re.sub(
-        r"\(\s*SELECT\s+TOP\s+\(?(\d+)\)?\s+(.*?)\s+ORDER\s+BY\s+([^)]*)\)",
-        lambda match: (
-            f"(SELECT {match.group(2)} ORDER BY {match.group(3).strip()} "
-            f"LIMIT {match.group(1)})"
-        ),
-        s,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
-
-    # Transform SELECT TOP N ... -> SELECT ... LIMIT N
-    top_match = re.search(r"\bSELECT\s+TOP\s+\(?(\d+)\)?\s+", s, flags=re.IGNORECASE)
-    if top_match:
-        limit_val = top_match.group(1)
-        # Remove SELECT TOP N
-        s = re.sub(r"\bSELECT\s+TOP\s+\(?\d+\)?\s+", "SELECT ", s, count=1, flags=re.IGNORECASE).strip()
-        # Append LIMIT N before trailing semicolon or at end
-        if not re.search(r"\bLIMIT\s+\d+\b", s, re.IGNORECASE):
-            if s.endswith(";"):
-                s = s[:-1].strip() + f" LIMIT {limit_val};"
-            else:
-                s = s + f" LIMIT {limit_val}"
+    s = _tsql_top_to_limit(s)
 
     s = re.sub(
         r"DATEADD\s*\(\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(\?|[A-Za-z_][\w.]*)\s*\)",
@@ -115,6 +136,28 @@ def adapt_tsql_for_sqlite(query: str) -> str:
         s,
         flags=re.IGNORECASE,
     )
+
+    # Type/function names the Ask AI SQL builders emit for SQL Server (QA/dev SQLite only).
+    s = re.sub(r"\bTRY_CAST\s*\(", "CAST(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCAST\s*\(\s*(\[[^\]]+\]|[A-Za-z_][\w.]*)\s+AS\s+DATE\s*\)", r"date(\1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bTRY_CONVERT\s*\(\s*(?:FLOAT|DECIMAL\s*\(\s*\d+\s*,\s*\d+\s*\)|INT|BIGINT)\s*,", "CAST(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bN?VARCHAR\s*\(\s*(?:MAX|\d+)\s*\)", "TEXT", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bLEN\s*\(", "length(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bN'", "'", s)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:year|yy|yyyy)\s*,\s*([^()]+?)\s*\)", r"CAST(strftime('%Y', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:month|mm|m)\s*,\s*([^()]+?)\s*\)", r"CAST(strftime('%m', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:day|dd|d)\s*,\s*([^()]+?)\s*\)", r"CAST(strftime('%d', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:quarter|qq|q)\s*,\s*([^()]+?)\s*\)", r"((CAST(strftime('%m', \1) AS INTEGER) + 2) / 3)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDATEPART\s*\(\s*(?:weekday|dw)\s*,\s*([^()]+?)\s*\)", r"(CAST(strftime('%w', \1) AS INTEGER) + 1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bDAY\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%d', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCONVERT\s*\(\s*(?:DATE)\s*,\s*([^()]+?)\s*\)", r"date(\1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCONVERT\s*\(\s*(?:FLOAT|REAL|DECIMAL\s*\(\s*\d+\s*,\s*\d+\s*\))\s*,\s*([^()]+?)\s*\)", r"CAST(\1 AS REAL)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCONVERT\s*\(\s*(?:INT|BIGINT)\s*,\s*([^()]+?)\s*\)", r"CAST(\1 AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bCHARINDEX\s*\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)", r"instr(\2, \1)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bSYSUTCDATETIME\s*\(\s*\)|\bGETUTCDATE\s*\(\s*\)", "CURRENT_TIMESTAMP", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bYEAR\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%Y', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bMONTH\s*\(\s*([^()]+?)\s*\)", r"CAST(strftime('%m', \1) AS INTEGER)", s, flags=re.IGNORECASE)
+    s = re.sub(r"FORMAT\s*\(\s*([^,()]+(?:\([^()]*\))?)\s*,\s*'yyyy-MM'\s*\)", r"strftime('%Y-%m', \1)", s, flags=re.IGNORECASE)
 
     s = re.sub(
         r"\bOFFSET\s+(\d+)\s+ROWS?\s+FETCH\s+NEXT\s+(\d+)\s+ROWS?\s+ONLY\b",
@@ -181,6 +224,11 @@ class SQLiteCursorAdapter:
         self._cursor.executemany(s, seq_of_parameters or ())
         return self
 
+    @property
+    def rowcount(self):
+        """Rows changed by the last UPDATE/DELETE (pyodbc-compatible)."""
+        return self._cursor.rowcount
+
     def fetchone(self):
         res = self._cursor.fetchone()
         if res is None and self.last_inserted_id is not None:
@@ -199,6 +247,11 @@ class SQLiteCursorAdapter:
             self._cursor.close()
         except Exception:
             pass
+
+
+def register_sqlite_functions(conn):
+    """SQL Server functions the translated queries call (used by the dev DB and the vault mirror)."""
+    conn.create_function("DATEADD", 3, _sqlite_dateadd)
 
 
 class SQLiteConnectionAdapter:
@@ -241,10 +294,10 @@ def get_connection_string():
     password = os.getenv("DB_PASSWORD", "")
 
     # ODBC Driver 18 defaults to Encrypt=yes with strict certificate validation (Driver 17
-    # defaulted to no encryption, so this is new behavior on upgrade). Managed SQL Server
-    # hosts like RDS don't present a certificate that validates against the system trust
-    # store, so without this the driver refuses the connection outright - confirmed live
-    # when deploying against RDS: every connection attempt failed until this was added.
+    # defaulted to no encryption, so this is new behavior on upgrade). A SQL Server with a
+    # self-signed certificate (the default for SQL Server on Linux on the same VM) does not
+    # validate against the system trust store, so without this the driver refuses the
+    # connection outright - every connection attempt failed until this was added.
     # The connection itself is still encrypted in transit; this only skips chain validation.
     if user and password:
         return (
@@ -352,6 +405,10 @@ def init_sqlite_db(conn):
             Role TEXT NOT NULL DEFAULT 'Analyst',
             FailedLoginAttempts INTEGER DEFAULT 0,
             LockoutUntil TEXT,
+            AdminOtpHash TEXT,
+            AdminOtpIssuedAt TEXT,
+            AdminOtpFailedAttempts INTEGER NOT NULL DEFAULT 0,
+            AdminOtpLockoutUntil TEXT,
             SubscriptionStatus TEXT DEFAULT 'free',
             SubscriptionEndDate TEXT,
             SuspendedAt TEXT,
@@ -447,7 +504,9 @@ def init_sqlite_db(conn):
             IsFavorite INTEGER DEFAULT 0,
             Tags TEXT,
             LastOpenedAt TEXT,
-            UploadDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            UploadDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            InsightsEnabled INTEGER NOT NULL DEFAULT 1,
+            LastInsightScanAt TEXT
         )''',
         '''CREATE TABLE IF NOT EXISTS QueryLogs (
             QueryID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -609,9 +668,36 @@ def init_sqlite_db(conn):
         ("SubscriptionEndDate", "TEXT"),
         ("SuspendedAt", "TEXT"),
         ("SuspensionReason", "TEXT"),
+        # R-Phase 8: Super Admin email-OTP state kept server-side (attempt counter,
+        # 15-minute lockout, digest of the live code) so a replayed cookie can't reset it.
+        ("AdminOtpHash", "TEXT"),
+        ("AdminOtpIssuedAt", "TEXT"),
+        ("AdminOtpFailedAttempts", "INTEGER NOT NULL DEFAULT 0"),
+        ("AdminOtpLockoutUntil", "TEXT"),
     ):
         if column not in user_cols:
             cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {definition}")
+
+    # Older QA databases predate the reset-code attempt counter.
+    cursor.execute("PRAGMA table_info(PasswordResetTokens)")
+    reset_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("Attempts", "INTEGER NOT NULL DEFAULT 0"),
+        ("UsedAt", "TEXT"),
+    ):
+        if column not in reset_cols:
+            cursor.execute(f"ALTER TABLE PasswordResetTokens ADD COLUMN {column} {definition}")
+
+    # Same columns SQL Server's init adds to Datasets; without them the scheduler's
+    # proactive-insights scan failed every tick with "no such column: D.InsightsEnabled".
+    cursor.execute("PRAGMA table_info(Datasets)")
+    dataset_cols = {row[1] for row in cursor.fetchall()}
+    for column, definition in (
+        ("InsightsEnabled", "INTEGER NOT NULL DEFAULT 1"),
+        ("LastInsightScanAt", "TEXT"),
+    ):
+        if column not in dataset_cols:
+            cursor.execute(f"ALTER TABLE Datasets ADD COLUMN {column} {definition}")
 
     cursor.execute("PRAGMA table_info(Payments)")
     payment_cols = {row[1] for row in cursor.fetchall()}
@@ -621,6 +707,9 @@ def init_sqlite_db(conn):
         ("RejectionReason", "TEXT"),
         ("ReviewedBy", "INTEGER"),
         ("ReviewedAt", "TEXT"),
+        ("InvoiceNumber", "TEXT"),
+        ("PeriodStart", "TEXT"),
+        ("PeriodEnd", "TEXT"),
     ):
         if column not in payment_cols:
             cursor.execute(f"ALTER TABLE Payments ADD COLUMN {column} {definition}")
@@ -1049,6 +1138,27 @@ def init_db():
         ALTER TABLE Users ADD SuspensionReason NVARCHAR(500) NULL;
     END;
 
+    -- R-Phase 8: Super Admin email-OTP state, server-side (see admin/routes.py).
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpHash')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpHash NVARCHAR(128) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpIssuedAt')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpIssuedAt DATETIME2 NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpFailedAttempts')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpFailedAttempts INT NOT NULL DEFAULT 0;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'AdminOtpLockoutUntil')
+    BEGIN
+        ALTER TABLE Users ADD AdminOtpLockoutUntil DATETIME2 NULL;
+    END;
+
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PaymentType')
     BEGIN
         ALTER TABLE Payments ADD PaymentType NVARCHAR(20) NOT NULL DEFAULT 'New';
@@ -1067,6 +1177,22 @@ def init_db():
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ReviewedAt')
     BEGIN
         ALTER TABLE Payments ADD ReviewedAt DATETIME2 NULL;
+    END;
+
+    -- R-Phase 9.6: numbered invoice + plan period stored at approval (additive, nullable).
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'InvoiceNumber')
+    BEGIN
+        ALTER TABLE Payments ADD InvoiceNumber NVARCHAR(40) NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PeriodStart')
+    BEGIN
+        ALTER TABLE Payments ADD PeriodStart DATE NULL;
+    END;
+
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PeriodEnd')
+    BEGIN
+        ALTER TABLE Payments ADD PeriodEnd DATE NULL;
     END;
 
     IF OBJECT_ID('PaymentSettings', 'U') IS NULL
@@ -1273,6 +1399,18 @@ def run_query(query: str, params: tuple = None, timeout: int = None) -> pd.DataF
     dataset a user uploaded), where a slow outlier should fail fast with a clear error
     rather than hang the request that triggered it.
     """
+    # Encrypted datasets: the rows live only in the vault, so the query runs against the
+    # owner's decrypted in-memory copy (see utils/dataset_vault.py).
+    try:
+        from utils import dataset_vault
+        vaulted = dataset_vault.vaulted_table_in(str(query))
+    except Exception:
+        vaulted = None
+    if vaulted:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            return dataset_vault.query(vaulted, adapt_tsql_for_sqlite(str(query)), params or None)
+
     conn = get_connection()
     if timeout is not None and hasattr(conn, "timeout"):
         try:

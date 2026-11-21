@@ -12,7 +12,7 @@
 {% block content %}
 <div class="container-fluid py-4">
     <!-- Header Card -->
-    <div class="card bg-dark text-white shadow-sm border-0 mb-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+    <div class="card bg-dark text-white shadow-sm border-0 mb-4" style="background: var(--mono-ink);">
         <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <span class="badge bg-primary text-uppercase mb-2 px-3 py-2" style="letter-spacing: 1px;">Data Quality Audit</span>
@@ -39,13 +39,13 @@
                     <div class="position-relative mb-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow"
                              style="width: 110px; height: 110px; font-size: 2.2rem;
-                             background: {% if quality.health_score >= 85 %}linear-gradient(135deg, #10b981, #059669){% elif quality.health_score >= 70 %}linear-gradient(135deg, #f59e0b, #d97706){% else %}linear-gradient(135deg, #ef4444, #dc2626){% endif %};">
+                             background: {% if quality.health_score >= 85 %}var(--mono-success){% elif quality.health_score >= 70 %}var(--mono-warning){% else %}var(--mono-danger){% endif %};">
                             {{ quality.health_score }}%
                         </div>
                     </div>
                     <h5 class="fw-bold mb-1">Overall Data Health</h5>
                     <span class="badge px-3 py-2 text-uppercase fw-semibold"
-                          style="background: {% if quality.health_score >= 85 %}#10b98122; color: #10b981{% elif quality.health_score >= 70 %}#f59e0b22; color: #f59e0b{% else %}#ef444422; color: #ef4444{% endif %};">
+                          style="background: {% if quality.health_score >= 85 %}#10b98122; color: var(--mono-success){% elif quality.health_score >= 70 %}#f59e0b22; color: var(--mono-warning){% else %}#ef444422; color: var(--mono-danger){% endif %};">
                         {% if quality.health_score >= 85 %}EXCELLENT (READY FOR AI){% elif quality.health_score >= 70 %}GOOD (MINOR ATTENTION){% else %}NEEDS ATTENTION{% endif %}
                     </span>
                 </div>

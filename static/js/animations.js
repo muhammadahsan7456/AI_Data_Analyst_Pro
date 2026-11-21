@@ -21,264 +21,10 @@ function onDomReady(fn) {
     }
 }
 
-// ===== 1. THREE.JS 3D NEURAL NETWORK CONSTELLATION =====
-(function init3DConstellation() {
-    const canvas = document.getElementById('hero-3d-canvas');
-    if (!canvas || typeof THREE === 'undefined') return;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.z = 420;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    // Palettes: Subtle, elegant luxury tones for Dark & Light modes
-    const darkPalette = [
-        [0.984, 0.749, 0.141],  // Champagne Gold (#fbbf24)
-        [0.659, 0.333, 0.969],  // Royal Violet (#a855f7)
-        [0.220, 0.741, 0.973],  // Diamond Cyan (#38bdf8)
-        [0.961, 0.620, 0.043],  // Amber Gold (#f59e0b)
-        [0.996, 0.941, 0.541],  // Platinum Light (#fef08a)
-    ];
-
-    const lightPalette = [
-        [0.850, 0.550, 0.150],  // Warm Amber Gold (#d97706)
-        [0.550, 0.400, 0.850],  // Soft Lavender Violet (#8b5cf6)
-        [0.200, 0.600, 0.850],  // Soft Diamond Cyan (#38bdf8)
-        [0.450, 0.500, 0.600],  // Soft Slate Steel (#64748b)
-        [0.780, 0.450, 0.100],  // Warm Champagne Bronze (#b45309)
-    ];
-
-    // Particle system (clean & delicate count)
-    const particleCount = 110;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const velocities = [];
-    const particleColorIndices = [];
-
-    for (let i = 0; i < particleCount; i++) {
-        positions[i * 3]     = (Math.random() - 0.5) * 920;
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 620;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 500;
-
-        const idx = Math.floor(Math.random() * darkPalette.length);
-        particleColorIndices.push(idx);
-
-        velocities.push({
-            x: (Math.random() - 0.5) * 0.32,
-            y: (Math.random() - 0.5) * 0.32,
-            z: (Math.random() - 0.5) * 0.22
-        });
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const pMaterial = new THREE.PointsMaterial({
-        size: 3.6,
-        transparent: true,
-        opacity: 0.85,
-        vertexColors: true,
-        sizeAttenuation: true
-    });
-
-    const pointCloud = new THREE.Points(geometry, pMaterial);
-    scene.add(pointCloud);
-
-    // Connection lines.
-    // The buffer is allocated once at its worst-case size (every particle pair linked)
-    // and refilled in place each frame. The previous version built a plain JS array and
-    // then allocated a new Float32Array AND a new THREE.BufferAttribute on every single
-    // frame, which is what made this loop the heaviest thing on the landing page.
-    const lineGeometry = new THREE.BufferGeometry();
-    const LINK_DIST = 112;
-    const LINK_DIST_SQ = LINK_DIST * LINK_DIST;
-    const maxLinks = (particleCount * (particleCount - 1)) / 2;
-    const linePositions = new Float32Array(maxLinks * 6); // 2 endpoints x 3 coords
-    const linePosAttr = new THREE.BufferAttribute(linePositions, 3);
-    if (THREE.DynamicDrawUsage !== undefined) linePosAttr.setUsage(THREE.DynamicDrawUsage);
-    lineGeometry.setAttribute('position', linePosAttr);
-    const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0xf59e0b,
-        transparent: true,
-        opacity: 0.20
-    });
-    const linesMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
-    scene.add(linesMesh);
-
-    // Floating data cubes
-    const cubeGroup = new THREE.Group();
-    const cubeMaterial = new THREE.MeshBasicMaterial({
-        color: 0xfbbf24,
-        transparent: true,
-        opacity: 0.14,
-        wireframe: true
-    });
-
-    const cubes = [];
-    for (let i = 0; i < 6; i++) {
-        const size = 15 + Math.random() * 24;
-        const cubeGeo = new THREE.BoxGeometry(size, size, size);
-        const cube = new THREE.Mesh(cubeGeo, cubeMaterial.clone());
-        cube.position.set(
-            (Math.random() - 0.5) * 720,
-            (Math.random() - 0.5) * 420,
-            (Math.random() - 0.5) * 300
-        );
-        cube.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-        cube.userData = {
-            rotSpeed: { x: 0.003 + Math.random() * 0.004, y: 0.003 + Math.random() * 0.004 },
-            floatPhase: Math.random() * Math.PI * 2,
-            floatSpeed: 0.004 + Math.random() * 0.008,
-            floatAmp: 14 + Math.random() * 18,
-            baseY: cube.position.y
-        };
-        cubes.push(cube);
-        cubeGroup.add(cube);
-    }
-    scene.add(cubeGroup);
-
-    // Dynamic Theme Adaptation (Soft & subtle matching in both modes)
-    function applyTheme(theme) {
-        const isLight = (theme === 'light');
-        const activePalette = isLight ? lightPalette : darkPalette;
-
-        const cols = pointCloud.geometry.attributes.color.array;
-        for (let i = 0; i < particleCount; i++) {
-            const c = activePalette[particleColorIndices[i]];
-            cols[i * 3]     = c[0];
-            cols[i * 3 + 1] = c[1];
-            cols[i * 3 + 2] = c[2];
-        }
-        pointCloud.geometry.attributes.color.needsUpdate = true;
-
-        // Keep delicate, balanced size in both modes
-        pMaterial.size = isLight ? 3.8 : 3.6;
-        pMaterial.opacity = isLight ? 0.78 : 0.85;
-        pMaterial.needsUpdate = true;
-
-        // Subtle, delicate lines that match dark mode's calmness
-        lineMaterial.color.setHex(isLight ? 0xd97706 : 0xf59e0b);
-        lineMaterial.opacity = isLight ? 0.18 : 0.20;
-        lineMaterial.needsUpdate = true;
-
-        // Subtle wireframe cubes
-        cubes.forEach(cube => {
-            cube.material.color.setHex(isLight ? 0xd97706 : 0xfbbf24);
-            cube.material.opacity = isLight ? 0.14 : 0.14;
-            cube.material.needsUpdate = true;
-        });
-    }
-
-    // Apply initial theme
-    const initialTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('website_theme') || 'dark';
-    applyTheme(initialTheme);
-
-    // Listen for theme changes via MutationObserver and custom events
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach(m => {
-            if (m.attributeName === 'data-theme') {
-                const newTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-                applyTheme(newTheme);
-            }
-        });
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-    window.addEventListener('websiteThemeChanged', (e) => {
-        if (e.detail && e.detail.theme) {
-            applyTheme(e.detail.theme);
-        }
-    });
-
-    let mouseX = 0, mouseY = 0;
-    let time = 0;
-
-    document.addEventListener('mousemove', (e) => {
-        mouseX = (e.clientX - window.innerWidth / 2) * 0.04;
-        mouseY = (e.clientY - window.innerHeight / 2) * 0.04;
-    });
-
-    let rafId = null;
-
-    function animate() {
-        rafId = requestAnimationFrame(animate);
-        time += 0.01;
-
-        const pos = pointCloud.geometry.attributes.position.array;
-        for (let i = 0; i < particleCount; i++) {
-            pos[i * 3]     += velocities[i].x;
-            pos[i * 3 + 1] += velocities[i].y;
-            pos[i * 3 + 2] += velocities[i].z;
-
-            if (Math.abs(pos[i * 3]) > 470) velocities[i].x *= -1;
-            if (Math.abs(pos[i * 3 + 1]) > 320) velocities[i].y *= -1;
-            if (Math.abs(pos[i * 3 + 2]) > 260) velocities[i].z *= -1;
-        }
-        pointCloud.geometry.attributes.position.needsUpdate = true;
-
-        // Build connection lines straight into the preallocated buffer. Comparing squared
-        // distances against LINK_DIST_SQ gives exactly the same set of links as the old
-        // Math.sqrt(...) < 112 test, minus ~6000 square roots per frame.
-        let li = 0;
-        for (let i = 0; i < particleCount; i++) {
-            const ix = pos[i * 3], iy = pos[i * 3 + 1], iz = pos[i * 3 + 2];
-            for (let j = i + 1; j < particleCount; j++) {
-                const jx = pos[j * 3], jy = pos[j * 3 + 1], jz = pos[j * 3 + 2];
-                const dx = ix - jx, dy = iy - jy, dz = iz - jz;
-                if (dx * dx + dy * dy + dz * dz < LINK_DIST_SQ) {
-                    linePositions[li++] = ix;
-                    linePositions[li++] = iy;
-                    linePositions[li++] = iz;
-                    linePositions[li++] = jx;
-                    linePositions[li++] = jy;
-                    linePositions[li++] = jz;
-                }
-            }
-        }
-        linePosAttr.needsUpdate = true;
-        lineGeometry.setDrawRange(0, li / 3); // draw only the vertices written this frame
-
-        // Animate cubes
-        cubeGroup.children.forEach(cube => {
-            cube.rotation.x += cube.userData.rotSpeed.x;
-            cube.rotation.y += cube.userData.rotSpeed.y;
-            cube.position.y = cube.userData.baseY + Math.sin(time * cube.userData.floatSpeed * 60 + cube.userData.floatPhase) * cube.userData.floatAmp;
-        });
-
-        // Smooth camera follow mouse
-        camera.position.x += (mouseX - camera.position.x) * 0.02;
-        camera.position.y += (-mouseY - camera.position.y) * 0.02;
-        camera.lookAt(scene.position);
-
-        renderer.render(scene, camera);
-    }
-
-    animate();
-
-    // Stop rendering while the tab is in the background. Nothing is visible there, so this
-    // changes nothing on screen - it just stops burning CPU/battery on an unseen canvas.
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            if (rafId !== null) {
-                cancelAnimationFrame(rafId);
-                rafId = null;
-            }
-        } else if (rafId === null) {
-            animate();
-        }
-    });
-
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-})();
-
+// ===== 1. (removed in R-Phase 9.9) =====
+// The Three.js constellation background (about 600 KB of script from a CDN on every
+// public page except home/auth) was decorative and is gone. Depth now comes from CSS:
+// layered shadows, the perspective tilt on the home preview (section 5) and hover lift.
 
 // ===== 2. SCROLL REVEAL OBSERVER =====
 (function initScrollReveal() {
@@ -395,19 +141,32 @@ function initTypedText(elementId, texts, typeSpeed, deleteSpeed, pauseTime) {
 }
 
 
-// ===== 5. VANILLA TILT INITIALIZATION =====
+// ===== 5. HERO PERSPECTIVE TILT (CSS variables, no library) =====
+// Desktop with a fine pointer only, and never with prefers-reduced-motion. The CSS in
+// mono.css owns the resting angle; this only nudges --tilt-x/--tilt-y toward the pointer
+// (max about 6 degrees), one rAF per frame, transform only.
 onDomReady(() => {
-    if (typeof VanillaTilt !== 'undefined') {
-        document.querySelectorAll('[data-tilt]').forEach(el => {
-            VanillaTilt.init(el, {
-                max: 8,
-                speed: 400,
-                glare: true,
-                'max-glare': 0.15,
-                gyroscope: true
-            });
+    const card = document.querySelector('.home-workspace-preview');
+    if (!card || !window.matchMedia) return;
+    if (!window.matchMedia('(min-width: 1025px) and (hover: hover) and (pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const zone = card.closest('.home-hero-layout') || card;
+    let frame = 0;
+    zone.addEventListener('pointermove', (e) => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+            frame = 0;
+            const r = card.getBoundingClientRect();
+            const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
+            const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+            card.style.setProperty('--tilt-y', (-4 + dx * 6).toFixed(2) + 'deg');
+            card.style.setProperty('--tilt-x', (2 - dy * 4).toFixed(2) + 'deg');
         });
-    }
+    });
+    zone.addEventListener('pointerleave', () => {
+        card.style.removeProperty('--tilt-y');
+        card.style.removeProperty('--tilt-x');
+    });
 });
 
 
@@ -432,11 +191,6 @@ onDomReady(() => {
 });
 
 
-// ===== 7. PAGE LOAD FADE-IN =====
-onDomReady(() => {
-    document.body.style.opacity = '0';
-    document.body.style.transition = 'opacity 0.5s ease';
-    requestAnimationFrame(() => {
-        document.body.style.opacity = '1';
-    });
-});
+// ===== 7. (removed in R-Phase 9.9) =====
+// The whole-page fade-in set <body> to opacity 0 after the page had already painted (this
+// file loads after window.load), which made every public page blink once. Removed.

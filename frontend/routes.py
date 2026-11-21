@@ -2,6 +2,7 @@ import os
 import re
 import math
 import time
+import logging
 import threading
 from datetime import datetime
 import pandas as pd
@@ -111,12 +112,14 @@ from utils.exporters import (
 )
 from utils.helpers import format_bytes
 from utils.cache import system_cache
+
+logger = logging.getLogger(__name__)
 from auth.decorators import (
     login_required,
     role_required,
     viewer_allowed
 )
-from auth.security import log_audit_event
+from auth.security import log_audit_event, get_client_ip
 
 frontend = Blueprint(
     "frontend",
@@ -463,7 +466,7 @@ def dashboard():
             cursor.execute("SELECT TOP 1 Status, PaymentDate FROM Payments WHERE UserID = ? ORDER BY PaymentDate DESC", (user_id,))
             p_row = cursor.fetchone()
             if p_row and p_row[0] in ['Pending', 'Pending_Review']:
-                pending_payment_notice = "⏳ Payment Proof Verification Pending: Your payment receipt proof (PKR 1,499) has been received and is currently under Super Admin review. Account access will be extended automatically upon verification!"
+                pending_payment_notice = "Payment Proof Verification Pending: Your payment receipt proof (PKR 1,499) has been received and is currently under Super Admin review. Account access will be extended automatically upon verification!"
 
         # Renewal notice only displays if subscription requires renewal AND no pending payment is under review
         if not pending_payment_notice and sub_meta.get("show_banner"):
@@ -937,7 +940,7 @@ def chat():
                 query_count_today = cursor.fetchone()[0] or 0
 
             if query_count_today >= daily_limit:
-                limit_msg = f"⚠️ Daily AI query limit reached ({daily_limit}/day). Please try again after 24 hours, or contact support to increase your limit."
+                limit_msg = f"Daily AI query limit reached ({daily_limit}/day). Please try again after 24 hours, or contact support to increase your limit."
                 if is_ajax:
                     return jsonify({"success": False, "error": limit_msg})
                 return render_template("chat.html", user_datasets=user_datasets, selected_dataset=selected_dataset, error=limit_msg)
@@ -1228,6 +1231,11 @@ def chat():
         traceback.print_exc()
         explanation = f"Query executed successfully on dataset [{selected_dataset[2]}]. Displaying {len(df)} matching records."
 
+    # Typo/synonym corrections and ambiguities are stated, never applied silently.
+    _assumptions = [a for a in (ai_result.get("assumptions") or []) if a]
+    if _assumptions:
+        explanation = "**How I read your question:** " + " ".join(_assumptions) + "\n\n" + (explanation or "")
+
     # Whichever model actually answered this question (SQL generation and/or the
     # explanation may each separately fall through to the LLM, or not need it at all if
     # the fast deterministic pattern engine handled everything) - surfaced in the response
@@ -1319,6 +1327,7 @@ def chat():
             "applied_filters": applied_filters,
             "result_html": result_html,
             "explanation": format_ai_explanation(explanation),
+            "assumptions": _assumptions,
             "tts_speech": tts_speech,
             "chart": chart_path,
             "chart_spec": chart_spec,
@@ -1512,6 +1521,7 @@ def predictions():
     default_forecast_days = session.get("default_forecast_days", 30)
     forecast_days = default_forecast_days
     result = None
+    profit_loss = None
 
     if request.method == "POST":
         dataset_id = request.form.get("dataset_id", type=int)
@@ -1524,9 +1534,18 @@ def predictions():
                 selected_dataset = match
 
         table_name = selected_dataset[2]
-        df = run_query(f"SELECT TOP 10000 * FROM {sanitize_identifier(table_name)}")
+        # Whole dataset (was TOP 10000, so totals/trends silently ignored later rows).
+        df = _load_full_dataset(table_name)
 
         result = generate_forecast(df, forecast_days=forecast_days)
+        try:
+            from ai.profit_loss import analyze_profit_loss, phrase_with_llm
+            profit_loss = analyze_profit_loss(df)
+            if profit_loss.get("suitable"):
+                profit_loss["explanation_text"], profit_loss["explanation_source"] = phrase_with_llm(profit_loss["explanation"])
+        except Exception:
+            logger.exception("Profit/loss analysis failed for dataset #%s", selected_dataset[0])
+            profit_loss = {"suitable": False, "message": "The profit and loss analysis could not be completed for this dataset.", "disclaimer": ""}
         log_audit_event("PREDICTION_RUN", f"Ran forecast on dataset #{selected_dataset[0]} for {forecast_days} days.", user_id=user_id)
 
     return render_template(
@@ -1534,8 +1553,71 @@ def predictions():
         user_datasets=user_datasets,
         selected_dataset=selected_dataset,
         forecast_days=forecast_days,
-        result=result
+        result=result,
+        profit_loss=profit_loss,
     )
+
+
+def _load_full_dataset(table_name: str) -> pd.DataFrame:
+    """All rows of a dataset: decrypted from the vault in memory, or read from its table."""
+    from utils import dataset_vault
+    try:
+        if dataset_vault.is_vaulted(table_name):
+            df = dataset_vault.load_dataframe(table_name)
+            return df.drop(columns=[c for c in df.columns if c == "RecordID"], errors="ignore")
+    except Exception:
+        logger.exception("Vault load failed for %s", table_name)
+        raise
+    df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
+    return df.drop(columns=[c for c in df.columns if c == "RecordID"], errors="ignore") if df is not None else pd.DataFrame()
+
+
+def _owned_dataset_or_404(dataset_id):
+    user_id = session.get("user_id")
+    with get_db_cursor() as cursor:
+        cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
+        ds = cursor.fetchone()
+    if not ds or not is_safe_identifier(ds[2]):
+        return None
+    return ds
+
+
+@frontend.route("/api/dataset-summary/<int:dataset_id>")
+@login_required
+def api_dataset_summary(dataset_id):
+    """Short plain-language summary from computed facts (LLM only re-phrases; fallback = computed)."""
+    ds = _owned_dataset_or_404(dataset_id)
+    if not ds:
+        return jsonify({"success": False, "error": "Dataset not found."}), 404
+    key = f"ds_brief_{ds[2]}_{ds[5]}"
+    cached = system_cache.get(key) if system_cache else None
+    if cached:
+        return jsonify(cached)
+    try:
+        from ai.dataset_brief import summarize
+        out = summarize(_load_full_dataset(ds[2]))
+        payload = {"success": True, "summary": out["summary"], "source": out["source"], "facts": out["facts"]}
+    except Exception:
+        logger.exception("Dataset summary failed for #%s", dataset_id)
+        return jsonify({"success": False, "error": "The summary could not be computed for this dataset."}), 500
+    if system_cache:
+        system_cache.set(key, payload, ttl=1800)
+    return jsonify(payload)
+
+
+@frontend.route("/api/profit-loss/<int:dataset_id>")
+@login_required
+def api_profit_loss(dataset_id):
+    ds = _owned_dataset_or_404(dataset_id)
+    if not ds:
+        return jsonify({"success": False, "error": "Dataset not found."}), 404
+    from ai.profit_loss import analyze_profit_loss
+    try:
+        res = analyze_profit_loss(_load_full_dataset(ds[2]))
+    except Exception:
+        logger.exception("Profit/loss failed for #%s", dataset_id)
+        return jsonify({"success": False, "error": "The analysis could not be completed."}), 500
+    return jsonify({"success": True, **res})
 
 
 # ==========================================
@@ -1874,10 +1956,15 @@ def edit_dataset(dataset_id):
 # ==========================================
 # DELETE DATASET (USER ISOLATED)
 # ==========================================
-@frontend.route("/dataset/delete/<int:dataset_id>")
+@frontend.route("/dataset/delete/<int:dataset_id>", methods=["GET", "POST"])
 @login_required
 def delete_dataset(dataset_id):
     user_id = session.get("user_id")
+    # Deleting is destructive, so it only happens on a POST (CSRF-checked by Flask-WTF).
+    # A GET (old bookmark or a link from another site) no longer deletes anything.
+    if request.method != "POST":
+        flash("To delete a dataset, use the Delete button on your dashboard.", "info")
+        return redirect(url_for("frontend.dashboard"))
     try:
         with get_db_cursor() as cursor:
             cursor.execute(get_dataset_by_id(user_id=user_id), (dataset_id,))
@@ -1899,11 +1986,18 @@ def delete_dataset(dataset_id):
             if is_safe_identifier(table_name):
                 try:
                     cursor.execute(f"IF OBJECT_ID('{table_name}', 'U') IS NOT NULL DROP TABLE {sanitize_identifier(table_name)}")
-                except Exception as drop_err:
-                    print("Drop Table Warning:", drop_err)
+                except Exception:
+                    logger.warning("Delete dataset %s: could not drop legacy table %s", dataset_id, table_name, exc_info=True)
 
             # 3. Delete metadata record from Datasets table
             cursor.execute(delete_dataset_record(user_id=user_id), (dataset_id,))
+
+        # 4. Remove the encrypted rows and key. Done after the transaction above has
+        # committed: the vault uses its own connection, which would otherwise wait on
+        # this transaction's locks.
+        if is_safe_identifier(table_name):
+            from utils import dataset_vault
+            dataset_vault.drop(table_name)
 
         system_cache.invalidate_pattern(f"dash_metrics_{user_id}")
         log_audit_event("DELETE_DATASET", f"Deleted dataset #{dataset_id} ({table_name})", user_id=user_id)
@@ -2006,6 +2100,11 @@ def export_dataset(dataset_id, format_type):
     try:
         df = run_query(f"SELECT * FROM {sanitize_identifier(table_name)}")
         df = auto_repair_dataframe_headers(df)
+        # RecordID is the storage row id the app adds at upload, not one of the user's
+        # columns. Preview, query export and analytics already drop it; the full-dataset
+        # export shipped it as an extra first column in every format.
+        if "RecordID" in df.columns:
+            df = df.drop(columns=["RecordID"])
 
         log_audit_event("EXPORT_DATASET", f"Exported dataset #{dataset_id} as {format_type.upper()}", user_id=user_id)
         trigger_ai_event(user_id, build_report_export_card(format_type))
@@ -2063,9 +2162,9 @@ def export_dataset(dataset_id, format_type):
                 mimetype="image/svg+xml",
                 headers={"Content-Disposition": build_content_disposition(f"Chart_{base_name}.svg")}
             )
-    except Exception as e:
-        print("Export Dataset Error:", e)
-        flash(f"Failed to export dataset: {str(e)}", "error")
+    except Exception:
+        logger.exception("Dataset export failed: dataset_id=%s format=%s", dataset_id, format_type)
+        flash("Sorry, the export could not be created. Please try again, or contact support if it keeps happening.", "error")
         return redirect(url_for("frontend.dashboard"))
 
 
@@ -2261,7 +2360,8 @@ def sitemap_xml():
         ("/privacy", "0.5", "yearly"),
         ("/terms", "0.5", "yearly"),
     ]
-    base_url = request.url_root.rstrip("/")
+    from utils.public_url import public_base_url
+    base_url = public_base_url()
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     for path, priority, freq in pages:
@@ -2272,7 +2372,8 @@ def sitemap_xml():
 
 @frontend.route("/robots.txt")
 def robots_txt():
-    base_url = request.url_root.rstrip("/")
+    from utils.public_url import public_base_url
+    base_url = public_base_url()
     txt = f"""User-agent: *
 Allow: /
 Disallow: /dashboard
@@ -2367,7 +2468,7 @@ def contact_submit():
     subject = (subject or "General Inquiry")[:200]
     message = message[:4000]
 
-    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+    client_ip = get_client_ip()
 
     try:
         with get_db_cursor(commit=True) as cursor:
@@ -2858,13 +2959,14 @@ def receipts():
     own UserID, with a link to view/download the same PDF invoice format the admin panel
     generates.
     """
+    from utils.invoices import invoice_number
     user_id = session.get("user_id")
     receipt_list = []
     error = None
     try:
         with get_db_cursor() as cursor:
             cursor.execute(
-                "SELECT PaymentID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate, PaymentType, RejectionReason "
+                "SELECT PaymentID, Amount, Currency, PaymentMethod, TransactionID, Status, PlanName, PaymentDate, PaymentType, RejectionReason, InvoiceNumber, ReviewedAt "
                 "FROM Payments WHERE UserID = ? ORDER BY PaymentDate DESC",
                 (user_id,)
             )
@@ -2880,10 +2982,11 @@ def receipts():
                     "plan_name": r[6],
                     "payment_date": format_12hr_datetime(r[7]),
                     "payment_type": r[8] or "New",
-                    "rejection_reason": r[9]
+                    "rejection_reason": r[9],
+                    "invoice_number": (r[10] or invoice_number(r[0], r[11] or r[7])) if r[5] == "Completed" else "",
                 })
-    except Exception as e:
-        print("Receipts Fetch Error:", e)
+    except Exception:
+        logger.exception("Receipts fetch failed for user #%s", user_id)
         error = "We couldn't load your payment receipts right now. Please try refreshing the page."
 
     return render_template("receipts.html", receipts=receipt_list, error=error)
@@ -2892,100 +2995,46 @@ def receipts():
 @frontend.route("/receipts/<int:payment_id>")
 @login_required
 def view_receipt(payment_id):
-    """
-    Same on-screen invoice layout the admin panel uses (Print + Download PDF buttons),
-    reused here for a user viewing their own receipt - ownership-checked, unlike the
-    admin route which checks admin role instead.
-    """
-    user_id = session.get("user_id")
+    """The user's own invoice (approved) or payment record (pending/rejected); ownership-checked."""
+    from utils.invoices import load_invoice
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ? AND P.UserID = ?
-            """, (payment_id, user_id))
-            p = cursor.fetchone()
-
-        if not p:
-            flash("Receipt not found.", "error")
-            return redirect(url_for("frontend.receipts"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        return render_template(
-            "admin/invoice.html", payment=payment_dict,
-            back_url=url_for("frontend.receipts"), back_label="Back to Receipts",
-            download_url=url_for("frontend.download_receipt_pdf", payment_id=p_id)
-        )
-    except Exception as e:
-        print("View Receipt Error:", e)
+        inv = load_invoice(payment_id, user_id=session.get("user_id"))
+    except Exception:
+        logger.exception("Loading receipt #%s failed", payment_id)
         flash("Failed to load receipt.", "error")
         return redirect(url_for("frontend.receipts"))
+    if not inv:
+        flash("Receipt not found.", "error")
+        return redirect(url_for("frontend.receipts"))
+    return render_template(
+        "admin/invoice.html", payment=inv,
+        back_url=url_for("frontend.receipts"), back_label="Back to Receipts",
+        download_url=url_for("frontend.download_receipt_pdf", payment_id=inv["id"]) if inv["has_invoice"] else None,
+    )
 
 
 @frontend.route("/receipts/<int:payment_id>/download")
 @login_required
 def download_receipt_pdf(payment_id):
-    """
-    Same PDF invoice generator the admin panel uses, but gated by ownership instead of
-    admin role - a user can only ever download their OWN payment's receipt, never one
-    reached by guessing/incrementing another payment_id in the URL.
-    """
-    user_id = session.get("user_id")
+    """PDF invoice for the user's OWN approved payment (never another user's id)."""
+    from utils.invoices import load_invoice, invoice_filename
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ? AND P.UserID = ?
-            """, (payment_id, user_id))
-            p = cursor.fetchone()
-
-        if not p:
+        inv = load_invoice(payment_id, user_id=session.get("user_id"))
+        if not inv:
             flash("Receipt not found.", "error")
             return redirect(url_for("frontend.receipts"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        pdf_bytes = export_invoice_to_pdf(payment_dict)
-        filename = f"Receipt_{payment_dict['txn_id']}.pdf"
-        return Response(pdf_bytes, mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
-    except Exception as e:
-        print("Download Receipt Error:", e)
-        flash("Failed to generate receipt PDF.", "error")
+        if not inv["has_invoice"]:
+            flash("Your invoice will be available here as soon as the payment is approved.", "info")
+            return redirect(url_for("frontend.receipts"))
+        pdf_bytes = export_invoice_to_pdf(inv)
+    except Exception:
+        logger.exception("Generating receipt PDF #%s failed", payment_id)
+        flash("Failed to generate the invoice PDF. Please try again later.", "error")
         return redirect(url_for("frontend.receipts"))
+    return Response(pdf_bytes, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{invoice_filename(inv)}"', "Cache-Control": "no-store"})
 
 
-# ==========================================
-# RENEW SUBSCRIPTION & UPLOAD PAYMENT RECEIPT
-# ==========================================
 @frontend.route("/subscription/renew", methods=["GET", "POST"])
 @login_required
 def renew_subscription():
@@ -3121,7 +3170,7 @@ def subscribe_newsletter():
             return jsonify({"success": False, "message": "Please enter a valid email address."}), 400
 
         # Store subscriber record in database for Super Admin visibility
-        client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(',')[0].strip()
+        client_ip = get_client_ip()
         try:
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute("SELECT SubscriberID FROM NewsletterSubscribers WHERE Email = ?", (email,))
@@ -3137,24 +3186,31 @@ def subscribe_newsletter():
                         SET Status = 'Active', IPAddress = ?, SubscribedAt = GETDATE()
                         WHERE Email = ?
                     """, (client_ip, email))
-        except Exception as db_err:
-            print("Save Newsletter Subscriber DB Notice:", db_err)
+        except Exception:
+            # Before: the error was printed and the visitor was still told "subscribed
+            # successfully", although nothing was saved.
+            logger.exception("Newsletter subscribe: could not save %s", email)
+            return jsonify({"success": False, "message": "We could not save your subscription right now. Please try again later."}), 500
 
         # Dispatch Automated Executive Welcome Email
         try:
             from auth.email_service import EmailService
             serializer = URLSafeTimedSerializer(current_app.secret_key)
             token = serializer.dumps(email, salt="newsletter-unsubscribe")
-            unsubscribe_url = url_for("frontend.unsubscribe_newsletter", token=token, _external=True)
+            from utils.public_url import external_url
+            unsubscribe_url = external_url("frontend.unsubscribe_newsletter", token=token)
 
             email_service = EmailService()
-            email_service.send_newsletter_subscription_email(to_email=email, unsubscribe_url=unsubscribe_url)
-        except Exception as mail_err:
-            print("Newsletter Welcome Email Notice:", mail_err)
+            mail_ok = bool(email_service.send_newsletter_subscription_email(to_email=email, unsubscribe_url=unsubscribe_url))
+        except Exception:
+            logger.exception("Newsletter welcome email failed for %s", email)
+            mail_ok = False
 
         return jsonify({
             "success": True,
-            "message": "Thank you! Your email has been subscribed successfully and a welcome email has been sent to your inbox."
+            "message": ("Thank you! You are subscribed and a welcome email is on its way to your inbox."
+                        if mail_ok else
+                        "Thank you! You are subscribed. We could not send the welcome email just now, but you will still receive our updates.")
         })
     except Exception as e:
         print("Subscribe Newsletter Error:", e)
@@ -3174,7 +3230,7 @@ def unsubscribe_newsletter(token):
         email = serializer.loads(token, salt="newsletter-unsubscribe", max_age=60 * 60 * 24 * 365)
     except BadSignature:
         flash("This unsubscribe link is invalid.", "error")
-        return redirect(url_for("frontend.index"))
+        return redirect(url_for("frontend.home"))
 
     try:
         with get_db_cursor(commit=True) as cursor:
@@ -3182,8 +3238,11 @@ def unsubscribe_newsletter(token):
                 "UPDATE NewsletterSubscribers SET Status = 'Unsubscribed' WHERE Email = ?",
                 (email,)
             )
-    except Exception as db_err:
-        print("Unsubscribe DB Notice:", db_err)
+    except Exception:
+        # Before: a failed UPDATE still showed "you have been unsubscribed".
+        logger.exception("Newsletter unsubscribe failed for a signed token")
+        flash("We could not process your unsubscribe request right now. Please try the link again later, or reply to any of our emails and we will remove you.", "error")
+        return redirect(url_for("frontend.home"))
 
     return render_template("unsubscribed.html", email=email)
 
@@ -3198,8 +3257,18 @@ def page_not_found(e):
 
 @frontend.app_errorhandler(500)
 def internal_server_error(e):
-    # Log the real exception server-side only - rendering str(e) straight into the page
-    # (the previous behavior) could show visitors internal detail like a SQL fragment,
-    # table/column name, or file path from whatever raised the error.
-    print("Unhandled 500 error:", e)
-    return render_template("500.html"), 500
+    # Log the real exception (with traceback) server-side only; the page never shows it.
+    # print() went to stdout without a traceback, so production 500s left nothing useful
+    # in the log. The template render is guarded: if the error came from the database,
+    # base.html's own lookups can fail too, and the visitor must still get a plain page.
+    original = getattr(e, "original_exception", None) or e
+    logging.getLogger("errors").error(
+        "Unhandled 500 on %s %s", request.method, request.path,
+        exc_info=(type(original), original, original.__traceback__),
+    )
+    try:
+        return render_template("500.html"), 500
+    except Exception:
+        logging.getLogger("errors").exception("500.html failed to render")
+        return ("<!doctype html><title>Server error</title><h1>Something went wrong</h1>"
+                "<p>We have logged the problem. Please try again shortly.</p>"), 500

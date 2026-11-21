@@ -154,7 +154,7 @@ def test_sqlite_adapter_handles_nested_top_for_admin_users(tmp_path):
         "SubscriptionEndDate TEXT)"
     )
     cursor.execute(
-        "CREATE TABLE AuditLogs (UserID INTEGER, IPAddress TEXT, CreatedAt TEXT)"
+        "CREATE TABLE AuditLogs (UserID INTEGER, Action TEXT, IPAddress TEXT, CreatedAt TEXT)"
     )
     cursor.execute(
         "INSERT INTO Users (UserID, FullName, Email, IsActive, IsVerified, Role, CreatedAt, "
@@ -247,3 +247,47 @@ def test_sqlite_user_profile_queries_insert_and_update(tmp_path):
     conn.close()
 
     assert profile == ("Updated bio", "Senior Analyst", "Updated Company")
+
+
+def test_sqlite_adds_dataset_insight_columns_for_scheduler(tmp_path):
+    """R-Phase 8: the insights scan failed with 'no such column: D.InsightsEnabled' on SQLite."""
+    db_file = str(tmp_path / "old.db")
+    raw = sqlite3.connect(db_file)
+    raw.execute(
+        "CREATE TABLE Datasets (DatasetID INTEGER PRIMARY KEY AUTOINCREMENT, UserID INTEGER NOT NULL, "
+        "DatasetName TEXT NOT NULL, OriginalFileName TEXT NOT NULL, FileType TEXT NOT NULL, "
+        "TotalRows INTEGER DEFAULT 0, TotalColumns INTEGER DEFAULT 0, StorageSizeKB REAL DEFAULT 0.0, "
+        "IsFavorite INTEGER DEFAULT 0, Tags TEXT, LastOpenedAt TEXT, "
+        "UploadDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+    )
+    raw.execute("INSERT INTO Datasets (UserID, DatasetName, OriginalFileName, FileType) VALUES (1, 'd', 'd.csv', 'csv')")
+    raw.commit()
+    raw.close()
+
+    conn = connection.SQLiteConnectionAdapter(db_file)
+    connection.init_sqlite_db(conn)
+    cur = conn.cursor()
+    cur.execute(queries.get_datasets_due_for_insight_scan())
+    assert [r[0] for r in cur.fetchall()] == [1]
+    cur.execute(queries.mark_dataset_insight_scanned(), (1,))
+    conn.commit()
+    cur.execute(queries.get_datasets_due_for_insight_scan())
+    assert cur.fetchall() == []
+    conn.close()
+
+
+def test_sqlite_schema_has_every_column_sql_server_init_adds(tmp_path):
+    import re
+    from pathlib import Path
+    src = Path(connection.__file__).read_text()
+    pairs = set(re.findall(r"OBJECT_ID\('(\w+)'\) AND name = '(\w+)'", src))
+    conn = connection.SQLiteConnectionAdapter(str(tmp_path / "fresh.db"))
+    connection.init_sqlite_db(conn)
+    cur = conn.cursor()
+    missing = []
+    for table, column in sorted(pairs):
+        cur.execute(f"PRAGMA table_info({table})")
+        if column not in {r[1] for r in cur.fetchall()}:
+            missing.append((table, column))
+    conn.close()
+    assert pairs and missing == []

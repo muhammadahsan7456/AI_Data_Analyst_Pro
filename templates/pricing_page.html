@@ -2,8 +2,8 @@
 
 {% block seo_meta %}
 <title>Pricing — AI Data Analyst Pro | Free Plan & Pro at PKR 1,499/month</title>
-<meta name="description" content="AI Data Analyst Pro Pricing: Start Free for datasets up to 1 MB, or upgrade to Pro at PKR 1,499/month for 500 MB datasets, 10M+ rows, Voice AI, and fast PPTX/PDF exports.">
-<link rel="canonical" href="{{ request.url }}">
+<meta name="description" content="AI Data Analyst Pro Pricing: Start Free for datasets up to 1 MB, or upgrade to Pro at PKR 1,499/month for 500 MB datasets, Voice AI, and fast PPTX/PDF exports.">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block breadcrumb %}
@@ -23,22 +23,22 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; max-width: 1080px; margin: 0 auto 50px; align-items: stretch;">
             
             <!-- FREE PLAN CARD -->
-            <div class="pricing-card reveal" style="border: 2px solid rgba(59, 130, 246, 0.35); text-align: left; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 32px;" data-tilt>
+            <div class="pricing-card reveal" style="border: 2px solid rgba(128, 128, 128, 0.35); text-align: left; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 32px;" data-tilt>
                 <div>
-                    <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
-                        🌱 Free Explorer
+                    <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; background: rgba(128, 128, 128, 0.15); border: 1px solid rgba(128, 128, 128, 0.3); color: var(--mono-text-3); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+                        Free Explorer
                     </div>
                     <h2 class="pricing-plan-title" style="font-size: 26px; margin-bottom: 8px;">Free Plan</h2>
                     <div class="pricing-price" style="font-size: 42px; margin-bottom: 10px;">PKR 0 <span style="font-size: 16px;">/ forever</span></div>
                     <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 24px;">Test and explore the full suite of AI analytics tools on smaller datasets with zero upfront cost or commitment.</p>
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> <strong>Up to 1 MB</strong> File Uploads</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Instant Free Registration (No Card Needed)</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> All {{ site_config.CHART_COUNT }} Visual Chart Types & Hover Tooltips</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Ask AI Natural Language & Urdu Querying</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Automated Column Profiling & Statistics</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #60a5fa;"></i> Fast Exports (Excel, CSV, PDF)</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-text-3);"></i> <strong>Up to 1 MB</strong> File Uploads</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-text-3);"></i> Instant Free Registration (No Card Needed)</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-text-3);"></i> All {{ site_config.CHART_COUNT }} Visual Chart Types & Hover Tooltips</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-text-3);"></i> Ask AI Natural Language & Urdu Querying</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-text-3);"></i> Automated Column Profiling & Statistics</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-text-3);"></i> Fast Exports (Excel, CSV, PDF)</div>
                     </div>
                 </div>
 
@@ -56,23 +56,23 @@
             </div>
 
             <!-- PRO PLAN CARD -->
-            <div class="pricing-card reveal" style="border: 2px solid rgba(245, 158, 11, 0.6); text-align: left; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 32px; background: linear-gradient(180deg, rgba(245, 158, 11, 0.04) 0%, var(--bg-card) 100%); box-shadow: 0 0 35px rgba(245, 158, 11, 0.15);" data-tilt>
+            <div class="pricing-card reveal" style="border: 2px solid rgba(245, 158, 11, 0.6); text-align: left; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 32px; background: var(--mono-subtle); box-shadow: 0 0 35px rgba(245, 158, 11, 0.15);" data-tilt>
                 <div>
                     <div class="pricing-badge" style="margin-bottom: 16px;">
-                        ⚡ RECOMMENDED FOR BUSINESS
+                        RECOMMENDED FOR BUSINESS
                     </div>
                     <h2 class="pricing-plan-title" style="font-size: 26px; margin-bottom: 8px;">Pro Plan</h2>
                     <div class="pricing-price" style="font-size: 42px; margin-bottom: 10px;">PKR 1,499 <span style="font-size: 16px;">/ month</span></div>
-                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 24px;">Heavy-duty enterprise capacity for massive business datasets up to 500 MB with 10M+ records and voice agent.</p>
+                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 24px;">Heavy-duty enterprise capacity for massive business datasets up to 500 MB and voice agent.</p>
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> <strong>Up to 500 MB</strong> Max Upload Limit</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> <strong>10,000,000+ Rows</strong> Streaming Processing</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Real-Time Bilingual Voice AI Query Agent</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Multi-Dataset Cross Analysis & Instant Joins</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Fast PPTX / PDF Presentation Exports</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> AES-256 Field-Level Encryption at Rest</div>
-                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: #fbbf24;"></i> Priority Support & Instant Activation</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> <strong>Up to 500 MB</strong> Max Upload Limit</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> <strong>10,000,000+ Rows</strong> Streaming Processing</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> Real-Time Bilingual Voice AI Query Agent</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> Multi-Dataset Cross Analysis & Instant Joins</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> Fast PPTX / PDF Presentation Exports</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> Encrypted dataset storage</div>
+                        <div class="pricing-feature-item" style="font-size: 13px;"><i class="fa-solid fa-circle-check" style="color: var(--mono-warning);"></i> Priority Support & Instant Activation</div>
                     </div>
                 </div>
 
@@ -127,7 +127,7 @@
     <div class="payment-modal-card">
         <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
         <div style="text-align: center; margin-bottom: 20px;">
-            <span class="payment-modal-badge">⚡ INSTANT LOCAL PAYMENT ACCESS</span>
+            <span class="payment-modal-badge">INSTANT LOCAL PAYMENT ACCESS</span>
             <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 10px 0 6px;">Pro Plan — PKR 1,499 / month</h2>
             <p style="font-size: 13px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Transfer via <strong>EasyPaisa</strong>, <strong>NayaPay</strong>, or <strong>SadaPay</strong>. Send payment screenshot on WhatsApp with your email for instant activation!</p>
         </div>
@@ -171,7 +171,7 @@
                 <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Email Address</label><input type="email" id="proof-email" required placeholder="you@email.com" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
                 <div><label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Payment Method</label><select id="proof-method" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"><option value="EasyPaisa">EasyPaisa</option><option value="NayaPay">NayaPay</option><option value="SadaPay">SadaPay</option></select></div>
             </div>
-            <div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:700;color:var(--accent-blue);display:flex;align-items:center;gap:6px;margin-bottom:4px;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payment Screenshot (Required)</label><input type="file" id="proof-screenshot" accept="image/*" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px dashed rgba(59,130,246,0.5);font-size:12px;box-sizing:border-box;cursor:pointer;color:var(--text-secondary);"></div>
+            <div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:700;color:var(--accent-blue);display:flex;align-items:center;gap:6px;margin-bottom:4px;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payment Screenshot (Required)</label><input type="file" id="proof-screenshot" accept="image/*" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px dashed rgba(128, 128, 128, 0.5);font-size:12px;box-sizing:border-box;cursor:pointer;color:var(--text-secondary);"></div>
             <div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px;">Transaction ID (Optional)</label><input type="text" id="proof-txnid" placeholder="TRX-XXXXXXX" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-glass);background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box;"></div>
             <button type="submit" id="btn-submit-proof" class="btn-submit-payment-proof"><i class="fa-solid fa-paper-plane"></i> Upload & Submit</button>
         </form>
@@ -193,7 +193,7 @@ function updateRoiCalc() {
 }
 window.openPaymentModal = function() { const m = document.getElementById('paymentModal'); if(m){m.style.display='flex';} };
 window.closePaymentModal = function() { const m = document.getElementById('paymentModal'); if(m){m.style.display='none';} };
-function copyNum(t,l) { navigator.clipboard && navigator.clipboard.writeText(t).then(()=>alert('✅ Copied '+l+': '+t)).catch(()=>alert('Copied '+l+': '+t)); }
+function copyNum(t,l) { navigator.clipboard && navigator.clipboard.writeText(t).then(()=>alert('Copied '+l+': '+t)).catch(()=>alert('Copied '+l+': '+t)); }
 function handlePaymentProof(e) {
     e.preventDefault();
     const btn=document.getElementById('btn-submit-proof');
@@ -207,7 +207,7 @@ function handlePaymentProof(e) {
     btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
     fetch('/submit-payment-proof',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
         btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit';
-        if(d.success){alert('✨ Payment screenshot uploaded! Admin will verify shortly.'); closePaymentModal();}
+        if(d.success){alert('Payment screenshot uploaded! Admin will verify shortly.'); closePaymentModal();}
         else alert(d.message||'Error. Please try again.');
     }).catch(()=>{btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Upload & Submit'; alert('Could not submit your payment proof. Please try again or send it on WhatsApp 03053107456.');});
 }

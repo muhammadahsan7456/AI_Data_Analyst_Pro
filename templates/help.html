@@ -4,7 +4,7 @@
 <title>Help Center & Support — AI Data Analyst Pro | FAQ & Troubleshooting</title>
 <meta name="description" content="Get help with AI Data Analyst Pro: dataset formatting, bilingual voice AI, query syntax, export generation, and security guardrails.">
 <meta name="keywords" content="AI Data Analyst Help, Support, FAQ, Voice Query Help, Dataset Ingestion Guide">
-<link rel="canonical" href="{{ request.url }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block schema_json %}
@@ -58,7 +58,7 @@
 {% if base_template == "base.html" %}
 <!-- See the identical comment in faq_page.html - this page's content is also written
      entirely against landing.css's component library, which base.html doesn't load. -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261121">
 {% endif %}
 {% endblock %}
 
@@ -105,7 +105,7 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        Click the "Voice AI" microphone button on the query page. The Web Speech API transcribes your speech in English or Roman Urdu. The system auto-corrects speech typos (such as <em>"top 5 ross" ➔ "top 5 rows"</em> or Urdu numbers <em>"paanch" ➔ "5"</em>) and runs the query in {{ site_config.TYPICAL_RESPONSE_TIME }} without reloading the page.
+                        Click the "Voice AI" microphone button on the query page. The Web Speech API transcribes your speech in English or Roman Urdu. The system auto-corrects speech typos (such as <em>"top 5 ross" "top 5 rows"</em> or Urdu numbers <em>"paanch" "5"</em>) and runs the query in {{ site_config.TYPICAL_RESPONSE_TIME }} without reloading the page.
                     </div>
                 </div>
 
@@ -172,7 +172,7 @@
      element here stayed at opacity:0 forever, rendering as a blank content area. Safe to
      load standalone: its THREE.js/VanillaTilt-dependent sections are self-guarded
      (typeof checks) and simply no-op without those libraries present. -->
-<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=2"></script>
+<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=4"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));

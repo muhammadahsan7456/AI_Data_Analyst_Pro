@@ -20,10 +20,11 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
 
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20260927">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v=20261121">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/playfair-display-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <!-- Font Awesome -->
     <!-- Non-render-blocking icon font load (see landing_base.html for the full reasoning) -->
@@ -40,9 +41,9 @@
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
             --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --accent-blue: #3b82f6;
-            --gradient-admin: linear-gradient(135deg, #ef4444 0%, #8b5cf6 50%, #3b82f6 100%);
+            --accent-purple: #737373;
+            --accent-blue: #737373;
+            --gradient-admin: var(--mono-danger);
             --shadow-admin: 0 20px 50px -10px rgba(239, 68, 68, 0.35);
         }
 
@@ -55,8 +56,8 @@
             --text-secondary: #334155;
             --text-muted: #64748b;
             --accent-red: #dc2626;
-            --accent-purple: #7c3aed;
-            --accent-blue: #2563eb;
+            --accent-purple: #737373;
+            --accent-blue: #737373;
             --shadow-admin: 0 20px 40px -10px rgba(220, 38, 38, 0.2);
         }
 
@@ -87,7 +88,7 @@
             width: 350px;
             height: 350px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, rgba(0,0,0,0) 70%);
+            background: var(--mono-subtle);
             filter: blur(60px);
             z-index: 0;
             animation: float-glow 8s infinite alternate ease-in-out;
@@ -100,7 +101,7 @@
             width: 400px;
             height: 400px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(0,0,0,0) 70%);
+            background: var(--mono-subtle);
             filter: blur(70px);
             z-index: 0;
             animation: float-glow 10s infinite alternate-reverse ease-in-out;
@@ -134,11 +135,11 @@
             width: 64px;
             height: 64px;
             border-radius: 18px;
-            background: var(--gradient-admin);
+            background: var(--mono-ink);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #ffffff;
+            color: var(--mono-on-ink);
             font-size: 30px;
             box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
             margin-bottom: 16px;
@@ -213,8 +214,8 @@
 
         .admin-btn-submit {
             width: 100%;
-            background: var(--gradient-admin);
-            color: #ffffff;
+            background: var(--mono-ink);
+            color: var(--mono-on-ink);
             border: none;
             padding: 16px;
             border-radius: 12px;
@@ -263,6 +264,8 @@
             z-index: 20;
         }
     </style>
+    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body>
 
@@ -287,7 +290,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
-        <div style="padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;{% endif %}">
+        <div style="padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; {% if category == 'error' %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--mono-danger);{% else %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: var(--mono-success);{% endif %}">
             <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
         </div>
         {% endfor %}
@@ -321,12 +324,12 @@
         </form>
 
         <div class="admin-footer-notice">
-            <i class="fa-solid fa-circle-check" style="color: var(--accent-red);"></i> 1-Hour Inactivity Expiration & AES-256 Security Logged.
+            <i class="fa-solid fa-circle-check" style="color: var(--accent-red);"></i> 1-Hour Inactivity Expiration & Security Logged.
         </div>
     </div>
 
     <!-- Unified Theme Manager (shared with the main app - one localStorage key, no drift) -->
-    <script src="{{ url_for('static', filename='js/theme.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}?v=2"></script>
     <script src="{{ url_for('static', filename='js/page-progress.js') }}?v=2"></script>
     <script>
         document.querySelectorAll('.admin-login-toggle-pwd').forEach(function (btn) {

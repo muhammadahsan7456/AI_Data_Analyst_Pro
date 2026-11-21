@@ -3,7 +3,7 @@
 {% block seo_meta %}
 <title>FAQ — AI Data Analyst Pro | Frequently Asked Questions</title>
 <meta name="description" content="Get answers to common questions about AI Data Analyst Pro: data security, file formats, voice AI querying, export options, pricing, and enterprise compliance.">
-<link rel="canonical" href="{{ request.url }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block schema_json %}
@@ -15,12 +15,12 @@
     {
       "@type": "Question",
       "name": "How does AI Data Analyst Pro secure dataset files?",
-      "acceptedAnswer": {"@type": "Answer", "text": "All string and sensitive text columns are encrypted at rest using AES-256 Fernet Encryption before storage in SQL Server tables. Row-level user isolation guarantees dataset records can only be queried by their owner."}
+      "acceptedAnswer": {"@type": "Answer", "text": "Every dataset you upload is stored encrypted with AES-256-GCM, using its own key. The database, its backups and the admin console only ever hold ciphertext. The server must decrypt a dataset in memory to answer your questions, so anyone who controls both the server and its master key could technically read it; the master key is kept outside the database and backed up separately. Row-level user isolation guarantees dataset records can only be queried by their owner."}
     },
     {
       "@type": "Question",
       "name": "What dataset file formats are supported?",
-      "acceptedAnswer": {"@type": "Answer", "text": "We support CSV, TSV, Excel (.xlsx, .xls), JSON, XML, Parquet, Feather, and Text files up to 500MB per upload with streaming chunking for 10M+ row scale."}
+      "acceptedAnswer": {"@type": "Answer", "text": "We support CSV, TSV, Excel (.xlsx, .xls), JSON, XML, Parquet, Feather, and Text files up to 500MB per upload with streaming chunking for large files."}
     },
     {
       "@type": "Question",
@@ -30,7 +30,7 @@
     {
       "@type": "Question",
       "name": "What is the pricing?",
-      "acceptedAnswer": {"@type": "Answer", "text": "AI Data Analyst Pro offers a Free Plan (PKR 0 forever) for datasets up to 1 MB with full dashboard and analytics access. For larger datasets up to 500 MB (10M+ rows), upgrade to the Pro Plan at PKR 1,499 per month."}
+      "acceptedAnswer": {"@type": "Answer", "text": "AI Data Analyst Pro offers a Free Plan (PKR 0 forever) for datasets up to 1 MB with full dashboard and analytics access. For larger datasets up to 500 MB, upgrade to the Pro Plan at PKR 1,499 per month."}
     },
     {
       "@type": "Question",
@@ -57,7 +57,7 @@
      landing.css, and nothing in style.css defines them), reported as "broken formatting".
      Loaded as an addition after style.css, not a replacement, so the dashboard shell itself
      (sidebar, header) is untouched - only this page's own content classes are affected. -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261015_v1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=20261121">
 {% endif %}
 {% endblock %}
 
@@ -77,7 +77,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    All string and sensitive text columns are encrypted at rest using <strong>AES-256 Fernet Encryption</strong> before storage in SQL Server tables. Row-level user isolation guarantees that dataset records can only be queried by their owner. Sessions automatically expire after 1 hour of inactivity. Comprehensive audit logs track all activities for compliance.
+                    Every dataset you upload is stored encrypted with <strong>AES-256-GCM, using its own key</strong>. The database, its backups and the admin console only ever hold ciphertext. The server must decrypt a dataset in memory to answer your questions, so anyone who controls both the server and its master key could technically read it; the master key is kept outside the database and backed up separately. Row-level user isolation guarantees that dataset records can only be queried by their owner. Sessions automatically expire after 1 hour of inactivity. Comprehensive audit logs track all activities for compliance.
                 </div>
             </div>
 
@@ -144,7 +144,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    AI Data Analyst Pro offers a <strong>Free Plan (PKR 0 forever)</strong> allowing instant registration and analysis for datasets up to 1 MB. For heavy enterprise workloads up to 500 MB (10M+ rows), upgrade to the <strong>Pro Plan at PKR 1,499/month</strong>. Payment is via <strong>Easypaisa</strong>, <strong>Nayapay</strong>, or <strong>SadaPay</strong> (Account: 03053107456 — Muhammad Ahsan). Send payment proof screenshot on WhatsApp or upload online for instant Pro activation. <a href="{{ url_for('frontend.pricing_page') }}" style="color: var(--accent-blue); font-weight: 600;">View pricing details →</a>
+                    AI Data Analyst Pro offers a <strong>Free Plan (PKR 0 forever)</strong> allowing instant registration and analysis for datasets up to 1 MB. For heavy enterprise workloads up to 500 MB, upgrade to the <strong>Pro Plan at PKR 1,499/month</strong>. Payment is via <strong>Easypaisa</strong>, <strong>Nayapay</strong>, or <strong>SadaPay</strong> (Account: 03053107456 — Muhammad Ahsan). Send payment proof screenshot on WhatsApp or upload online for instant Pro activation. <a href="{{ url_for('frontend.pricing_page') }}" style="color: var(--accent-blue); font-weight: 600;">View pricing details →</a>
                 </div>
             </div>
 
@@ -185,7 +185,7 @@
 <!-- See the identical comment in help.html's extra_js block - this page's .reveal
      elements need animations.js's scroll observer (not loaded by base.html), and are
      revealed immediately here too so they're visible without waiting on a scroll event. -->
-<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=2"></script>
+<script defer src="{{ url_for('static', filename='js/animations.js') }}?v=4"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));

@@ -2,9 +2,9 @@
 
 {% block seo_meta %}
 <title>Features — AI Data Analyst Pro | Enterprise AI Analytics Platform Capabilities</title>
-<meta name="description" content="Explore all features of AI Data Analyst Pro: 10M+ row processing, AES-256 encryption, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
-<meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, AES-256 Encryption, Multi-Dataset Join, PowerPoint Export, Data Visualization">
-<link rel="canonical" href="{{ request.url }}">
+<meta name="description" content="Explore all features of AI Data Analyst Pro: datasets up to 500 MB, encrypted dataset storage, bilingual voice AI, multi-dataset joins, automated PPTX/PDF exports, and {{ site_config.CHART_COUNT }} chart types.">
+<meta name="keywords" content="AI Data Features, Enterprise Analytics, Voice AI SQL, Encrypted dataset storage, Multi-Dataset Join, PowerPoint Export, Data Visualization">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block schema_json %}
@@ -17,8 +17,8 @@
   "breadcrumb": {
     "@type": "BreadcrumbList",
     "itemListElement": [
-      {"@type": "ListItem", "position": 1, "name": "Home", "item": "{{ request.url_root }}"},
-      {"@type": "ListItem", "position": 2, "name": "Features", "item": "{{ request.url }}"}
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "{{ public_root }}"},
+      {"@type": "ListItem", "position": 2, "name": "Features", "item": "{{ canonical_url }}"}
     ]
   }
 }
@@ -57,54 +57,54 @@
         <div class="feature-grid stagger-children">
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper"><i class="fa-solid fa-database"></i></div>
-                <h3 class="feature-card-title">10M+ Enterprise Scale Ingestion</h3>
+                <h3 class="feature-card-title">Streaming ingestion up to 500 MB</h3>
                 <p class="feature-card-desc">High-performance streaming chunking (chunksize=100k) and dynamic memory downcasting handle multi-gigabyte CSV, Excel, JSON, XML, Parquet, and Feather files with zero memory bottlenecks.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);"><i class="fa-solid fa-lock"></i></div>
-                <h3 class="feature-card-title">AES-256 Field Encryption at Rest</h3>
-                <p class="feature-card-desc">Bank-grade Fernet encryption protects all sensitive text/string columns stored in SQL Server tables. Authorized user sessions decrypt data transparently in real-time.</p>
+                <div class="feature-icon-wrapper" style="background: var(--mono-ink);"><i class="fa-solid fa-lock"></i></div>
+                <h3 class="feature-card-title">Encrypted dataset storage</h3>
+                <p class="feature-card-desc">Every uploaded dataset is stored encrypted (AES-256-GCM, one key per dataset). Rows are decrypted only in server memory, only to answer your own questions.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4, #0e7490);"><i class="fa-solid fa-bolt"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-ink);"><i class="fa-solid fa-bolt"></i></div>
                 <h3 class="feature-card-title">Fast Local T-SQL Pattern Engine</h3>
                 <p class="feature-card-desc">Many common data requests are answered by a local T-SQL pattern engine in milliseconds, without an external AI call, avoiding network delays.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #047857);"><i class="fa-solid fa-microphone"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-success);"><i class="fa-solid fa-microphone"></i></div>
                 <h3 class="feature-card-title">Bilingual Voice AI Querying</h3>
                 <p class="feature-card-desc">Ask questions via voice or text in English or Roman Urdu. Web Speech API transcription with automatic phonetic normalization (e.g., "top 5 ross" → "top 5 rows").</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-diagram-project"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-warning);"><i class="fa-solid fa-diagram-project"></i></div>
                 <h3 class="feature-card-title">Multi-Dataset Cross Analysis & JOIN</h3>
                 <p class="feature-card-desc">Perform instant INNER JOIN matching across multiple uploaded datasets. Auto-detect matching columns and merge data for cross-file metrics discovery.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ef4444, #b91c1c);"><i class="fa-solid fa-chart-pie"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-danger);"><i class="fa-solid fa-chart-pie"></i></div>
                 <h3 class="feature-card-title">Automated AI Chart Generation</h3>
                 <p class="feature-card-desc">AI automatically selects the best chart type ({{ site_config.SUPPORTED_CHART_TYPES|join(', ') }}) and generates interactive Plotly visualizations.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #ec4899, #be185d);"><i class="fa-solid fa-file-powerpoint"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-ink);"><i class="fa-solid fa-file-powerpoint"></i></div>
                 <h3 class="feature-card-title">1-Click Executive Report Exports</h3>
                 <p class="feature-card-desc">Generate professional PowerPoint (PPTX), PDF, Word (DOCX), Excel (XLSX), CSV, and SVG chart exports — {{ site_config.EXPORT_TYPICAL_TIME }} — with AI executive takeaways included.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #14b8a6, #0f766e);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-ink);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                 <h3 class="feature-card-title">AI Forecasting & Predictions</h3>
                 <p class="feature-card-desc">Generate automated time-series forecasts and AI-driven business predictions from your dataset columns with confidence intervals and trend analysis.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
-                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #a855f7, #7e22ce);"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="feature-icon-wrapper" style="background: var(--mono-ink);"><i class="fa-solid fa-shield-halved"></i></div>
                 <h3 class="feature-card-title">Row-Level Data Isolation</h3>
                 <p class="feature-card-desc">Strict SQL Server UserID filtering isolates every uploaded dataset and query result to its owner. Zero cross-tenant data leakage guaranteed.</p>
             </div>
@@ -129,12 +129,12 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;" class="stagger-children">
             {% set formats = [
                 ('CSV (.csv)', 'fa-file-csv', '#10b981'),
-                ('TSV (.tsv)', 'fa-table-cells', '#06b6d4'),
+                ('TSV (.tsv)', 'fa-table-cells', '#737373'),
                 ('Excel (.xlsx)', 'fa-file-excel', '#059669'),
                 ('Excel (.xls)', 'fa-file-circle-plus', '#d97706'),
-                ('JSON (.json)', 'fa-file-code', '#8b5cf6'),
-                ('XML (.xml)', 'fa-code', '#a855f7'),
-                ('Parquet', 'fa-database', '#3b82f6'),
+                ('JSON (.json)', 'fa-file-code', '#737373'),
+                ('XML (.xml)', 'fa-code', '#737373'),
+                ('Parquet', 'fa-database', '#737373'),
                 ('Feather', 'fa-feather-pointed', '#f59e0b'),
                 ('Text (.txt)', 'fa-file-lines', '#ef4444')
             ] %}

@@ -1,3 +1,4 @@
+import os
 import time
 import secrets
 import math
@@ -10,11 +11,18 @@ from admin.decorators import admin_required
 from database.connection import get_db_cursor
 from utils.geoip import get_location_from_ip
 from database.queries import (
+    get_admin_otp_state,
+    set_admin_otp_challenge,
+    increment_admin_otp_failures,
+    lock_admin_otp,
+    clear_admin_otp_state,
+    clear_admin_otp_challenge,
     get_admin_kpis,
     get_all_users_admin,
     search_users_admin,
     count_users_admin,
     get_users_admin_filter_params,
+    USERS_ADMIN_STATUSES,
     get_expiring_users_admin,
     update_user_status_admin,
     update_user_role_admin,
@@ -53,7 +61,7 @@ from database.queries import (
     get_user_by_id,
     update_user_password
 )
-from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength, is_lockout_active
+from auth.security import log_audit_event, verify_password, generate_secure_token, log_login_attempt, get_client_ip, hash_password, validate_password_strength, is_lockout_active, otp_digest, otp_matches
 from utils.helpers import format_12hr_datetime
 
 logger = logging.getLogger(__name__)
@@ -88,6 +96,73 @@ def get_user_initials(name_str, email_str):
 
 
 # ==========================================
+# SUPER ADMIN EMAIL-OTP: SERVER-SIDE STATE
+# ==========================================
+# The wrong-code counter, the 15-minute lockout and the digest of the live code all live
+# on the admin's Users row, so a replayed (older) session cookie cannot reset them; the
+# cookie only says which admin is mid-login.
+ADMIN_OTP_PURPOSE = "admin-otp"
+ADMIN_OTP_MAX_ATTEMPTS = 5
+ADMIN_OTP_LOCKOUT = timedelta(minutes=15)
+ADMIN_OTP_TTL = timedelta(minutes=10)
+
+
+def _now():
+    """Single clock for the admin OTP flow (tests patch this to move time)."""
+    return datetime.now()
+
+
+def _db_ts(dt):
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _parse_ts(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        return datetime.fromisoformat(str(value).strip())
+    except ValueError:
+        return None
+
+
+def _load_admin_otp_state(user_id):
+    with get_db_cursor() as cursor:
+        cursor.execute(get_admin_otp_state(), (user_id,))
+        row = cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "hash": row[0],
+        "issued_at": _parse_ts(row[1]),
+        "failed": int(row[2] or 0),
+        "locked_until": _parse_ts(row[3]),
+    }
+
+
+def _admin_otp_lock_message(locked_until):
+    minutes = max(1, math.ceil((locked_until - _now()).total_seconds() / 60))
+    return (
+        "For your security, verification is paused after 5 incorrect codes. "
+        f"Please wait about {minutes} minute{'s' if minutes != 1 else ''} and sign in again."
+    )
+
+
+def _admin_otp_active_lock(user_id, state):
+    """Returns the lockout end if the lock is still running. An expired lock is cleared
+    (counter back to 0) so the admin starts fresh with a new sign-in."""
+    if not state or not state["locked_until"]:
+        return None
+    if state["locked_until"] > _now():
+        return state["locked_until"]
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(clear_admin_otp_state(), (user_id,))
+    state.update({"hash": None, "issued_at": None, "failed": 0, "locked_until": None})
+    return None
+
+
+# ==========================================
 # DEDICATED SUPER ADMIN LOGIN GATEWAY
 # ==========================================
 @admin_bp.route("/login", methods=["GET", "POST"])
@@ -96,7 +171,7 @@ def admin_login():
     Dedicated Super Admin Authentication Gateway.
     Separated from standard user authentication portal.
     """
-    if session.get("admin_user_id") or (session.get("user_id") and session.get("user_role") in ["SuperAdmin", "Admin"]):
+    if session.get("admin_user_id"):
         return redirect(url_for("admin.dashboard"))
 
     if request.method == "POST":
@@ -150,6 +225,15 @@ def admin_login():
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(reset_failed_login(), (user_id,))
 
+        # A running OTP lockout blocks issuing a new code too - otherwise knowing the
+        # password would buy a fresh set of 5 guesses per sign-in.
+        otp_state = _load_admin_otp_state(user_id)
+        locked_until = _admin_otp_active_lock(user_id, otp_state)
+        if locked_until:
+            log_audit_event("ADMIN_OTP_LOCKED", f"Sign-in blocked during OTP lockout for {email}", user_id=user_id)
+            flash(_admin_otp_lock_message(locked_until), "error")
+            return render_template("admin/login.html")
+
         # Password correct - now require a 6-digit email OTP (second factor) before
         # establishing the actual admin session, so a leaked/guessed password alone
         # can no longer grant Super Admin access.
@@ -161,12 +245,22 @@ def admin_login():
         # network issue) must stop the login attempt here with a clear error, not silently
         # redirect the admin to a code-entry page that will wait forever for a code that
         # was never actually delivered.
+        # Stored before the email goes out, so a delivered code is always checkable.
+        # The code's digest and issue time are stored server-side; the cookie holds no
+        # code, digest or attempt count. Issuing a new code does NOT reset the failure
+        # counter - only a successful verification or an expired lockout does.
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                set_admin_otp_challenge(),
+                (otp_digest(ADMIN_OTP_PURPOSE, user_id, otp_code), _db_ts(_now()), user_id),
+            )
+
         from auth.email_service import EmailService
         email_sent = EmailService().send_admin_login_otp_email(
             to_email=email,
             user_name=full_name or "Super Admin",
             otp_code=otp_code,
-            ip_address=request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+            ip_address=get_client_ip()
         )
 
         if not email_sent:
@@ -179,9 +273,6 @@ def admin_login():
             "full_name": full_name or "Super Admin",
             "email": email,
             "role": role,
-            "otp_code": otp_code,
-            "issued_at": datetime.now().isoformat(),
-            "attempts": 0,
             "next": request.args.get("next") or request.form.get("next")
         }
 
@@ -195,8 +286,8 @@ def admin_login():
 def admin_verify_otp():
     """
     Second-factor step of Super Admin login: verifies the 6-digit email code issued by
-    admin_login() before the actual admin session is established. Mirrors the same
-    expiry/attempt-limit pattern used for the regular signup OTP flow (auth/routes.py).
+    admin_login() before the actual admin session is established. Code digest, 10-minute
+    expiry, 5-wrong-codes counter and 15-minute lockout are all read from the database.
     """
     pending = session.get("pending_admin_otp")
     if not pending:
@@ -205,28 +296,28 @@ def admin_verify_otp():
 
     if request.method == "POST":
         input_code = request.form.get("otp_code", "").strip()
-        expected_code = str(pending.get("otp_code", "")).strip()
         user_id = pending.get("user_id")
 
-        try:
-            issued_at = datetime.fromisoformat(pending.get("issued_at"))
-            expired = (datetime.now() - issued_at).total_seconds() > 600
-        except Exception:
-            expired = True
-
-        if expired:
+        state = _load_admin_otp_state(user_id)
+        locked_until = _admin_otp_active_lock(user_id, state)
+        if locked_until:
             session.pop("pending_admin_otp", None)
+            log_audit_event("ADMIN_OTP_LOCKED", f"OTP entry refused during lockout for {pending.get('email')}", user_id=user_id)
+            flash(_admin_otp_lock_message(locked_until), "error")
+            return redirect(url_for("admin.admin_login"))
+
+        if not state or not state["hash"] or not state["issued_at"] or (_now() - state["issued_at"]) > ADMIN_OTP_TTL:
+            session.pop("pending_admin_otp", None)
+            if state and state["hash"]:
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(clear_admin_otp_challenge(), (user_id,))
             flash("Verification code expired. Please log in again to receive a new code.", "error")
             return redirect(url_for("admin.admin_login"))
 
-        attempts = pending.get("attempts", 0)
-        if attempts >= 5:
-            session.pop("pending_admin_otp", None)
-            log_audit_event("ADMIN_OTP_MAX_ATTEMPTS", f"Max OTP attempts exceeded for {pending.get('email')}")
-            flash("Maximum verification attempts exceeded. Please log in again to receive a new code.", "error")
-            return redirect(url_for("admin.admin_login"))
-
-        if input_code == expected_code:
+        if otp_matches(state["hash"], ADMIN_OTP_PURPOSE, user_id, input_code):
+            # Success: the code is single-use and the counter/lockout start over.
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(clear_admin_otp_state(), (user_id,))
             session.pop("pending_admin_otp", None)
             session.permanent = True
             session["admin_user_id"] = user_id
@@ -264,25 +355,28 @@ def admin_verify_otp():
                         create_user_session(),
                         (user_id, session["admin_session_token"], get_client_ip(), request.headers.get("User-Agent", "")[:500])
                     )
-            except Exception as e:
-                print("Create Admin Session Error:", e)
+            except Exception:
+                logger.exception("Could not store the admin session row for user_id=%s", user_id)
             log_audit_event("ADMIN_LOGIN_SUCCESS", f"Super Admin '{pending.get('full_name')}' logged into Executive Console (2FA verified)", user_id=user_id)
-            flash(f"👑 Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
+            flash(f"Welcome Super Admin {escape(pending.get('full_name') or '')}! Executive Console Unlocked.", "success")
             return redirect(pending.get("next") or url_for("admin.dashboard"))
         else:
-            attempts += 1
-            remaining = 5 - attempts
-            log_audit_event("ADMIN_OTP_FAILED", f"Invalid OTP attempt for {pending.get('email')} ({remaining} remaining)")
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(increment_admin_otp_failures(), (user_id,))
+            failed = (_load_admin_otp_state(user_id) or {}).get("failed", state["failed"] + 1)
+            remaining = ADMIN_OTP_MAX_ATTEMPTS - failed
+            log_audit_event("ADMIN_OTP_FAILED", f"Invalid OTP attempt for {pending.get('email')} ({max(remaining, 0)} remaining)", user_id=user_id)
 
             if remaining <= 0:
+                locked_until = _now() + ADMIN_OTP_LOCKOUT
+                with get_db_cursor(commit=True) as cursor:
+                    cursor.execute(lock_admin_otp(), (_db_ts(locked_until), user_id))
                 session.pop("pending_admin_otp", None)
-                log_audit_event("ADMIN_OTP_MAX_ATTEMPTS", f"Max OTP attempts exceeded for {pending.get('email')}")
-                flash("Maximum verification attempts exceeded. Please log in again to receive a new code.", "error")
+                log_audit_event("ADMIN_OTP_MAX_ATTEMPTS", f"5 wrong OTP codes for {pending.get('email')}; locked for 15 minutes", user_id=user_id)
+                flash(_admin_otp_lock_message(locked_until), "error")
                 return redirect(url_for("admin.admin_login"))
 
-            pending["attempts"] = attempts
-            session["pending_admin_otp"] = pending
-            flash(f"❌ Invalid verification code. {remaining} attempt(s) remaining.", "error")
+            flash(f"Invalid verification code. {remaining} attempt(s) remaining.", "error")
 
     return render_template("admin/verify_otp.html", email=pending.get("email"))
 
@@ -312,7 +406,7 @@ def admin_logout():
         for k in ["user_id", "user_name", "user_email", "user_role", "last_activity", "session_token"]:
             session.pop(k, None)
 
-    flash("👋 Super Admin logged out successfully.", "info")
+    flash("Super Admin logged out successfully.", "info")
     return redirect(url_for("admin.admin_login"))
 
 
@@ -439,8 +533,9 @@ def dashboard():
             cursor.execute(get_monthly_signups_trend(), (trend_start, trend_end))
             signups_trend = [{"month": r[0], "signups": r[1] or 0} for r in cursor.fetchall()]
 
-    except Exception as e:
-        print("Admin Dashboard Query Error:", e)
+    except Exception:
+        logger.exception("Admin dashboard query failed")
+        flash("Some dashboard figures could not be loaded (database error). The numbers shown may be incomplete.", "error")
 
     announcement = fetch_site_announcement()
     return render_template(
@@ -470,19 +565,36 @@ def manage_users():
     is what this route used to do and would not have scaled as the Users table grows.
     """
     users_list = []
-    search_query = request.args.get("q", "").strip().lower()
+    search_query = request.args.get("q", "").strip().lower()[:100]
     role_filter = request.args.get("role", "").strip()
+    if role_filter not in ("", "SuperAdmin", "Analyst", "User"):
+        role_filter = ""
     status_filter = request.args.get("status", "").strip()
+    if status_filter not in ("",) + USERS_ADMIN_STATUSES:
+        status_filter = ""
+    signup_filter = request.args.get("signup", "").strip()
+    if signup_filter not in ("", "google", "form"):
+        signup_filter = ""
+    verified_filter = request.args.get("verified", "").strip()
+    if verified_filter not in ("", "0", "1"):
+        verified_filter = ""
+    joined_days = request.args.get("joined", "").strip()
+    joined_days = joined_days if joined_days in ("1", "7", "30", "90") else ""
+    sort = request.args.get("sort", "newest").strip()
+    if sort not in ("newest", "oldest", "name", "attention"):
+        sort = "newest"
     page = request.args.get("page", 1, type=int) or 1
-    per_page = 20
+    per_page = request.args.get("per_page", 20, type=int) or 20
+    per_page = per_page if per_page in (20, 50, 100) else 20
+    filter_args = dict(signup_filter=signup_filter, verified_filter=verified_filter, joined_days=joined_days or None)
 
     total_found = 0
     total_pages = 1
     try:
-        params = get_users_admin_filter_params(search_query, role_filter, status_filter)
+        params = get_users_admin_filter_params(search_query, role_filter, status_filter, **filter_args)
 
         with get_db_cursor() as cursor:
-            cursor.execute(count_users_admin(search_query, role_filter, status_filter), tuple(params))
+            cursor.execute(count_users_admin(search_query, role_filter, status_filter, **filter_args), tuple(params))
             total_found = cursor.fetchone()[0] or 0
 
         total_pages = max(1, math.ceil(total_found / per_page))
@@ -490,7 +602,7 @@ def manage_users():
 
         with get_db_cursor() as cursor:
             cursor.execute(
-                search_users_admin(search_query, role_filter, status_filter, page=page, per_page=per_page),
+                search_users_admin(search_query, role_filter, status_filter, page=page, per_page=per_page, sort=sort, **filter_args),
                 tuple(params)
             )
             raw_users = cursor.fetchall() or []
@@ -508,8 +620,9 @@ def manage_users():
             phone, country, city, profile_img = u[6], u[7], u[8], u[9]
             is_active, is_verified, role, created_at = u[10], u[11], u[12], u[13]
             last_ip = u[14] if len(u) > 14 else "127.0.0.1"
-            sub_status = u[15] if len(u) > 15 else "active"
+            sub_status = u[15] if len(u) > 15 else "free"
             sub_end = u[16] if len(u) > 16 else None
+            uses_google = bool(u[17]) if len(u) > 17 else False
 
             sub_end_formatted = format_12hr_datetime(sub_end) if sub_end else "N/A"
             usage = storage_by_user.get(u_id, {"dataset_count": 0, "storage_kb": 0.0, "total_rows": 0})
@@ -539,11 +652,12 @@ def manage_users():
                 "created_at": format_12hr_datetime(created_at),
                 "dataset_count": usage["dataset_count"],
                 "storage_display": storage_display,
-                "total_rows": usage["total_rows"]
+                "total_rows": usage["total_rows"],
+                "uses_google": uses_google,
             })
-    except Exception as e:
-        print("Admin Users Fetch Error:", e)
-        flash(f"Error fetching users: {str(e)}", "error")
+    except Exception:
+        logger.exception("Admin users list query failed")
+        flash("The user list could not be loaded. The error was logged on the server.", "error")
 
     return render_template(
         "admin/users.html",
@@ -551,6 +665,11 @@ def manage_users():
         search_query=search_query,
         role_filter=role_filter,
         status_filter=status_filter,
+        signup_filter=signup_filter,
+        verified_filter=verified_filter,
+        joined_filter=joined_days,
+        sort=sort,
+        per_page=per_page,
         page=page,
         total_pages=total_pages,
         total_found=total_found
@@ -746,7 +865,9 @@ def delete_user(user_id):
                     try:
                         cursor.execute(f"IF OBJECT_ID('{t_candidate}', 'U') IS NOT NULL DROP TABLE [{t_candidate}]")
                     except Exception:
-                        pass
+                        logger.warning("Delete user %s: could not drop legacy table %s", user_id, t_candidate, exc_info=True)
+                    from utils import dataset_vault
+                    dataset_vault.drop(t_candidate, cursor=cursor)
 
             # 2. Delete child records to satisfy Foreign Key constraints
             try:
@@ -775,11 +896,73 @@ def delete_user(user_id):
 
         log_audit_event("ADMIN_USER_DELETED", f"Deleted user #{user_id} ({u_row[0]} <{u_row[1]}>) and purged datasets & history.", user_id=admin_id)
         flash(f"User account '{escape(u_row[0])}' and all associated datasets & history records deleted successfully.", "success")
-    except Exception as e:
-        print("Delete User Error:", e)
-        flash(f"Failed to delete user: {str(e)}", "error")
+    except Exception:
+        logger.exception("Admin delete user failed: user_id=%s", user_id)
+        flash("The user could not be deleted (database error). Nothing was reported as deleted; check the server log.", "error")
 
     return redirect(url_for("admin.manage_users"))
+
+
+@admin_bp.route("/datasets")
+@admin_required
+def manage_datasets():
+    """
+    Dataset metadata for the Super Admin (R-Phase 9.3): name, owner, size, rows,
+    columns, upload date and whether its rows are in the encrypted vault. This page and
+    every other admin view/export NEVER read dataset rows: no run_query, no vault
+    decrypt - only the Datasets / Users / DatasetVaultMeta bookkeeping columns.
+    Filtered and paginated in the database.
+    """
+    q = request.args.get("q", "").strip().lower()[:100]
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    per_page = 25
+    where, params = "", []
+    if q:
+        where = "WHERE LOWER(D.OriginalFileName) LIKE ? OR LOWER(U.Email) LIKE ? OR LOWER(D.DatasetName) LIKE ?"
+        like = f"%{q}%"
+        params = [like, like, like]
+    rows, total, total_rows_all, total_kb_all = [], 0, 0, 0.0
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                f"SELECT COUNT(*), SUM(D.TotalRows), SUM(D.StorageSizeKB) FROM Datasets D LEFT JOIN Users U ON U.UserID = D.UserID {where}",
+                tuple(params),
+            )
+            r = cursor.fetchone() or (0, 0, 0)
+            total, total_rows_all, total_kb_all = int(r[0] or 0), int(r[1] or 0), float(r[2] or 0)
+            total_pages = max(1, math.ceil(total / per_page))
+            page = min(page, total_pages)
+            cursor.execute(
+                f"""SELECT D.DatasetID, D.DatasetName, D.OriginalFileName, D.FileType, D.TotalRows,
+                           D.TotalColumns, D.StorageSizeKB, D.UploadDate, U.UserID, U.Email, U.FullName
+                    FROM Datasets D LEFT JOIN Users U ON U.UserID = D.UserID
+                    {where}
+                    ORDER BY D.UploadDate DESC, D.DatasetID DESC
+                    OFFSET {(page - 1) * per_page} ROWS FETCH NEXT {per_page} ROWS ONLY""",
+                tuple(params),
+            )
+            raw = cursor.fetchall() or []
+            vaulted = set()
+            try:
+                cursor.execute("SELECT TableName FROM DatasetVaultMeta")
+                vaulted = {str(x[0]).lower() for x in cursor.fetchall() or []}
+            except Exception:
+                vaulted = set()  # vault table not created yet (no encrypted upload so far)
+        for d in raw:
+            rows.append({
+                "id": d[0], "table": d[1], "file": d[2], "type": d[3], "rows": int(d[4] or 0),
+                "cols": int(d[5] or 0), "size_kb": float(d[6] or 0), "uploaded": format_12hr_datetime(d[7]),
+                "owner_id": d[8], "owner_email": d[9] or "(deleted user)", "owner_name": d[10] or "",
+                "encrypted": str(d[1] or "").lower() in vaulted,
+            })
+    except Exception:
+        logger.exception("Admin dataset list failed.")
+        flash("Could not load the dataset list. Details are in the server log.", "error")
+        total_pages = 1
+    return render_template(
+        "admin/datasets.html", datasets=rows, total=total, page=page, total_pages=total_pages,
+        search_query=q, total_rows_all=total_rows_all, total_kb_all=total_kb_all,
+    )
 
 
 @admin_bp.route("/payments")
@@ -937,90 +1120,42 @@ def export_payments_admin(format_type):
 @admin_bp.route("/payment/invoice/<int:payment_id>")
 @admin_required
 def view_payment_invoice(payment_id):
-    """
-    Render Printable Billing Invoice Receipt for a payment record.
-    """
+    """On-screen numbered invoice (approved payments) or payment record (others)."""
+    from utils.invoices import load_invoice
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ?
-            """, (payment_id,))
-            p = cursor.fetchone()
-
-        if not p:
-            flash("Invoice not found.", "error")
-            return redirect(url_for("admin.manage_payments"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        return render_template("admin/invoice.html", payment=payment_dict)
-    except Exception as e:
-        print("View Invoice Error:", e)
-        flash(f"Failed to load invoice: {str(e)}", "error")
+        inv = load_invoice(payment_id)
+    except Exception:
+        logger.exception("Loading invoice for payment #%s failed", payment_id)
+        flash("The invoice could not be loaded. The error was logged on the server.", "error")
         return redirect(url_for("admin.manage_payments"))
+    if not inv:
+        flash("Invoice not found.", "error")
+        return redirect(url_for("admin.manage_payments"))
+    return render_template("admin/invoice.html", payment=inv)
 
 
 @admin_bp.route("/payment/invoice/<int:payment_id>/download")
 @admin_required
 def download_payment_invoice(payment_id):
-    """
-    Generate a real PDF file for this invoice and send it as a download - separate from
-    the on-screen invoice page's Print button, which only opens the browser's print
-    dialog and never actually produces a saved file.
-    """
+    """PDF invoice download for an approved payment (any user's), for the Super Admin."""
     from utils.exporters import export_invoice_to_pdf
-
+    from utils.invoices import load_invoice, invoice_filename
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.Currency, P.PaymentMethod, P.TransactionID, P.Status, P.PlanName, P.PaymentDate
-                FROM Payments P
-                LEFT JOIN Users U ON P.UserID = U.UserID
-                WHERE P.PaymentID = ?
-            """, (payment_id,))
-            p = cursor.fetchone()
-
-        if not p:
+        inv = load_invoice(payment_id)
+        if not inv:
             flash("Invoice not found.", "error")
             return redirect(url_for("admin.manage_payments"))
-
-        p_id, u_id, full_name, email, amount, currency, method, txn_id, status, plan, p_date = p
-        payment_dict = {
-            "id": p_id,
-            "user_id": u_id,
-            "user_name": full_name or "Valued Customer",
-            "email": email or "N/A",
-            "amount": float(amount or 0.0),
-            "currency": currency or "PKR",
-            "payment_method": method or "Easypaisa",
-            "txn_id": txn_id or f"TXN_{p_id}9021",
-            "status": status or "Completed",
-            "plan_name": plan or "Pro Plan (PKR 1,499/mo)",
-            "payment_date": format_12hr_datetime(p_date)
-        }
-        pdf_bytes = export_invoice_to_pdf(payment_dict)
-        filename = f"Invoice_{payment_dict['txn_id']}.pdf"
-        log_audit_event("ADMIN_DOWNLOAD_INVOICE", f"Downloaded invoice PDF for PaymentID {payment_id}", user_id=session.get("admin_user_id") or session.get("user_id"))
-        return Response(pdf_bytes, mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
-    except Exception as e:
-        print("Download Invoice Error:", e)
-        flash(f"Failed to generate invoice PDF: {str(e)}", "error")
+        if not inv["has_invoice"]:
+            flash("An invoice is issued only after the payment is approved.", "warning")
+            return redirect(url_for("admin.view_payment_invoice", payment_id=payment_id))
+        pdf_bytes = export_invoice_to_pdf(inv)
+    except Exception:
+        logger.exception("Generating invoice PDF for payment #%s failed", payment_id)
+        flash("The invoice PDF could not be generated. The error was logged on the server.", "error")
         return redirect(url_for("admin.manage_payments"))
+    log_audit_event("ADMIN_DOWNLOAD_INVOICE", f"Downloaded invoice {inv['invoice_number']} (PaymentID {payment_id})", user_id=session.get("admin_user_id"))
+    return Response(pdf_bytes, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{invoice_filename(inv)}"', "Cache-Control": "no-store"})
 
 
 @admin_bp.route("/payment/update-status/<int:payment_id>", methods=["POST"])
@@ -1053,7 +1188,7 @@ def update_payment_status(payment_id):
 
         with get_db_cursor() as cursor:
             cursor.execute(
-                "SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.TransactionID, P.PlanName, U.SubscriptionStatus, U.SubscriptionEndDate FROM Payments P LEFT JOIN Users U ON P.UserID = U.UserID WHERE P.PaymentID = ?",
+                "SELECT P.PaymentID, P.UserID, U.FullName, U.Email, P.Amount, P.TransactionID, P.PlanName, U.SubscriptionStatus, U.SubscriptionEndDate, P.Status FROM Payments P LEFT JOIN Users U ON P.UserID = U.UserID WHERE P.PaymentID = ?",
                 (payment_id,)
             )
             p_row = cursor.fetchone()
@@ -1062,8 +1197,18 @@ def update_payment_status(payment_id):
             flash("Payment not found.", "error")
             return redirect(url_for("admin.manage_payments"))
 
-        _, u_id, u_name, u_email, p_amount, txn_id, plan_name, cur_sub_status, cur_sub_end = p_row
+        _, u_id, u_name, u_email, p_amount, txn_id, plan_name, cur_sub_status, cur_sub_end, cur_pay_status = p_row
         p_amount = float(p_amount or 0.0)
+        if isinstance(cur_sub_end, str):
+            try:
+                cur_sub_end = datetime.fromisoformat(cur_sub_end.strip().replace("T", " ")[:19])
+            except ValueError:
+                cur_sub_end = None
+
+        if new_status == "Completed" and cur_pay_status == "Completed":
+            # A second approval would extend the plan again and issue a second period.
+            flash(f"Payment #{payment_id} is already approved; nothing was changed.", "info")
+            return redirect(url_for("admin.manage_payments"))
 
         if new_status == "Completed":
             if p_amount < 1499.0:
@@ -1078,6 +1223,8 @@ def update_payment_status(payment_id):
                 and cur_sub_end > datetime.now()
             )
 
+            from utils.invoices import record_invoice_on_approval, _to_date
+            period_start = cur_sub_end.date() if renewing_early else datetime.now().date()
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(approve_payment_admin(), (admin_id, payment_id))
                 if renewing_early:
@@ -1086,47 +1233,58 @@ def update_payment_status(payment_id):
                     cursor.execute(activate_user_new_subscription(), (u_id,))
                 cursor.execute("UPDATE Users SET IsVerified = 1 WHERE UserID = ?", (u_id,))
                 cursor.execute("SELECT SubscriptionEndDate FROM Users WHERE UserID = ?", (u_id,))
-                new_end_date = cursor.fetchone()[0]
+                new_end_date = _to_date(cursor.fetchone()[0])
+                invoice_no = record_invoice_on_approval(cursor, payment_id, period_start, new_end_date)
 
-            start_label = datetime.now().strftime("%d %b %Y")
-            if isinstance(new_end_date, str):
-                    new_end_date = datetime.fromisoformat(new_end_date)
+            start_label = period_start.strftime("%d %b %Y")
             end_label = new_end_date.strftime("%d %b %Y") if new_end_date else "N/A"
 
+            mail_ok = None
             if u_email:
                 try:
                     from auth.email_service import EmailService
+                    from utils.public_url import external_url
                     es = EmailService()
+                    invoice_url = external_url("frontend.download_receipt_pdf", payment_id=payment_id)
                     if renewing_early or cur_sub_status == "suspended":
-                        es.send_subscription_renewed_email(u_email, u_name or "Valued Customer", start_label, end_label)
+                        mail_ok = es.send_subscription_renewed_email(u_email, u_name or "Valued Customer", start_label, end_label,
+                                                                     wait=True, invoice_url=invoice_url, invoice_number=invoice_no)
                     else:
-                        es.send_payment_approved_email(u_email, u_name or "Valued Customer", start_label, end_label)
-                except Exception as mail_err:
-                    print("Payment Approval Email Notice:", mail_err)
+                        mail_ok = es.send_payment_approved_email(u_email, u_name or "Valued Customer", start_label, end_label,
+                                                                 invoice_url=invoice_url, invoice_number=invoice_no, wait=True)
+                except Exception:
+                    logger.exception("Payment approval email failed for payment #%s", payment_id)
+                    mail_ok = False
 
             try:
                 with get_db_cursor(commit=True) as cursor:
                     cursor.execute(
                         create_ai_notification(),
                         (u_id, "payment_approved", "Dashboard Activated!",
-                         f"Your payment has been approved. Your dashboard is active from {start_label} to {end_label}.", None)
+                         f"Your payment has been approved. Your dashboard is active from {start_label} to {end_label}. Invoice {invoice_no} is in Receipts.", None)
                     )
             except Exception:
-                pass
+                logger.exception("In-app approval notice failed for user #%s", u_id)
 
-            flash(f"Payment #{payment_id} approved. {escape(u_name or 'User')}'s dashboard is now active until {end_label}.", "success")
+            flash(f"Payment #{payment_id} approved. {escape(u_name or 'User')}'s Pro plan runs {start_label} to {end_label}. Invoice {invoice_no} issued.", "success")
+            if mail_ok is False:
+                flash("The approval email could NOT be sent (the failure is in the server log and audit log). The user will still see the approval and invoice in the app.", "warning")
+            elif mail_ok is None:
+                flash("This user has no email address on file, so no approval email was sent.", "warning")
 
         elif new_status in ("Rejected", "Failed"):
             with get_db_cursor(commit=True) as cursor:
                 cursor.execute(reject_payment_admin(), (reason, admin_id, payment_id))
                 cursor.execute(set_user_rejected(), (reason, u_id))
 
+            mail_ok = None
             if u_email:
                 try:
                     from auth.email_service import EmailService
-                    EmailService().send_payment_rejected_email(u_email, u_name or "Valued Customer", reason)
-                except Exception as mail_err:
-                    print("Payment Rejection Email Notice:", mail_err)
+                    mail_ok = EmailService().send_payment_rejected_email(u_email, u_name or "Valued Customer", reason, wait=True)
+                except Exception:
+                    logger.exception("Payment rejection email failed for payment #%s", payment_id)
+                    mail_ok = False
 
             try:
                 with get_db_cursor(commit=True) as cursor:
@@ -1136,9 +1294,12 @@ def update_payment_status(payment_id):
                          f"Your payment could not be approved. Reason: {reason}. Please upload a new screenshot to try again.", None)
                     )
             except Exception:
-                pass
+                logger.exception("In-app rejection notice failed for user #%s", u_id)
 
-            flash(f"Payment #{payment_id} rejected and {escape(u_name or 'User')} has been notified with the reason.", "success")
+            if mail_ok:
+                flash(f"Payment #{payment_id} rejected and {escape(u_name or 'User')} was emailed the reason.", "success")
+            else:
+                flash(f"Payment #{payment_id} rejected. The rejection email could NOT be sent; the user sees the reason in the app only.", "warning")
 
         else:
             with get_db_cursor(commit=True) as cursor:
@@ -1214,8 +1375,9 @@ def audit_logs():
                 "ip_address": ip_addr or "127.0.0.1",
                 "created_at": format_12hr_datetime(created_at)
             })
-    except Exception as e:
-        print("Admin Audit Logs Error:", e)
+    except Exception:
+        logger.exception("Admin audit log query failed")
+        flash("The audit log could not be loaded (database error). The list below may be empty or incomplete.", "error")
 
     return render_template(
         "admin/audit_logs.html",
@@ -1302,6 +1464,23 @@ def settings():
         "request_total": req_stats["total"],
         "request_errors": req_stats["errors"],
     }
+    # Configuration checks (presence only: no secret value is read into the page).
+    try:
+        import shutil
+        from utils.public_url import check_public_base_url_config
+        from auth.email_service import EmailService
+        usage = shutil.disk_usage(os.path.abspath("."))
+        infra_health["disk_free_gb"] = round(usage.free / 1024 ** 3, 1)
+        infra_health["disk_used_pct"] = round(100 * usage.used / usage.total)
+        infra_health["config_warnings"] = (
+            check_public_base_url_config(logging.getLogger("admin.health"))
+            + EmailService().config_problems()
+            + ([] if os.getenv("DATASET_ENCRYPTION_KEY") else ["DATASET_ENCRYPTION_KEY is not set: uploads are refused."])
+            + ([] if os.getenv("FORCE_SECURE_COOKIES", "").lower() == "true" else ["FORCE_SECURE_COOKIES is not true: cookies are not marked Secure and HSTS is off."])
+        )
+    except Exception:
+        logger.exception("Configuration health check failed")
+        infra_health.setdefault("config_warnings", ["The configuration check itself failed; see the server log."])
 
     return render_template("admin/settings.html", announcement=fetch_site_announcement(), payment_settings=_get_payment_settings_dict(), infra_health=infra_health)
 
@@ -1354,9 +1533,9 @@ def trigger_backup_now():
     backup_path = run_database_backup()
     if backup_path:
         log_audit_event("ADMIN_MANUAL_BACKUP", f"Manual database backup created: {backup_path}", user_id=admin_id)
-        flash(f"✅ Database backup created successfully: {backup_path}", "success")
+        flash(f"Database backup created successfully: {backup_path}", "success")
     else:
-        flash("❌ Database backup failed. Check server logs for details.", "error")
+        flash("Database backup failed. Check server logs for details.", "error")
     return redirect(url_for("admin.settings"))
 
 
@@ -1398,7 +1577,7 @@ def change_admin_password():
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(update_user_password(), (new_hash, admin_id))
         log_audit_event("ADMIN_PASSWORD_CHANGE", "Super Admin password changed from Executive Console settings.", user_id=admin_id)
-        flash("🔐 Super Admin password updated successfully.", "success")
+        flash("Super Admin password updated successfully.", "success")
     except Exception as e:
         print("Admin Change Password Error:", e)
         flash(f"Failed to update password: {str(e)}", "error")
@@ -1436,8 +1615,9 @@ def subscribers():
                 "ip_address": ip_addr or "127.0.0.1",
                 "subscribed_at": format_12hr_datetime(sub_at)
             })
-    except Exception as e:
-        print("Admin Subscribers Fetch Error:", e)
+    except Exception:
+        logger.exception("Admin subscribers query failed")
+        flash("The subscriber list could not be loaded (database error). The list below may be empty or incomplete.", "error")
 
     active_count = sum(1 for s in subscribers_list if s["status"].lower() == "active")
     return render_template("admin/subscribers.html", subscribers=subscribers_list, active_count=active_count, search_query=search_query)
@@ -1509,8 +1689,9 @@ def contact_messages():
                 "admin_reply": admin_reply,
                 "replied_at": format_12hr_datetime(replied_at) if replied_at else None
             })
-    except Exception as e:
-        print("Admin Contact Messages Fetch Error:", e)
+    except Exception:
+        logger.exception("Admin contact messages query failed")
+        flash("Contact messages could not be loaded (database error). The inbox below may be empty or incomplete.", "error")
 
     new_count = sum(1 for m in messages_list if m["status"].lower() == "new")
     return render_template(
@@ -1576,19 +1757,25 @@ def reply_contact_message(message_id):
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(save_contact_message_reply(), (reply_text, message_id))
 
+        sent = False
         if email:
             from auth.email_service import EmailService
             email_service = EmailService()
-            email_service.send_contact_reply_email(
+            sent = email_service.send_contact_reply_email(
                 to_email=email,
                 user_name=full_name or "Valued Customer",
                 original_subject=subject or "Your Inquiry",
                 original_message=original_message or "",
-                admin_reply=reply_text
+                admin_reply=reply_text,
+                wait=True,
             )
 
-        log_audit_event("ADMIN_CONTACT_MESSAGE_REPLIED", f"Replied to contact message #{message_id} from {email}", user_id=admin_id)
-        flash(f"Reply sent successfully to {escape(email or 'the customer')}!", "success")
+        log_audit_event("ADMIN_CONTACT_MESSAGE_REPLIED" if sent else "ADMIN_CONTACT_REPLY_NOT_SENT",
+                        f"Reply to contact message #{message_id} ({'emailed' if sent else 'saved, email not sent'})", user_id=admin_id)
+        if sent:
+            flash(f"Reply sent to {escape(email)}.", "success")
+        else:
+            flash("The reply was saved, but the email could NOT be sent" + ("" if email else " (no email address on the message)") + ". Check the SMTP settings and server log, then try again.", "warning")
     except Exception as e:
         print("Reply Contact Message Error:", e)
         flash(f"Failed to send reply: {str(e)}", "error")

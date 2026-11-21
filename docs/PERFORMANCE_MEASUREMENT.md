@@ -1,7 +1,7 @@
 # Performance Measurement — Task 2 (Consistency & Safety Update)
 
 Date: 2026-10-16
-Method: real pipeline, real RDS database (no staging DB exists for this project —
+Method: real pipeline, real production SQL Server database (no staging DB exists for this project —
 see `docs/BASELINE.md`), real OpenRouter calls where the fast local pattern engine
 didn't resolve a question. No numbers in this document are estimated or invented.
 

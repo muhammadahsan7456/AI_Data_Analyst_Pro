@@ -2,17 +2,17 @@
 
 {% block seo_meta %}
 <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-<meta name="description" content="Transform datasets up to 10M+ rows into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
-<meta name="keywords" content="AI Data Analyst, SQL AI Agent, Enterprise Data Analysis, Automated PowerPoint Export, AES-256 Data Encryption, 10M Rows Analytics, Voice AI Querying">
-<link rel="canonical" href="{{ request.url_root }}">
+<meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
+<meta name="keywords" content="AI data analyst, ask questions about CSV, Excel data analysis, Roman Urdu data questions, PowerPoint export, encrypted datasets">
+<link rel="canonical" href="{{ public_root }}">
 {% endblock %}
 
 {% block og_meta %}
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.url_root }}">
+<meta property="og:url" content="{{ public_root }}">
 <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
-<meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and bank-grade encryption for up to 10M+ records.">
-<meta property="og:image" content="{{ request.url_root }}static/images/og-preview.png">
+<meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
+<meta property="og:image" content="{{ public_root }}static/images/og-preview.png">
 <meta property="og:site_name" content="AI Data Analyst Pro">
 {% endblock %}
 
@@ -25,7 +25,7 @@
   "operatingSystem": "All (Web Based)",
   "applicationCategory": "BusinessApplication",
   "offers": { "@type": "Offer", "price": "1499.00", "priceCurrency": "PKR" },
-  "description": "Enterprise AI Data Analysis Platform processing 10M+ records with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and AES-256 encryption."{% if review_count %},
+  "description": "Upload CSV or Excel files and ask questions in plain English or Roman Urdu. Answers with tables and charts, typically in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and encrypted dataset storage."{% if review_count %},
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "{{ avg_rating }}", "ratingCount": "{{ review_count }}" }{% endif %}
 }
 </script>
@@ -34,8 +34,8 @@
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "AI Data Analyst Pro",
-  "url": "{{ request.url_root }}",
-  "logo": "{{ request.url_root }}static/favicon.png",
+  "url": "{{ public_root }}",
+  "logo": "{{ public_root }}static/favicon.png",
   "contactPoint": { "@type": "ContactPoint", "telephone": "+92-305-3107456", "contactType": "sales" }
 }
 </script>
@@ -126,22 +126,23 @@
         </div>
 
         <div class="stats-grid reveal">
-            <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="10" data-suffix="M+" data-duration="2000">10M+</div>
-                <div class="stat-label">Rows processed</div>
+            <div class="stat-card">
+                <div class="counter-value">1 MB</div>
+                <div class="stat-label">Free uploads, no card needed</div>
             </div>
-            <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="3" data-prefix="&lt;" data-suffix="s" data-duration="2000">&lt;3s</div>
-                <div class="stat-label">Typical query response</div>
+            <div class="stat-card">
+                <div class="counter-value">500 MB</div>
+                <div class="stat-label">Per file on Pro (PKR 1,499/month)</div>
             </div>
-            <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="256" data-suffix="-bit" data-duration="1500">256-bit</div>
-                <div class="stat-label">AES encryption</div>
+            <div class="stat-card">
+                <div class="counter-value">7</div>
+                <div class="stat-label">File formats: CSV, Excel, JSON, XML, TSV, Parquet, Feather</div>
             </div>
-            <div class="stat-card" data-tilt>
-                <div class="counter-value" data-counter data-target="97.9" data-suffix="%" data-decimals="1" data-duration="2000">97.9%</div>
-                <div class="stat-label">Uptime SLA</div>
+            <div class="stat-card">
+                <div class="counter-value">2</div>
+                <div class="stat-label">Languages for questions: English and Roman Urdu</div>
             </div>
+        </div>
         </div>
 
         <div class="hero-trust-bar reveal">
@@ -187,8 +188,9 @@
 <section class="landing-section home-workflow-section" id="features-preview">
     <div class="container">
         <div class="section-header reveal">
+            <svg class="iso-illustration" viewBox="0 0 360 180" role="img" aria-label="Isometric bar chart illustration" xmlns="http://www.w3.org/2000/svg" stroke-width="1" stroke-linejoin="round"><polygon class="iso-floor" points="180.0,109.0 351.5,208.0 294.3,241.0 122.8,142.0"/><polygon class="iso-left" points="143.8,140.9 170.5,156.3 170.5,112.3 143.8,96.9"/><polygon class="iso-right" points="197.1,140.9 170.5,156.3 170.5,112.3 197.1,96.9"/><polygon class="iso-top" points="170.5,81.5 197.1,96.9 170.5,112.3 143.8,96.9"/><polygon class="iso-left" points="181.9,162.9 208.6,178.3 208.6,110.1 181.9,94.7"/><polygon class="iso-right" points="235.3,162.9 208.6,178.3 208.6,110.1 235.3,94.7"/><polygon class="iso-top" points="208.6,79.3 235.3,94.7 208.6,110.1 181.9,94.7"/><polygon class="iso-left" points="220.0,184.9 246.7,200.3 246.7,143.1 220.0,127.7"/><polygon class="iso-right" points="273.4,184.9 246.7,200.3 246.7,143.1 273.4,127.7"/><polygon class="iso-top" points="246.7,112.3 273.4,127.7 246.7,143.1 220.0,127.7"/><polygon class="iso-left iso-accent" points="258.1,206.9 284.8,222.3 284.8,125.5 258.1,110.1"/><polygon class="iso-right iso-accent" points="311.5,206.9 284.8,222.3 284.8,125.5 311.5,110.1"/><polygon class="iso-top iso-accent" points="284.8,94.7 311.5,110.1 284.8,125.5 258.1,110.1"/></svg>
             <div class="section-badge">A practical analysis workflow</div>
-            <h2 class="section-title">From spreadsheet to <span class="gradient-text">decision, without SQL.</span></h2>
+            <h2 class="section-title">From spreadsheet to decision, without SQL.</h2>
             <p class="section-subtitle">Bring a file, ask a specific question, then inspect and export a result you can share.</p>
         </div>
 
@@ -196,7 +198,7 @@
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper"><i class="fa-solid fa-table" aria-hidden="true"></i></div>
                 <h3 class="feature-card-title">Start with your spreadsheet</h3>
-                <p class="feature-card-desc">Upload CSV or Excel data and work with files up to 10M+ rows using streaming ingestion.</p>
+                <p class="feature-card-desc">Upload CSV, Excel, JSON, Parquet and more. Files under 1 MB are free; Pro handles files up to 500 MB, processed in the background.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
@@ -217,6 +219,25 @@
                 <i class="fa-solid fa-arrow-right"></i> Explore All Features
             </a>
         </div>
+    </div>
+</section>
+
+<!-- ===== EXAMPLE QUESTIONS ===== -->
+<section class="landing-section home-examples-section" id="example-questions">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge">Real questions people ask</div>
+            <h2 class="section-title">Type it the way you would say it.</h2>
+            <p class="section-subtitle">Each answer comes back as a table, a chart when the result suits one, and a short explanation. Questions that are not about your data are politely declined.</p>
+        </div>
+        <ul class="home-example-list reveal">
+            <li><span class="home-example-tag">Totals</span> What is the total revenue for 2025?</li>
+            <li><span class="home-example-tag">Top N</span> Show the top 10 customers by sales.</li>
+            <li><span class="home-example-tag">Filter</span> How many orders were cancelled in Lahore or Karachi?</li>
+            <li><span class="home-example-tag">Trend</span> Show monthly sales for the last 12 months.</li>
+            <li><span class="home-example-tag">Compare</span> Compare average order value by region.</li>
+            <li><span class="home-example-tag">Roman Urdu</span> Sab se zyada profit kis product ka hai?</li>
+        </ul>
     </div>
 </section>
 

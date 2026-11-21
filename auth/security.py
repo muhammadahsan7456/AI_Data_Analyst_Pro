@@ -1,8 +1,11 @@
+import os
+import hashlib
+import hmac
 import re
 import secrets
 import bcrypt
 from datetime import datetime
-from flask import request, session
+from flask import current_app, request, session
 
 from database.connection import get_db_cursor
 from database.queries import insert_audit_log, log_login_event
@@ -113,14 +116,19 @@ def parse_user_agent(user_agent_str: str) -> dict:
 
 def get_client_ip() -> str:
     """
-    Extract real client IP address handling reverse proxies, Cloudflare, and forwarded headers.
+    The client address for audit logs and login history.
+
+    ``request.remote_addr`` is already the real client: Waitress (wsgi.py) or ProxyFix
+    (run.py, TRUSTED_PROXY_COUNT) rewrites it from the ONE trusted Nginx hop. Reading
+    X-Forwarded-For / X-Real-IP / CF-Connecting-IP here directly (the old behaviour) let
+    any client write an arbitrary IP into the audit log by sending that header.
+    CF-Connecting-IP is used only when TRUST_CLOUDFLARE_IP=true, i.e. when the origin
+    accepts traffic from Cloudflare only.
     """
-    for header in ["CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"]:
-        val = request.headers.get(header)
-        if val:
-            ip = val.split(",")[0].strip()
-            if ip and ip != "127.0.0.1":
-                return ip
+    if os.getenv("TRUST_CLOUDFLARE_IP", "false").strip().lower() == "true":
+        cf = (request.headers.get("CF-Connecting-IP") or "").strip()
+        if cf:
+            return cf
     return request.remote_addr or "127.0.0.1"
 
 
@@ -167,3 +175,21 @@ def log_audit_event(action: str, details: str = "", user_id: int = None):
             )
     except Exception as e:
         print("Log Audit Error:", e)
+
+
+def otp_digest(purpose: str, user_id, code) -> str:
+    """
+    Keyed digest of a one-time code, so the code itself never sits in the session cookie
+    or the database (R-Phase 8). Flask session cookies are signed, not encrypted: anyone
+    holding the cookie could base64-decode it and read a plain code, which made the Super
+    Admin email OTP readable by whoever knew the password. The digest is bound to the
+    purpose and user, and keyed with SECRET_KEY, so it cannot be brute-forced offline.
+    """
+    msg = f"{purpose}:{user_id}:{str(code).strip()}".encode()
+    return hmac.new(current_app.secret_key.encode(), msg, hashlib.sha256).hexdigest()
+
+
+def otp_matches(expected_digest, purpose: str, user_id, code) -> bool:
+    if not expected_digest or not code:
+        return False
+    return hmac.compare_digest(str(expected_digest), otp_digest(purpose, user_id, code))

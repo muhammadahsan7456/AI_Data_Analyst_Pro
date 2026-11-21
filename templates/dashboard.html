@@ -122,7 +122,7 @@
         <span class="dashboard-privacy-panel__icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
         <div>
             <strong class="dashboard-privacy-panel__title">Data protection active</strong>
-            <div class="dashboard-privacy-panel__description">SQL generated and executed locally. Raw dataset records are never transmitted externally. PII masking enabled.</div>
+            <div class="dashboard-privacy-panel__description">Your datasets are stored encrypted. Queries run on our server; when the AI model is needed it receives your question, column names and a few sample rows.</div>
         </div>
     </div>
     <a href="{{ url_for('frontend.settings_enterprise') }}" class="btn btn-secondary btn-sm">
@@ -165,7 +165,7 @@
 <!-- Datasets Table Section -->
 <div class="table-card">
     <div class="table-header-bar">
-        <h2 class="table-title">📚 All Uploaded Datasets ({{ total_found }})</h2>
+        <h2 class="table-title">All Uploaded Datasets ({{ total_found }})</h2>
         
         <form method="GET" action="{{ url_for('frontend.dashboard') }}" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <input type="date" name="date_from" value="{{ date_from or '' }}" title="Uploaded From" style="padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 13px;">
@@ -197,7 +197,7 @@
         <table class="custom-table">
             <thead>
                 <tr>
-                    <th style="width: 40px;">⭐</th>
+                    <th style="width: 40px;">★</th>
                     <th>ID</th>
                     <th>Dataset Name</th>
                     <th>Original File</th>
@@ -214,7 +214,7 @@
                 <tr>
                     <td>
                         <button class="btn-fav-toggle" data-id="{{ ds[0] }}" style="background: none; border: none; cursor: pointer; font-size: 16px;">
-                            {% if ds[7] %}⭐{% else %}☆{% endif %}
+                            {% if ds[7] %}★{% else %}☆{% endif %}
                         </button>
                     </td>
                     <td><strong>#{{ ds[0] }}</strong></td>
@@ -244,9 +244,12 @@
                         <a href="{{ url_for('frontend.export_dataset', dataset_id=ds[0], format_type='pptx') }}" class="btn btn-secondary btn-sm" title="Export PPTX">
                             <i class="fa-solid fa-file-powerpoint" style="color: var(--accent-amber);"></i> PPTX
                         </a>
-                        <a href="{{ url_for('frontend.delete_dataset', dataset_id=ds[0]) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this dataset?')" title="Delete Dataset">
-                            <i class="fa-solid fa-trash"></i> Delete
-                        </a>
+                        <form method="post" action="{{ url_for('frontend.delete_dataset', dataset_id=ds[0]) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this dataset?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" title="Delete Dataset">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}
@@ -263,7 +266,7 @@
             {% endif %}
             
             {% if page < total_pages %}
-            <a href="{{ url_for('frontend.dashboard', page=page+1, q=search_query, sort=sort_by, order=order, date_from=date_from, date_to=date_to) }}" class="btn btn-secondary btn-sm">Next ➡️</a>
+            <a href="{{ url_for('frontend.dashboard', page=page+1, q=search_query, sort=sort_by, order=order, date_from=date_from, date_to=date_to) }}" class="btn btn-secondary btn-sm">Next </a>
             {% endif %}
         </div>
     </div>

@@ -4,33 +4,43 @@
    ========================================================================== */
 
 :root {
-    --bg-primary: #f4f2eb;
-    --bg-surface: #fffefa;
-    --bg-sidebar: #17252d;
-    --bg-sidebar-hover: #24353d;
-    --text-primary: #1c2931;
-    --text-secondary: #46575e;
-    --text-muted: #62727a;
-    --border-color: #d6dad5;
-    
-    --accent-blue: #b94e35;
-    --accent-blue-hover: #9f402b;
-    --accent-blue-light: #eee5db;
-    --accent-cyan: #347b79;
-    --accent-green: #347451;
-    --accent-red: #ad4539;
-    --accent-yellow: #946817;
-    --accent-purple: #8a6349;
-    --shadow-sm: 0 1px 3px rgba(24, 37, 45, 0.07);
-    --shadow-md: 0 4px 12px rgba(24, 37, 45, 0.09);
-    --shadow-lg: 0 12px 28px rgba(24, 37, 45, 0.12);
+    /* Monochrome design system: ink, white, neutral grays. Variable names are kept
+       stable because templates and JS read them; "accent-*" now resolve to ink/gray.
+       Functional colors (success/danger/warning) are used only for state. */
+    --bg-primary: #ffffff;
+    --bg-surface: #ffffff;
+    --bg-subtle: #fafafa;
+    --bg-sidebar: #fafafa;
+    --bg-sidebar-hover: #f0f0f0;
+    --text-primary: #0a0a0a;
+    --text-secondary: #404040;
+    --text-muted: #595959;
+    --border-color: #e5e5e5;
+    --border-strong: #d4d4d4;
+    --ink: #0a0a0a;
+    --on-ink: #ffffff;
+
+    --accent-blue: #0a0a0a;
+    --accent-blue-hover: #262626;
+    --accent-blue-light: #f5f5f5;
+    --accent-cyan: #404040;
+    --accent-green: #15803d;
+    --accent-red: #b91c1c;
+    --accent-yellow: #8a5a00;
+    --accent-purple: #525252;
+    --success: #15803d;
+    --danger: #b91c1c;
+    --warning: #8a5a00;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
     --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    --font-mono: ui-monospace, 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
     --transition-fast: 0.15s ease;
-    --transition-normal: 0.25s ease;
+    --transition-normal: 0.2s ease;
 }
 
 /* Universal High-Contrast Input Placeholders */
@@ -40,25 +50,32 @@
 }
 
 [data-theme="dark"] {
-    --bg-primary: #11191f;
-    --bg-surface: #1b282f;
-    --bg-sidebar: #0c1419;
-    --bg-sidebar-hover: #1d2b32;
-    --text-primary: #f2f0e9;
-    --text-secondary: #c0cbc8;
-    --text-muted: #9caeaa;
-    --border-color: #34444a;
-    --accent-blue: #e7835c;
-    --accent-blue-hover: #f0956f;
-    --accent-blue-light: #25373c;
-    --accent-cyan: #78aaa5;
-    --accent-green: #78b58f;
-    --accent-red: #eb8174;
-    --accent-yellow: #e2bd73;
-    --accent-purple: #c29a79;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.22);
-    --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.28);
+    --bg-primary: #0a0a0a;
+    --bg-surface: #141414;
+    --bg-subtle: #111111;
+    --bg-sidebar: #0f0f0f;
+    --bg-sidebar-hover: #1f1f1f;
+    --text-primary: #fafafa;
+    --text-secondary: #d4d4d4;
+    --text-muted: #a3a3a3;
+    --border-color: #2a2a2a;
+    --border-strong: #3a3a3a;
+    --ink: #fafafa;
+    --on-ink: #0a0a0a;
+    --accent-blue: #fafafa;
+    --accent-blue-hover: #e5e5e5;
+    --accent-blue-light: #1f1f1f;
+    --accent-cyan: #d4d4d4;
+    --accent-green: #4ade80;
+    --accent-red: #f87171;
+    --accent-yellow: #fbbf24;
+    --accent-purple: #a3a3a3;
+    --success: #4ade80;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -138,7 +155,7 @@ body {
 .btn-voice-mic.listening {
     animation: glowPulse 1.2s infinite ease-in-out !important;
     background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-    color: #ffffff !important;
+    color: var(--mono-on-danger) !important;
     border-color: #ef4444 !important;
 }
 
@@ -179,7 +196,7 @@ body {
 .sidebar {
     width: 270px;
     background-color: var(--bg-sidebar);
-    color: #ffffff;
+    color: var(--mono-text);
     padding: 24px 18px;
     display: flex;
     flex-direction: column;
@@ -206,7 +223,7 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    color: #ffffff;
+    color: var(--mono-on-ink);
 }
 
 .sidebar-title {
@@ -229,7 +246,7 @@ body {
     gap: 12px;
     padding: 12px 16px;
     border-radius: var(--radius-md);
-    color: #94a3b8;
+    color: var(--mono-text-3);
     text-decoration: none;
     font-weight: 500;
     font-size: 14px;
@@ -238,12 +255,12 @@ body {
 
 .sidebar-link:hover, .sidebar-link.active {
     background-color: var(--bg-sidebar-hover);
-    color: #ffffff;
+    color: var(--mono-text);
 }
 
 .sidebar-link.active {
     border-left: 4px solid var(--accent-blue);
-    background: linear-gradient(90deg, rgba(37, 99, 235, 0.2) 0%, rgba(37, 99, 235, 0) 100%);
+    background: linear-gradient(90deg, rgba(128, 128, 128, 0.2) 0%, rgba(128, 128, 128, 0) 100%);
 }
 
 .sidebar-footer {
@@ -441,7 +458,7 @@ body {
 }
 
 .custom-table tbody tr:hover {
-    background-color: rgba(37, 99, 235, 0.08) !important;
+    background-color: rgba(128, 128, 128, 0.08) !important;
     transform: scale(1.002);
 }
 
@@ -463,7 +480,7 @@ body {
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 12px rgba(128, 128, 128, 0.2);
 }
 
 .btn:active {
@@ -472,7 +489,7 @@ body {
 
 .btn-primary {
     background-color: var(--accent-blue);
-    color: #ffffff;
+    color: var(--mono-on-ink);
 }
 
 .btn-primary:hover {
@@ -491,7 +508,7 @@ body {
 
 .btn-danger {
     background-color: var(--accent-red);
-    color: #ffffff;
+    color: var(--mono-on-danger);
 }
 
 .btn-danger:hover {
@@ -520,10 +537,10 @@ body {
 
 /* Dark mode: swap flat pastel badge fills for translucent tinted ones so they read
    clearly against a dark surface instead of glowing like a light-mode sticker. */
-[data-theme="dark"] .badge-success { background-color: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); }
-[data-theme="dark"] .badge-warning { background-color: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); }
-[data-theme="dark"] .badge-info { background-color: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
-[data-theme="dark"] .badge-error, [data-theme="dark"] .badge-danger { background-color: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.35); }
+[data-theme="dark"] .badge-success { background-color: rgba(128, 128, 128, 0.15); color: var(--mono-success); border: 1px solid rgba(128, 128, 128, 0.35); }
+[data-theme="dark"] .badge-warning { background-color: rgba(251, 191, 36, 0.15); color: var(--mono-warning); border: 1px solid rgba(251, 191, 36, 0.35); }
+[data-theme="dark"] .badge-info { background-color: rgba(128, 128, 128, 0.15); color: var(--mono-text-3); border: 1px solid rgba(128, 128, 128, 0.35); }
+[data-theme="dark"] .badge-error, [data-theme="dark"] .badge-danger { background-color: rgba(248, 113, 113, 0.15); color: var(--mono-danger); border: 1px solid rgba(248, 113, 113, 0.35); }
 
 /* Filter/tag chip pills (e.g. "Applied Filters" under an AI query result) - a plain
    .badge grows to fit whatever text it's given, which is fine for a handful of short
@@ -596,7 +613,7 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    color: #ffffff;
+    color: #fff;
 }
 
 .spinner {
@@ -646,7 +663,7 @@ body {
     background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
     z-index: 999999;
     opacity: 0;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+    box-shadow: 0 0 8px rgba(128, 128, 128, 0.6);
     transition: width 2.2s cubic-bezier(0.1, 0.7, 0.3, 1), opacity 0.2s ease;
 }
 
@@ -675,7 +692,7 @@ body {
 .page-progress-spinner-ring {
     width: 22px;
     height: 22px;
-    border: 3px solid rgba(37, 99, 235, 0.2);
+    border: 3px solid rgba(128, 128, 128, 0.2);
     border-top-color: var(--accent-blue);
     border-radius: 50%;
     animation: spin 0.7s infinite linear;
@@ -703,9 +720,9 @@ body {
     background: rgba(15, 23, 42, 0.94);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(56, 189, 248, 0.3);
+    border: 1px solid rgba(128, 128, 128, 0.3);
     border-radius: 18px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(128, 128, 128, 0.15);
     z-index: 9990;
     overflow: hidden;
     color: #f8fafc;
@@ -739,13 +756,13 @@ body {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-    color: #ffffff;
+    background: linear-gradient(135deg, #737373 0%, #737373 100%);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 12px rgba(128, 128, 128, 0.5);
 }
 
 .ai-pulse-dot {
@@ -762,9 +779,9 @@ body {
 }
 
 @keyframes pulseGlow {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(128, 128, 128, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(128, 128, 128, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(128, 128, 128, 0); }
 }
 
 .ai-assistant-body {
@@ -783,7 +800,7 @@ body {
 .ai-card-lines p.ai-card-heading {
     font-size: 16px;
     font-weight: 800;
-    color: #38bdf8;
+    color: var(--mono-text-3);
     margin-bottom: 12px;
 }
 
@@ -808,14 +825,14 @@ body {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #94a3b8;
+    color: var(--mono-text-3);
     font-weight: 600;
 }
 
 .ai-metric-val {
     font-size: 15px;
     font-weight: 800;
-    color: #38bdf8;
+    color: var(--mono-text-3);
     white-space: pre-line;
 }
 
@@ -840,7 +857,7 @@ body {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background-color: #38bdf8;
+    background-color: #737373;
     animation: typingBlink 1.4s infinite ease-in-out both;
 }
 
@@ -938,7 +955,7 @@ body {
 
 .notif-item.unread {
     border-left: 4px solid var(--accent-blue);
-    background: rgba(37, 99, 235, 0.04);
+    background: rgba(128, 128, 128, 0.04);
 }
 
 .notif-item-header {

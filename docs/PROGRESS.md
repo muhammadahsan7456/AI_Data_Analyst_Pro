@@ -129,3 +129,371 @@ Phase 3: continue isolated QA. Do not start the UI redesign until the authentica
 ### Next
 
 Finish Group 6 interaction verification using an isolated authenticated Playwright session, then continue to Group 7.
+
+---
+
+# Release: final polish (branch `release/final-polish`)
+
+Started 2026-11-18. `fix/post-migration` was already merged into `main` (merge commit `462617d`), so this branch starts from `main` and does not repeat that work. Environment used: Python 3.12 venv, SQLite QA fallback (`ALLOW_SQLITE_FALLBACK=true`, throwaway DB and throwaway Fernet key), unixODBC shared library only (no SQL Server available). Nothing here touched the production database, production email, or Docker files.
+
+## R-Phase 1 — Audit and baseline
+
+**Status:** Complete.
+
+- Inventory: 125 URL rules. Public: `/`, `/features`, `/pricing`, `/testimonials`, `/faq`, `/docs`, `/about`, `/help`, `/contact`, `/demo`, `/privacy`, `/terms`, `/security-overview`, `/health`, `/sitemap.xml`, `/robots.txt`. Auth (`/auth/*`): login, register/signup (+details, payment), verify-otp, resend-otp, resend-verification, verify-email, forgot/reset password (+verify-code), google, google/login, google/callback, profile, settings, security, change-password, logout. Portal: `/dashboard`, `/upload`, `/api/upload-file`, `/api/upload-status/<job>`, `/chat`, `/dataset/*` (view, details, edit, clean, export, favorite, tags, insights-toggle, delete), `/predictions`, `/report-builder/<id>`, `/executive-summary/<id>`, `/data-health/<id>`, `/receipts*`, `/subscription/renew`, `/waiting-approval`, `/settings/enterprise`, `/query/export/<fmt>`, `/download-chart`, `/api/*` (notifications, history, alert rules, scheduled reports, smart search, insights, quality, health, multi-dataset). Admin (`/admin/*`): login, verify-otp, dashboard, users (+export, role, status, extend, delete), payments (+status, invoice, export), reviews, settings (+payment, backup, password), subscribers, contact-messages, audit-logs, logout.
+- Baseline tests: 30 non-Selenium tests passed. Selenium suites (`test_auth.py`, `test_public_pages.py`, `test_demo_sandbox.py`) need a running server + Chrome and were not run.
+- Suspected problem areas (to verify in later phases): Google OAuth (confirmed, R-Phase 2); admin console accepted a normal portal session for admin roles (OTP bypass, fixed); open redirect via `?next=` on login (fixed); `wsgi.py` bound 0.0.0.0 without proxy trust, so real client IP/HTTPS scheme were lost (fixed); state-changing GET `/dataset/delete/<id>`; production cookie lacks `Secure`, no HTTPS redirect on port 80, no HSTS (live check: config, not code); `PUBLIC_BASE_URL` unset in production makes email links default to `http://127.0.0.1:5000` (env).
+
+## R-Phase 2 — Google sign-in
+
+**Status:** Code fixed and covered by tests; live verification needs the deploy.
+
+Live evidence gathered before changes (read-only requests to the public site):
+- `https://aidataanalystpro.co.uk/auth/google` → 302 to Google with `redirect_uri=https://aidataanalystpro.co.uk/auth/google/callback`; Google shows its normal account chooser (no `redirect_uri_mismatch`), so the Cloud Console redirect URI is already accepted.
+- `https://www.aidataanalystpro.co.uk/auth/google` sets the state cookie on the **www** host but sends Google the **apex** callback, so the state check always fails for www visitors.
+- Session cookie is served without `Secure`; `http://` is served directly (no redirect to https).
+
+Root causes in code (`auth/routes.py`):
+1. New Google users always failed: `upsert_user_profile()` (25 markers) called with 11 params and `upsert_user_settings()` (13 markers) with 6 → driver error → transaction rolled back → "Google authentication error".
+2. Existing users always failed on SQL Server: inline T-SQL inserted into non-existent columns `UserProfiles.CreatedAt`, `UserSettings.ExportFormat/DefaultChart/DefaultDashboard` (compile-time error even in an unexecuted branch).
+3. www/apex host mismatch (above).
+4. `email_verified` never checked; an unverified password account with the same email was merged and its unproven password kept working.
+5. Raw exception text was flashed to users; token-exchange errors were `print`ed with Google's response body.
+
+Fix: canonical origin from `PUBLIC_BASE_URL` (falls back to the apex domain, then the request); login hop to the canonical host before state is set; state + 10-minute expiry + PKCE (S256); `email_verified` required; portable row creation for `UserProfiles`/`UserSettings`; new users are `free`, verified, no OTP/payment step; existing verified users are linked and keep their password; unverified same-email accounts get verified and their unproven password retired (owner can use Forgot password); suspended users refused; payment-gate redirect same as password login; friendly messages, details only in server logs. Optional `GOOGLE_REDIRECT_URI` override.
+
+Related security fixes: `admin/decorators.py` + `admin/routes.py` now require `admin_user_id` (set only by admin password + OTP), so a portal session (password or Google) for an admin no longer opens `/admin`. Login `?next=` accepts only same-site relative paths. `wsgi.py` binds 127.0.0.1 with one trusted local proxy hop outside Docker (Docker unchanged; `BIND_HOST` override).
+
+Tests: `tests/test_google_oauth.py` (9 tests, real auth blueprint on a temp SQLite DB, Google endpoints mocked). Before the fix: 6 of 8 OAuth tests failed (new and existing users redirected back to `/auth/login`). After: 9 passed. Full non-Selenium suite: 39 passed.
+
+Not verifiable here: a real Google round-trip and the SQL Server execution of the new statements (both need the deployed app).
+
+## R-Phase 3 — Black-and-white design system
+
+**Status:** Core pass committed; remaining items listed below.
+
+- Tokens (`static/css/style.css`, `landing.css`, `admin/base_admin.html`) and a last-loaded `static/css/mono.css`: type scale, surfaces, buttons, forms, focus rings, tables, badges, alerts, nav, icon tiles, mobile drawer, `prefers-reduced-motion`, print. Light/dark via `data-theme` (`static/js/theme.js`).
+- Self-hosted Inter and JetBrains Mono (`static/fonts/`, SIL OFL, `static/css/fonts.css`); Outfit/Space Grotesk aliased to Inter so no template change was needed.
+- Gradients and decorative orbs removed; ~244 emoji removed from templates, Python and JS (Font Awesome icons in toasts, theme toggle, flashes).
+- Charts monochrome: Plotly specs (`visualization/chart_generator.py`, `visualization/charts.py`), Chart.js defaults.
+- Copy corrected: "AES-256" → Fernet (AES-128-CBC + HMAC-SHA256) in 17 files; homepage "10M+ rows / 256-bit / 97.9% uptime" stats replaced with verifiable facts (1 MB free, 500 MB Pro, 7 formats, 2 languages).
+- `utils/encryption.py`: no longer generates a key and appends it to `.env` at runtime; a missing/invalid `DATASET_ENCRYPTION_KEY` disables encryption with an error log instead of producing ciphertext nobody can decrypt.
+- Checks: `node --check` on every `static/js/*.js`; `compileall`; screenshots at 1440 and 360 for public, portal and admin pages showed no horizontal overflow.
+
+Remaining: inline gradients in `auth/signup.html`, `pricing_page.html`, `features.html`; `auth/email_service.py` email colours; full re-audit of `dashboard.html` and `dataset_*`.
+
+## R-Phase 6 — Ask AI accuracy and guardrails (started early)
+
+QA battery (`execute_multi_concept_analysis`, the same call `/chat` makes) on a 6,000-row sales CSV, each answer compared with pandas on the source file. No OpenRouter key in QA, so only the deterministic layers ran.
+
+| | Before | After |
+|---|---|---|
+| In-scope answers correct | 8 / 17 | 17 / 17 |
+| Off-topic refused | 6 / 10 | 10 / 10 |
+| Missing column / value reported honestly | 0 / 2 | 2 / 2 |
+
+Root causes (`ai/gemini.py` unless noted):
+1. When neither the pattern engine nor the LLM produced SQL, the code ran `SELECT TOP 50 *` and showed those rows as the answer. Same after failed repairs. Now a plain "couldn't match that question to your columns" message.
+2. The LLM's own "unrelated to the dataset" verdict was replaced with `SELECT TOP 50 *`. Now it is a refusal.
+3. "How many records are there?" returned 10 rows; pure count now checked before the plan engine.
+4. "total shipping cost by region" silently summed `UnitPrice`. Now: "There is no 'shipping cost' column", with the real numeric columns listed.
+5. Grouped comparisons ("compare profit of North and South") returned numbers without the group labels.
+6. "monthly sales trend" returned the raw Sales column; now grouped by month of the date column.
+7. Close misspellings of column names ("totl sales by regon") now corrected before planning.
+8. Guardrail: Roman Urdu particles ("me", "se", "ka", "do") counted as data words, so most off-topic sentences passed; "who is the top customer" was refused. Rewritten: off-topic subjects (weather/mausam, crypto, movies, news, recipes…) refused unless a column is named; data questions accepted on column names, dataset values, or analytic words (incl. kitne, zyada, batao, dikhao).
+9. `ai/schema_intelligence.py`: labels like "Customer 0369" were classified numeric (all non-digits stripped), so they were offered as metrics.
+10. QA-only (`database/connection.py`, SQLite adapter): nested `SELECT TOP` subqueries, `TRY_CAST`, `NVARCHAR(MAX)`, `CAST(.. AS DATE)`, `YEAR()/MONTH()` were not translated, which had hidden bugs 1–9 behind SQL errors. Production SQL Server is unaffected by this adapter.
+
+Server hard timeout: `/chat` already caps the pipeline at 25 s (`ASK_AI_TIMEOUT_SECONDS`) and returns a clear message.
+Tests: `tests/test_ask_ai_guardrails.py` (30). Non-Selenium suite: 69 passed.
+Not verified: the LLM path (needs `OPENROUTER_API_KEY`) and these queries on SQL Server.
+
+## R-Phase 5 — Upload and encrypted storage
+
+**Status:** Encryption at rest implemented and verified on the QA (SQLite) database; SQL Server execution not verified here.
+
+Finding: before this change, new uploads were stored in plaintext. `database/connection.py` had encryption switched off "for Ask AI speed", while the site said data was encrypted at rest. Verified: a 6,000-row CSV produced a table whose text columns were readable with plain SQL.
+
+Owner's requirement (2026-11-19): customer datasets must be encrypted so that even the Super Admin cannot read them, while Ask AI keeps answering normally.
+
+Design (`utils/dataset_vault.py`):
+- Each dataset gets its own random AES-256-GCM key, stored only wrapped by the server master key `DATASET_ENCRYPTION_KEY` (env, never in the DB).
+- Rows are stored as encrypted Parquet chunks (≤100k rows each) in `DatasetVault`; `DatasetVaultMeta` holds the wrapped key and counts. Table name + chunk number are authenticated (AAD).
+- The dataset's own SQL table is still created (schema, types, column lookups) but holds no rows.
+- `run_query()` sends any SELECT on a vaulted table to an in-memory SQLite copy decrypted for that request (never written to disk), cached for 15 minutes and bounded by total rows. Prewarmed right after upload.
+- Uploads are refused with a clear message if the master key is missing, instead of silently storing plaintext.
+- Deleting a dataset (user or admin) removes its ciphertext and key.
+- Existing plaintext datasets: `python -m utils.dataset_vault migrate` (idempotent; skips vaulted tables; empties the plaintext table after copying). Not run automatically.
+
+Honest limit: someone holding BOTH the database and the server's `DATASET_ENCRYPTION_KEY` can decrypt (the server must read data to answer questions). The DB alone, backups and the admin console show only ciphertext. Column names are not encrypted.
+
+Schema changes (additive, idempotent, created on first use): tables `DatasetVault(TableName, ChunkNo, Payload)` and `DatasetVaultMeta(TableName, WrappedKey, KeyVersion, TotalRows, ChunkCount, CreatedAt)`.
+
+Also fixed: `uploads/data_loader.py` downcast float columns to float32 (~7 significant digits), so totals drifted (650k-row Profit total 252,743,264 vs true 252,743,276.6). Floats are now kept as float64; totals match the source exactly.
+
+Evidence (QA, SQLite, this sandbox):
+| Test | Result |
+|---|---|
+| 6,000-row CSV upload | encrypted; plaintext table 0 rows; ciphertext contains no "Lahore"/"North" |
+| 650,000-row CSV (54.1 MB, Pro) | background job, progress 0→25→48→70→93→100, 3.8 s total |
+| Ask AI battery on encrypted 6,000 rows | 17/17 correct, 10/10 refused, 2/2 missing flagged |
+| Ask AI battery on encrypted 650,000 rows | 17/17 correct; first question 3.1 s (decrypt + load), then ~0.4–1.2 s |
+| Decrypt 650k rows | 0.46 s; totals and counts equal pandas on the source file |
+| Dataset page, details, health, exec summary, report builder, CSV/Excel export | 200, real values shown |
+| Migration of 5 existing plaintext QA tables | migrated 5, re-run skipped all, sums unchanged |
+| `tests/test_dataset_vault.py` | 7 passed (no plaintext, query correctness, float precision, missing key refuses, wrong key fails, migration, delete) |
+
+Free gate: 1.09 MB CSV refused for Free (400, `upgrade_required`). Uploads above `UPLOAD_ASYNC_THRESHOLD_MB` (8 MB) run as background jobs with real progress.
+
+Copy: unverified "10M+ rows/records" claims replaced with "up to 500 MB"; encryption copy now describes AES-256-GCM per-dataset keys.
+
+## R-Phase 4 — Responsive and theme matrix (re-run)
+
+456 screenshots: 38 pages (public, portal, admin) × 360/390/768/1024/1440/1920 × light/dark, logged in as a QA user and the Super Admin. Result: 0 pages with horizontal overflow; the only console errors are on the deliberate `/nope-404` check (12). Fixed from review:
+- Portal top bar on phones wrapped the notification bell under the menu button; now one row.
+- Decorative amber/yellow (dataset names, icons, theme toggle) rendered in colour; now ink. Status colours (success/danger) kept.
+- Dashboard privacy panel said "raw dataset records are never transmitted externally". Not true: when the AI model is needed it receives the question, column names and up to 3 sample rows. Copy corrected.
+- CSS cache-buster bumped (`mono.css?v=20261119`).
+
+## R-Phase 7 (part) — Security
+- `/dataset/delete/<id>` deleted on a plain GET, so a link on another site could delete a dataset (SameSite=Lax still sends cookies on top-level GET). Now: POST with CSRF token deletes; GET only redirects to the dashboard with a message. Route name/URL unchanged. Verified: GET → not deleted; POST without token → not deleted; POST with token → dataset, table, ciphertext and key removed.
+- Vault cleanup on delete used a second connection while the delete transaction held locks; ciphertext was left behind on SQLite. Fixed: user delete removes it after commit; admin user-delete removes it inside the same transaction.
+- Production must set `FORCE_SECURE_COOKIES=true` (Secure cookie + HSTS header are already wired to it).
+
+## R-Phase 8 — Deploy readiness and auth hardening
+
+### Configuration
+- `PUBLIC_BASE_URL` helper (`utils/public_url.py`): emailed links, Google redirect URI and canonical/og:url tags are built from this one setting instead of the request host.
+- `SUPPORT_EMAIL`: one setting for every support address on the site; default `muhammadashan7456@gmail.com` (`site_config.py`).
+- `UPLOAD_ASYNC_THRESHOLD_MB`: default 50 (`uploads/upload_jobs.py`). QA: 487 KB file uploaded synchronously; 66.6 MB / 800k rows ran as a background job in about 5 s, and totals matched the source.
+- `DEPLOY_UPDATE.md` rewritten for the Oracle Cloud VM (Nginx, systemd, SQL Server); old cloud-host wording removed.
+- `.env.example` lists every variable the code reads.
+- SQLite QA schema: `Datasets.InsightsEnabled` / `LastInsightScanAt` added, so the insights scan no longer fails each tick.
+
+### Security
+- One-time codes out of the session cookie (5db4a1e): pending sign-in sessions and `EmailVerificationTokens` hold an HMAC-SHA256 digest keyed with `SECRET_KEY` and bound to purpose + user; constant-time compare.
+- **Password reset codes (new):**
+  - Checked against the account's email + code, never by code alone. The page asks for the email, prefilled after "Forgot password".
+  - Stored as a keyed digest (`password-reset` purpose), with a constant-time compare.
+  - Every wrong code adds 1 to `PasswordResetTokens.Attempts` in the database (SQL Server migration already existed; SQLite migration added). The 5th wrong code invalidates the code (`IsUsed = 1`).
+  - A new request retires older live codes. The reset link no longer carries the code.
+  - One generic error for unknown email, wrong code, and invalidated code.
+- **Super Admin email OTP (new):**
+  - The code digest, issue time, wrong-code counter and lockout live on the admin's `Users` row (`AdminOtpHash`, `AdminOtpIssuedAt`, `AdminOtpFailedAttempts`, `AdminOtpLockoutUntil`; SQL Server `ALTER` migrations in `init_db` + SQLite schema/migration). The cookie now holds no code, digest or counter.
+  - After 5 wrong codes, the account is locked for 15 minutes. The lock blocks code entry and stops a new code from being sent, even with the correct password.
+  - Replaying an older cookie does not reset the count, and a new code does not reset it either.
+  - A successful login or an expired lock clears the counter. The code is single-use and expires after 10 minutes.
+  - Message: "For your security, verification is paused after 5 incorrect codes. Please wait about N minutes and sign in again."
+- Tests: `tests/test_reset_and_admin_otp_limits.py` covers both fixes with 13 tests on a real temporary SQLite schema and a mocked clock. The old cookie-based admin OTP test in `test_auth_email_flows.py` was replaced by these tests.
+- Live QA (local server, SQLite, SMTP sink), password reset:
+  - Stored token is a 64-char digest.
+  - Right code with another account's email or an unknown email: refused.
+  - 5 wrong codes: DB `Attempts=5, IsUsed=1`, and the correct code is then refused.
+  - All failure messages are identical.
+  - A fresh code resets the password (302 to login); reusing that code is refused.
+- Live QA, Super Admin OTP:
+  - The cookie holds only user_id/name/email/role/next.
+  - 5th wrong code locks the account (DB `AdminOtpFailedAttempts=5`, lockout set, code cleared).
+  - The earlier cookie with the correct code: refused, and the dashboard redirects.
+  - Correct password during the lock: no code sent.
+  - After the lock time passed (simulated by editing the DB timestamp, not a real 15-minute wait), a new sign-in worked. The counter returned to 0 on success.
+
+### Ask AI guardrails
+27/27 in-scope questions correct, 20/20 off-topic questions refused, 2/2 missing columns flagged. Coding/how-to-fix questions are refused, and distinct counts are answered.
+
+### Google sign-in
+13 tests in `tests/test_google_oauth.py`.
+- Google Cloud Console redirect URI: `https://aidataanalystpro.co.uk/auth/google/callback`
+- JavaScript origin: `https://aidataanalystpro.co.uk`
+- Env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PUBLIC_BASE_URL`
+
+### Final checks (this sandbox)
+- `pytest` (excluding Selenium files `test_auth.py`, `test_demo_sandbox.py`, `test_public_pages.py`): 125 passed, 0 failed.
+- `python -m compileall -q .` (venv excluded): exit 0.
+- `node --check` on all 6 `static/**/*.js`: 0 failures.
+
+### NOT verified
+- Real Google sign-in end to end with a real Google account in the new flow.
+- Real SQL Server (the new `ALTER TABLE` migrations ran only as code review; QA ran on SQLite).
+- Real email delivery (QA used a local SMTP sink).
+- Live domain `aidataanalystpro.co.uk` with this branch deployed.
+- Theme/mobile screenshot matrix for R-Phase 8 changes (Playwright system libraries missing in this sandbox).
+- Scheduler log line `Auto-suspend error: near ".": syntax error` on SQLite: seen again in the QA server log, not investigated.
+
+---
+
+# R-Phase 9 — Market-ready pass (started 2026-11-20)
+
+Order changed by the owner: functional work first (audit → auth → upload/encryption → AI → admin/billing/email → security → docs), design and performance last. QA env: Python 3.12 venv, SQLite QA DB (`ALLOW_SQLITE_FALLBACK=true`, throwaway key), local SMTP sink, one Waitress process on 127.0.0.1:5051. Playwright Chromium now runs in this sandbox (system libraries installed with apt); Lighthouse 12 via npm in `/workspace/work/tools` (outside the repo).
+
+## R-Phase 9.1 — Audit and baseline
+
+- Routes: 124 URL rules (30 admin, 26 auth, 17 api, 9 dataset, rest public/portal). List kept outside the repo in the QA folder.
+- Tests: 125 passed (non-Selenium; `test_auth.py`, `test_demo_sandbox.py`, `test_public_pages.py` excluded).
+- Internal link crawl (requests, one URL per pattern): anonymous 24 pages, logged-in user 67, Super Admin 36 — no 404/5xx (JS template-literal hrefs excluded).
+- Domain: every default/doc/test uses `https://aidataanalystpro.co.uk`; no `dataanalystpro.co.uk` string in the repo.
+- Lighthouse BEFORE (mobile emulation, local server, no Nginx gzip): `/` perf 99, a11y 98, BP 100, SEO 100, FCP 1.6 s, LCP 1.8 s, TBT 0 ms, CLS 0.007, 155 KB. `/auth/login` perf 99, a11y 98, BP 100, SEO 66 (deliberate `noindex`), FCP 1.5 s, LCP 2.0 s, 153 KB.
+
+Failing / suspicious (to fix in later phases):
+1. Scheduler `Auto-suspend error: near "."` on SQLite: `auto_suspend_overdue_users()` uses SQL Server-only `UPDATE … OUTPUT INSERTED.*`. It also sets `suspended`, while the plan rule is "Pro lasts 30 days, then reverts to Free".
+2. Lapsed Pro users (status `expired`/`suspended`, still `IsActive=1`) see a red "ACCOUNT SUSPENDED" banner although they keep full Free access.
+3. Ask AI refusal text is not the exact sentence required.
+4. Password reset has no resend limit (each request mails a new code).
+5. No per-IP rate limit on login / OTP / reset endpoints (only per-account lockout).
+6. Still to check: Google button on register page, profit/loss prediction, chart-type coverage, invoice PDF, admin user list, startup PUBLIC_BASE_URL warning.
+
+## R-Phase 9.2 — Authentication and Google account linking
+
+Already in place and re-verified by tests: Google on login AND register (`btn-google-signup` on `auth/signup.html`, which `/auth/register` renders), PKCE + state, `email_verified` required, new Google users verified + `free` with no OTP/payment step, linking to an existing account by verified email, hashed OTPs, reset-code 5-try limit, admin OTP 15-minute lockout in the DB.
+
+Fixed now:
+- `database/queries.py` `get_user_by_email` / `get_user_by_username`: compare with `LOWER(..) = LOWER(?)`. Root cause: login and Google linking lowercased the input, so on a case-sensitive database a migrated user stored as `Name@Example.COM` was not found (Google would even have created a second account). SQL Server's default collation already ignores case, so behaviour there is unchanged; on SQLite it is now the same.
+- `auth/routes.py` forgot-password: server-side resend limit — one code per 60 seconds and at most 3 per hour per account (`count_recent_reset_requests()`, counted from `PasswordResetTokens.CreatedAt`). Before, every request minted a new code with a fresh 5-try budget, which sidestepped the per-code limit. A DB error fails closed. The page message is the same for throttled, unknown and normal requests (no enumeration) and now says honestly that codes are limited.
+- `auth/routes.py` login: the failed-login message (same for unknown account and wrong password) now tells Google-created users to use Continue with Google or set a password with Forgot password.
+
+Tests added (16 + 16 in the two files, all pass):
+- `tests/test_google_oauth.py`: legacy mixed-case email links to the same account (no new row, password and plan kept); form user → Google → form again lands on the same `UserID`; Google-only user → Forgot password → form login and Google both open the same account.
+- `tests/test_reset_and_admin_otp_limits.py`: 60-second spacing, 3-per-hour cap then allowed after an hour, throttled message identical to unknown-email message.
+- Full non-Selenium suite: 131 passed.
+
+Not verifiable here: a real Google round-trip (no client secret in this sandbox; Google is mocked) and SQL Server execution of the new query text.
+
+## R-Phase 9.3 — Upload gate, plans and encryption
+
+Re-verified live (QA server, SQLite, one process):
+- Free user, 487,559-byte CSV: HTTP 200, stored in 1.16 s. Free user, 1,142,858-byte CSV: HTTP 400 `upgrade_required=true` (server-side). >500 MB rejection stays covered by `tests/test_upload_limits.py`.
+- Pro user, 66,610,623-byte CSV (800,000 rows): POST returned a background job in 0.44 s; progress 0→20→39→57→75→99→100; done 4.46 s after the request started.
+- Stored form: plaintext table 0 rows for both uploads; vault meta 800,000 rows / 17 chunks, 6,000 rows / 1 chunk; first chunk contains no "Lahore"/"Laptop" bytes.
+- Preview pagination on the 800k-row dataset: page 1 (100 rows) 0.16–0.20 s / 43 KB; page 4,000 0.17 s; the largest page size (5,000 rows) 0.44 s / 1.4 MB. Never renders all rows.
+
+Fixed:
+- **Pro lasts 30 days, then Free** (`utils/scheduler.py`, `database/queries.py`): the sweep used SQL Server-only `UPDATE … OUTPUT INSERTED.*` (root cause of the SQLite log line `Auto-suspend error: near "."`) and set users to `suspended`. Now a portable SELECT + guarded per-user `UPDATE` (`get_lapsed_pro_users()`, `revert_user_to_free()`) sets `SubscriptionStatus='free'`, sends one "Pro plan ended" email and an in-app notice, and is idempotent. Rows the old sweep marked `suspended` for expiry (still `IsActive=1`, reason = the auto-expiry text) return to Free quietly (no repeat email). Admin bans (`IsActive=0`) and admins are never touched. `SQLiteCursorAdapter.rowcount` added (pyodbc-compatible).
+- `utils/subscription.py` + `templates/base.html`: a lapsed plan no longer shows a red "ACCOUNT SUSPENDED" banner; it shows "Your 30-day Pro plan ended on …, you are on the Free plan now". "Suspended" is shown only for a real admin ban.
+- `auth/email_service.py` `send_subscription_suspended_email` (name kept for callers) now says the plan ended and the account is on Free, with a renew link from `PUBLIC_BASE_URL`.
+- New admin page `/admin/datasets` (`admin.manage_datasets`, `templates/admin/datasets.html`, sidebar link): dataset **metadata only** (file, owner, rows, columns, size, upload date, encrypted / not migrated), searchable, paginated in the database.
+- Honest privacy copy (`privacy.html`, `faq_page.html`, `security_page.html`): the server decrypts in memory to answer; anyone controlling both the server and the master key could read data; master key kept outside the DB and backed up separately. Removed inaccurate "Argon2id/PBKDF2" (it is bcrypt), "TLS 1.3" and "bank-grade".
+
+Tests added: `tests/test_admin_never_sees_rows.py` (3: a marker row stored through the real vault never appears on 10 admin pages or 4 admin exports, including inside xlsx; the admin code never calls a row-reading function), `tests/test_plan_expiry.py` (3: who returns to Free, emails, idempotent, banner). Full non-Selenium suite: 137 passed.
+
+Schema: none (the sweep only changes values in existing columns).
+
+## R-Phase 9.4 — AI features (Ask AI typos, summary, charts, profit/loss)
+
+- Fuzzy Ask AI (`ai/gemini.py`): misspelled column names, values and keywords (incl. Roman Urdu) are corrected before planning; every correction or ambiguous match is returned as `assumptions` and shown above the answer ("How I read your question"), never applied silently (`frontend/routes.py` `/chat`).
+- Dataset summary (`ai/dataset_brief.py`, `/api/dataset-summary/<id>`, `templates/_dataset_summary.html` on upload/preview/chat): built from computed facts (rows, columns, date range, totals, top group, empty cells, duplicates); the LLM only re-phrases, with the computed text as fallback.
+- Profit/loss (`ai/profit_loss.py`, `/api/profit-loss/<id>`, `predictions.html`): deterministic profit or revenue−cost, margin, monthly trend slope, best/weakest month, top/loss-making categories and costs, a 3-month seasonal-naive/trend forecast with a confidence note, "analysis estimate, not financial advice". Missing columns are named. `/predictions` now reads the whole dataset (was `TOP 10000`).
+- Evidence (QA server, SQLite, encrypted 6,000-row sales CSV, one process): 12/12 misspelled questions correct vs pandas (`typo_results.json`), 6/6 off-topic refused with the exact required sentence; earlier battery 27/27 in scope, 20/20 refused, 2/2 missing columns flagged. Profit set: "In profit", margin 17.61%. Loss set: margin −29.84%, falling trend. Unsuitable set: names the missing revenue and cost columns. Browser (Playwright Chromium): all 10 chart modes render; hover gaps found → R-Phase 9.5.
+- Tests: `tests/test_ask_ai_fuzzy.py` (5), `tests/test_profit_loss.py` (5). Full non-Selenium suite: 161 passed.
+- Schema: none.
+
+## R-Phase 9.5 — Chart gaps from the browser check
+
+- Single-number answers (`templates/chat.html`): a one-row/one-value result rendered a one-point chart whose hover target was a sliver. It now renders a KPI card (metric, value in tabular mono, context line), hides the format switcher and the "hover" badge, and restores them for the next multi-value answer. Works for both the AJAX answer and a full page load (same renderer). Styles: `.kpi-result-*` in `static/css/mono.css` (cache version bumped to `?v=20261120` in all templates).
+- Funnel: labels are forced to a category axis (month strings like `2025-01-01` were auto-typed as a date axis), bars get the grayscale ramp with outlines (`marker.colors` was invalid for funnel), hover names the real metric instead of "Stage Count", `hovermode: closest` on every chart.
+- Earlier "funnel hover returns nothing" reading: an isolated Plotly harness hovered every funnel stage successfully, so part of it was the old QA script hovering the first `.funnellayer path` (a connector) and reading the chart before the 160 ms re-render. The new check waits for the requested trace type and hovers each mark.
+- Ask AI explanation tables (`ai/data_summary.py`): markdown tables with spaced separators (`| :--- |`) printed as raw pipes, and the cell bold regex inside an f-string emitted literal `\1`. Now rendered as HTML tables, lead sentence kept, still escaped.
+- Evidence (Playwright Chromium, QA server, one process): "totl revnue by regon", "mahine ke hisab se sales trnd dikhao", "top 5 prodcuts by sles" — all 10 modes render the requested type and every hovered mark (up to 3 per mode) shows a tooltip, light and dark. "how mny orders wer canceled" → KPI card 600 (pandas: 600 Cancelled), "totl sales" → 13,558,420 (pandas 13,558,420), "total profit for north region" → 601,853.2 (pandas 601,853.2); switcher hidden, chart hidden, no page errors. Script/results: `/workspace/work/qa/r9/browser_chart2.py`, `browser_chart2_[a-d].json` (outside the repo).
+- Tests: `tests/test_explanation_tables.py` (3).
+- Schema: none.
+
+## R-Phase 9.6 — Super Admin, billing and emails (in progress)
+
+### Users list
+- Root cause of "new users not in the admin list" (`database/queries.py` `search_users_admin`): the fixed sort put every banned/suspended/expired account first, then newest. With the 31 `suspended` rows seen in production, page 1 (20 rows) held only lapsed accounts and every new sign-up (form or Google) landed on page 2+. Default sort is now newest first; "Needs attention first", "Oldest first" and "Name A–Z" are options.
+- Search was broken: the WHERE clause used `LastIP.IPAddress`, an alias that was never joined, so any search raised a SQL error and showed an empty list. Now an `EXISTS` on `AuditLogs`.
+- New filters, all in SQL with bound parameters and whitelisted values: plan (Free, Pro active, expiring, payment pending/rejected, expired, suspended, banned), sign-in method (uses Google, from `SIGNUP_GOOGLE`/`LOGIN_GOOGLE`/`LINK_GOOGLE_VERIFIED` audit rows; no schema change), verified, joined in the last 1/7/30/90 days, 20/50/100 per page, First/Last page links that keep every filter. Google and Not-verified badges in the list. A failed query now logs server-side and shows a generic message (was `print` + raw error text).
+- Tests: `tests/test_admin_users_list.py` (2, real templates): a form sign-up and a real Google callback sign-up both appear above 30 older suspended accounts on page 1; search, every filter, pagination without overlap, and junk filter values.
+
+### Invoices (R-Phase 9.6b)
+- `utils/invoices.py` (new): invoice number `AIDAP-<year>-<PaymentID:06d>`, stored on the payment at approval with the real plan period; company details only from settings (`INVOICE_COMPANY_NAME`, optional `INVOICE_COMPANY_ADDRESS`, `INVOICE_COMPANY_TAX_ID`, `PUBLIC_BASE_URL`, `SUPPORT_EMAIL`), nothing invented (the old "AI Data Analyst Pro Inc." and the fake `TXN_<id>9021` fallback are gone). Payments approved before this change get a period computed from the approval date and the invoice says so.
+- Only Completed payments have an invoice. User: Receipts shows the number and an "Invoice PDF" button (`/receipts/<id>/download`, ownership-checked); pending/rejected show "Invoice after approval". Admin: Invoice + PDF on the payments list (`/admin/payment/invoice/<id>/download`). PDF rewritten in black and white with number, issue date, period, method, transaction ID, paid date, PKR 1,499.00.
+- Approving an already-approved payment is refused (it used to extend the plan a second time). SQLite string end dates no longer break the early-renewal check.
+- Schema (additive, idempotent, nullable): `Payments.InvoiceNumber NVARCHAR(40)`, `Payments.PeriodStart DATE`, `Payments.PeriodEnd DATE` (`IF NOT EXISTS (sys.columns …) ALTER TABLE … ADD` in `init_db`; SQLite `PRAGMA table_info` + `ADD COLUMN`).
+
+### Emails (R-Phase 9.6c)
+- Audit of all 12 types (registration OTP, verification link, welcome, password reset, payment received, payment approved, payment rejected, plan reminder, plan ended, renewed, admin login OTP, contact reply, plus the admin new-payment alert): every link uses `PUBLIC_BASE_URL`; no localhost; user-supplied names, reasons and transaction IDs are now HTML-escaped (they were inserted raw into the HTML); the only address in the bodies is `SUPPORT_EMAIL`.
+- New: welcome email after OTP/link verification and after a Google sign-up (`auth/routes.py` `_send_welcome`, `EmailService.send_welcome_email`).
+- Payment approved/renewed emails carry the invoice number and the invoice link.
+- Honest failure: approve, reject and contact reply now wait for the SMTP result (`wait=True`). The admin sees "could NOT be sent" when delivery fails. Before, the contact reply always flashed "Reply sent successfully" and approval/rejection never reported a failure.
+- Brevo: `Reply-To` is now `SUPPORT_EMAIL` (was the sending address), `Message-ID` uses the sender's domain (was `gmail.com`), and a startup check (`EmailService.config_problems`, called in `run.py`) logs a loud error when SMTP credentials or `MAIL_FROM` are missing or the From address is the `…@smtp-brevo.com` login. The `PUBLIC_BASE_URL` startup warning now prints as a banner.
+
+### Admin additions
+- Users list filters/sort/pagination (above); invoice PDF from the payments list; refusal of double approval; Settings → Infrastructure health shows disk free/used and a configuration checklist (PUBLIC_BASE_URL, email sender, encryption key present, secure cookies), presence only, no secret values.
+
+### Evidence
+- Tests: `tests/test_invoices_and_emails.py` (7: approval issues number + period + email link, user and admin PDF download with text checked, no invoice for pending or another user's payment, failed email reported, all 12 email types use public links and escape `<script>`, Reply-To/Message-ID/Brevo checks, number format) and `tests/test_admin_users_list.py` (2). Full non-Selenium suite: 173 passed.
+- Live (QA server, SQLite, local SMTP sink, CSRF on): admin approved payment #4 (HTTP 200, 0.14 s) → row `Completed`, `AIDAP-2026-000004`, period 2026-11-20 to 2026-12-20; the sink received "Payment approved…" From `noreply@aidataanalystpro.co.uk`, Reply-To the support address, links only `https://aidataanalystpro.co.uk/auth/login` and `/receipts/4/download`. User and admin PDF downloads: 200 `application/pdf`, `pdftotext` shows the number, PKR 1,499.00, Easypaisa, the transaction ID, support email and domain. Another user: 302, no PDF. `/admin/users` (with filters), `/admin/settings`, invoice page: 200. Evidence: `/workspace/work/qa/r9/phase6_live.json`, `invoice_user_4.pdf` (outside the repo).
+- Not verified: real Brevo delivery, SQL Server execution of the new ALTERs/queries.
+
+## R-Phase 9.7 — Full QA, security and performance (Phase 7)
+
+### Client IP and rate limits
+- `auth/security.py` `get_client_ip()`: no longer reads `X-Forwarded-For` / `X-Real-IP` / `CF-Connecting-IP` from the client. Root cause: any visitor could write an arbitrary IP into audit logs and login history (and would have dodged an IP limit) by sending the header. It now returns `request.remote_addr`, which Waitress (`wsgi.py`: `trusted_proxy="127.0.0.1"`, `trusted_proxy_count=1`, `clear_untrusted_proxy_headers=True`) sets from the ONE local Nginx hop. With Nginx's `X-Forwarded-For $proxy_add_x_forwarded_for` (or `$remote_addr`), the right-most entry is the address Nginx saw, so a client-supplied left part is ignored. `CF-Connecting-IP` is used only with `TRUST_CLOUDFLARE_IP=true` (set it only if the origin accepts traffic from Cloudflare alone). Other servers: `TRUSTED_PROXY_COUNT=1` enables ProxyFix in `run.py`.
+- The three remaining direct header reads now call `get_client_ip()`: `admin/routes.py` (admin OTP email IP), `frontend/routes.py` (contact form, newsletter).
+- `utils/rate_limit.py` (new) + `run.py` before-request hook: per-IP sliding-window limits, in process memory (correct for the single app process), on login (10/5 min), register (10/h), OTP verify (10/10 min), OTP/verification resend (5/15 min), forgot password (5/15 min), reset code (10/15 min), change password, availability lookups, Google callback, Super Admin login (5/15 min) and OTP (10/15 min), contact form and newsletter (5/h). Blocked requests get HTTP 429 + `Retry-After`, `templates/429.html` for pages, JSON for API/AJAX. `RATE_LIMITS_ENABLED=false` switches it off (load tests only). These sit in front of the existing database-backed per-account limits.
+- Live (QA server, Waitress as in production, Nginx-style header sent from 127.0.0.1): 10 failed logins → 200, 11th and 12th → 429 `Retry-After: 300`; a request with a forged left-most `X-Forwarded-For: 9.9.9.9, 203.0.113.50` is still 429; another real client (`203.0.113.51`) → 200. Log line `Rate limit hit: endpoint=auth.login ip=203.0.113.50`. Evidence `/workspace/work/qa/r9/phase7_live.json` (outside the repo).
+
+### CSRF audit
+- All 61 URL rules with POST/PUT/PATCH/DELETE (62 method combinations, including `frontend.delete_dataset`, `api_delete_query_history`, admin `delete_user`, `delete_subscriber`, `delete_contact_message_route`, `delete_review_route`) are refused without a token (test sends each one with a logged-in user + admin session and checks the CSRF handler ran). No view or blueprint is CSRF-exempt. Every `<form method="post">` in the templates carries `csrf_token`; all AJAX goes through `static/js/csrf.js` (base, landing and admin layouts have the meta token; the admin console has no fetch calls).
+- `delete_dataset` refuses GET (no DB access, test). GET routes that write: `view_dataset`/`dataset_details` only touch "last opened"; `verify-email`, `unsubscribe` use signed tokens; Google callback is state + PKCE checked. `logout` is still a GET link: the session cookie is `SameSite=Lax`, so a cross-site image/iframe cannot carry it; the worst case is a forced logout. Left as is (accepted, low risk).
+
+### Headers, CSP, debug, error pages
+- CSP: Google Fonts origins removed (`font-src 'self' data: cdnjs` for Font Awesome); the fonts are self-hosted. Six layouts still had `<link rel="preconnect" href="https://fonts.gstatic.com">` (a wasted connection on every page) — removed. Google sign-in is a top-level redirect (`/auth/google` → accounts.google.com → `/auth/google/callback`), so it needs no CSP origin; Google profile photos load under `img-src https:`. Added `Cross-Origin-Opener-Policy: same-origin`. Existing: nosniff, `X-Frame-Options: SAMEORIGIN`, Referrer-Policy, Permissions-Policy, HSTS when secure cookies are on, `Server` header masked.
+- Debug: `app.debug` is False; no `debug=True` anywhere; fallbacks run `debug=False`.
+- 500 handler (`frontend/routes.py`): was `print("Unhandled 500 error:", e)` (no traceback, stdout only). Now logs method, path and full traceback on the `errors` logger; if `500.html` itself fails (e.g. DB down while rendering the layout) a plain static page is returned. Test proves the page never contains the exception text or "Traceback".
+- Bug found: the newsletter unsubscribe route redirected to `url_for("frontend.index")`, an endpoint that does not exist, so an invalid/expired unsubscribe link raised a 500. Now `frontend.home` (live: 302 to `/`). A scan of every `url_for(...)` in Python and templates against the URL map finds no other unknown endpoint.
+
+### Dependency audit (safe upgrades only)
+- `pip-audit` on `requirements.txt` (latest resolution) and on the installed QA venv (77 packages): no known vulnerabilities. But the FLOORS allowed vulnerable versions, and `pip install -r requirements.txt` on the server never upgrades an already-installed package that satisfies the floor. OSV check of each floor found advisories in Flask 3.0.0, waitress 3.0.0, python-dotenv 1.0.0, scikit-learn 1.3.0, pyarrow 14.0.0, lxml 5.0.0, requests 2.31.0, plus transitive Werkzeug, Jinja2, urllib3 and Pillow. Floors raised to the first fixed release, never above the version the suite ran on: Flask>=3.1.3, Werkzeug>=3.1.9, Jinja2>=3.1.6, waitress>=3.0.1, python-dotenv>=1.2.2, scikit-learn>=1.5.0, pyarrow>=23.0.1, lxml>=6.1.0, requests>=2.33.0, urllib3>=2.8.0, pillow>=13.0.0 (new explicit line; profile photo/logo upload). Re-check of all 26 floors against OSV: 0 advisories. `pypdf` added to `requirements-test.txt`.
+- On the server this means `pip install -r requirements.txt` will upgrade these packages (lxml 5→6 and Pillow → 13 are major versions; the suite and the export/upload checks here ran on lxml 6.1.3 and Pillow 13.0.0).
+
+### Exports open
+- Bug: the full-dataset export (`/dataset/export/<id>/<fmt>`) shipped the internal storage column `RecordID` as an extra first column in CSV, Excel, PDF, Word and PPT (preview and query export already dropped it). Fixed; the error path no longer flashes the raw exception text.
+- Live (QA server, 6,000-row encrypted dataset #13): CSV 200, 487,559 bytes (same size as the uploaded file), pandas shape (6000, 11); Excel opens in openpyxl (sheets Data + Summary, 6,001 rows × 11 cols); PDF opens in pypdf (8 pages, title text read); Word opens in python-docx (10 paragraphs, 1 table); PPTX opens in python-pptx (13 slides, 1 chart picture); SVG parses as XML. Dataset #16 (4 rows) also opens in all formats. Script `/workspace/work/qa/r9/exports_check.py`, results `exports/exports_ds13.json`.
+- Test: `tests/test_exports_open.py` (5: Urdu text, missing values, dates, negatives in each format).
+
+### Swallowed exceptions on key flows
+- Newsletter subscribe: a failed DB save was printed and the visitor was told "subscribed successfully"; now an honest 500 message. The welcome-email text no longer claims delivery when the send fails.
+- Unsubscribe: a failed UPDATE still showed "you have been unsubscribed"; now an error message.
+- Admin dashboard, audit log, subscribers, contact inbox: a query error showed an empty page with no hint; now `logger.exception` + a visible "could not be loaded" message.
+- Admin delete user: raw exception text was flashed to the browser; now logged with traceback and a generic message. Legacy table drop failures are logged instead of silently passed (also in dataset delete).
+- Login / admin session row and signup insert fallback: `print` → `logger` with traceback.
+- Remaining `except: pass` sites reviewed and left: optional cleanup (index creation, cache eviction, child-row deletes on tables that may not exist), "last opened" touch, notification side effects.
+
+### Evidence
+- Tests: `tests/test_security_hardening.py` (14: rate limit + 429 page/JSON, spoofed headers, kill switch, Cloudflare toggle, no direct header reads, Waitress proxy config, CSRF on all 61 unsafe routes, delete-on-GET, headers/CSP, Google link, debug off, 500 hides details and logs traceback, plain 404) and `tests/test_exports_open.py` (5). Full non-Selenium suite: 192 passed. `compileall`: exit 0.
+- Schema: none.
+- Not verified: real Nginx in front (the proxy header was sent the way Nginx sends it, straight to Waitress); Cloudflare.
+
+## R-Phase 9.8 — Production readiness docs (Phase 8)
+
+- `.env.example`: re-checked against every `os.getenv` / `os.environ` read in the code (46 names, 0 missing, 0 extra). Added `INVOICE_COMPANY_NAME`, `INVOICE_COMPANY_ADDRESS`, `INVOICE_COMPANY_TAX_ID`, `RATE_LIMITS_ENABLED`, `TRUST_CLOUDFLARE_IP`, and a fuller `MAIL_FROM` note (verified Brevo sender, never the `…@smtp-brevo.com` login; replies go to `SUPPORT_EMAIL`) and `TRUSTED_PROXY_COUNT` note. No real values.
+- `DEPLOY_UPDATE.md` (Oracle Ubuntu, Nginx, one systemd service, SQL Server on the VM): new section 0 "What this release changes" — table of the 7 new SQL Server columns (`Payments.InvoiceNumber`, `PeriodStart`, `PeriodEnd`; `Users.AdminOtpHash`, `AdminOtpIssuedAt`, `AdminOtpFailedAttempts`, `AdminOtpLockoutUntil`), all added by `init_db()` with `IF NOT EXISTS … ALTER TABLE … ADD`, plus a `sys.columns` query that must return 7 rows; new env vars; dependency upgrades (lxml and Pillow are major bumps); rate-limit behaviour. New 2b: the Nginx `proxy_set_header` block the real-IP handling expects (`X-Forwarded-For $proxy_add_x_forwarded_for` or `$remote_addr`, `client_max_body_size 500M`) and a reference systemd unit with "exactly one process" checks. Startup log check now includes `EMAIL CONFIG WARNING`. Smoke tests add invoice approve/download, real IP in the audit log, the five exports, header check, and a warning not to rate-limit yourself on production. Rollback notes that the new nullable columns can stay and pip does not downgrade. Existing backup (.bak + VERIFYONLY, uploads, .env, separate key fingerprint), `git pull`, `pip install`, migrate-on-a-restored-copy, restart and restore steps kept.
+- `PROJECT_OVERVIEW.md`: new short section 0a summarising R-Phase 9.
+- Test: `tests/test_env_example.py` (3: every variable documented, the new ones present, secret variables empty). Full non-Selenium suite: 195 passed.
+- Schema: none in this step.
+- Not verified: the deploy steps themselves (no Oracle VM, Nginx or SQL Server here); the `sqlcmd` commands are unchanged from the earlier reviewed version except the new read-only `sys.columns` query.
+
+## R-Phase 9.9 — Design polish (Phase 9)
+
+### Changes
+- CSS design tokens: hardcoded colours in `style.css`, `landing.css`, `mono.css` and the templates replaced by CSS variables (light and dark themes from one set of tokens).
+- Fonts self-hosted: Playfair Display (new, `static/fonts/playfair-display-latin-var.woff2`, 31.6 KB), Inter and JetBrains Mono; `fonts.css` updated. No third-party font origin.
+- Three.js and vanilla-tilt removed (comments in `landing_base.html` / `animations.js` only). Replaced by a CSS tilt, hover lift and an inline isometric SVG; reduced-motion respected.
+- Mobile drawers for the portal and the Super Admin console; portal and admin footer (brand, year from `now_year` in the `run.py` context processor).
+- Admin base template: the footer read `site_config`, which is not in the admin context, and 2 tests in `tests/test_admin_users_list.py` failed. Guarded with `site_config is defined` and a fallback brand name.
+
+### Evidence
+- Full non-Selenium suite (excluding `test_auth.py`, `test_demo_sandbox.py`, `test_public_pages.py`): 195 passed. `python -m compileall -q` (venv excluded): exit 0. `node --check` on all 6 files in `static/**/*.js`: 0 failures.
+- Accessibility/overflow matrix (axe-core, public, auth, portal, admin; light and dark; several widths): 372 page loads, 0 load errors, 0 WCAG AA colour-contrast failures (before: 215 nodes on 132 loads), 0 horizontal scroll, 0 theme mismatches. Evidence `/workspace/work/qa/r9/design/` (outside the repo).
+- Lighthouse (local QA server, Waitress, headless Chromium; two runs after because TBT varied run to run):
+
+  | Page | Before | After run 1 | After run 2 |
+  |---|---|---|---|
+  | `/` perf / LCP / TBT | 99 / 1.8 s / 0 ms | 96 / 2.1 s / 170 ms | 99 / 2.1 s / 10 ms |
+  | `/auth/login` perf / LCP / TBT | 99 / 2.0 s / 0 ms | 91 / 2.1 s / 320 ms | 99 / 2.1 s / 0 ms |
+
+  Accessibility 98, Best practices 100 on both, unchanged. SEO: `/` 100; `/auth/login` 66 before and after (it is `noindex` on purpose). Page weight +33 KB on both (155 → 188 KB on `/`, 153 → 185 KB on login), mostly the Playfair Display font; LCP is 0.1–0.3 s slower.
+- Internal link crawl (`crawl.py`): anonymous 25 URLs, user 68, admin 40, 0 internal 404/5xx. Every `url()` in the CSS (the three font files) returns 200.
+- Schema: none. New env vars: none.
+- Not verified: real devices/browsers other than headless Chromium; production (Nginx, Cloudflare) performance.

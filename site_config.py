@@ -10,6 +10,16 @@ EXPORT_TYPICAL_TIME were measured.
 
 BRAND_NAME = "AI Data Analyst Pro"
 
+# Support contact shown on every page (footer, contact, privacy), in emails, invoices
+# and PDF receipts. Change it with the SUPPORT_EMAIL env var; this constant is the only
+# default in the codebase.
+DEFAULT_SUPPORT_EMAIL = "muhammadashan7456@gmail.com"
+
+
+def support_email():
+    import os
+    return (os.getenv("SUPPORT_EMAIL") or "").strip() or DEFAULT_SUPPORT_EMAIL
+
 # Verified against the real Datasets table (54 rows at time of writing, see
 # docs/BASELINE.md) - rounded down to a safely-true figure rather than the
 # previous unverified "500+" claim.

@@ -4,7 +4,7 @@
 <title>Complete Your Payment — AI Data Analyst Pro | Register</title>
 <meta name="description" content="Complete your payment to create your AI Data Analyst Pro enterprise account. Fast, secure registration with instant Super Admin verification.">
 <meta name="robots" content="noindex, nofollow">
-<link rel="canonical" href="{{ request.url }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block content %}
@@ -15,16 +15,16 @@
         </div>
         <h1 class="auth-title">Complete Pro Upgrade Payment</h1>
         <p class="auth-subtitle">
-            Upgrade to Pro Plan (PKR 1,499 / month) to upload datasets up to 500 MB (10M+ rows).
+            Upgrade to Pro Plan (PKR 1,499 / month) to upload datasets up to 500 MB.
         </p>
 
         <!-- Plan & Price -->
-        <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
                 <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Subscription Plan</div>
                 <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">{{ settings.plan_name }}</div>
             </div>
-            <div style="font-size: 24px; font-weight: 800; color: #2563eb;">{{ settings.plan_price_label }}</div>
+            <div style="font-size: 24px; font-weight: 800; color: var(--mono-text-3);">{{ settings.plan_price_label }}</div>
         </div>
 
         <!-- Payment Account Details -->
@@ -98,7 +98,7 @@
                     <div id="screenshot-preview" style="margin-top: 12px; display: none;">
                         <img id="screenshot-preview-img" src="" alt="Preview" style="max-width: 100%; max-height: 220px; border-radius: 8px;">
                     </div>
-                    <div id="screenshot-error" style="color: #ef4444; font-size: 13px; margin-top: 8px; display: none;"></div>
+                    <div id="screenshot-error" style="color: var(--mono-danger); font-size: 13px; margin-top: 8px; display: none;"></div>
                 </div>
             </div>
 

@@ -1,4 +1,5 @@
 import os
+import logging
 import sys
 import pandas as pd
 from dotenv import load_dotenv
@@ -17,35 +18,36 @@ _FERNET_CIPHER = None
 
 
 def _get_cipher():
+    """
+    Return the Fernet cipher for DATASET_ENCRYPTION_KEY, or None when no usable key is set.
+
+    The key is never generated or replaced here. The previous version appended a newly
+    generated key to .env when the variable was missing, and silently switched to a random
+    in-memory key when the configured one was malformed; anything encrypted under such a
+    key becomes unreadable after the next restart. Now a missing or invalid key disables
+    encryption (and logs an error) instead of producing ciphertext nobody can decrypt.
+    """
     global _FERNET_CIPHER
     if _FERNET_CIPHER is not None:
         return _FERNET_CIPHER
-
     if Fernet is None:
         return None
 
     raw_key = os.getenv("DATASET_ENCRYPTION_KEY", "").strip()
     if not raw_key:
-        raw_key = Fernet.generate_key().decode()
-        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
-        try:
-            with open(env_path, "a", encoding="utf-8") as f:
-                f.write(f"\nDATASET_ENCRYPTION_KEY={raw_key}\n")
-        except Exception:
-            pass
-
+        logging.getLogger(__name__).error("DATASET_ENCRYPTION_KEY is not set; dataset field encryption is unavailable.")
+        return None
     try:
         _FERNET_CIPHER = Fernet(raw_key.encode())
     except Exception:
-        key_bytes = Fernet.generate_key()
-        _FERNET_CIPHER = Fernet(key_bytes)
-
+        logging.getLogger(__name__).error("DATASET_ENCRYPTION_KEY is not a valid Fernet key; dataset field encryption is unavailable.")
+        return None
     return _FERNET_CIPHER
 
 
 def encrypt_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Encrypt all text/string columns with AES-256 Fernet Encryption at rest before saving to SQL Server.
+    Encrypt all text/string columns with Fernet encryption (AES-128 + HMAC-SHA256) at rest before saving to SQL Server.
     Uses dictionary mapping vectorization for sub-second 1,000,000+ row scaling.
     """
     if df is None or df.empty:

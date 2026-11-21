@@ -5,17 +5,18 @@
 {% block header_subtitle %}Server-side SQL paginated data explorer for dataset {{ table_name }}{% endblock %}
 
 {% block content %}
+{% with summary_dataset_id = dataset[0] %}{% include "_dataset_summary.html" %}{% endwith %}
 <!-- Metadata Cards & Actions -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
         <div class="badge badge-info" style="font-size: 14px; padding: 8px 14px;">
-            📊 Total Rows: <strong>{{ "{:,}".format(total_rows) }}</strong>
+            Total Rows: <strong>{{ "{:,}".format(total_rows) }}</strong>
         </div>
         <div class="badge badge-info" style="font-size: 14px; padding: 8px 14px;">
-            📐 Columns: <strong>{{ total_columns }}</strong>
+            Columns: <strong>{{ total_columns }}</strong>
         </div>
         <div class="badge badge-success" style="font-size: 14px; padding: 8px 14px;">
-            ⚡ Showing <strong>{{ "{:,}".format(start_idx) }}–{{ "{:,}".format(end_idx) }}</strong> of <strong>{{ "{:,}".format(total_rows) }}</strong> records
+            Showing <strong>{{ "{:,}".format(start_idx) }}–{{ "{:,}".format(end_idx) }}</strong> of <strong>{{ "{:,}".format(total_rows) }}</strong> records
         </div>
     </div>
 
@@ -62,13 +63,13 @@
         </div>
         <div class="pagination-controls" style="display: flex; gap: 6px;">
             {% if page > 1 %}
-            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=1, per_page=per_page) }}" class="btn btn-secondary btn-sm">⏮ First</a>
+            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=1, per_page=per_page) }}" class="btn btn-secondary btn-sm">First</a>
             <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=page-1, per_page=per_page) }}" class="btn btn-secondary btn-sm">⬅ Previous</a>
             {% endif %}
             
             {% if page < total_pages %}
-            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=page+1, per_page=per_page) }}" class="btn btn-secondary btn-sm">Next ➡️</a>
-            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=total_pages, per_page=per_page) }}" class="btn btn-secondary btn-sm">Last ⏭</a>
+            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=page+1, per_page=per_page) }}" class="btn btn-secondary btn-sm">Next </a>
+            <a href="{{ url_for('frontend.view_dataset', dataset_id=dataset[0], page=total_pages, per_page=per_page) }}" class="btn btn-secondary btn-sm">Last </a>
             {% endif %}
         </div>
     </div>

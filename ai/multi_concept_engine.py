@@ -163,7 +163,7 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
 
     # Build Master Multi-Concept Synthesis
     synthesis_markdown = []
-    synthesis_markdown.append(f"### 📊 Executive Multi-Concept Query Synthesis ({len(concept_results)} Analytical Concepts)\n")
+    synthesis_markdown.append(f"### Executive Multi-Concept Query Synthesis ({len(concept_results)} Analytical Concepts)\n")
 
     scalar_metrics = []
 
@@ -201,7 +201,7 @@ def execute_multi_concept_analysis(question: str, table_name: str, columns_list:
     # Generic comparative insight if multiple numeric scalars were returned
     if len(scalar_metrics) >= 2:
         tot_sum = sum(m[2] for m in scalar_metrics)
-        synthesis_markdown.append(f"\n#### 💡 Comparative Analytical Insights\n")
+        synthesis_markdown.append(f"\n#### Comparative Analytical Insights\n")
         if tot_sum > 0:
             for sq, cname, nval in scalar_metrics:
                 pct = round((nval / tot_sum) * 100, 1)

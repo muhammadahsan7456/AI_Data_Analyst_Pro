@@ -106,3 +106,17 @@ def test_upload_over_five_hundred_mib_is_rejected_server_side(monkeypatch):
     assert payload["success"] is False
     assert "absolute maximum system limit of 500 MB" in payload["error"]
     process_upload.assert_not_called()
+
+
+def test_async_threshold_defaults_to_50_mb_and_reads_env(monkeypatch):
+    import importlib
+    import uploads.upload_jobs as jobs
+    monkeypatch.delenv("UPLOAD_ASYNC_THRESHOLD_MB", raising=False)
+    assert jobs._threshold_mb() == 50.0
+    monkeypatch.setenv("UPLOAD_ASYNC_THRESHOLD_MB", "12")
+    assert jobs._threshold_mb() == 12.0
+    monkeypatch.setenv("UPLOAD_ASYNC_THRESHOLD_MB", "nonsense")
+    assert jobs._threshold_mb() == 50.0
+    monkeypatch.delenv("UPLOAD_ASYNC_THRESHOLD_MB", raising=False)
+    importlib.reload(jobs)
+    assert jobs.ASYNC_THRESHOLD_BYTES == 50 * 1024 * 1024

@@ -64,7 +64,7 @@ function toggleProactiveInsights(btn) {
     .then(data => {
         if (data.success) {
             label.textContent = data.insights_enabled ? 'Proactive Insights: ON' : 'Proactive Insights: OFF';
-            if (window.showAppToast) window.showAppToast(data.insights_enabled ? '✅ Proactive insights enabled for this dataset.' : '🔕 Proactive insights disabled for this dataset.', 'info');
+            if (window.showAppToast) window.showAppToast(data.insights_enabled ? 'Proactive insights enabled for this dataset.' : 'Proactive insights disabled for this dataset.', 'info');
         }
     })
     .catch(() => { if (window.showAppToast) window.showAppToast('Could not update insights setting.', 'error'); });
@@ -104,7 +104,7 @@ function toggleProactiveInsights(btn) {
 <!-- AI Business Insights & Recommendations -->
 <div class="table-card" style="border-left: 4px solid var(--accent-purple);">
     <h3 style="font-size: 16px; font-weight: 700; color: var(--accent-purple); margin-bottom: 12px;">
-        🤖 AI Recommendations & Data Quality Insights
+        AI Recommendations & Data Quality Insights
     </h3>
     <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 8px;">
         {% for insight in insights %}
@@ -127,7 +127,7 @@ function toggleProactiveInsights(btn) {
 
 <!-- Column Profiling Table -->
 <div class="table-card">
-    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">📋 Column Data Types & Descriptive Statistics</h3>
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Column Data Types & Descriptive Statistics</h3>
     <div class="table-container">
         <table class="custom-table">
             <thead>

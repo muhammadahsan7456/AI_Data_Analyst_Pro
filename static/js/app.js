@@ -15,7 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initMobileSidebar() {
+    // Slide-in drawer on tablets/phones: overlay, close button, Escape, focus return.
     const toggleBtn = document.getElementById("mobile-sidebar-toggle");
+    const closeBtn = document.getElementById("mobile-sidebar-close");
     const sidebar = document.querySelector(".sidebar");
     const backdrop = document.getElementById("sidebar-backdrop");
 
@@ -24,11 +26,18 @@ function initMobileSidebar() {
     function openSidebar() {
         sidebar.classList.add("open");
         if (backdrop) backdrop.classList.add("active");
+        document.body.classList.add("drawer-locked");
+        toggleBtn.setAttribute("aria-expanded", "true");
+        if (closeBtn) closeBtn.focus();
     }
 
     function closeSidebar() {
+        const hadFocus = sidebar.contains(document.activeElement);
         sidebar.classList.remove("open");
         if (backdrop) backdrop.classList.remove("active");
+        document.body.classList.remove("drawer-locked");
+        toggleBtn.setAttribute("aria-expanded", "false");
+        if (hadFocus) toggleBtn.focus();
     }
 
     toggleBtn.addEventListener("click", (e) => {
@@ -40,9 +49,11 @@ function initMobileSidebar() {
         }
     });
 
-    if (backdrop) {
-        backdrop.addEventListener("click", closeSidebar);
-    }
+    if (backdrop) backdrop.addEventListener("click", closeSidebar);
+    if (closeBtn) closeBtn.addEventListener("click", closeSidebar);
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && sidebar.classList.contains("open")) closeSidebar();
+    });
 
     const sidebarLinks = sidebar.querySelectorAll(".sidebar-link");
     sidebarLinks.forEach(link => {
@@ -174,7 +185,7 @@ function initFavorites() {
                 const res = await fetch(`/dataset/favorite/${datasetId}`, { method: "POST" });
                 const data = await res.json();
                 if (data.success) {
-                    btn.textContent = btn.textContent.trim() === "⭐" ? "☆" : "⭐";
+                    btn.textContent = btn.textContent.trim() === "★" ? "☆" : "★";
                     showToast("Favorite status updated!", "success");
                 }
             } catch (err) {
@@ -198,12 +209,22 @@ function showToast(message, type = "info") {
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
     
-    let icon = "ℹ️";
-    if (type === "success") icon = "✅";
-    if (type === "error") icon = "❌";
-    if (type === "warning") icon = "⚠️";
+    let icon = "fa-circle-info";
+    if (type === "success") icon = "fa-circle-check";
+    if (type === "error") icon = "fa-circle-exclamation";
+    if (type === "warning") icon = "fa-triangle-exclamation";
 
-    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    // Built with textContent: messages can contain server-provided text, which must
+    // never be interpreted as HTML.
+    const iconEl = document.createElement("i");
+    iconEl.className = `fa-solid ${icon}`;
+    iconEl.setAttribute("aria-hidden", "true");
+    const msgEl = document.createElement("span");
+    msgEl.textContent = message;
+    toast.setAttribute("role", type === "error" ? "alert" : "status");
+    toast.appendChild(iconEl);
+    toast.appendChild(document.createTextNode(" "));
+    toast.appendChild(msgEl);
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -330,12 +351,12 @@ function initAIAssistant() {
                 if (window.currentAIGreetingText && window.speakText) {
                     window.speakText(window.currentAIGreetingText);
                 }
-                if (window.showAppToast) window.showAppToast("🔊 AI Voice Speech Enabled", "info");
+                if (window.showAppToast) window.showAppToast("AI Voice Speech Enabled", "info");
             } else {
                 localStorage.setItem("ai-voice-muted", "true");
                 voiceBtn.innerHTML = '<i class="fa-solid fa-volume-xmark" style="color:#ef4444;"></i>';
                 if (window.speechSynthesis) window.speechSynthesis.cancel();
-                if (window.showAppToast) window.showAppToast("🔇 AI Voice Speech Muted", "warning");
+                if (window.showAppToast) window.showAppToast("AI Voice Speech Muted", "warning");
             }
         });
 
@@ -614,7 +635,7 @@ function initGlobalDownloadLoader() {
             // blocking the entire page behind a full-screen spinner for a guessed,
             // fixed duration (regardless of how long the export actually takes) isn't
             // the standard pattern here. A brief toast is enough, same as Gmail/Drive.
-            showToast("📥 Preparing your file... download will start shortly.", "info", "File Export");
+            showToast("Preparing your file... download will start shortly.", "info", "File Export");
         }
     });
 }
