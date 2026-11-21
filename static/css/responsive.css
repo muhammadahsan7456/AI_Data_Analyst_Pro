@@ -243,3 +243,34 @@ form[action*="audit_logs"][style*="grid"] {
         word-break: break-all !important;
     }
 }
+
+/* 6. Footer Links Visibility Hardening (Light & Dark Themes)
+   The footer background is dark/black (#0a0a0a) in both themes.
+   In light theme, --accent-gold turns into dark black (#0a0a0a), which caused
+   hovering over footer links to turn text black and disappear into the black footer!
+   Explicitly force hover color to clean bright white (#ffffff) with high contrast. */
+.site-footer a,
+.footer-links-col a,
+.footer-bottom-links a,
+.app-footer a {
+    color: rgba(255, 255, 255, 0.72) !important;
+    transition: color 0.2s ease, transform 0.2s ease !important;
+}
+
+.site-footer a:hover,
+.footer-links-col a:hover,
+.footer-bottom-links a:hover,
+.app-footer a:hover {
+    color: #ffffff !important;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+}
+
+.footer-links-col a:hover i {
+    color: #ffffff !important;
+}
+
+.footer-social-link:hover {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+}
