@@ -113,7 +113,9 @@ with app.app_context():
         else:
             print("NO_HASH")
 """
-        otp_code = run_remote_python(otp_script).strip()
+        raw_output = run_remote_python(otp_script).strip()
+        lines = [line.strip() for line in raw_output.splitlines() if line.strip()]
+        otp_code = lines[-1] if lines else "NO_OTP"
         print(f"  [2FA] Computed matching SuperAdmin OTP from live state: {otp_code}")
         assert otp_code not in ("NO_OTP", "NO_HASH") and len(otp_code) == 6, f"Invalid OTP: {otp_code}"
         
