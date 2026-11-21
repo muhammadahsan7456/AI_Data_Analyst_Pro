@@ -92,8 +92,10 @@
     }
     </script>
     {% endblock %}
-    <!-- Monochrome design layer: must stay the last stylesheet. -->
+    <!-- Monochrome design layer -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
+    <!-- Global Responsive Hardening Layer -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20261121">
 </head>
 <body class="landing-body">
 
