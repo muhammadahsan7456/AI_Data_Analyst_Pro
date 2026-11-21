@@ -924,7 +924,7 @@ def google_callback():
             flash("Google sign-in was cancelled.", "info")
         else:
             logger.warning("Google OAuth returned error=%s", error[:64])
-            flash(_GOOGLE_GENERIC_ERROR, "error")
+            flash(f"Google error: {error}. Please try again, or use email and password.", "error")
         return redirect(url_for("auth.login"))
 
     state = request.args.get("state")
@@ -937,7 +937,7 @@ def google_callback():
         flash("Your Google sign-in session expired. Please click Continue with Google again.", "warning")
         return redirect(url_for("auth.login"))
     if not code:
-        flash(_GOOGLE_GENERIC_ERROR, "error")
+        flash("Google did not return an authorization code. Please try again.", "error")
         return redirect(url_for("auth.login"))
 
     client_id, client_secret = _google_config()
@@ -946,12 +946,13 @@ def google_callback():
         return redirect(url_for("auth.login"))
 
     try:
+        redirect_uri = _get_google_redirect_uri()
         token_payload = {
             "client_id": client_id,
             "client_secret": client_secret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": _get_google_redirect_uri(),
+            "redirect_uri": redirect_uri,
         }
         if verifier:
             token_payload["code_verifier"] = verifier
@@ -963,17 +964,18 @@ def google_callback():
         )
         if token_resp.status_code != 200:
             try:
-                err = (token_resp.json() or {}).get("error", "unknown")
+                err_body = token_resp.json() or {}
+                err = err_body.get("error_description") or err_body.get("error") or "unknown"
             except ValueError:
-                err = "non-json"
-            logger.error("Google token exchange failed: HTTP %s error=%s", token_resp.status_code, err)
-            flash(_GOOGLE_GENERIC_ERROR, "error")
+                err = token_resp.text[:100] or "non-json"
+            logger.error("Google token exchange failed: HTTP %s error=%s (redirect_uri=%s)", token_resp.status_code, err, redirect_uri)
+            flash(f"Google token exchange failed ({err}). Check redirect URI or credentials.", "error")
             return redirect(url_for("auth.login"))
 
         access_token = (token_resp.json() or {}).get("access_token")
         if not access_token:
             logger.error("Google token response had no access_token.")
-            flash(_GOOGLE_GENERIC_ERROR, "error")
+            flash("Google token response missing access_token. Please try again.", "error")
             return redirect(url_for("auth.login"))
 
         profile_resp = requests.get(
@@ -983,12 +985,12 @@ def google_callback():
         )
         if profile_resp.status_code != 200:
             logger.error("Google userinfo failed: HTTP %s", profile_resp.status_code)
-            flash(_GOOGLE_GENERIC_ERROR, "error")
+            flash(f"Google userinfo request failed (HTTP {profile_resp.status_code}). Please try again.", "error")
             return redirect(url_for("auth.login"))
         profile_data = profile_resp.json() or {}
-    except (requests.RequestException, ValueError):
-        logger.exception("Google OAuth network/JSON error.")
-        flash(_GOOGLE_GENERIC_ERROR, "error")
+    except (requests.RequestException, ValueError) as net_err:
+        logger.exception("Google OAuth network/JSON error: %s", net_err)
+        flash(f"Google network connection error: {str(net_err)[:100]}", "error")
         return redirect(url_for("auth.login"))
 
     email = (profile_data.get("email") or "").strip().lower()
@@ -1073,9 +1075,9 @@ def google_callback():
             if picture:
                 cursor.execute(update_user_avatar(), (picture, new_user_id))
             _ensure_google_user_rows(cursor, new_user_id, picture)
-    except Exception:
-        logger.exception("Google sign-in database step failed.")
-        flash(_GOOGLE_GENERIC_ERROR, "error")
+    except Exception as db_err:
+        logger.exception("Google sign-in database step failed: %s", db_err)
+        flash(f"Database error during Google sign-in: {str(db_err)[:100]}", "error")
         return redirect(url_for("auth.login"))
 
     _start_google_session(new_user_id, full_name, username, email, "Analyst", picture)
