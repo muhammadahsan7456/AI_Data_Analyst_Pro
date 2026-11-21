@@ -1,0 +1,224 @@
+/* ==========================================================================
+   AI DATA ANALYST PRO - GLOBAL RESPONSIVE HARDENING SYSTEM
+   Guarantees 100% viewport compliance across:
+   - Small Mobile (360px - 480px)
+   - Mobile Standard (390px - 600px)
+   - Tablets (768px - 1024px)
+   - Small Laptops (1024px - 1280px)
+   - Wide Desktops (1440px+)
+   ========================================================================== */
+
+/* 1. Global Safety Gates against Horizontal Scroll / Viewport Bleed */
+html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Make sure all media/images never push parent boundaries */
+img, svg, video, canvas, audio, iframe {
+    max-width: 100% !important;
+    height: auto;
+}
+
+/* 2. Generic Table Responsive Container */
+.table-responsive,
+.table-container,
+.admin-table-container,
+.admin-card-box div[style*="overflow-x: auto"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 16px;
+    border-radius: var(--radius-sm, 8px);
+}
+
+/* Custom scrollbars for clean table horizontal scrolling */
+.table-responsive::-webkit-scrollbar,
+.table-container::-webkit-scrollbar,
+.admin-card-box div[style*="overflow-x: auto"]::-webkit-scrollbar {
+    height: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb,
+.admin-card-box div[style*="overflow-x: auto"]::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 4px;
+}
+
+/* 3. User Dashboard & App Workspace Fixes (style.css integration) */
+@media (max-width: 991px) {
+    .app-container {
+        flex-direction: column !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .main-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        padding: 16px 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* AI Chat / Workspace controls wrap properly */
+    .chat-prompt-toolbar {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+
+    .chat-chart-controls {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Metric Cards Grid */
+    .cards-grid,
+    .dashboard-kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* Top bar inside user workspace */
+    .top-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    .top-bar .page-header {
+        width: 100% !important;
+    }
+
+    .top-bar-actions {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    /* Forms and Filters */
+    .table-header-bar form,
+    .filter-bar,
+    .admin-filter-bar {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+
+    .table-header-bar input,
+    .table-header-bar select,
+    .table-header-bar button,
+    .filter-bar input,
+    .filter-bar select,
+    .filter-bar button {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Modals & Dialogs */
+    .modal-content,
+    .dialog-content {
+        width: 92vw !important;
+        max-width: 92vw !important;
+        margin: 20px auto !important;
+        padding: 16px !important;
+    }
+}
+
+/* 4. Super Admin Console Specific Responsive Rules */
+.admin-card-box form[style*="grid"],
+form[action*="manage_payments"][style*="grid"],
+form[action*="audit_logs"][style*="grid"] {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 1100px) {
+    /* Admin Filter Grid auto-collapse on tablets/medium laptops */
+    .admin-card-box form[style*="grid"],
+    form[action*="manage_payments"][style*="grid"],
+    form[action*="audit_logs"][style*="grid"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-main-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .admin-content-area {
+        padding: 12px 10px !important;
+    }
+
+    .admin-top-bar {
+        padding: 10px 14px !important;
+        flex-wrap: wrap !important;
+    }
+
+    /* Convert admin complex filter grids to 100% full-width stacked columns */
+    .admin-card-box form[style*="grid"],
+    form[action*="manage_payments"][style*="grid"],
+    form[action*="audit_logs"][style*="grid"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .admin-card-box form[style*="grid"] > *,
+    form[action*="manage_payments"][style*="grid"] > *,
+    form[action*="audit_logs"][style*="grid"] > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Admin Action Buttons in tables */
+    .admin-table td div[style*="justify-content: flex-end"],
+    .admin-table td div[style*="display: flex"] {
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        gap: 4px !important;
+    }
+
+    /* Admin stats / KPI grid */
+    .admin-stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+}
+
+/* 5. Extreme Small Screens (iPhone SE / 360px Android devices) */
+@media (max-width: 480px) {
+    .btn {
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+    }
+
+    .page-header h1,
+    .admin-page-title {
+        font-size: 18px !important;
+    }
+
+    .metric-value {
+        font-size: 22px !important;
+    }
+
+    /* Ensure pre/code tags wrap and do not burst out */
+    pre, code {
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
+    }
+}
