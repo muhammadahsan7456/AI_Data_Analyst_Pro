@@ -135,11 +135,20 @@ img, svg, video, canvas, audio, iframe {
 }
 
 /* 4. Super Admin Console Specific Responsive Rules */
-@media (max-width: 1024px) {
-    /* Admin Filter Grid auto-collapse */
-    .admin-card-box form[style*="grid"] {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
+.admin-card-box form[style*="grid"],
+form[action*="manage_payments"][style*="grid"],
+form[action*="audit_logs"][style*="grid"] {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 1100px) {
+    /* Admin Filter Grid auto-collapse on tablets/medium laptops */
+    .admin-card-box form[style*="grid"],
+    form[action*="manage_payments"][style*="grid"],
+    form[action*="audit_logs"][style*="grid"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
     }
 }
 
@@ -160,15 +169,20 @@ img, svg, video, canvas, audio, iframe {
     }
 
     /* Convert admin complex filter grids to 100% full-width stacked columns */
-    .admin-card-box form[style*="grid"] {
+    .admin-card-box form[style*="grid"],
+    form[action*="manage_payments"][style*="grid"],
+    form[action*="audit_logs"][style*="grid"] {
         display: flex !important;
         flex-direction: column !important;
         gap: 10px !important;
     }
 
-    .admin-card-box form[style*="grid"] > * {
+    .admin-card-box form[style*="grid"] > *,
+    form[action*="manage_payments"][style*="grid"] > *,
+    form[action*="audit_logs"][style*="grid"] > * {
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 0 !important;
     }
 
     /* Admin Action Buttons in tables */
