@@ -20,7 +20,7 @@ def allowed_file(filename: str) -> bool:
 
 def upload_csv(uploaded_file, user_id: int = 1, tags: str = None):
     """
-    Process file upload from web request supporting CSV, Excel, JSON, XML, TXT, TSV, Parquet, Feather.
+    Process file upload from web request supporting CSV, TSV, and Excel (.xlsx, .xls).
     """
     return process_file_upload(uploaded_file, user_id=user_id, tags=tags)
 

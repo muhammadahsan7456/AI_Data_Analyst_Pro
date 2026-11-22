@@ -20,17 +20,12 @@ from uploads.data_loader import (
 )
 from utils.logger import log_event
 
-# 9 Supported File Extensions
+# Supported File Extensions (CSV, TSV, Excel)
 SUPPORTED_EXTENSIONS = {
     ".csv": "CSV",
     ".xlsx": "EXCEL",
     ".xls": "EXCEL",
-    ".json": "JSON",
-    ".xml": "XML",
-    ".txt": "TXT",
-    ".tsv": "TSV",
-    ".parquet": "PARQUET",
-    ".feather": "FEATHER"
+    ".tsv": "TSV"
 }
 
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "500"))
@@ -220,7 +215,7 @@ def validate_file_pre_upload(uploaded_file, user_id: int) -> Tuple[bool, str, Di
     filename = uploaded_file.filename
     ext, format_label = detect_file_type(filename, getattr(uploaded_file, "stream", None))
     if not format_label or format_label == "UNKNOWN":
-        return False, f"Unsupported file format '{filename}'. Supported formats: CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather.", {}
+        return False, f"Unsupported file format '{filename}'. Supported formats: CSV, TSV, and Excel (.xlsx, .xls).", {}
 
     # Size verification
     uploaded_file.seek(0, os.SEEK_END)
