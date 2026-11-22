@@ -14,8 +14,8 @@
     </script>
     <title>Super Admin Security Verification - AI Data Analyst Pro</title>
 
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20261122">
 
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
          CDN copy was a render-blocking ~1s request on every page. -->
@@ -98,13 +98,20 @@
         }
         .otp-footer { margin-top: 20px; font-size: 12px; color: var(--text-muted); }
         .otp-footer a { color: var(--accent-red); text-decoration: none; font-weight: 600; }
+
+        @media (max-width: 480px) {
+            body { padding: 16px 12px; }
+            .otp-card { padding: 24px 16px !important; border-radius: 18px !important; }
+            .otp-input { padding: 12px 6px !important; font-size: 22px !important; letter-spacing: 6px !important; }
+            .otp-btn { padding: 12px 14px !important; font-size: 14px !important; white-space: normal !important; min-height: 46px !important; }
+        }
     </style>
     <!-- Monochrome design layer: must stay the last stylesheet. -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
 </head>
 <body>
     <div class="otp-card">
-        <div class="otp-shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <img src="{{ url_for('static', filename='brand_logo.png') }}?v=20261122" alt="Super Admin" style="width: 60px; height: 60px; border-radius: 16px; object-fit: cover; margin: 0 auto 16px; display: block; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);">
         <h1 class="otp-title">Super Admin Verification</h1>
         <p class="otp-subtitle">
             A 6-digit security code was sent to<br>
