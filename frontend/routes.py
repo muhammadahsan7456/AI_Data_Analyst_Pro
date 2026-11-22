@@ -2345,11 +2345,14 @@ def faq_page():
 
 @frontend.route("/sitemap.xml")
 def sitemap_xml():
+    today = datetime.now().strftime("%Y-%m-%d")
     pages = [
         ("/", "1.0", "weekly"),
         ("/features", "0.9", "weekly"),
         ("/demo", "0.9", "weekly"),
         ("/pricing", "0.9", "weekly"),
+        ("/auth/signup", "0.8", "weekly"),
+        ("/auth/login", "0.8", "weekly"),
         ("/testimonials", "0.8", "monthly"),
         ("/security-overview", "0.8", "monthly"),
         ("/faq", "0.8", "monthly"),
@@ -2361,11 +2364,11 @@ def sitemap_xml():
         ("/terms", "0.5", "yearly"),
     ]
     from utils.public_url import public_base_url
-    base_url = public_base_url()
+    base_url = public_base_url().rstrip("/")
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     for path, priority, freq in pages:
-        xml += f'  <url>\n    <loc>{base_url}{path}</loc>\n    <priority>{priority}</priority>\n    <changefreq>{freq}</changefreq>\n  </url>\n'
+        xml += f'  <url>\n    <loc>{base_url}{path}</loc>\n    <lastmod>{today}</lastmod>\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>\n'
     xml += '</urlset>'
     return Response(xml, mimetype="application/xml")
 
@@ -2373,16 +2376,19 @@ def sitemap_xml():
 @frontend.route("/robots.txt")
 def robots_txt():
     from utils.public_url import public_base_url
-    base_url = public_base_url()
+    base_url = public_base_url().rstrip("/")
     txt = f"""User-agent: *
 Allow: /
+Allow: /auth/login
+Allow: /auth/signup
+Allow: /auth/forgot-password
+Disallow: /auth/
 Disallow: /dashboard
 Disallow: /upload
 Disallow: /chat
 Disallow: /settings
 Disallow: /api/
-Disallow: /admin
-Disallow: /auth/
+Disallow: /admin/
 Disallow: /receipts
 Disallow: /secure/
 Disallow: /subscription/
