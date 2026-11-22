@@ -189,14 +189,17 @@ def clean_df_for_display(df):
 
 
 @frontend.route("/favicon.ico")
-@frontend.route("/favicon.png")
-def favicon():
+def favicon_ico():
     static_dir = frontend.static_folder
-    if os.path.exists(os.path.join(static_dir, "favicon.png")):
-        return send_from_directory(static_dir, "favicon.png", mimetype="image/png")
-    elif os.path.exists(os.path.join(static_dir, "favicon.ico")):
-        return send_from_directory(static_dir, "favicon.ico", mimetype="image/vnd.microsoft.icon")
-    return "", 204
+    if os.path.exists(os.path.join(static_dir, "favicon.ico")):
+        return send_from_directory(static_dir, "favicon.ico", mimetype="image/x-icon")
+    return send_from_directory(static_dir, "favicon.png", mimetype="image/png")
+
+
+@frontend.route("/favicon.png")
+def favicon_png():
+    static_dir = frontend.static_folder
+    return send_from_directory(static_dir, "favicon.png", mimetype="image/png")
 
 
 @frontend.route("/secure/payment-screenshot/<int:payment_id>")

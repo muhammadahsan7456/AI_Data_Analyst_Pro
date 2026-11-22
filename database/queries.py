@@ -777,12 +777,13 @@ def get_monthly_revenue_trend():
     """
     Takes (start_date, end_date) as bind params - the Super Admin dashboard lets the
     date range be picked freely instead of a fixed lookback window.
+    Uses CONVERT(VARCHAR(7), ..., 120) instead of FORMAT to avoid CLR runtime dependencies.
     """
     return """
-    SELECT FORMAT(PaymentDate, 'yyyy-MM') AS MonthLabel, SUM(Amount) AS Revenue
+    SELECT CONVERT(VARCHAR(7), PaymentDate, 120) AS MonthLabel, SUM(Amount) AS Revenue
     FROM Payments
     WHERE Status = 'Completed' AND PaymentDate >= ? AND PaymentDate < DATEADD(day, 1, ?)
-    GROUP BY FORMAT(PaymentDate, 'yyyy-MM')
+    GROUP BY CONVERT(VARCHAR(7), PaymentDate, 120)
     ORDER BY MonthLabel ASC
     """
 
@@ -790,12 +791,13 @@ def get_monthly_revenue_trend():
 def get_monthly_signups_trend():
     """
     Takes (start_date, end_date) as bind params - see get_monthly_revenue_trend().
+    Uses CONVERT(VARCHAR(7), ..., 120) instead of FORMAT to avoid CLR runtime dependencies.
     """
     return """
-    SELECT FORMAT(CreatedAt, 'yyyy-MM') AS MonthLabel, COUNT(*) AS NewUsers
+    SELECT CONVERT(VARCHAR(7), CreatedAt, 120) AS MonthLabel, COUNT(*) AS NewUsers
     FROM Users
     WHERE CreatedAt >= ? AND CreatedAt < DATEADD(day, 1, ?)
-    GROUP BY FORMAT(CreatedAt, 'yyyy-MM')
+    GROUP BY CONVERT(VARCHAR(7), CreatedAt, 120)
     ORDER BY MonthLabel ASC
     """
 
