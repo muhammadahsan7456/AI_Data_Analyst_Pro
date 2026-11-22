@@ -3,7 +3,7 @@
 {% block seo_meta %}
 <title>Platform Documentation & Architecture Guide — AI Data Analyst Pro</title>
 <meta name="description" content="Technical documentation for AI Data Analyst Pro: dataset ingestion up to 500 MB, SQL querying with responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, bilingual voice AI, automated PPTX/PDF exports, and encrypted dataset storage.">
-<meta name="keywords" content="AI Data Analyst Docs, SQL Architecture, Voice AI Querying, Automated PowerPoint Export, Parquet CSV Parsing">
+<meta name="keywords" content="AI Data Analyst Docs, SQL Architecture, Voice AI Querying, Automated PowerPoint Export, Excel CSV Parsing">
 <link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
@@ -102,10 +102,7 @@
                         <strong style="color: var(--mono-text); display: block; margin-bottom: 8px;">Supported Formats & Parsing Engine:</strong>
                         <ul style="padding-left: 20px;">
                             <li><code>CSV (.csv)</code> & <code>TSV (.tsv)</code> — Chunk-streamed with auto delimiter sniff</li>
-                            <li><code>Excel (.xlsx, .xls)</code> — Multi-sheet parsing via openpyxl</li>
-                            <li><code>JSON (.json)</code> & <code>XML (.xml)</code> — Hierarchical tree flattening</li>
-                            <li><code>Parquet (.parquet)</code> & <code>Feather (.feather)</code> — High-speed binary columnar storage</li>
-                            <li><code>Text (.txt)</code> — Fixed-width and custom-delimited files</li>
+                            <li><code>Excel (.xlsx, .xls)</code> — Multi-sheet parsing via openpyxl & xlrd</li>
                         </ul>
                     </div>
                 </div>

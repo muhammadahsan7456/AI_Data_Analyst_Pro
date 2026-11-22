@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block title %}Enterprise File Upload | AI Data Analyst Pro{% endblock %}
-{% block header_title %}Multi-Format Enterprise Data Uploader{% endblock %}
-{% block header_subtitle %}Upload single or multiple files (CSV, Excel, JSON, XML, TXT, TSV, Parquet, Feather) up to {{ max_upload_mb or 500 }} MB with automatic SQL table generation.{% endblock %}
+{% block header_title %}Enterprise Spreadsheet & Data Uploader{% endblock %}
+{% block header_subtitle %}Upload single or multiple files (CSV, TSV, Excel .xlsx, .xls) up to {{ max_upload_mb or 500 }} MB with automatic SQL table generation.{% endblock %}
 
 {% block content %}
 <div class="table-card" style="max-width: 850px; margin: 0 auto 32px auto;">
@@ -38,10 +38,10 @@
             <i class="fa-solid fa-cloud-arrow-up" style="font-size: 52px; color: var(--accent-blue); margin-bottom: 16px;"></i>
             <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Drag & Drop files here or click to browse</h3>
             <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
-                Supported formats: <strong>CSV, Excel (.xlsx, .xls), JSON, XML, TXT, TSV, Parquet, Feather</strong> (Up to <strong>{{ max_upload_mb or 1 }} MB</strong> per file)
+                Supported formats: <strong>CSV, TSV, Excel (.xlsx, .xls)</strong> (Up to <strong>{{ max_upload_mb or 1 }} MB</strong> per file)
             </p>
             
-            <input type="file" name="dataset" id="file-input" accept=".csv, .xlsx, .xls, .json, .xml, .txt, .tsv, .parquet, .feather" multiple style="display: none;">
+            <input type="file" name="dataset" id="file-input" accept=".csv, .xlsx, .xls, .tsv" multiple style="display: none;">
             
             <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
                 <button type="button" class="btn btn-primary" onclick="document.getElementById('file-input').click()">
