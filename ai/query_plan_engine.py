@@ -326,6 +326,10 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
     limit = None
 
     # 1. LIMIT, TOP & OFFSET RANGE CLAUSE DETECTION
+    is_show_all = any(kw in q_lower for kw in [
+        "all", "sara", "saara", "sare", "saare", "pura", "poora", "tamam", "complete", "entire", "full", "whole", "har"
+    ])
+
     range_match = re.search(r"\b(?:from|records|rows)?\s*(\d{1,6})\s*(?:to|till|until|-)\s*(\d{1,6})\b", q_lower)
     if range_match:
         start_idx = int(range_match.group(1))
@@ -333,7 +337,7 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         if end_idx >= start_idx:
             limit = end_idx - start_idx + 1
 
-    if not range_match:
+    if not range_match and not is_show_all:
         top_match = re.search(r"\b(?:top|first|last|aakhri|pehle|recent|newest)\s*(\d+)\b", q_lower)
         if top_match:
             limit = int(top_match.group(1))
@@ -775,11 +779,13 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
             computed_fields = [{"name": f"Distinct_{dist_col}_Count", "expression": f"COUNT(DISTINCT [{dist_col}])"}]
     elif any(kw in q_lower for kw in ["records", "rows", "entries", "data", "ross", "raws", "rose"]) and not any(kw in q_lower for kw in ["by", "per", "group", "breakdown"]):
         intent = "retrieve_records"
-        select_cols = [c for c in column_list[:10] if c.lower() != "recordid"]
+        select_cols = [c for c in column_list if c.lower() != "recordid"]
         primary_pk = column_list[0] if column_list else "RecordID"
         direction = "DESC" if any(kw in q_lower for kw in ["last", "bottom", "aakhri", "latest", "recent"]) else "ASC"
         order_by = [{"column": primary_pk, "sql_safe_column": f"[{primary_pk}]", "direction": direction}]
-        if limit is None:
+        if is_show_all:
+            limit = None
+        elif limit is None and any(kw in q_lower for kw in ["top", "first", "last", "pehle", "aakhri", "recent"]):
             limit = 10
     elif wants_ranking and not group_col:
         # User wants top/highest/lowest individual records sorted by the metric or primary key
@@ -795,7 +801,7 @@ def parse_question_to_query_plan(question: str, table_name: str) -> dict:
         elif id_or_index_col:
             order_by = [{"column": id_or_index_col, "sql_safe_column": f"[{id_or_index_col}]", "direction": direction}]
 
-        if limit is None:
+        if limit is None and not is_show_all:
             limit = 10
         if wants_count:
             intent = "count"

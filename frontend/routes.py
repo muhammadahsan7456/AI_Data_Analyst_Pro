@@ -140,6 +140,54 @@ def _is_valid_date(value):
         return False
 
 
+def clean_df_for_display(df):
+    """
+    Format numeric values in dataframe for clean, professional presentation in UI tables.
+    Eliminates unwanted decimal points (e.g. 1001.0 -> 1001) for integer columns,
+    and formats real floats cleanly without excessive trailing zeros.
+    """
+    if df is None or df.empty:
+        return df
+    clean_df = df.copy()
+    for col in clean_df.columns:
+        if col == "S.No":
+            continue
+        try:
+            series = clean_df[col]
+            # Exclude synthetic rows like 'Total' from numeric parsing
+            non_total_mask = series.astype(str) != "Total"
+            nums = pd.to_numeric(series.loc[non_total_mask], errors="coerce")
+            valid = nums.dropna()
+            if len(valid) > 0 and len(valid) >= (len(nums) * 0.7):
+                if (valid % 1 == 0).all():
+                    # Every numeric entry is a whole number (e.g., ID, Year, Count, Quantity)
+                    def _fmt_int(v):
+                        if pd.isna(v) or str(v) == "Total":
+                            return v
+                        try:
+                            f = float(v)
+                            return f"{int(f)}" if f.is_integer() else f"{f:.2f}"
+                        except (ValueError, TypeError):
+                            return v
+                    clean_df[col] = series.apply(_fmt_int)
+                else:
+                    # Floating point metric: strip trailing zeroes
+                    def _fmt_float(v):
+                        if pd.isna(v) or str(v) == "Total":
+                            return v
+                        try:
+                            f = float(v)
+                            if f.is_integer():
+                                return f"{int(f)}"
+                            return f"{f:.2f}".rstrip("0").rstrip(".")
+                        except (ValueError, TypeError):
+                            return v
+                    clean_df[col] = series.apply(_fmt_float)
+        except Exception:
+            continue
+    return clean_df
+
+
 @frontend.route("/favicon.ico")
 @frontend.route("/favicon.png")
 def favicon():
@@ -995,9 +1043,10 @@ def chat():
                 except Exception as chart_err:
                     print("Why-Investigation Chart Error:", chart_err)
 
-            why_result_html = contrib_df.to_html(
+            clean_contrib = clean_df_for_display(contrib_df)
+            why_result_html = clean_contrib.to_html(
                 classes="table table-bordered table-striped custom-table", index=False, na_rep="—"
-            ) if not contrib_df.empty else ""
+            ) if not clean_contrib.empty else ""
 
             try:
                 from database.queries import insert_query_history
@@ -1305,6 +1354,7 @@ def chat():
 
     # Missing/NaN values render as the clean placeholder below rather than the literal
     # text "NaN" - display formatting only, the underlying df/calculations are untouched.
+    display_df = clean_df_for_display(display_df)
     result_html = display_df.to_html(
         classes="table table-bordered table-striped custom-table",
         index=False,
@@ -1486,7 +1536,7 @@ def multi_dataset_analyze():
         return jsonify(analysis_res), 400
 
     df = analysis_res["df"]
-    result_html = df.head(50).to_html(
+    result_html = clean_df_for_display(df.head(50)).to_html(
         classes="table table-bordered table-striped custom-table",
         index=False,
         na_rep="—"
@@ -1725,7 +1775,7 @@ def view_dataset(dataset_id):
     start_idx = offset + 1 if not page_df.empty else 0
     end_idx = min(offset + len(page_df), total_rows)
 
-    preview_html = page_df.to_html(
+    preview_html = clean_df_for_display(page_df).to_html(
         classes="table table-bordered table-striped custom-table",
         index=False,
         na_rep="—"
