@@ -16,9 +16,9 @@
     <title>{% block title %}AI Data Analyst Pro{% endblock %}</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20261122">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
 
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
@@ -53,9 +53,7 @@
         <aside class="sidebar" id="app-sidebar" aria-label="Main navigation">
             <div>
                 <div class="sidebar-header">
-                    <div class="sidebar-brand-icon">
-                        <i class="fa-solid fa-brain"></i>
-                    </div>
+                    <img src="{{ url_for('static', filename='brand_logo.png') }}?v=20261122" alt="{{ site_config.BRAND_NAME }}" class="sidebar-brand-img" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; vertical-align: middle; flex-shrink: 0;">
                     <div class="sidebar-title sidebar-brand-text">{{ site_config.BRAND_NAME }}</div>
                     <button type="button" id="mobile-sidebar-close" class="drawer-close-btn" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                 </div>

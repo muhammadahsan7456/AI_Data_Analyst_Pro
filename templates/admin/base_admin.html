@@ -16,9 +16,9 @@
     <title>{% block title %}Super Admin Console{% endblock %} - AI Data Analyst Pro</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20261122">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
     
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
@@ -401,9 +401,7 @@
         <div>
             <div style="display: flex; align-items: center; gap: 8px;">
             <a href="{{ url_for('admin.dashboard') }}" class="admin-brand">
-                <div class="admin-badge-icon">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
+                <img src="{{ url_for('static', filename='brand_logo.png') }}?v=20261122" alt="Super Admin" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; vertical-align: middle; flex-shrink: 0;">
                 <span class="admin-brand-text">Super Admin</span>
             </a>
             <button type="button" class="drawer-close-btn" id="admin-drawer-close" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>

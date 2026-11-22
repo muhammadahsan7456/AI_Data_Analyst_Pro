@@ -15,9 +15,9 @@
     <title>Super Admin Security Gateway - AI Data Analyst Pro</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20261122">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
 
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
@@ -263,6 +263,36 @@
             font-size: 16px;
             z-index: 20;
         }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px 12px;
+            }
+            .admin-login-card {
+                padding: 24px 16px !important;
+                border-radius: 18px !important;
+            }
+            .admin-shield-header {
+                margin-bottom: 22px !important;
+            }
+            .admin-login-title {
+                font-size: 20px !important;
+            }
+            .admin-btn-submit {
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+                flex-wrap: wrap !important;
+                white-space: normal !important;
+                line-height: 1.35 !important;
+                text-align: center !important;
+                gap: 6px !important;
+                min-height: 46px !important;
+            }
+            .admin-input {
+                padding: 12px 14px 12px 42px !important;
+                font-size: 14px !important;
+            }
+        }
     </style>
     <!-- Monochrome design layer: must stay the last stylesheet. -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}?v=20261121">
@@ -278,9 +308,7 @@
 
     <div class="admin-login-card">
         <div class="admin-shield-header">
-            <div class="admin-shield-icon">
-                <i class="fa-solid fa-user-shield"></i>
-            </div>
+            <img src="{{ url_for('static', filename='brand_logo.png') }}?v=20261122" alt="Super Admin" style="width: 60px; height: 60px; border-radius: 16px; object-fit: cover; margin-bottom: 14px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);">
             <h1 class="admin-login-title">Super Admin Gateway</h1>
             <div class="admin-security-tag">
                 <i class="fa-solid fa-lock"></i> Restricted Personnel Only

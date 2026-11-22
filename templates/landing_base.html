@@ -41,9 +41,9 @@
     {% endblock %}
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20260830_v5">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830_v5">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20261122">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
 
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
@@ -107,9 +107,7 @@
         <div class="container">
             <nav class="nav-inner">
                 <a href="{{ url_for('frontend.home') }}" class="brand-logo" id="brand-logo">
-                    <div class="brand-icon-box">
-                        <i class="fa-solid fa-chart-line"></i>
-                    </div>
+                    <img src="{{ url_for('static', filename='brand_logo.png') }}?v=20261122" alt="{{ site_config.BRAND_NAME }}" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; vertical-align: middle;">
                     <span>{{ site_config.BRAND_NAME }}</span>
                 </a>
 
@@ -193,7 +191,7 @@
             <div class="footer-grid">
                 <div class="footer-brand-col">
                     <a href="{{ url_for('frontend.home') }}" class="footer-brand">
-                        <div class="brand-icon-box"><i class="fa-solid fa-chart-line"></i></div>
+                        <img src="{{ url_for('static', filename='brand_logo.png') }}?v=20261122" alt="{{ site_config.BRAND_NAME }}" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; vertical-align: middle;">
                         <span>{{ site_config.BRAND_NAME }}</span>
                     </a>
                     <p class="footer-desc">Upload CSV or Excel files, ask questions in plain language, inspect charts, and export reports.</p>
@@ -361,17 +359,29 @@
                 btn.disabled = false;
                 if (data.success) {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-                    btn.style.background = 'var(--mono-success)';
-                    if (msg) { msg.style.color = ''; msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Subscribed! Check your inbox.'); msg.style.display = 'block'; }
+                    btn.style.background = '#10b981';
+                    if (msg) {
+                        msg.className = 'newsletter-success';
+                        msg.style.cssText = 'display: block !important; color: #4ade80 !important; background: rgba(74, 222, 128, 0.15) !important; border: 1px solid rgba(74, 222, 128, 0.35) !important; padding: 9px 13px !important; border-radius: 8px !important; margin-top: 10px !important; font-size: 13px !important; font-weight: 600 !important;';
+                        msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Subscribed! Check your inbox.');
+                    }
                     if (input) input.value = '';
                     setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; btn.style.background = ''; }, 4000);
                 } else {
                     btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-                    if (msg) { msg.style.color = '#f87171'; msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + (data.message || 'Subscription failed. Please try again.'); msg.style.display = 'block'; }
+                    if (msg) {
+                        msg.className = 'newsletter-error';
+                        msg.style.cssText = 'display: block !important; color: #f87171 !important; background: rgba(248, 113, 113, 0.15) !important; border: 1px solid rgba(248, 113, 113, 0.35) !important; padding: 9px 13px !important; border-radius: 8px !important; margin-top: 10px !important; font-size: 13px !important; font-weight: 600 !important;';
+                        msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + (data.message || 'Subscription failed. Please try again.');
+                    }
                 }
             }).catch(() => {
                 if (btn) { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; btn.disabled = false; }
-                if (msg) { msg.style.color = '#f87171'; msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error. Please try again.'; msg.style.display = 'block'; }
+                if (msg) {
+                    msg.className = 'newsletter-error';
+                    msg.style.cssText = 'display: block !important; color: #f87171 !important; background: rgba(248, 113, 113, 0.15) !important; border: 1px solid rgba(248, 113, 113, 0.35) !important; padding: 9px 13px !important; border-radius: 8px !important; margin-top: 10px !important; font-size: 13px !important; font-weight: 600 !important;';
+                    msg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error. Please try again.';
+                }
             });
         }
         // Sticky header scroll effect
