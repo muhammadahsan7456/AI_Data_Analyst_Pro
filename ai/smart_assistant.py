@@ -155,7 +155,7 @@ def build_welcome_back_card(user_id, name):
     first_name = get_first_name(full_name=name)
     last_login, datasets_cnt, reports_cnt, queries_cnt = fetch_user_workspace_stats(user_id)
 
-    speech = f"Hello {first_name}! Welcome back. You have logged in successfully."
+    speech = ""
 
     return {
         "category": "login",
@@ -177,7 +177,7 @@ def build_farewell_card(name):
     Format AI farewell message upon logout.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Goodbye {first_name}. You have logged out successfully."
+    speech = ""
     return {
         "category": "logout",
         "title": f"Goodbye {first_name}",
@@ -192,7 +192,7 @@ def build_signup_card(name):
     Format AI card after user registration.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Welcome {first_name}! Your account has been created successfully."
+    speech = ""
     return {
         "category": "signup",
         "title": f"Welcome {first_name}!",
@@ -207,7 +207,7 @@ def build_email_verified_card(name):
     Format AI card after email verification.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Congratulations {first_name}! Your email has been verified."
+    speech = ""
     return {
         "category": "email_verified",
         "title": "Email Verified",
@@ -222,7 +222,7 @@ def build_forgot_password_card(name):
     Format AI card after requesting password reset link.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Hello {first_name}. A password reset link has been sent to your email."
+    speech = ""
     return {
         "category": "forgot_password",
         "title": "Password Reset Link Sent",
@@ -236,7 +236,7 @@ def build_password_changed_card():
     """
     Format AI card after password update.
     """
-    speech = "Your password has been updated successfully."
+    speech = ""
     return {
         "category": "password_changed",
         "title": "Password Updated",
@@ -251,7 +251,7 @@ def build_profile_updated_card(name):
     Format AI card after profile update.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Profile updated successfully, {first_name}."
+    speech = ""
     return {
         "category": "profile_updated",
         "title": "Profile Saved",
@@ -266,7 +266,7 @@ def build_avatar_updated_card(name):
     Format AI card after profile picture update.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Profile picture updated successfully, {first_name}."
+    speech = ""
     return {
         "category": "avatar_updated",
         "title": "Profile Picture Updated",
@@ -367,7 +367,7 @@ def build_security_alert_card(name, device, browser, location):
     Format AI security alert card upon login from a new device/location.
     """
     first_name = get_first_name(full_name=name)
-    speech = f"Hello {first_name}. Security notice: login from a new device detected."
+    speech = ""
     return {
         "category": "security_alert",
         "title": "New Device Alert",
@@ -386,7 +386,7 @@ def build_failed_login_card():
     """
     Format AI card for failed login attempt.
     """
-    speech = "Login failed. Incorrect email or password."
+    speech = ""
     return {
         "category": "failed_login",
         "title": "Login Failed",
@@ -400,7 +400,7 @@ def build_session_expired_card():
     """
     Format AI card for expired session.
     """
-    speech = "Your session has expired. Please log in again."
+    speech = ""
     return {
         "category": "session_expired",
         "title": "Session Expired",
@@ -414,7 +414,7 @@ def build_account_locked_card():
     """
     Format AI card when account is locked.
     """
-    speech = "Account locked due to multiple failed login attempts. Try again in 15 minutes."
+    speech = ""
     return {
         "category": "account_locked",
         "title": "Account Locked",

@@ -356,7 +356,24 @@ def normalize_speech_phonetics(question: str) -> str:
     q = re.sub(r"\b(pachas|pachass)\b", "50", q)
     q = re.sub(r"\b(sau|so)\b", "100", q)
 
-    # 3. Structural normalizations (e.g. '5 rows' -> 'top 5 rows')
+    # 3. Roman Urdu analytical phrased normalizations
+    q = re.sub(r"\b(?:sara|saara|sare|saare|pura|poora|tamam)\s+(?:data|records|rows|rec)\b", "show all data", q)
+    q = re.sub(r"\b(?:sara|saara|sare|saare|pura|poora|tamam)\s+(?:dikhao|batao|dekhao|pesh\s+karo)\b", "show all data", q)
+    q = re.sub(r"\b(?:sab\s*se\s*zyada|sabse\s*zyada|sab\s*se\s*ziada|sabse\s*ziada|sab\s*se\s*bara)\b", "highest", q)
+    q = re.sub(r"\b(?:sab\s*se\s*kam|sabse\s*kam|sab\s*se\s*chota)\b", "lowest", q)
+    q = re.sub(r"\b(?:shuru\s+ke|pehle|pehlay)\s+(\d+)\b", r"top \1", q)
+    q = re.sub(r"\b(?:aakhri|akhri|end\s+ke)\s+(\d+)\b", r"last \1", q)
+    q = re.sub(r"\b(?:pehle|pehlay|shuru\s+ke)\b", "top", q)
+    q = re.sub(r"\b(?:aakhri|akhri|end\s+ke)\b", "last", q)
+    q = re.sub(r"\b(?:kitne|kitni|kitna|tadaad)\s+(orders?|rows?|records?|log)\b", r"count of \1", q)
+    q = re.sub(r"\b(?:kitne|kitni|kitna|tadaad)\b", "how many", q)
+    q = re.sub(r"\b(?:dikhao|batao|dekhao|nikalo|pesh\s+karo|bataiye|dikhaye)\b", "show", q)
+    q = re.sub(r"\b(?:munafa)\b", "profit", q)
+    q = re.sub(r"\b(?:kamai|bika|farokht)\b", "sales", q)
+    q = re.sub(r"\b(?:shehar)\b", "city", q)
+    q = re.sub(r"\b(?:ke|k|ki)\s+(?:hisab|hisaab)\s+se\b", "by", q)
+
+    # 4. Structural normalizations (e.g. '5 rows' -> 'top 5 rows')
     if re.match(r"^(\d+)\s+(rows|records|data)\b", q):
         q = "top " + q
 
@@ -661,6 +678,21 @@ _PHRASE_NORMALIZE = [
     (r"\bmahana\b", "monthly"),
     (r"\bsaal\s+(?:ke|k)\s+(?:hisab|hisaab)\s+se\b", "yearly"),
     (r"\bsalana\b", "yearly"),
+    (r"\b(?:sara|saara|sare|saare|pura|poora|tamam)\s+(?:data|records|rows|rec)\b", "show all records"),
+    (r"\b(?:sara|saara|sare|saare|pura|poora|tamam)\s+(?:dikhao|batao|dekhao|pesh\s+karo)\b", "show all records"),
+    (r"\bsab\s*se\s*(?:zyada|ziada|bara|barha|bada)\b", "highest"),
+    (r"\bsab\s*se\s*(?:kam|chota|kamti)\b", "lowest"),
+    (r"\b(?:shuru\s+ke|pehle|pehlay)\s+(\d+)\b", r"top \1"),
+    (r"\b(?:aakhri|akhri|end\s+ke)\s+(\d+)\b", r"last \1"),
+    (r"\b(?:kitne|kitni|kitna|tadaad)\s+orders?\b", "how many orders"),
+    (r"\b(?:kitne|kitni|kitna|tadaad)\b", "how many"),
+    (r"\b(?:dikhao|batao|dekhao|nikalo|pesh\s+karo|bataiye|dikhaye)\b", "show"),
+    (r"\b(?:ke|k|ki)\s+(?:hisab|hisaab)\s+se\b", "by"),
+    (r"\b(?:hisab|hisaab)\s+se\b", "by"),
+    (r"\b(?:kul)\b", "total"),
+    (r"\b(?:munafa)\b", "profit"),
+    (r"\b(?:kamai|bika|farokht)\b", "sales"),
+    (r"\b(?:shehar)\b", "city"),
 ]
 
 # Common Roman Urdu / Hinglish words: never "corrected" into a column or a value
@@ -887,13 +919,11 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     # 2. Check for "Top / First / Highest / Lowest" intent
     is_top_request = any(kw in q_lower for kw in ["top", "first", "pehle", "starting", "head"]) or bool(re.search(r"\b(top|first|pehle)\s*\d{1,4}\b", q_lower))
 
-    # 3. Extract limit N
+    # 3. Extract limit N (only when explicitly tied to top/last/show or followed by records/rows/items)
     limit_val = None
-    top_match = re.search(r"\b(?:top|first|highest|lowest|last|bottom|show|get|fetch|display|pehle|aakhri|aakhiri|akhri)\s*(?:ke|ki|k)?\s*(\d{1,4})\b", q_lower)
+    top_match = re.search(r"\b(?:top|first|highest|lowest|last|bottom|show|get|fetch|display|pehle|aakhri|aakhiri|akhri|shuru\s+ke|end\s+ke)\s*(?:ke|ki|k)?\s*(\d{1,4})\b", q_lower)
     if not top_match:
         top_match = re.search(r"\b(\d{1,4})\s*(?:records|rows|entries|data|items|ross|raws|rose)\b", q_lower)
-    if not top_match:
-        top_match = re.search(r"\b(\d{1,4})\b", q_lower)
 
     if top_match and top_match.group(1):
         try:
@@ -903,7 +933,7 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
         except ValueError:
             limit_val = None
 
-    if (is_last_request or is_top_request) and limit_val is None:
+    if (is_last_request or is_top_request) and limit_val is None and not is_show_all:
         limit_val = 10
 
     # 4. Check for column sort request
@@ -947,7 +977,10 @@ def fast_pattern_sql_generator(question: str, table_name: str, columns_list: lis
     # Rule B: If target entity filter IS present (e.g. "Karachi", "Delivered", "ID 1005", "Ali")
     search_cols = list(columns_list)
     if search_cols:
-        limit_clause = f"TOP {limit_val} " if limit_val else "TOP 500 "
+        if is_show_all and not limit_val:
+            limit_clause = ""
+        else:
+            limit_clause = f"TOP {limit_val} " if limit_val else "TOP 1000 "
         order_clause = f" ORDER BY {safe_pk} {'DESC' if is_last_request else 'ASC'}" if safe_pk else ""
 
         # Priority 0: Semantic Multi-Condition Resolution (e.g. "returned orders from Karachi")

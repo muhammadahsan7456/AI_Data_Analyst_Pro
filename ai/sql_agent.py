@@ -58,8 +58,16 @@ CRITICAL QUERY, SORTING & ROW LIMIT RULES (STRICTLY ENFORCED):
    - Return orders ("return", "returns", "rto", "kitne return aaye"): filter by status columns like `[Delivery_Status] = 'Returned' OR [Status_Description] LIKE '%RETURN%'`.
    - Delivered orders ("delivered", "delivery"): filter by `[Delivery_Status] = 'Delivered' OR [Status_Description] LIKE '%DELIVER%'`.
 
-8. ROMAN URDU & CONVERSATIONAL PROMPTS:
-   - Understand Roman Urdu intent: "batao", "dikhao", "nikalo", "la kar do" = show/fetch; "kitne", "kitni" = COUNT(*); "sab se zyada" = ORDER BY metric DESC; "sab se kam" = ORDER BY metric ASC.
+8. ROMAN URDU & COMPLETE DATA / ALL RECORDS INTENT:
+   - Understand Roman Urdu intent accurately:
+     * "sara data", "sara data dikhao", "pura data", "poora data", "tamam records", "all records", "show all" -> Select ALL matching records WITHOUT restrictive TOP 10 or TOP 50: `SELECT * FROM [{table_name}];` (or with appropriate WHERE filter).
+     * "batao", "dikhao", "nikalo", "pesh karo", "la kar do" = show/fetch
+     * "kitne", "kitni", "kitna", "tadaad", "total count" = COUNT(*)
+     * "sab se zyada", "sabse zyada", "sab se bara", "highest" = ORDER BY metric DESC
+     * "sab se kam", "sabse kam", "sab se chota", "lowest" = ORDER BY metric ASC
+     * "pehle 10", "shuru ke 10" = TOP 10
+     * "aakhri 10", "end ke 10" = TOP 10 with reverse primary key sorting
+     * "munafa" = Profit, "kamai" / "farokht" = Sales/Revenue
    - For "top 10 destination cities by order count": `SELECT TOP 10 [Destination], COUNT(*) AS [Order_Count] FROM [{table_name}] GROUP BY [Destination] ORDER BY [Order_Count] DESC;`.
 
 9. Return ONLY the raw SQL query starting with SELECT and ending with a semicolon (;).

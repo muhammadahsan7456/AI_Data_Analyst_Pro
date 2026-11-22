@@ -445,17 +445,9 @@ function updateNotificationBadge(count) {
 function displayAICard(card) {
     if (!card) return;
 
-    // Only speak out loud if explicit speech string is provided (e.g. for Login, Register, Profile Update)
-    // Do NOT auto-speak for file exports, queries, or background events.
+    // Auto voice greeting disabled per enterprise standard UX
     let speechText = card.speech || "";
     window.currentAIGreetingText = speechText;
-
-    // Speak AI Voice greeting out loud using Web Speech Synthesis API only for main events
-    if (window.speakText && speechText && localStorage.getItem("ai-voice-muted") !== "true") {
-        setTimeout(() => {
-            window.speakText(speechText);
-        }, 400);
-    }
 
     // Display clean, professional toast notification
     const toastMsg = card.lines && card.lines.length > 0 ? card.lines.join(" ") : card.title;
