@@ -115,7 +115,7 @@
                     <select name="default_export_format" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
                         <option value="pdf" {% if current_default_export_format == 'pdf' or not current_default_export_format %}selected{% endif %}>PDF Executive Report</option>
                         <option value="excel" {% if current_default_export_format == 'excel' %}selected{% endif %}>Excel Spreadsheet (.xlsx)</option>
-                        <option value="word" {% if current_default_export_format == 'word' %}selected{% endif %}>Word Document (.docx)</option>
+                        <option value="csv" {% if current_default_export_format == 'csv' %}selected{% endif %}>CSV Spreadsheet (.csv)</option>
                         <option value="pptx" {% if current_default_export_format == 'pptx' %}selected{% endif %}>PowerPoint Presentation (.pptx)</option>
                     </select>
                 </div>
