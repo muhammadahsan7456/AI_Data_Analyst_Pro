@@ -48,17 +48,17 @@
         <div class="home-hero-layout">
             <div class="home-hero-copy">
                 <div class="hero-badge reveal">
-                    <i class="fa-solid fa-chart-line" aria-hidden="true"></i> CSV · Excel · Questions in plain language
+                    <i class="fa-solid fa-bolt" aria-hidden="true"></i> The AI Data Analyst Built for Business Leaders
                 </div>
 
                 <h1 class="hero-title">
-                    Ask a clear question. Get a clear answer from <span class="gradient-text">your data.</span>
+                    Turn Raw Spreadsheets into Executive Decisions <span class="gradient-text">in Seconds.</span>
                 </h1>
 
                 <p class="hero-subtitle">
-                    Bring a CSV or Excel file and ask in <strong>English or Roman Urdu</strong>:
-                    “Which regions drove the highest revenue last quarter?” Review the result, chart, and summary before you export.
-                    <span class="home-hero-typed-line">You can also ask for <span id="typed-hero" class="home-hero-typed-text"></span><span class="home-hero-typed-cursor" aria-hidden="true">&nbsp;</span></span>
+                    No SQL. No complex Excel formulas. Simply upload your spreadsheet and ask anything in <strong>English or Roman Urdu</strong>.
+                    Get interactive charts, actionable business insights, and boardroom-ready PowerPoint & PDF presentations instantly.
+                    <span class="home-hero-typed-line">Ask for <span id="typed-hero" class="home-hero-typed-text"></span><span class="home-hero-typed-cursor" aria-hidden="true">&nbsp;</span></span>
                 </p>
 
                 <div class="hero-cta-group">
@@ -68,14 +68,14 @@
                     </a>
                     {% else %}
                     <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" id="hero-cta-reg">
-                        <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Start free with a CSV
+                        <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Start Free — No Card Needed
                     </a>
                     {% endif %}
                     <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" id="hero-cta-demo">
-                        <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Browse sample analysis
+                        <i class="fa-solid fa-chart-column" aria-hidden="true"></i> View Sample Analysis
                     </a>
                     <button type="button" class="btn-hero-secondary" id="hero-cta-video" onclick="openPromoVideoModal()">
-                        <i class="fa-solid fa-circle-play" aria-hidden="true"></i> See the walkthrough
+                        <i class="fa-solid fa-circle-play" aria-hidden="true"></i> Watch Walkthrough
                     </button>
                 </div>
             </div>
@@ -83,10 +83,10 @@
             <aside class="home-workspace-preview" aria-label="Sample analysis workspace">
                 <div class="preview-window-bar">
                     <span class="preview-file-label"><i class="fa-solid fa-table" aria-hidden="true"></i> northwind_sales.csv</span>
-                    <span class="preview-sample-label">SAMPLE DATA</span>
+                    <span class="preview-sample-label">LIVE PREVIEW</span>
                 </div>
                 <div class="preview-question">
-                    <span class="preview-eyebrow">QUESTION</span>
+                    <span class="preview-eyebrow">EXECUTIVE QUESTION</span>
                     <p>Which regions drove the highest revenue last quarter?</p>
                 </div>
                 <div class="preview-result-heading">
@@ -127,20 +127,20 @@
 
         <div class="stats-grid reveal">
             <div class="stat-card">
-                <div class="counter-value">1 MB</div>
-                <div class="stat-label">Free uploads, no card needed</div>
+                <div class="counter-value">100% Free</div>
+                <div class="stat-label">Full features up to 1 MB, no card needed</div>
             </div>
             <div class="stat-card">
                 <div class="counter-value">500 MB</div>
-                <div class="stat-label">Per file on Pro (PKR 1,499/month)</div>
+                <div class="stat-label">Big data analysis on Pro (PKR 1,499/mo)</div>
             </div>
             <div class="stat-card">
-                <div class="counter-value">7</div>
-                <div class="stat-label">File formats: CSV, Excel, JSON, XML, TSV, Parquet, Feather</div>
+                <div class="counter-value">10x Faster</div>
+                <div class="stat-label">Instant answers without writing SQL or formulas</div>
             </div>
             <div class="stat-card">
-                <div class="counter-value">2</div>
-                <div class="stat-label">Languages for questions: English and Roman Urdu</div>
+                <div class="counter-value">Bilingual AI</div>
+                <div class="stat-label">Ask naturally in English or Roman Urdu</div>
             </div>
         </div>
 
@@ -148,29 +148,29 @@
             <div class="trust-item">
                 <i class="fa-solid fa-file-shield" aria-hidden="true"></i>
                 <div>
-                    <div class="trust-item-title">Private by design</div>
-                    <div class="trust-item-sub">Encrypted data at rest</div>
+                    <div class="trust-item-title">Enterprise Security</div>
+                    <div class="trust-item-sub">AES-256 encrypted data at rest</div>
                 </div>
             </div>
             <div class="trust-item">
                 <i class="fa-solid fa-language" aria-hidden="true"></i>
                 <div>
-                    <div class="trust-item-title">Ask naturally</div>
-                    <div class="trust-item-sub">English & Roman Urdu</div>
+                    <div class="trust-item-title">Natural Queries</div>
+                    <div class="trust-item-sub">English & Roman Urdu supported</div>
                 </div>
             </div>
             <div class="trust-item">
                 <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
                 <div>
-                    <div class="trust-item-title">Inspect the result</div>
-                    <div class="trust-item-sub">Tables, charts, and summaries</div>
+                    <div class="trust-item-title">Visual Answers</div>
+                    <div class="trust-item-sub">Interactive charts & key metrics</div>
                 </div>
             </div>
             <div class="trust-item">
                 <i class="fa-solid fa-file-export" aria-hidden="true"></i>
                 <div>
-                    <div class="trust-item-title">Take it with you</div>
-                    <div class="trust-item-sub">CSV, Excel, PDF, and PPT</div>
+                    <div class="trust-item-title">Executive Exports</div>
+                    <div class="trust-item-sub">PowerPoint, PDF, Excel & CSV</div>
                 </div>
             </div>
         </div>
@@ -187,34 +187,34 @@
 <section class="landing-section home-workflow-section" id="features-preview">
     <div class="container">
         <div class="section-header reveal">
-            <div class="section-badge">A practical analysis workflow</div>
-            <h2 class="section-title">From spreadsheet to decision, without SQL.</h2>
-            <p class="section-subtitle">Bring a file, ask a specific question, then inspect and export a result you can share.</p>
+            <div class="section-badge">WHY TEAMS CHOOSE AI DATA ANALYST PRO</div>
+            <h2 class="section-title">Stop Wrestling With Spreadsheets. Let AI Deliver the Answers.</h2>
+            <p class="section-subtitle">Empower founders, managers, and finance teams to uncover revenue trends, growth opportunities, and critical metrics without waiting on technical data teams.</p>
         </div>
 
         <div class="feature-grid home-feature-grid stagger-children">
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper"><i class="fa-solid fa-table" aria-hidden="true"></i></div>
-                <h3 class="feature-card-title">Start with your spreadsheet</h3>
-                <p class="feature-card-desc">Upload CSV, Excel, JSON, Parquet and more. Files under 1 MB are free; Pro handles files up to 500 MB, processed in the background.</p>
+                <h3 class="feature-card-title">Drop Any Spreadsheet & Start Instantly</h3>
+                <p class="feature-card-desc">Seamlessly upload CSV, Excel, JSON, XML, TSV, Parquet or Feather files. Automatic header cleanup and data type inference ensure your dataset is query-ready in seconds.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i></div>
-                <h3 class="feature-card-title">Ask what you need to know</h3>
-                <p class="feature-card-desc">Try “Which product line grew fastest month over month?” Ask in English or Roman Urdu.</p>
+                <h3 class="feature-card-title">Ask Questions Like You Talk to a Colleague</h3>
+                <p class="feature-card-desc">Ask in plain English or Roman Urdu: “Sab se zyada profit kis product ka hai?” or “Compare month-over-month growth by region”. AI figures out the math and visualizes the result.</p>
             </div>
 
             <div class="feature-card reveal" data-tilt>
                 <div class="feature-icon-wrapper"><i class="fa-solid fa-file-export" aria-hidden="true"></i></div>
-                <h3 class="feature-card-title">Check the result and export</h3>
-                <p class="feature-card-desc">Review the table and relevant chart, then create PDF, PowerPoint, Excel, or CSV reports — {{ site_config.EXPORT_TYPICAL_TIME }}.</p>
+                <h3 class="feature-card-title">Boardroom-Ready Reports in 1 Click</h3>
+                <p class="feature-card-desc">Transform query findings into multi-slide PowerPoint presentations, executive PDF briefings, or clean Excel workbooks with embedded takeaways — ready to share with stakeholders.</p>
             </div>
         </div>
 
         <div style="text-align: center; margin-top: 48px;" class="reveal">
             <a href="{{ url_for('frontend.features_page') }}" class="btn-hero-secondary">
-                <i class="fa-solid fa-arrow-right"></i> Explore All Features
+                <i class="fa-solid fa-arrow-right"></i> Explore All Features & Capabilities
             </a>
         </div>
     </div>
@@ -224,17 +224,17 @@
 <section class="landing-section home-examples-section" id="example-questions">
     <div class="container">
         <div class="section-header reveal">
-            <div class="section-badge">Real questions people ask</div>
-            <h2 class="section-title">Type it the way you would say it.</h2>
-            <p class="section-subtitle">Each answer comes back as a table, a chart when the result suits one, and a short explanation. Questions that are not about your data are politely declined.</p>
+            <div class="section-badge">PROVEN IN REAL BUSINESS SCENARIOS</div>
+            <h2 class="section-title">Ask Real Business Questions. Get Immediate Clarity.</h2>
+            <p class="section-subtitle">See how managers and founders get instant answers to critical financial, operational, and customer performance questions.</p>
         </div>
         <ul class="home-example-list reveal">
-            <li><span class="home-example-tag">Totals</span> What is the total revenue for 2025?</li>
-            <li><span class="home-example-tag">Top N</span> Show the top 10 customers by sales.</li>
-            <li><span class="home-example-tag">Filter</span> How many orders were cancelled in Lahore or Karachi?</li>
-            <li><span class="home-example-tag">Trend</span> Show monthly sales for the last 12 months.</li>
-            <li><span class="home-example-tag">Compare</span> Compare average order value by region.</li>
-            <li><span class="home-example-tag">Roman Urdu</span> Sab se zyada profit kis product ka hai?</li>
+            <li><span class="home-example-tag">Totals</span> What is the total revenue and profit for 2025?</li>
+            <li><span class="home-example-tag">Top N</span> Show the top 10 customers driving the majority of our sales.</li>
+            <li><span class="home-example-tag">Filter</span> How many orders were cancelled or returned in Lahore and Karachi?</li>
+            <li><span class="home-example-tag">Trend</span> Track our monthly sales and revenue growth across the last 12 months.</li>
+            <li><span class="home-example-tag">Compare</span> Compare average order value and customer retention by sales channel.</li>
+            <li><span class="home-example-tag">Roman Urdu</span> Sab se zyada profit aur kamai kis product line se hui?</li>
         </ul>
     </div>
 </section>
@@ -244,11 +244,11 @@
     <div class="container">
         <div class="home-final-cta reveal">
             <div class="home-final-cta-copy">
-                <span class="preview-eyebrow">START WITH ONE FILE</span>
-                <h2>Have a spreadsheet you need to understand?</h2>
+                <span class="preview-eyebrow">MAKE SMARTER DECISIONS FASTER</span>
+                <h2>Ready to Turn Your Data into a Competitive Advantage?</h2>
                 <p>
-                    Join {{ site_config.PROJECTS_COMPLETED }} completed analyses. Ask a question about your data,
-                    inspect the result, and export a report when it is ready.
+                    Join {{ site_config.PROJECTS_COMPLETED }} completed business analyses. Upload your spreadsheet,
+                    ask any question, and get executive presentations in seconds.
                 </p>
             </div>
             <div class="home-final-cta-actions">
@@ -258,10 +258,10 @@
                 </a>
                 {% else %}
                 <a href="{{ url_for('auth.register') }}" class="btn-hero-primary home-final-cta-primary">
-                    <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Start free
+                    <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Start Free — No Card Needed
                 </a>
                 <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary">
-                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i> See a sample
+                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Explore Sample
                 </a>
                 {% endif %}
             </div>
@@ -291,11 +291,11 @@
     // genuinely has.
     function startHeroTypedText() {
         initTypedText('typed-hero', [
-            'PowerPoint & PDF exports',
-            'AI data visualizations',
-            'multi-dataset JOIN analysis',
-            'bilingual voice queries',
-            'executive board briefings'
+            'boardroom PowerPoint decks',
+            'instant visual charts',
+            'revenue & profit breakdowns',
+            'Roman Urdu & English voice queries',
+            'executive PDF briefings'
         ], 60, 35, 2000);
     }
     if (typeof initTypedText === 'function') {
