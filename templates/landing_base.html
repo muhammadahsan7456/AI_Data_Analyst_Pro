@@ -41,11 +41,11 @@
     {% endblock %}
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=20261122">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon.png') }}?v=20261122">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
     <!-- Google Fonts -->
     <!-- Self-hosted font stylesheet (see static/css/fonts.css): the Google Fonts
@@ -80,19 +80,34 @@
     <!-- Schema.org JSON-LD -->
     {% block schema_json %}
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "AI Data Analyst Pro",
-      "operatingSystem": "All (Web Based)",
-      "applicationCategory": "BusinessApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "1499.00",
-        "priceCurrency": "PKR"
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "AI Data Analyst Pro",
+        "url": "{{ canonical_url }}",
+        "logo": "{{ public_root }}static/brand_logo.png"
       },
-      "description": "Enterprise AI Data Analysis Platform for datasets up to 500 MB with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and encrypted dataset storage."
-    }
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "AI Data Analyst Pro",
+        "url": "{{ canonical_url }}"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "AI Data Analyst Pro",
+        "operatingSystem": "All (Web Based)",
+        "applicationCategory": "BusinessApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "1499.00",
+          "priceCurrency": "PKR"
+        },
+        "description": "Enterprise AI Data Analysis Platform for datasets up to 500 MB with AI query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated exports, and encrypted dataset storage."
+      }
+    ]
     </script>
     {% endblock %}
     <!-- Monochrome design layer -->
