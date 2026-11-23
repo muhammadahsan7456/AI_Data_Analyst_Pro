@@ -1773,7 +1773,8 @@ def view_dataset(dataset_id):
         page_df = pd.DataFrame()
 
     if page_df.empty:
-        flash(f"Notice: SQL table [{table_name}] data is currently empty or unavailable.", "warning")
+        flash(f"Notice: The underlying data table for [{table_name}] is empty or was not found in the database. Please re-upload the file or delete this dataset entry.", "warning")
+        return redirect(url_for("frontend.dashboard"))
 
     start_idx = offset + 1 if not page_df.empty else 0
     end_idx = min(offset + len(page_df), total_rows)
@@ -1823,7 +1824,13 @@ def dataset_details(dataset_id):
         pass
 
     table_name = dataset[2]
-    df = run_query(f"SELECT TOP 5000 * FROM {sanitize_identifier(table_name)}")
+    try:
+        df = run_query(f"SELECT TOP 5000 * FROM {sanitize_identifier(table_name)}")
+    except Exception as err:
+        logger.warning("Failed to query dataset #%s (%s): %s", dataset_id, table_name, err)
+        flash(f"The underlying data table for '{table_name}' is missing or unavailable. If this was an older file, please re-upload it or delete this record.", "error")
+        return redirect(url_for("frontend.dashboard"))
+
     report = generate_data_quality_report(df)
     insights = generate_ai_insights(df)
 
@@ -2215,9 +2222,13 @@ def export_dataset(dataset_id, format_type):
                 mimetype="image/svg+xml",
                 headers={"Content-Disposition": build_content_disposition(f"Chart_{base_name}.svg")}
             )
-    except Exception:
+    except Exception as e:
         logger.exception("Dataset export failed: dataset_id=%s format=%s", dataset_id, format_type)
-        flash("Sorry, the export could not be created. Please try again, or contact support if it keeps happening.", "error")
+        err_str = str(e)
+        if "208" in err_str or "Invalid object name" in err_str:
+            flash(f"Could not export: The underlying data table for '{table_name}' is not found. Please re-upload the file.", "error")
+        else:
+            flash("Sorry, the export could not be created. Please try again, or contact support if it keeps happening.", "error")
         return redirect(url_for("frontend.dashboard"))
 
 
@@ -2977,7 +2988,11 @@ def report_builder(dataset_id):
         return render_template("report_builder.html", report_html=report_html, dataset_id=dataset_id, dataset_name=table_name)
     except Exception as e:
         print("Report Builder Error:", e)
-        flash(f"Failed to generate executive report: {str(e)}", "error")
+        err_str = str(e)
+        if "208" in err_str or "Invalid object name" in err_str:
+            flash(f"Could not generate report: The underlying data table for '{table_name}' was not found. Please re-upload the file.", "error")
+        else:
+            flash(f"Failed to generate executive report: {err_str}", "error")
         return redirect(url_for("frontend.dashboard"))
 
 
