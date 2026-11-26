@@ -55,3 +55,19 @@ SUPPORTED_CHART_TYPES = [
     "Area", "Scatter", "Heatmap", "Treemap", "Funnel",
 ]
 CHART_COUNT = len(SUPPORTED_CHART_TYPES)
+
+
+def google_site_verification():
+    import os
+    return (os.getenv("GOOGLE_SITE_VERIFICATION") or "M_0xbw4esNdSq4JyccgcLoMe5OHY8nFO-S5rlwWN9ew").strip()
+
+
+def bing_site_verification():
+    import os
+    return (os.getenv("BING_SITE_VERIFICATION") or "").strip()
+
+
+def ga4_measurement_id():
+    import os
+    return (os.getenv("GA4_MEASUREMENT_ID") or "").strip()
+

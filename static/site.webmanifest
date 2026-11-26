@@ -1,0 +1,21 @@
+{
+  "name": "AI Data Analyst Pro",
+  "short_name": "AI Data Analyst",
+  "description": "Enterprise AI Data Analysis, SQL Querying & Visual Insights",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/static/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
