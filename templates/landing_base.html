@@ -152,10 +152,10 @@
                     <li class="nav-mobile-dashboard-item"><a href="{{ url_for('frontend.dashboard') }}" class="nav-link-item">Dashboard</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('frontend.home') }}" class="nav-link-item {% if request.endpoint == 'frontend.home' %}active{% endif %}">Home</a></li>
-                    <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if 'feature' in request.endpoint %}active{% endif %}">Features</a></li>
+                    <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if request.endpoint and 'feature' in request.endpoint %}active{% endif %}">Features</a></li>
                     <li><a href="{{ url_for('frontend.pricing_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.pricing_page' %}active{% endif %}">Pricing</a></li>
                     <li><a href="{{ url_for('frontend.compare_ai_vs_human') }}" class="nav-link-item {% if request.endpoint == 'frontend.compare_ai_vs_human' %}active{% endif %}">Compare</a></li>
-                    <li><a href="{{ url_for('frontend.blog_index') }}" class="nav-link-item {% if 'blog' in request.endpoint %}active{% endif %}">Blog & Guides</a></li>
+                    <li><a href="{{ url_for('frontend.blog_index') }}" class="nav-link-item {% if request.endpoint and 'blog' in request.endpoint %}active{% endif %}">Blog & Guides</a></li>
                     <li><a href="{{ url_for('frontend.faq_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.faq_page' %}active{% endif %}">FAQ</a></li>
                 </ul>
 
