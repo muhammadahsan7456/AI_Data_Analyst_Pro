@@ -1,9 +1,64 @@
 {% extends "landing_base.html" %}
 
 {% block seo_meta %}
-<title>Pricing — AI Data Analyst Pro | Free Plan & Pro at PKR 1,499/month</title>
+<title>Plans & Pricing (PKR 1,499/mo) — AI Data Analyst Pro</title>
 <meta name="description" content="AI Data Analyst Pro Pricing: Start Free for datasets up to 1 MB, or upgrade to Pro at PKR 1,499/month for 500 MB datasets, Voice AI, and fast PPTX/PDF exports.">
+<meta name="keywords" content="AI data analyst pricing, data analysis software price Pakistan, affordable data analyst alternative, PKR 1499 plan">
 <link rel="canonical" href="{{ canonical_url }}">
+{% endblock %}
+
+{% block og_meta %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:title" content="Transparent Pricing — AI Data Analyst Pro">
+<meta property="og:description" content="Start free for files up to 1 MB. Upgrade to Pro at PKR 1,499/month for 500 MB files, multi-dataset joins, and executive exports.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
+<meta property="og:site_name" content="AI Data Analyst Pro">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "AI Data Analyst Pro Pricing",
+  "url": "https://aidataanalystpro.co.uk/pricing",
+  "description": "Transparent 2-tier pricing: Free Explorer tier (under 1 MB) and Pro tier (PKR 1,499/month up to 500 MB).",
+  "mainEntity": {
+    "@type": "Product",
+    "name": "AI Data Analyst Pro Subscription",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Explorer",
+        "price": "0",
+        "priceCurrency": "PKR",
+        "availability": "https://schema.org/InStock"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Tier",
+        "price": "1499.00",
+        "priceCurrency": "PKR",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "1499.00",
+          "priceCurrency": "PKR",
+          "unitCode": "MON"
+        },
+        "availability": "https://schema.org/InStock"
+      }
+    ]
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://aidataanalystpro.co.uk/"},
+      {"@type": "ListItem", "position": 2, "name": "Pricing", "item": "https://aidataanalystpro.co.uk/pricing"}
+    ]
+  }
+}
+</script>
 {% endblock %}
 
 {% block breadcrumb %}

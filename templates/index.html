@@ -1,8 +1,8 @@
 {% extends "landing_base.html" %}
 
 {% block seo_meta %}
-<title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
-<meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Free forever for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
+<title>AI Data Analyst Pro — Enterprise AI Data Analysis Platform</title>
+<meta name="description" content="Transform Excel & CSV files into SQL insights, charts, and executive exports with AI. Free under 1 MB or PKR 1,499/mo for 500 MB. Instant answers in seconds.">
 <meta name="keywords" content="AI data analyst, ask questions about CSV, Excel data analysis, Roman Urdu data questions, PowerPoint export, encrypted datasets">
 <link rel="canonical" href="{{ public_root }}">
 {% endblock %}
@@ -11,8 +11,8 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ public_root }}">
 <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
-<meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
-<meta property="og:image" content="{{ public_root }}static/images/og-preview.png">
+<meta property="og:description" content="Transform Excel & CSV datasets up to 500 MB into executive charts, tables, and automated reports with natural language AI.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
 <meta property="og:site_name" content="AI Data Analyst Pro">
 {% endblock %}
 
@@ -20,23 +20,53 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "AI Data Analyst Pro",
-  "operatingSystem": "All (Web Based)",
-  "applicationCategory": "BusinessApplication",
-  "offers": { "@type": "Offer", "price": "1499.00", "priceCurrency": "PKR" },
-  "description": "Upload CSV or Excel files and ask questions in plain English or Roman Urdu. Answers with tables and charts, automated exports, and encrypted dataset storage.",
-  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "{{ avg_rating or '4.9' }}", "ratingCount": "{{ review_count or '120' }}" }
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "AI Data Analyst Pro",
-  "url": "https://aidataanalystpro.co.uk/",
-  "logo": "https://aidataanalystpro.co.uk/static/brand_logo.png",
-  "contactPoint": { "@type": "ContactPoint", "telephone": "+92-305-3107456", "contactType": "sales" }
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "AI Data Analyst Pro",
+      "url": "https://aidataanalystpro.co.uk/",
+      "logo": "https://aidataanalystpro.co.uk/static/brand_logo.png",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+92-305-3107456",
+        "contactType": "customer service"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "name": "AI Data Analyst Pro",
+      "url": "https://aidataanalystpro.co.uk/"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "AI Data Analyst Pro",
+      "operatingSystem": "All (Web Browser)",
+      "applicationCategory": "BusinessApplication",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free Tier",
+          "price": "0",
+          "priceCurrency": "PKR",
+          "description": "Full SQL AI querying for files up to 1 MB."
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Plan",
+          "price": "1499.00",
+          "priceCurrency": "PKR",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "1499.00",
+            "priceCurrency": "PKR",
+            "unitCode": "MON"
+          },
+          "description": "500 MB dataset capacity, unlimited questions, executive exports."
+        }
+      ],
+      "description": "Upload CSV or Excel files and query them with plain English or Roman Urdu. Fast SQL intelligence, interactive charts, and executive exports."
+    }
+  ]
 }
 </script>
 {% endblock %}

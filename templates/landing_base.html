@@ -14,7 +14,14 @@
         })();
     </script>
     <meta name="robots" content="index, follow">
-    <meta name="google-site-verification" content="M_0xbw4esNdSq4JyccgcLoMe5OHY8nFO-S5rlwWN9ew">
+    <meta name="theme-color" content="#0d0f12">
+    {% if site_config.google_site_verification() %}
+    <meta name="google-site-verification" content="{{ site_config.google_site_verification() }}">
+    {% endif %}
+    {% if site_config.bing_site_verification() %}
+    <meta name="msvalidate.01" content="{{ site_config.bing_site_verification() }}">
+    {% endif %}
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     {% block seo_meta %}
     <title>AI Data Analyst Pro — Enterprise AI Data Analysis, SQL Querying & Visual Insights</title>
     <meta name="description" content="Transform datasets up to 500 MB into executive insights, charts, and exports with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}. Start free for datasets up to 1MB, or upgrade to Pro at PKR 1,499/month.">
@@ -28,7 +35,7 @@
     <meta property="og:url" content="{{ canonical_url }}">
     <meta property="og:title" content="AI Data Analyst Pro — Enterprise AI Data Analysis Platform">
     <meta property="og:description" content="AI data analysis with query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, automated executive reports, multi-dataset joins, and per-dataset encryption at rest.">
-    <meta property="og:image" content="{{ public_root }}static/images/og-preview.png">
+    <meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
     <meta property="og:site_name" content="AI Data Analyst Pro">
     {% endblock %}
 
@@ -37,13 +44,15 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AI Data Analyst Pro — Enterprise AI Analytics">
     <meta name="twitter:description" content="Transform datasets into insights with AI — query responses in {{ site_config.TYPICAL_RESPONSE_TIME }}, voice querying, and automated exports.">
-    <meta name="twitter:image" content="{{ public_root }}static/images/og-preview.png">
+    <meta name="twitter:image" content="{{ public_root }}static/images/og-image-1200x630.png">
     {% endblock %}
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
@@ -143,11 +152,10 @@
                     <li class="nav-mobile-dashboard-item"><a href="{{ url_for('frontend.dashboard') }}" class="nav-link-item">Dashboard</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('frontend.home') }}" class="nav-link-item {% if request.endpoint == 'frontend.home' %}active{% endif %}">Home</a></li>
-                    <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.features_page' %}active{% endif %}">Features</a></li>
-                    <li><a href="{{ url_for('frontend.demo_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.demo_page' %}active{% endif %}">Live Demo</a></li>
+                    <li><a href="{{ url_for('frontend.features_page') }}" class="nav-link-item {% if 'feature' in request.endpoint %}active{% endif %}">Features</a></li>
                     <li><a href="{{ url_for('frontend.pricing_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.pricing_page' %}active{% endif %}">Pricing</a></li>
-                    <li><a href="{{ url_for('frontend.testimonials_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.testimonials_page' %}active{% endif %}">Reviews</a></li>
-                    <li><a href="{{ url_for('frontend.docs') }}" class="nav-link-item {% if request.endpoint == 'frontend.docs' %}active{% endif %}">Docs</a></li>
+                    <li><a href="{{ url_for('frontend.compare_ai_vs_human') }}" class="nav-link-item {% if request.endpoint == 'frontend.compare_ai_vs_human' %}active{% endif %}">Compare</a></li>
+                    <li><a href="{{ url_for('frontend.blog_index') }}" class="nav-link-item {% if 'blog' in request.endpoint %}active{% endif %}">Blog & Guides</a></li>
                     <li><a href="{{ url_for('frontend.faq_page') }}" class="nav-link-item {% if request.endpoint == 'frontend.faq_page' %}active{% endif %}">FAQ</a></li>
                 </ul>
 
@@ -225,31 +233,35 @@
                 <div class="footer-links-col">
                     <h4>Platform</h4>
                     <ul>
-                        <li><a href="{{ url_for('frontend.features_page') }}"><i class="fa-solid fa-angle-right"></i> Features</a></li>
-                        <li><a href="{{ url_for('frontend.demo_page') }}"><i class="fa-solid fa-angle-right"></i> Live Demo</a></li>
+                        <li><a href="{{ url_for('frontend.features_page') }}"><i class="fa-solid fa-angle-right"></i> All Features</a></li>
+                        <li><a href="{{ url_for('frontend.features_excel_csv') }}"><i class="fa-solid fa-angle-right"></i> Excel & CSV AI</a></li>
+                        <li><a href="{{ url_for('frontend.features_ask_ai') }}"><i class="fa-solid fa-angle-right"></i> Plain Language SQL</a></li>
+                        <li><a href="{{ url_for('frontend.features_sales_forecasting') }}"><i class="fa-solid fa-angle-right"></i> Sales Forecasting</a></li>
+                        <li><a href="{{ url_for('frontend.compare_ai_vs_human') }}"><i class="fa-solid fa-angle-right"></i> Compare AI vs Human</a></li>
                         <li><a href="{{ url_for('frontend.pricing_page') }}"><i class="fa-solid fa-angle-right"></i> Pricing</a></li>
-                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> Security</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-links-col">
-                    <h4>Resources</h4>
+                    <h4>Use Cases</h4>
                     <ul>
+                        <li><a href="{{ url_for('frontend.use_case_retail') }}"><i class="fa-solid fa-angle-right"></i> Retail & E-Commerce</a></li>
+                        <li><a href="{{ url_for('frontend.use_case_pharmacy') }}"><i class="fa-solid fa-angle-right"></i> Pharmacy Analytics</a></li>
+                        <li><a href="{{ url_for('frontend.use_case_manufacturing') }}"><i class="fa-solid fa-angle-right"></i> Manufacturing Plants</a></li>
+                        <li><a href="{{ url_for('frontend.use_case_hospital') }}"><i class="fa-solid fa-angle-right"></i> Hospital Reporting</a></li>
+                        <li><a href="{{ url_for('frontend.use_case_small_business') }}"><i class="fa-solid fa-angle-right"></i> Small Business (SMEs)</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links-col">
+                    <h4>Resources & Trust</h4>
+                    <ul>
+                        <li><a href="{{ url_for('frontend.blog_index') }}"><i class="fa-solid fa-angle-right"></i> Blog & Guides</a></li>
                         <li><a href="{{ url_for('frontend.docs') }}"><i class="fa-solid fa-angle-right"></i> Documentation</a></li>
-                        <li><a href="{{ url_for('frontend.help_center') }}"><i class="fa-solid fa-angle-right"></i> Help Center</a></li>
                         <li><a href="{{ url_for('frontend.faq_page') }}"><i class="fa-solid fa-angle-right"></i> FAQ</a></li>
-                        <li><a href="{{ url_for('frontend.about') }}"><i class="fa-solid fa-angle-right"></i> About Us</a></li>
-                        <li><a href="{{ url_for('frontend.contact') }}"><i class="fa-solid fa-angle-right"></i> Contact</a></li>
-                        <li><a href="mailto:{{ support_email }}" id="footer-support-email" style="overflow-wrap: anywhere;"><i class="fa-solid fa-angle-right"></i> {{ support_email }}</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-links-col">
-                    <h4>Legal & Trust</h4>
-                    <ul>
+                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> Security & Encryption</a></li>
                         <li><a href="{{ url_for('frontend.privacy') }}"><i class="fa-solid fa-angle-right"></i> Privacy Policy</a></li>
                         <li><a href="{{ url_for('frontend.terms') }}"><i class="fa-solid fa-angle-right"></i> Terms of Service</a></li>
-                        <li><a href="{{ url_for('frontend.security_overview') }}"><i class="fa-solid fa-angle-right"></i> Encryption at rest</a></li>
                     </ul>
                 </div>
 

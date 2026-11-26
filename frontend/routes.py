@@ -2404,35 +2404,122 @@ def faq_page():
 
 
 # ==========================================
+# PUBLIC SEO FEATURE, USE CASE & BLOG ROUTES
+# ==========================================
+
+@frontend.route("/features/excel-csv-ai-analysis")
+def features_excel_csv():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("features_excel_csv.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/features/ask-ai-data")
+def features_ask_ai():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("features_ask_ai.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/features/ai-sales-forecasting")
+def features_sales_forecasting():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("features_sales_forecasting.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/compare/ai-analyst-vs-human-analyst")
+def compare_ai_vs_human():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("compare_ai_vs_human.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/use-cases/retail-ecommerce")
+def use_case_retail():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("use_case_retail.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/use-cases/pharmacy-analytics")
+def use_case_pharmacy():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("use_case_pharmacy.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/use-cases/manufacturing-production")
+def use_case_manufacturing():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("use_case_manufacturing.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/use-cases/hospital-clinic-reporting")
+def use_case_hospital():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("use_case_hospital.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/use-cases/small-business")
+def use_case_small_business():
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("use_case_small_business.html", is_logged_in=is_logged_in)
+
+
+@frontend.route("/blog")
+def blog_index():
+    is_logged_in = bool(session.get("user_id"))
+    from utils.blog_data import BLOG_ARTICLES
+    return render_template("blog_index.html", articles=BLOG_ARTICLES, is_logged_in=is_logged_in)
+
+
+@frontend.route("/blog/<slug>")
+def blog_article(slug):
+    is_logged_in = bool(session.get("user_id"))
+    from utils.blog_data import BLOG_ARTICLES
+    article = BLOG_ARTICLES.get(slug)
+    if not article:
+        abort(404)
+    return render_template("blog_article.html", article=article, is_logged_in=is_logged_in)
+
+
+# ==========================================
 # SEO: SITEMAP & ROBOTS.TXT
 # ==========================================
 
 @frontend.route("/sitemap.xml")
 def sitemap_xml():
     today = datetime.now().strftime("%Y-%m-%d")
-    pages = [
-        ("/", "1.0", "weekly"),
-        ("/features", "0.9", "weekly"),
-        ("/demo", "0.9", "weekly"),
-        ("/pricing", "0.9", "weekly"),
-        ("/auth/signup", "0.8", "weekly"),
-        ("/auth/login", "0.8", "weekly"),
-        ("/testimonials", "0.8", "monthly"),
-        ("/security-overview", "0.8", "monthly"),
-        ("/faq", "0.8", "monthly"),
-        ("/about", "0.7", "monthly"),
-        ("/contact", "0.7", "monthly"),
-        ("/docs", "0.7", "monthly"),
-        ("/help", "0.6", "monthly"),
-        ("/privacy", "0.5", "yearly"),
-        ("/terms", "0.5", "yearly"),
+    static_pages = [
+        ("/", "1.0", "weekly", today),
+        ("/features", "0.9", "weekly", today),
+        ("/features/excel-csv-ai-analysis", "0.9", "weekly", today),
+        ("/features/ask-ai-data", "0.9", "weekly", today),
+        ("/features/ai-sales-forecasting", "0.9", "weekly", today),
+        ("/compare/ai-analyst-vs-human-analyst", "0.85", "monthly", today),
+        ("/use-cases/retail-ecommerce", "0.85", "monthly", today),
+        ("/use-cases/pharmacy-analytics", "0.85", "monthly", today),
+        ("/use-cases/manufacturing-production", "0.85", "monthly", today),
+        ("/use-cases/hospital-clinic-reporting", "0.85", "monthly", today),
+        ("/use-cases/small-business", "0.85", "monthly", today),
+        ("/demo", "0.8", "weekly", today),
+        ("/pricing", "0.9", "weekly", today),
+        ("/testimonials", "0.8", "monthly", today),
+        ("/security-overview", "0.8", "monthly", today),
+        ("/faq", "0.8", "monthly", today),
+        ("/about", "0.7", "monthly", today),
+        ("/contact", "0.7", "monthly", today),
+        ("/docs", "0.7", "monthly", today),
+        ("/help", "0.6", "monthly", today),
+        ("/privacy", "0.5", "yearly", today),
+        ("/terms", "0.5", "yearly", today),
+        ("/blog", "0.85", "weekly", today),
     ]
+    from utils.blog_data import BLOG_ARTICLES
     from utils.public_url import public_base_url
     base_url = public_base_url().rstrip("/")
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    for path, priority, freq in pages:
-        xml += f'  <url>\n    <loc>{base_url}{path}</loc>\n    <lastmod>{today}</lastmod>\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>\n'
+    for path, priority, freq, lastmod in static_pages:
+        xml += f'  <url>\n    <loc>{base_url}{path}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>\n'
+    for slug, art in BLOG_ARTICLES.items():
+        art_date = art.get("date", today)
+        xml += f'  <url>\n    <loc>{base_url}/blog/{slug}</loc>\n    <lastmod>{art_date}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.75</priority>\n  </url>\n'
     xml += '</urlset>'
     return Response(xml, mimetype="application/xml")
 
@@ -2443,9 +2530,6 @@ def robots_txt():
     base_url = public_base_url().rstrip("/")
     txt = f"""User-agent: *
 Allow: /
-Allow: /auth/login
-Allow: /auth/signup
-Allow: /auth/forgot-password
 Disallow: /auth/
 Disallow: /dashboard
 Disallow: /upload
@@ -3326,7 +3410,8 @@ def unsubscribe_newsletter(token):
 # ==========================================
 @frontend.app_errorhandler(404)
 def page_not_found(e):
-    return render_template("404.html"), 404
+    is_logged_in = bool(session.get("user_id"))
+    return render_template("404.html", is_logged_in=is_logged_in), 404
 
 
 @frontend.app_errorhandler(500)
