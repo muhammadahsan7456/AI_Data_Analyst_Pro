@@ -1,0 +1,135 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Chat with Your Data & Ask Questions — AI Data Analyst Pro</title>
+<meta name="description" content="Ask questions to your Excel and CSV datasets in plain English or Roman Urdu. Fast sub-second responses, 10 interactive chart formats, and zero hallucination.">
+<meta name="keywords" content="chat with your data, ask questions to Excel, natural language to SQL, conversational BI, voice data analysis, bilingual query engine">
+<link rel="canonical" href="https://aidataanalystpro.co.uk/features/ask-ai-data">
+{% endblock %}
+
+{% block og_meta %}
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://aidataanalystpro.co.uk/features/ask-ai-data">
+<meta property="og:title" content="Chat with Your Data in Plain Language — AI Data Analyst Pro">
+<meta property="og:description" content="Conversational AI business intelligence: speak or type questions, get verified SQL tables and interactive Plotly charts instantly.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
+<meta property="og:site_name" content="AI Data Analyst Pro">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Chat with Your Data & Ask Questions",
+  "url": "https://aidataanalystpro.co.uk/features/ask-ai-data",
+  "description": "Natural language data analysis tool that converts conversational queries into secure, deterministic SQL queries with interactive visualizations.",
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://aidataanalystpro.co.uk/"},
+      {"@type": "ListItem", "position": 2, "name": "Features", "item": "https://aidataanalystpro.co.uk/features"},
+      {"@type": "ListItem", "position": 3, "name": "Ask AI & Chat", "item": "https://aidataanalystpro.co.uk/features/ask-ai-data"}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li><a href="{{ url_for('frontend.features_page') }}">Features</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Ask AI Query Engine</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 50px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-comments"></i> Conversational Intelligence</div>
+            <h1 class="section-title" style="font-size: clamp(32px, 5vw, 52px);">
+                Chat with Your Data in <span class="gradient-text">Plain Language</span>
+            </h1>
+            <p class="section-subtitle">
+                No SQL syntax, no Python scripting, and no formula memorization. Speak or type questions in English or Roman Urdu and get verified analytical answers in {{ site_config.TYPICAL_RESPONSE_TIME }}.
+            </p>
+        </div>
+
+        <!-- Capability Cards -->
+        <div class="feature-grid stagger-children" style="margin-top: 40px;">
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-microphone"></i></div>
+                <h3 class="feature-card-title">Bilingual Voice & Text AI</h3>
+                <p class="feature-card-text">
+                    Click the microphone icon and ask in your natural cadence. The Web Speech engine transcribes English, Urdu, and Roman Urdu seamlessly, executing complex aggregations without a page reload.
+                </p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-brain-circuit"></i></div>
+                <h3 class="feature-card-title">Zero-Hallucination Architecture</h3>
+                <p class="feature-card-text">
+                    Generic LLMs guess arithmetic. Our Text-to-SQL architecture compiles queries into pure Microsoft SQL Server / Azure SQL Edge execution, ensuring 100% mathematical precision on every calculation.
+                </p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-chart-pie"></i></div>
+                <h3 class="feature-card-title">10 Interactive Visual Formats</h3>
+                <p class="feature-card-text">
+                    Toggle instantly between Bar, Line, Area, Donut, Scatter, Heatmap, and Treemap visual representations with zero re-query latency. Download SVG vectors or slide-ready PNG charts.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Example Questions Section -->
+<section class="landing-section" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+    <div class="container">
+        <div class="section-header reveal">
+            <h2 class="section-title">Real Questions Business Leaders Ask Daily</h2>
+            <p class="section-subtitle">From simple sums to multi-dimensional cohort breakdowns, here are queries our users run in seconds.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 35px;">
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
+                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">Executive Sales</div>
+                <div style="font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.5;">"What were our top 5 revenue-generating products in Q3, and what was their gross profit percentage?"</div>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
+                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">Regional Logistics</div>
+                <div style="font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.5;">"Compare average order value across Lahore, Karachi, and Islamabad branches over the last 90 days."</div>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
+                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">Bilingual Voice Query</div>
+                <div style="font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.5;">"Sabse zyada returns kis category me aa rahe hain aur unki total value kitni hai?"</div>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
+                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">Inventory & Stock</div>
+                <div style="font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.5;">"Which SKUs have less than 15 days of inventory remaining based on last month's daily sales rate?"</div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 50px;">
+            <a href="{{ url_for('frontend.demo_page') }}" class="btn-hero-secondary" style="padding: 14px 30px; font-size: 15px; margin-right: 15px;">
+                <i class="fa-solid fa-play"></i> Try Interactive Demo Sandbox
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" style="padding: 14px 34px; font-size: 15px;">
+                <i class="fa-solid fa-arrow-right"></i> Create Free Account
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

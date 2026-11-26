@@ -1,0 +1,118 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Hospital & Clinic Operational Reporting — AI Data Analyst Pro</title>
+<meta name="description" content="Analyze hospital appointment logs, patient wait times, bed occupancy rates, and clinic department loads with AI. Clear operational visibility from healthcare CSVs.">
+<meta name="keywords" content="hospital data reporting, patient wait time analysis, clinic appointment data, bed occupancy analytics, healthcare operational metrics">
+<link rel="canonical" href="https://aidataanalystpro.co.uk/use-cases/hospital-clinic-reporting">
+{% endblock %}
+
+{% block og_meta %}
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://aidataanalystpro.co.uk/use-cases/hospital-clinic-reporting">
+<meta property="og:title" content="Hospital & Clinic Operational Reporting — AI Data Analyst Pro">
+<meta property="og:description" content="Healthcare administrators and clinic directors can audit patient flow, appointment no-shows, and resource utilization instantly.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
+<meta property="og:site_name" content="AI Data Analyst Pro">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Hospital & Clinic Operational Reporting",
+  "url": "https://aidataanalystpro.co.uk/use-cases/hospital-clinic-reporting",
+  "description": "Hospital patient flow, wait times, and clinic capacity analytics powered by AI Data Analyst Pro.",
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://aidataanalystpro.co.uk/"},
+      {"@type": "ListItem", "position": 2, "name": "Use Cases", "item": "https://aidataanalystpro.co.uk/use-cases/hospital-clinic-reporting"},
+      {"@type": "ListItem", "position": 3, "name": "Hospital Reporting", "item": "https://aidataanalystpro.co.uk/use-cases/hospital-clinic-reporting"}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Use Cases: Hospital & Clinic Reporting</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 50px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-hospital"></i> Healthcare Administration</div>
+            <h1 class="section-title" style="font-size: clamp(32px, 5vw, 52px);">
+                Hospital & Clinic <span class="gradient-text">Operational Analytics</span>
+            </h1>
+            <p class="section-subtitle" style="max-width: 820px; margin: 0 auto;">
+                Empower hospital directors, medical superintendents, and clinic managers to audit patient appointment flow, waiting room bottlenecks, bed occupancy rates, and departmental caseloads from standard administrative exports.
+            </p>
+        </div>
+
+        <div class="features-grid" style="margin-top: 48px;">
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-clock"></i></div>
+                <h3>Patient Wait-Time Auditing</h3>
+                <p>Track check-in times versus doctor consultation start times across OPD departments. Identify peak congestion windows and staffing gaps.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.1s;">
+                <div class="feature-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+                <h3>Appointment No-Show Trends</h3>
+                <p>Calculate no-show and cancellation rates across specialties, days of the week, and booking channels to optimize clinic scheduling slots.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.2s;">
+                <div class="feature-icon"><i class="fa-solid fa-bed"></i></div>
+                <h3>Bed Occupancy & Turnover</h3>
+                <p>Analyze inpatient admission durations, average length of stay (ALOS), and bed turnover intervals across surgical and medical wards.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.3s;">
+                <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3>Privacy-Conscious De-Identified Data</h3>
+                <p>Process operational registration logs and aggregated metrics securely without transmitting identifying personal health data.</p>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 40px; margin-top: 60px;">
+            <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 20px;">Common Healthcare Administrative Queries</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "What was our average OPD patient wait time by department this month?"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Which day of the week has the highest clinic cancellation rate?"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Calculate average length of stay (ALOS) across our top 5 admission reasons"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Show monthly patient registration volume over the last 12 months"
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-banner reveal" style="margin-top: 60px;">
+            <h2>Streamline Hospital & Clinic Operations</h2>
+            <p>Upload operational logs or scheduling spreadsheets. Test for free under 1 MB.</p>
+            <div style="margin-top: 24px;">
+                <a href="{{ url_for('frontend.upload') }}" class="btn btn-primary btn-lg">Analyze Healthcare Sheet</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

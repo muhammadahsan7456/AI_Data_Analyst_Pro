@@ -1,0 +1,139 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Analyze Excel & CSV Files with AI — AI Data Analyst Pro</title>
+<meta name="description" content="Analyze Excel and CSV files up to 500 MB with AI. Auto-detect schemas, clean messy rows, run fast SQL queries, and generate executive charts in seconds.">
+<meta name="keywords" content="analyze Excel file with AI, analyze CSV online, CSV analyzer, upload dataset and get insights, AI charts from Excel, spreadsheet analytics">
+<link rel="canonical" href="https://aidataanalystpro.co.uk/features/excel-csv-ai-analysis">
+{% endblock %}
+
+{% block og_meta %}
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://aidataanalystpro.co.uk/features/excel-csv-ai-analysis">
+<meta property="og:title" content="Analyze Excel & CSV Files with AI — AI Data Analyst Pro">
+<meta property="og:description" content="Ingest Excel and CSV datasets up to 500 MB. Ask plain questions and get instant SQL-backed tables, charts, and slide decks.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
+<meta property="og:site_name" content="AI Data Analyst Pro">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Analyze Excel & CSV Files with AI",
+  "url": "https://aidataanalystpro.co.uk/features/excel-csv-ai-analysis",
+  "description": "Upload Excel (.xlsx, .xls) and CSV spreadsheets up to 500 MB and query them with AI-driven SQL intelligence.",
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://aidataanalystpro.co.uk/"},
+      {"@type": "ListItem", "position": 2, "name": "Features", "item": "https://aidataanalystpro.co.uk/features"},
+      {"@type": "ListItem", "position": 3, "name": "Excel & CSV Analysis", "item": "https://aidataanalystpro.co.uk/features/excel-csv-ai-analysis"}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li><a href="{{ url_for('frontend.features_page') }}">Features</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Excel & CSV Analysis</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 50px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-file-excel"></i> File Ingestion Engine</div>
+            <h1 class="section-title" style="font-size: clamp(32px, 5vw, 52px);">
+                Analyze Excel & CSV Files with <span class="gradient-text">Enterprise AI</span>
+            </h1>
+            <p class="section-subtitle">
+                Stop wrestling with fragile VLOOKUPs, bloated workbooks, and frozen PivotTables. Ingest spreadsheets up to 500 MB and query your numbers at SQL speed.
+            </p>
+        </div>
+
+        <!-- Capability Cards -->
+        <div class="feature-grid stagger-children" style="margin-top: 40px;">
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-bolt"></i></div>
+                <h3 class="feature-card-title">500 MB Streaming Ingestion</h3>
+                <p class="feature-card-text">
+                    While desktop Excel freezes on files over 100,000 rows, AI Data Analyst Pro utilizes high-speed streaming chunking to process workbooks with millions of records seamlessly in the background.
+                </p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3 class="feature-card-title">Per-Dataset AES-256 Vault</h3>
+                <p class="feature-card-text">
+                    Every uploaded spreadsheet is partitioned into an isolated relational table, secured with AES-256 encryption at rest. Multi-tenant row isolation ensures only you can access your records.
+                </p>
+            </div>
+
+            <div class="feature-card reveal" data-tilt>
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <h3 class="feature-card-title">Automatic Schema Normalization</h3>
+                <p class="feature-card-text">
+                    The ingestion pipeline detects column types (dates, integers, decimals, categories), resolves mixed encodings, strips currency symbols, and generates optimized database indexes automatically.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="landing-section" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+    <div class="container">
+        <div class="section-header reveal">
+            <h2 class="section-title">From Raw Spreadsheet to Executive Clarity</h2>
+            <p class="section-subtitle">Three steps to replace manual workbook maintenance with automated AI intelligence.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 30px;">
+                <div style="font-size: 28px; font-weight: 800; color: #38bdf8; margin-bottom: 12px;">01</div>
+                <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 10px;">Upload Files</h3>
+                <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
+                    Drop any <code>.csv</code>, <code>.tsv</code>, <code>.xlsx</code>, or <code>.xls</code> file into the secure uploader. The engine validates column integrity and detects duplicate rows.
+                </p>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 30px;">
+                <div style="font-size: 28px; font-weight: 800; color: #38bdf8; margin-bottom: 12px;">02</div>
+                <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 10px;">Ask in Plain Words</h3>
+                <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
+                    Query your data using natural English or Roman Urdu: <em>"Which product had the highest gross profit margin last quarter?"</em> The system compiles and runs deterministic SQL queries.
+                </p>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 30px;">
+                <div style="font-size: 28px; font-weight: 800; color: #38bdf8; margin-bottom: 12px;">03</div>
+                <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 10px;">Export Decks & Reports</h3>
+                <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
+                    Export verified numbers directly to PowerPoint (.pptx), PDF reports, or clean Excel files with embedded high-resolution Plotly charts ready for board presentation.
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 50px;">
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" style="padding: 16px 36px; font-size: 16px;">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Start Analyzing Free (Files &lt; 1 MB)
+            </a>
+            <div style="margin-top: 12px; font-size: 13px; color: #94a3b8;">
+                No credit card required • Pro tier PKR 1,499/mo for datasets up to 500 MB
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Pharmacy Sales & Medicine Inventory Analytics — AI Data Analyst</title>
+<meta name="description" content="Analyze pharmacy sales registers, medicine stock, batch expiry dates, and supplier purchase invoices with AI. Prevent stockouts and reduce medicine waste.">
+<meta name="keywords" content="pharmacy sales analysis, medicine inventory tracking, batch expiry date analysis, pharmacy POS reporting, pharmacy analytics software">
+<link rel="canonical" href="https://aidataanalystpro.co.uk/use-cases/pharmacy-analytics">
+{% endblock %}
+
+{% block og_meta %}
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://aidataanalystpro.co.uk/use-cases/pharmacy-analytics">
+<meta property="og:title" content="Pharmacy Sales & Medicine Inventory Analytics — AI Data Analyst">
+<meta property="og:description" content="AI data analysis for pharmacies, chemists, and medical stores. Track fast-moving medicines, expiry dates, and distributor margins.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
+<meta property="og:site_name" content="AI Data Analyst Pro">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Pharmacy Sales & Medicine Inventory Analytics",
+  "url": "https://aidataanalystpro.co.uk/use-cases/pharmacy-analytics",
+  "description": "Medicine stock management and retail pharmacy sales data analysis with AI Data Analyst Pro.",
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://aidataanalystpro.co.uk/"},
+      {"@type": "ListItem", "position": 2, "name": "Use Cases", "item": "https://aidataanalystpro.co.uk/use-cases/pharmacy-analytics"},
+      {"@type": "ListItem", "position": 3, "name": "Pharmacy Analytics", "item": "https://aidataanalystpro.co.uk/use-cases/pharmacy-analytics"}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Use Cases: Pharmacy Analytics</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 50px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-prescription-bottle-medical"></i> Healthcare & Pharmacy</div>
+            <h1 class="section-title" style="font-size: clamp(32px, 5vw, 52px);">
+                Pharmacy Sales & <span class="gradient-text">Medicine Inventory Analytics</span>
+            </h1>
+            <p class="section-subtitle" style="max-width: 820px; margin: 0 auto;">
+                Running a pharmacy or chain of medical stores requires razor-sharp inventory control. Avoid expired drug losses, ensure critical life-saving antibiotics are never out of stock, and audit distributor purchase discounts with AI.
+            </p>
+        </div>
+
+        <div class="features-grid" style="margin-top: 48px;">
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-hourglass-end"></i></div>
+                <h3>Near-Expiry Stock Warnings</h3>
+                <p>Filter medicine batches expiring within 30, 60, or 90 days. Return slow-moving lots to pharmaceutical distributors before expiry write-offs occur.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.1s;">
+                <div class="feature-icon"><i class="fa-solid fa-truck-medical"></i></div>
+                <h3>Fast-Moving vs. Slow-Moving Drugs</h3>
+                <p>Identify high-turnover medicines (e.g. analgesics, anti-hypertensives) and calculate your optimum reorder point based on historical sales velocity.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.2s;">
+                <div class="feature-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <h3>Distributor Margin Auditing</h3>
+                <p>Compare purchase invoices across pharmaceutical distributors. Discover variance in distributor bonus schemes and trade discounts.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.3s;">
+                <div class="feature-icon"><i class="fa-solid fa-notes-medical"></i></div>
+                <h3>Doctor Prescription Trends</h3>
+                <p>Analyze prescription origin sheets to understand which clinics and specialists refer the highest volume of high-value treatments to your store.</p>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 40px; margin-top: 60px;">
+            <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 20px;">Questions Pharmacy Managers Ask Our AI</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Which medicine batches have less than 90 days remaining before expiry?"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "List our top 20 medicines by gross sales volume this month"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Which manufacturer's products yield our highest trade margins?"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "What is our estimated capital locked up in unsold stock older than 6 months?"
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-banner reveal" style="margin-top: 60px;">
+            <h2>Protect Your Pharmacy Margins</h2>
+            <p>Export your pharmacy POS or Excel inventory register and upload it now. Free under 1 MB.</p>
+            <div style="margin-top: 24px;">
+                <a href="{{ url_for('frontend.upload') }}" class="btn btn-primary btn-lg">Upload Pharmacy Data</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "landing_base.html" %}
+
+{% block seo_meta %}
+<title>Retail & E-Commerce Data Analysis — AI Data Analyst Pro</title>
+<meta name="description" content="Turn Shopify, WooCommerce, Amazon, and POS store spreadsheets into actionable retail insights. Track SKU velocity, gross margins, and customer repeat rates.">
+<meta name="keywords" content="retail sales data analysis, ecommerce analytics, customer lifetime value CSV, inventory turnover analysis, store sales reports">
+<link rel="canonical" href="https://aidataanalystpro.co.uk/use-cases/retail-ecommerce">
+{% endblock %}
+
+{% block og_meta %}
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://aidataanalystpro.co.uk/use-cases/retail-ecommerce">
+<meta property="og:title" content="Retail & E-Commerce Data Analysis — AI Data Analyst Pro">
+<meta property="og:description" content="Analyze online store sales, order CSVs, and retail POS data with natural language queries and automated charts.">
+<meta property="og:image" content="{{ public_root }}static/images/og-image-1200x630.png">
+<meta property="og:site_name" content="AI Data Analyst Pro">
+{% endblock %}
+
+{% block schema_json %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Retail & E-Commerce Data Analysis",
+  "url": "https://aidataanalystpro.co.uk/use-cases/retail-ecommerce",
+  "description": "Retail, Shopify, and e-commerce spreadsheet analytics powered by AI Data Analyst Pro.",
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://aidataanalystpro.co.uk/"},
+      {"@type": "ListItem", "position": 2, "name": "Use Cases", "item": "https://aidataanalystpro.co.uk/use-cases/retail-ecommerce"},
+      {"@type": "ListItem", "position": 3, "name": "Retail & E-Commerce", "item": "https://aidataanalystpro.co.uk/use-cases/retail-ecommerce"}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-bar">
+    <div class="container">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('frontend.home') }}">Home</a></li>
+            <li class="breadcrumb-sep">/</li>
+            <li>Use Cases: Retail & E-Commerce</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="landing-section" style="padding-top: 50px;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-badge"><i class="fa-solid fa-cart-shopping"></i> Retail & E-Commerce Analytics</div>
+            <h1 class="section-title" style="font-size: clamp(32px, 5vw, 52px);">
+                Maximize Retail Profit & <span class="gradient-text">E-Commerce SKU Margins</span>
+            </h1>
+            <p class="section-subtitle" style="max-width: 800px; margin: 0 auto;">
+                Export order CSVs from Shopify, WooCommerce, Daraz, Amazon, or your physical retail POS. In seconds, see which products generate true profit, which SKUs are dead stock, and when peak shopping occurs.
+            </p>
+        </div>
+
+        <div class="features-grid" style="margin-top: 48px;">
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <h3>Dead Inventory & Aging Stock</h3>
+                <p>Isolate SKUs that have not had a single sale in 60, 90, or 180 days. Free up working capital before inventory depreciates.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.1s;">
+                <div class="feature-icon"><i class="fa-solid fa-basket-shopping"></i></div>
+                <h3>Basket Size & Cross-Selling</h3>
+                <p>Find out which products are frequently ordered together. Optimize product bundling and cart upsell recommendations.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.2s;">
+                <div class="feature-icon"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                <h3>Refund & Return Rate Auditing</h3>
+                <p>Flag product lines or sizing categories with abnormal return rates so you can inspect supplier quality issues immediately.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.3s;">
+                <div class="feature-icon"><i class="fa-solid fa-users"></i></div>
+                <h3>Customer Repeat Purchase Rate</h3>
+                <p>Calculate one-time buyers versus repeat customers. Discover your true retention cohort behavior from simple transaction lists.</p>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 40px; margin-top: 60px;">
+            <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 20px;">Real Retail Questions You Can Ask</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Show top 10 products by gross profit margin, not just total revenue"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Which day of the week generates our highest average order value?"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "What percentage of customers placed more than 2 orders this quarter?"
+                </div>
+                <div style="padding: 16px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-comment-dots" style="color: var(--accent); margin-right: 8px;"></i>
+                    "Compare online web revenue versus in-store counter sales month by month"
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-banner reveal" style="margin-top: 60px;">
+            <h2>Analyze Your Store Sales Today</h2>
+            <p>Upload your order CSV or Excel spreadsheet. Free under 1 MB, or get 500 MB capacity with Pro for PKR 1,499/month.</p>
+            <div style="margin-top: 24px;">
+                <a href="{{ url_for('frontend.upload') }}" class="btn btn-primary btn-lg">Upload Retail CSV</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
