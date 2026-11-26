@@ -497,3 +497,65 @@ Schema: none (the sweep only changes values in existing columns).
 - Internal link crawl (`crawl.py`): anonymous 25 URLs, user 68, admin 40, 0 internal 404/5xx. Every `url()` in the CSS (the three font files) returns 200.
 - Schema: none. New env vars: none.
 - Not verified: real devices/browsers other than headless Chromium; production (Nginx, Cloudflare) performance.
+
+## SEO Optimization (Branch: seo/optimization)
+
+### Phase 1 — Technical & On-Page SEO Audit
+- **Domain Confirmation:** Verified live server at `84.235.244.179` running behind Nginx. Confirmed production domain `https://aidataanalystpro.co.uk` (user confirmed).
+- **Public URL Crawl & Audits:**
+  - Audited existing public routes (`/`, `/features`, `/demo`, `/pricing`, `/testimonials`, `/security-overview`, `/faq`, `/about`, `/contact`, `/docs`, `/help`, `/privacy`, `/terms`).
+  - Identified indexation flaw: `/auth/login` and `/auth/signup` were inadvertently exposed in `sitemap.xml` despite carrying `noindex` directives.
+  - Inspected Favicon and Google SERP snippet: Google search snippet displayed legacy cached icon. Generated modern multi-resolution icons (512px, 192px, 96px, 48px, 16px ICO) and verified deployment.
+  - Checked 404 error handler: Updated custom 404 to gracefully support unauthenticated visitors without attempting to load dashboard sidebar sessions.
+
+### Phase 2 — Keyword Strategy & Taxonomy
+- **Documentation:** Created comprehensive `docs/SEO_KEYWORDS.md`.
+- **Keyword Mapping:** Established 1-to-1 canonical keyword mapping to prevent internal cannibalization across 5 primary clusters:
+  1. Primary & Core Intent terms (`/`)
+  2. Feature-specific terms (`/features/excel-csv-ai-analysis`, `/features/ask-ai-data`, `/features/ai-sales-forecasting`)
+  3. Industry & Vertical Use Cases (`/use-cases/retail-ecommerce`, `/use-cases/pharmacy-analytics`, `/use-cases/manufacturing-production`, `/use-cases/hospital-clinic-reporting`, `/use-cases/small-business`)
+  4. Decision & Comparison terms (`/compare/ai-analyst-vs-human-analyst`, `/pricing`)
+  5. Long-Tail Educational Guides (`/blog/*`)
+
+### Phase 3 — On-Page SEO & Structured Data Assets
+- **Asset Creation:**
+  - Designed and rendered high-resolution 1200x630 Open Graph share card: `static/images/og-image-1200x630.png`.
+  - Created W3C-compliant Web App Manifest: `static/site.webmanifest` with responsive theme colors (`#0d0f12`).
+  - Configured favicon multi-size links in `templates/landing_base.html` (48px, 96px, 192px, 512px, Apple Touch Icon).
+- **Metadata Tightening:**
+  - Normalized page titles to 50-60 characters and meta descriptions to 140-160 characters.
+  - Injected Schema.org JSON-LD structured data strictly in compliant JSON format: `Organization`, `WebSite`, `SoftwareApplication` with transparent pricing (Free Tier + PKR 1,499/mo Pro Tier), `Product`, and `BreadcrumbList`. Removed unverified `aggregateRating` from `/`.
+
+### Phase 4 — High-Ranking Content Creation
+- **New Feature Landing Pages:**
+  - `/features/excel-csv-ai-analysis`: 500 MB file upload engine, auto-schema detection, zero-code SQL conversion.
+  - `/features/ask-ai-data`: Conversational data querying in English and Roman Urdu, instant chart switching.
+  - `/features/ai-sales-forecasting`: Trend and revenue forecasting from historical transaction logs with clear non-financial advisory disclaimers.
+- **Industry Vertical Pages:**
+  - `/use-cases/retail-ecommerce`: SKU margin tracking, dead stock discovery, repeat customer cohort analysis.
+  - `/use-cases/pharmacy-analytics`: Batch expiry warnings, distributor discount audits, high-velocity medicine restocking.
+  - `/use-cases/manufacturing-production`: Plant downtime root-cause analysis, defect scrap reduction, OEE estimation.
+  - `/use-cases/hospital-clinic-reporting`: Patient OPD wait times, clinic appointment no-shows, bed occupancy turnover.
+  - `/use-cases/small-business`: Affordable SME analytics, cash-flow visibility, stakeholder presentations.
+- **Comparison & Pricing:**
+  - `/compare/ai-analyst-vs-human-analyst`: Objective, transparent speed, cost, and capability comparison.
+  - `/pricing`: Transparent 2-tier pricing (Free Explorer + PKR 1,499 Pro) with Product Schema.
+- **Educational Guides & Blog Hub:**
+  - `/blog`: Responsive guides index with category badges, author attribution, and reading times.
+  - `/blog/<slug>`: 8 comprehensive long-tail guides with embedded `BlogPosting`, `BreadcrumbList`, and `FAQPage` schemas.
+
+### Phase 5 — Technical SEO & Server Configuration
+- **Dynamic XML Sitemap:**
+  - `/sitemap.xml`: Dynamically serves all public static pages and 8 blog articles with accurate `<lastmod>` timestamps. Excludes all private/auth routes.
+- **Robots.txt Optimization:**
+  - `/robots.txt`: Allows public indexing while strictly disallowing private application routes (`/auth/`, `/dashboard`, `/upload`, `/chat`, `/settings`, `/api/`, `/admin/`, etc.).
+- **Search Verification & Analytics Hooks:**
+  - Implemented environment-driven verification hooks in `site_config.py` for Google Search Console, Bing Webmaster Tools, and Google Analytics 4 (`GA4_MEASUREMENT_ID`).
+
+### Phase 6 — QA & Verification Suite
+- **Endpoint HTTP Verification:** All new routes verified to return HTTP 200 with complete Schema.org JSON-LD payloads and zero syntax warnings.
+- **404 Behavior:** Confirmed non-existent routes return HTTP 404 with custom branded navigation.
+
+### Phase 7 — Off-Site Authority & Launch Roadmap
+- **Documentation:** Authored `docs/SEO_LAUNCH_CHECKLIST.md` containing GSC/Bing setup, Favicon refresh protocol, high-authority SaaS directories, and an 8-week content calendar.
+
